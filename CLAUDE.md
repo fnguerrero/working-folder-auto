@@ -1,0 +1,39 @@
+# Working Folder Auto: convenciones
+
+Repo del **Programador nocturno**. Es PÚBLICO y se publica con GitHub Pages en
+https://fnguerrero.github.io/working-folder-auto/, así que nunca van datos personales, claves ni nada privado.
+
+## Estructura
+
+| Carpeta | Qué va |
+|---|---|
+| `juegos/<slug>/` | Juegos. |
+| `apps/<slug>/` | Aplicaciones: web/PWA, de escritorio o mobile. |
+| `herramientas/<slug>/` | Scripts, automatizaciones y procesos. |
+| `escritos/<slug>/` | Libros, ensayos, guías e investigaciones. |
+| `experimentos/<slug>/` | Lo exploratorio o que no entra en otra categoría. |
+| `_archivo/<categoría>/<slug>/` | Lo que Nico rechazó o no prosperó. No se borra, se mueve acá. |
+
+- Cada proyecto tiene su propio `README.md`: qué es, estado, cómo se prueba y, si aplica, qué no se pudo probar.
+- La spec, el checklist y la bitácora de un proyecto de varias noches van en `<proyecto>/.nonstop/`.
+- Al crear, terminar o archivar un proyecto se actualizan `proyectos.json` (lo lee la vitrina, `index.html`) y la tabla del `README.md` de la raíz.
+- Estados: `en curso`, `terminado`, `archivado`. Como máximo 3 `en curso` a la vez.
+
+## Cómo se trabaja
+
+- Directo sobre `main`: commit y push, sin PRs. Nunca force push ni reescribir historia.
+- Commits en español y descriptivos, sin `Co-Authored-By` ni menciones a Claude, Anthropic o la IA.
+- Textos en español rioplatense. El contexto es Argentina.
+
+## Proyectos web
+
+- HTML, CSS y JavaScript puro, sin dependencias, CDNs ni assets externos salvo que sean imprescindibles (y se justifica en el README).
+- Funcionan en el celular (táctil) y en la compu (teclado y mouse).
+- Rutas relativas, para que anden igual en GitHub Pages y abiertos en local.
+- `localStorage` siempre dentro de try/catch.
+- Link para probar: `https://fnguerrero.github.io/working-folder-auto/<categoría>/<slug>/`.
+
+## Juegos
+
+- Un `index.html` autocontenido: gráficos con canvas, SVG o CSS y sonido con WebAudio.
+- Los de Valentín (sobrino de Nico, de alrededor de 1 año) no llevan puntaje ni derrota.

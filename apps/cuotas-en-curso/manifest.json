@@ -1,0 +1,14 @@
+{
+  "name": "Cuotas en curso",
+  "short_name": "Cuotas",
+  "description": "Lo que ya comprometiste en cuotas, mes a mes.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#12131a",
+  "theme_color": "#12131a",
+  "lang": "es-AR",
+  "icons": [
+    { "src": "icono.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

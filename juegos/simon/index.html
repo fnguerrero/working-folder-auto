@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Simón dice</title>
+<style>
+  :root { --bg: #0f1020; --fg: #e8e8f0; --accent: #8b7cff; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 12px; user-select: none; touch-action: manipulation; }
+  h1 { margin: 0; font-size: 1.6rem; }
+  #info { display: flex; gap: 24px; font-size: 1.1rem; }
+  #msg { min-height: 1.5em; text-align: center; font-size: 1.1rem; }
+  #tablero { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: min(92vw, 62vh, 460px); aspect-ratio: 1; }
+  .boton { border: 0; border-radius: 18px; cursor: pointer; opacity: .45; transition: opacity .08s, transform .08s, filter .08s; font-size: 1.2rem; color: rgba(0,0,0,.5); font-weight: bold; }
+  .boton.on { opacity: 1; filter: brightness(1.35); transform: scale(.96); box-shadow: 0 0 30px currentColor; }
+  .boton:focus-visible { outline: 3px solid #fff; }
+  #b0 { background: #2ecc71; color: #2ecc71; } #b1 { background: #e74c3c; color: #e74c3c; }
+  #b2 { background: #f1c40f; color: #f1c40f; } #b3 { background: #3498db; color: #3498db; }
+  .boton span { color: rgba(0,0,0,.55); }
+  #tablero.bloqueado .boton { cursor: default; }
+  #empezar { padding: 12px 28px; font-size: 1.1rem; border: 0; border-radius: 10px; background: var(--accent); color: #fff; cursor: pointer; }
+  small { opacity: .6; }
+</style>
+</head>
+<body>
+<h1>Simón dice</h1>
+<div id="info"><div>Ronda: <b id="ronda">0</b></div><div>Récord: <b id="record">0</b></div></div>
+<div id="msg">Tocá «Empezar» para jugar</div>
+<div id="tablero" class="bloqueado">
+  <button class="boton" id="b0" aria-label="Verde"><span>1</span></button>
+  <button class="boton" id="b1" aria-label="Rojo"><span>2</span></button>
+  <button class="boton" id="b2" aria-label="Amarillo"><span>3</span></button>
+  <button class="boton" id="b3" aria-label="Azul"><span>4</span></button>
+</div>
+<button id="empezar">Empezar</button>
+<small>En la compu también podés usar las teclas 1-4 o Q/W/A/S</small>
+<script>
+(function () {
+  var FREQ = [329.63, 261.63, 220, 164.81];
+  var botones = [0, 1, 2, 3].map(function (i) { return document.getElementById('b' + i); });
+  var elRonda = document.getElementById('ronda'), elRecord = document.getElementById('record');
+  var elMsg = document.getElementById('msg'), tablero = document.getElementById('tablero');
+  var btnEmpezar = document.getElementById('empezar');
+  var secuencia = [], pos = 0, turnoJugador = false, jugando = false, token = 0, record = 0, ctx = null;
+
+  try { record = parseInt(localStorage.getItem('simon-record'), 10) || 0; } catch (e) {}
+  elRecord.textContent = record;
+
+  function audio() {
+    try {
+      if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === 'suspended') ctx.resume();
+    } catch (e) { ctx = null; }
+    return ctx;
+  }
+  function tono(freq, dur, tipo, vol) {
+    var c = audio(); if (!c) return;
+    var o = c.createOscillator(), g = c.createGain();
+    o.type = tipo || 'sine'; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol || 0.25, c.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + dur / 1000);
+    o.connect(g); g.connect(c.destination);
+    o.start(); o.stop(c.currentTime + dur / 1000 + 0.02);
+  }
+  function encender(i, dur) {
+    botones[i].classList.add('on');
+    tono(FREQ[i], dur, 'sine');
+    setTimeout(function () { botones[i].classList.remove('on'); }, dur);
+  }
+  function espera(ms, t) {
+    return new Promise(function (res) { setTimeout(function () { res(t === token); }, ms); });
+  }
+  // La velocidad sube de a poco: arranca en 700 ms por paso y baja hasta 220 ms.
+  function duracionPaso() { return Math.max(220, 700 - (secuencia.length - 1) * 35); }
+
+  async function mostrarSecuencia() {
+    var t = token;
+    turnoJugador = false; tablero.classList.add('bloqueado');
+    elMsg.textContent = 'Mirá la secuencia…';
+    if (!await espera(600, t)) return;
+    var d = duracionPaso();
+    for (var i = 0; i < secuencia.length; i++) {
+      encender(secuencia[i], d * 0.7);
+      if (!await espera(d, t)) return;
+    }
+    pos = 0; turnoJugador = true; tablero.classList.remove('bloqueado');
+    elMsg.textContent = '¡Tu turno!';
+  }
+  function siguienteRonda() {
+    secuencia.push(Math.floor(Math.random() * 4));
+    elRonda.textContent = secuencia.length;
+    mostrarSecuencia();
+  }
+  function empezar() {
+    token++; secuencia = []; jugando = true;
+    btnEmpezar.style.display = 'none';
+    audio();
+    siguienteRonda();
+  }
+  function perder() {
+    jugando = false; turnoJugador = false; token++;
+    tablero.classList.add('bloqueado');
+    var ronda = secuencia.length;
+    tono(110, 700, 'sawtooth', 0.3);
+    var msg = 'Te equivocaste. Llegaste a la ronda ' + ronda + '.';
+    if (ronda > record) {
+      record = ronda; elRecord.textContent = record;
+      try { localStorage.setItem('simon-record', String(record)); } catch (e) {}
+      msg += ' ¡Nuevo récord!';
+    }
+    elMsg.textContent = msg;
+    btnEmpezar.textContent = 'Jugar de nuevo'; btnEmpezar.style.display = '';
+  }
+  function presionar(i) {
+    if (!jugando || !turnoJugador) return;
+    encender(i, 220);
+    if (i !== secuencia[pos]) { perder(); return; }
+    pos++;
+    if (pos === secuencia.length) {
+      turnoJugador = false; tablero.classList.add('bloqueado');
+      elMsg.textContent = '¡Bien!';
+      var t = token;
+      espera(500, t).then(function (ok) { if (ok) siguienteRonda(); });
+    }
+  }
+
+  botones.forEach(function (b, i) {
+    b.addEventListener('pointerdown', function (e) { e.preventDefault(); presionar(i); });
+    b.addEventListener('keydown', function (e) { if (e.key === ' ' || e.key === 'Enter') e.preventDefault(); });
+  });
+  btnEmpezar.addEventListener('click', empezar);
+  var teclas = { '1': 0, '2': 1, '3': 2, '4': 3, q: 0, w: 1, a: 2, s: 3 };
+  document.addEventListener('keydown', function (e) {
+    if (e.repeat) return;
+    var k = e.key.toLowerCase();
+    if (k in teclas) presionar(teclas[k]);
+  });
+})();
+</script>
+</body>
+</html>

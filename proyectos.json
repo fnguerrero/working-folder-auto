@@ -1,0 +1,29 @@
+[
+  {
+    "slug": "simon",
+    "nombre": "Simón dice",
+    "categoria": "juegos",
+    "descripcion": "Cuatro colores con sonido y una secuencia que crece cada ronda. Guarda el récord.",
+    "estado": "terminado",
+    "probar": "juegos/simon/",
+    "desde": "2026-10-08"
+  },
+  {
+    "slug": "globos",
+    "nombre": "Globos",
+    "categoria": "juegos",
+    "descripcion": "Reventar globos con el dedo: modo tranqui sin perder y desafío de 60 segundos.",
+    "estado": "terminado",
+    "probar": "juegos/globos/",
+    "desde": "2026-10-09"
+  },
+  {
+    "slug": "cuotas-en-curso",
+    "nombre": "Cuotas en curso",
+    "categoria": "apps",
+    "descripcion": "Cuánto tenés comprometido en cuotas por mes y tarjeta, cuándo te liberás y un simulador antes de comprar.",
+    "estado": "terminado",
+    "probar": "apps/cuotas-en-curso/",
+    "desde": "2026-10-09"
+  }
+]

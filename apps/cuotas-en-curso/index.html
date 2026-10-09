@@ -1,0 +1,804 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12131a">
+<meta name="description" content="Lo que ya comprometiste en cuotas, mes a mes: cuánto cae este mes, cuándo te liberás y cuánto vale en pesos de hoy.">
+<title>Cuotas en curso</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icono.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icono.svg">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+:root{
+  --fondo:#f5f5f8; --tarjeta:#ffffff; --hundido:#ebecf2; --texto:#17181f; --suave:#5d5f6e;
+  --tenue:#8e90a0; --linea:#dcdde5; --acento:#3b63d8; --acento-tenue:#e6ebfb;
+  --ok:#1f8a5b; --ok-tenue:#e1f3ea; --aviso:#a86b0a; --aviso-tenue:#fbf0d9;
+  --mal:#c23b2b; --mal-tenue:#fbe4e1; --sombra:0 1px 2px rgba(20,22,40,.06);
+  --r:12px; --tap:44px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --fondo:#12131a; --tarjeta:#1b1c25; --hundido:#242631; --texto:#eceef5; --suave:#aeb1c2;
+    --tenue:#7d8093; --linea:#2f3140; --acento:#7f9cff; --acento-tenue:#242b45;
+    --ok:#4fcf8f; --ok-tenue:#1b3328; --aviso:#f0b64a; --aviso-tenue:#3a2e14;
+    --mal:#ff7a69; --mal-tenue:#3d1f1b; --sombra:none;
+  }
+}
+:root[data-theme="dark"]{
+  --fondo:#12131a; --tarjeta:#1b1c25; --hundido:#242631; --texto:#eceef5; --suave:#aeb1c2;
+  --tenue:#7d8093; --linea:#2f3140; --acento:#7f9cff; --acento-tenue:#242b45;
+  --ok:#4fcf8f; --ok-tenue:#1b3328; --aviso:#f0b64a; --aviso-tenue:#3a2e14;
+  --mal:#ff7a69; --mal-tenue:#3d1f1b; --sombra:none;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--fondo);color:var(--texto);
+  font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  padding:0 16px calc(24px + env(safe-area-inset-bottom));
+  padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+.app{max-width:640px;margin:0 auto}
+header.top{padding:calc(18px + env(safe-area-inset-top)) 0 0}
+header.top h1{margin:0;font-size:1.45rem;letter-spacing:-.01em}
+header.top p{margin:2px 0 0;color:var(--tenue);font-size:.9rem}
+
+nav.tabs{position:sticky;top:0;z-index:5;display:flex;gap:4px;margin:14px -16px 0;padding:6px 16px;
+  background:var(--fondo);border-bottom:1px solid var(--linea);overflow-x:auto;scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{flex:1 0 auto;min-height:var(--tap);appearance:none;border:0;background:none;
+  color:var(--suave);font:600 .92rem/1 inherit;padding:0 12px;border-radius:999px;cursor:pointer;white-space:nowrap}
+nav.tabs button[aria-selected="true"]{background:var(--acento-tenue);color:var(--acento)}
+nav.tabs button:focus-visible{outline:2px solid var(--acento);outline-offset:2px}
+
+section.panel{display:none;padding-top:16px}
+section.panel.activo{display:block}
+.card{background:var(--tarjeta);border:1px solid var(--linea);border-radius:var(--r);padding:16px;
+  margin:0 0 14px;box-shadow:var(--sombra)}
+.card h2{margin:0 0 10px;font-size:1.05rem}
+.card h3{margin:16px 0 6px;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--tenue)}
+p{margin:8px 0}
+.nota{color:var(--suave);font-size:.88rem}
+.vacio{color:var(--tenue);font-size:.95rem;margin:8px 0}
+
+.cifra{font-size:2rem;font-weight:700;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums}
+.cifra small{font-size:.95rem;font-weight:500;color:var(--suave);margin-left:6px}
+.num{font-variant-numeric:tabular-nums}
+.fila{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 0;border-top:1px solid var(--linea)}
+.fila:first-of-type{border-top:0}
+.fila .izq{min-width:0;display:flex;align-items:center;gap:8px}
+.fila .izq span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.punto{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none}
+.chip{display:inline-block;font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:999px;
+  background:var(--hundido);color:var(--suave);white-space:nowrap}
+.chip.ok{background:var(--ok-tenue);color:var(--ok)}
+.chip.mal{background:var(--mal-tenue);color:var(--mal)}
+.chip.aviso{background:var(--aviso-tenue);color:var(--aviso)}
+.chip.sim{background:var(--acento-tenue);color:var(--acento)}
+
+.barra{height:10px;border-radius:999px;background:var(--hundido);overflow:hidden;margin:10px 0 4px}
+.barra i{display:block;height:100%;border-radius:999px;background:var(--ok);transition:width .25s}
+.barra.aviso i{background:var(--aviso)}
+.barra.mal i{background:var(--mal)}
+.veredicto{border-radius:10px;padding:10px 12px;margin:10px 0 0;font-size:.95rem}
+.veredicto.ok{background:var(--ok-tenue);color:var(--ok)}
+.veredicto.aviso{background:var(--aviso-tenue);color:var(--aviso)}
+.veredicto.mal{background:var(--mal-tenue);color:var(--mal)}
+.veredicto.info{background:var(--acento-tenue);color:var(--acento)}
+
+svg.calendario{width:100%;height:auto;display:block;touch-action:manipulation}
+svg.calendario .col{cursor:pointer}
+svg.calendario .col:focus{outline:none}
+svg.calendario .col:focus-visible rect.fondo{stroke:var(--acento);stroke-width:2}
+svg.calendario text{font:11px system-ui,sans-serif;fill:var(--suave)}
+svg.calendario text.total{font-size:9.5px;fill:var(--tenue)}
+svg.calendario text.hoy{fill:var(--acento);font-weight:700}
+.leyenda{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0 0;font-size:.85rem;color:var(--suave)}
+.leyenda span{display:inline-flex;align-items:center;gap:6px}
+
+button,.boton{min-height:var(--tap);border-radius:10px;border:1px solid var(--linea);background:var(--tarjeta);
+  color:var(--texto);font:600 .95rem/1 inherit;padding:0 16px;cursor:pointer;touch-action:manipulation}
+button.primario{background:var(--acento);border-color:var(--acento);color:#fff}
+button.peligro{color:var(--mal);border-color:var(--mal)}
+button.chico{padding:0 12px;font-size:.85rem}
+button:focus-visible{outline:2px solid var(--acento);outline-offset:2px}
+button:disabled{opacity:.5;cursor:default}
+.acciones{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.acciones.derecha{justify-content:flex-end}
+
+form .campo{margin:0 0 12px}
+form label{display:block;font-size:.85rem;font-weight:600;color:var(--suave);margin:0 0 4px}
+form input,form select,form textarea{width:100%;min-height:var(--tap);border:1px solid var(--linea);border-radius:10px;
+  background:var(--fondo);color:var(--texto);font:1rem/1.3 inherit;padding:8px 12px}
+form input:focus-visible,form select:focus-visible,form textarea:focus-visible{outline:2px solid var(--acento);outline-offset:1px;border-color:var(--acento)}
+form .grilla{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+form .error{display:none;color:var(--mal);font-size:.82rem;margin:4px 0 0}
+form .campo.invalido .error{display:block}
+form .campo.invalido input{border-color:var(--mal)}
+form .ayuda{color:var(--tenue);font-size:.8rem;margin:4px 0 0}
+fieldset{border:0;padding:0;margin:0 0 12px}
+fieldset legend{font-size:.85rem;font-weight:600;color:var(--suave);margin:0 0 6px;padding:0}
+.radios{display:flex;gap:14px;flex-wrap:wrap}
+.radios label{display:inline-flex;align-items:center;gap:6px;font-weight:500;color:var(--texto);min-height:var(--tap)}
+.radios input{width:auto;min-height:0}
+
+.compra{padding:12px 0;border-top:1px solid var(--linea)}
+.compra:first-child{border-top:0;padding-top:0}
+.compra .cab{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.compra .titulo{font-weight:600;min-width:0}
+.compra .sub{color:var(--suave);font-size:.85rem}
+.compra .monto{text-align:right;flex:none}
+.compra .monto b{display:block;font-variant-numeric:tabular-nums}
+.compra .monto span{color:var(--tenue);font-size:.8rem}
+.compra .pie{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+.compra .barra{flex:1 1 120px;margin:0}
+.compra .barra i{background:var(--acento)}
+.compra .botones{display:flex;gap:6px}
+details.terminadas summary{cursor:pointer;color:var(--suave);font-weight:600;min-height:var(--tap);display:flex;align-items:center}
+
+.aviso{border-radius:10px;padding:10px 12px;margin:0 0 14px;font-size:.92rem;background:var(--aviso-tenue);color:var(--aviso)}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);
+  background:var(--texto);color:var(--fondo);padding:10px 16px;border-radius:999px;font-size:.9rem;opacity:0;
+  transition:opacity .2s,transform .2s;pointer-events:none;max-width:calc(100vw - 32px);text-align:center;z-index:20}
+#toast.visible{opacity:1;transform:translateX(-50%) translateY(0)}
+.oculto{display:none !important}
+textarea{min-height:120px;resize:vertical}
+@media (min-width:600px){ form .grilla.tres{grid-template-columns:1fr 1fr 1fr} }
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top">
+  <h1>Cuotas en curso</h1>
+  <p>Lo que ya comprometiste, mes a mes.</p>
+</header>
+
+<nav class="tabs" role="tablist" aria-label="Secciones">
+  <button role="tab" id="tab-resumen" aria-controls="p-resumen" aria-selected="true">Resumen</button>
+  <button role="tab" id="tab-compras" aria-controls="p-compras" aria-selected="false">Compras</button>
+  <button role="tab" id="tab-simular" aria-controls="p-simular" aria-selected="false">Simular</button>
+  <button role="tab" id="tab-ajustes" aria-controls="p-ajustes" aria-selected="false">Ajustes</button>
+</nav>
+
+<main>
+<section id="p-resumen" class="panel activo" role="tabpanel" aria-labelledby="tab-resumen">
+  <div id="aviso-guardado" class="aviso oculto" role="status"></div>
+  <article class="card" id="este-mes"></article>
+  <article class="card">
+    <h2>Próximos 12 meses</h2>
+    <div id="calendario"></div>
+    <div id="detalle-mes"></div>
+  </article>
+  <article class="card" id="pesos-hoy"></article>
+</section>
+
+<section id="p-compras" class="panel" role="tabpanel" aria-labelledby="tab-compras">
+  <div class="acciones" style="margin:0 0 14px">
+    <button type="button" class="primario" id="btn-nueva">+ Agregar compra</button>
+  </div>
+  <article class="card oculto" id="card-form">
+    <h2 id="form-titulo">Nueva compra</h2>
+    <form id="form-compra" novalidate autocomplete="off">
+      <input type="hidden" name="id">
+      <div class="campo"><label for="f-desc">Qué compraste</label>
+        <input id="f-desc" name="desc" type="text" maxlength="80" placeholder="Heladera, zapatillas, pasajes…" required>
+        <p class="error"></p></div>
+      <div class="grilla">
+        <div class="campo"><label for="f-tienda">Dónde (opcional)</label>
+          <input id="f-tienda" name="tienda" type="text" maxlength="40" placeholder="Cetrogar"></div>
+        <div class="campo"><label for="f-fecha">Fecha de compra</label>
+          <input id="f-fecha" name="fecha" type="date" required><p class="error"></p></div>
+      </div>
+      <div class="grilla">
+        <div class="campo"><label for="f-total">Total financiado</label>
+          <input id="f-total" name="total" type="text" inputmode="decimal" placeholder="120.000" required>
+          <p class="ayuda">Lo que suman todas las cuotas.</p><p class="error"></p></div>
+        <div class="campo"><label for="f-cuotas">Cuotas</label>
+          <input id="f-cuotas" name="cuotas" type="number" inputmode="numeric" min="1" max="72" step="1" placeholder="6" required>
+          <p class="error"></p></div>
+      </div>
+      <div class="grilla">
+        <div class="campo"><label for="f-primera">Primera cuota</label>
+          <input id="f-primera" name="primeraCuota" type="month" placeholder="AAAA-MM">
+          <p class="ayuda">Si la dejás vacía, es el mes siguiente a la compra.</p><p class="error"></p></div>
+        <div class="campo"><label for="f-tarjeta">Tarjeta</label>
+          <input id="f-tarjeta" name="tarjeta" type="text" maxlength="30" list="lista-tarjetas" placeholder="Visa Galicia">
+          <datalist id="lista-tarjetas"></datalist></div>
+      </div>
+      <div class="campo"><label for="f-nota">Nota (opcional)</label>
+        <input id="f-nota" name="nota" type="text" maxlength="120" placeholder="Promo 6 sin interés"></div>
+      <div class="acciones derecha">
+        <button type="button" id="btn-cancelar">Cancelar</button>
+        <button type="submit" class="primario" id="btn-guardar">Guardar</button>
+      </div>
+    </form>
+  </article>
+  <article class="card">
+    <h2>Compras</h2>
+    <div id="lista-compras"></div>
+  </article>
+</section>
+
+<section id="p-simular" class="panel" role="tabpanel" aria-labelledby="tab-simular">
+  <article class="card">
+    <h2>¿Y si compro esto?</h2>
+    <p class="nota">Probá una compra hipotética sobre lo que ya tenés. No se guarda.</p>
+    <form id="form-sim" novalidate autocomplete="off">
+      <div class="grilla tres">
+        <div class="campo"><label for="s-total">Total financiado</label>
+          <input id="s-total" name="total" type="text" inputmode="decimal" placeholder="600.000" required><p class="error"></p></div>
+        <div class="campo"><label for="s-cuotas">Cuotas</label>
+          <input id="s-cuotas" name="cuotas" type="number" inputmode="numeric" min="1" max="72" step="1" placeholder="12" required><p class="error"></p></div>
+        <div class="campo"><label for="s-primera">Primera cuota</label>
+          <input id="s-primera" name="primeraCuota" type="month"><p class="error"></p></div>
+      </div>
+      <div class="grilla">
+        <div class="campo"><label for="s-desc">Qué (opcional)</label>
+          <input id="s-desc" name="desc" type="text" maxlength="80" placeholder="Notebook"></div>
+        <div class="campo"><label for="s-tarjeta">Tarjeta (opcional)</label>
+          <input id="s-tarjeta" name="tarjeta" type="text" maxlength="30" list="lista-tarjetas"></div>
+      </div>
+      <div class="acciones derecha"><button type="submit" class="primario" id="btn-simular">Simular</button></div>
+    </form>
+  </article>
+  <article class="card oculto" id="sim-salida"></article>
+</section>
+
+<section id="p-ajustes" class="panel" role="tabpanel" aria-labelledby="tab-ajustes">
+  <article class="card">
+    <h2>Parámetros</h2>
+    <form id="form-ajustes" novalidate autocomplete="off">
+      <div class="grilla">
+        <div class="campo"><label for="a-tope">Tope mensual de cuotas</label>
+          <input id="a-tope" name="tope" type="text" inputmode="decimal" placeholder="Sin tope">
+          <p class="ayuda">Lo que no querés superar en un resumen. Vacío para no usarlo.</p><p class="error"></p></div>
+        <div class="campo"><label for="a-inflacion">Inflación mensual estimada</label>
+          <input id="a-inflacion" name="inflacion" type="number" inputmode="decimal" min="0" max="100" step="0.1">
+          <p class="ayuda">En %. Sirve para traer las cuotas futuras a pesos de hoy.</p><p class="error"></p></div>
+      </div>
+      <div class="acciones derecha"><button type="submit" class="primario">Guardar ajustes</button></div>
+    </form>
+  </article>
+  <article class="card">
+    <h2>Respaldo</h2>
+    <p class="nota" id="estado-guardado"></p>
+    <div class="acciones">
+      <button type="button" id="btn-exportar">Descargar JSON</button>
+      <button type="button" id="btn-csv">Descargar CSV de cuotas</button>
+    </div>
+    <h3>Importar</h3>
+    <fieldset>
+      <legend>Qué hacer con lo que ya está</legend>
+      <div class="radios">
+        <label><input type="radio" name="modo-import" value="agregar" checked> Agregar a lo que hay</label>
+        <label><input type="radio" name="modo-import" value="reemplazar"> Reemplazar todo</label>
+      </div>
+    </fieldset>
+    <div class="acciones">
+      <button type="button" id="btn-importar">Elegir archivo JSON…</button>
+      <input type="file" id="archivo-import" accept=".json,application/json" class="oculto">
+    </div>
+    <p class="nota" id="import-estado" role="status"></p>
+  </article>
+  <article class="card">
+    <h2>Zona peligrosa</h2>
+    <p class="nota">Borra todas las compras y los ajustes de este navegador. No hay deshacer: descargá un respaldo antes.</p>
+    <div class="acciones"><button type="button" class="peligro" id="btn-borrar">Borrar todo</button></div>
+  </article>
+  <article class="card">
+    <h2>Cómo se calcula</h2>
+    <p class="nota">Las cuotas son iguales: total dividido cantidad, y el redondeo va a la última. La cuota del mes en curso cuenta como pendiente hasta que termina el mes.</p>
+    <p class="nota">"Pesos de hoy" trae cada cuota futura a valor presente con la inflación mensual que pongas: una cuota dentro de 12 meses al 3 % vale hoy cuota ÷ 1,03¹².</p>
+  </article>
+</section>
+</main>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="logica.js"></script>
+<script>
+(function () {
+"use strict";
+const L = window.Cuotas;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/* ------------------------------------------------------------ estado */
+let estado = L.estadoInicial();
+let hayStorage = true;
+let mesSeleccionado = null;
+let confirmarBorrado = null;
+
+function cargar() {
+  try {
+    const crudo = localStorage.getItem(L.CLAVE);
+    if (crudo) {
+      const r = L.migrar(JSON.parse(crudo));
+      estado = r.estado;
+    }
+  } catch (e) {
+    hayStorage = false;
+  }
+  try {
+    localStorage.setItem("cuotas-en-curso.prueba", "1");
+    localStorage.removeItem("cuotas-en-curso.prueba");
+  } catch (e) { hayStorage = false; }
+}
+
+function guardar() {
+  if (!hayStorage) return false;
+  try {
+    localStorage.setItem(L.CLAVE, JSON.stringify(estado));
+    return true;
+  } catch (e) {
+    hayStorage = false;
+    renderAvisoGuardado();
+    return false;
+  }
+}
+
+let toastTimer = null;
+function toast(texto) {
+  const t = $("toast");
+  t.textContent = texto;
+  t.classList.add("visible");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("visible"), 2200);
+}
+
+const hoy = () => L.mesActual();
+const tarjetasActuales = () => L.tarjetas(estado.compras);
+const colorDe = (nombre) => L.colorTarjeta(tarjetasActuales(), nombre);
+
+/* ----------------------------------------------------------- pestañas */
+document.querySelectorAll("nav.tabs button").forEach((btn) => {
+  btn.addEventListener("click", () => mostrarPanel(btn.getAttribute("aria-controls")));
+});
+function mostrarPanel(id) {
+  document.querySelectorAll("nav.tabs button").forEach((b) =>
+    b.setAttribute("aria-selected", String(b.getAttribute("aria-controls") === id)));
+  document.querySelectorAll("section.panel").forEach((s) => s.classList.toggle("activo", s.id === id));
+  window.scrollTo({ top: 0, behavior: "instant" });
+}
+
+/* ------------------------------------------------------------ resumen */
+function renderAvisoGuardado() {
+  const el = $("aviso-guardado");
+  el.classList.toggle("oculto", hayStorage);
+  if (!hayStorage) el.textContent = "Este navegador no deja guardar datos acá: lo que cargues se pierde al recargar. Descargá un respaldo desde Ajustes.";
+}
+
+function renderEsteMes() {
+  const mes = hoy();
+  const r = L.resumenMes(estado.compras, mes, estado.ajustes.tope);
+  let html = `<h2>Este mes · ${esc(L.nombreMes(mes))}</h2>`;
+  if (!estado.compras.length) {
+    html += `<p class="vacio">Todavía no cargaste ninguna compra. Empezá por la pestaña <b>Compras</b>.</p>`;
+    $("este-mes").innerHTML = html;
+    return;
+  }
+  html += `<div class="cifra num">${esc(L.formatoPesos(r.total))}<small>en cuotas</small></div>`;
+  if (r.tope) {
+    const p = Math.min(1, r.proporcion);
+    const clase = r.excedido ? "mal" : r.proporcion > 0.85 ? "aviso" : "ok";
+    html += `<div class="barra ${clase}"><i style="width:${(p * 100).toFixed(1)}%"></i></div>`;
+    html += `<p class="nota num">${r.excedido
+      ? `Te pasás del tope de ${esc(L.formatoPesos(r.tope))} por <b>${esc(L.formatoPesos(-r.margen))}</b>.`
+      : `Te quedan <b>${esc(L.formatoPesos(r.margen))}</b> del tope de ${esc(L.formatoPesos(r.tope))}.`}</p>`;
+  }
+  if (r.porTarjeta.length) {
+    html += `<h3>Por tarjeta</h3>`;
+    r.porTarjeta.forEach((t) => {
+      html += `<div class="fila"><div class="izq"><i class="punto" style="background:${colorDe(t.tarjeta)}"></i><span>${esc(t.tarjeta)}</span></div><b class="num">${esc(L.formatoPesos(t.total))}</b></div>`;
+    });
+  } else {
+    html += `<p class="nota">Ninguna cuota cae en ${esc(L.nombreMes(mes))}.</p>`;
+  }
+  if (r.terminanEsteMes) {
+    html += `<p class="veredicto ok">${r.terminanEsteMes === 1 ? "Una compra paga su última cuota este mes." : r.terminanEsteMes + " compras pagan su última cuota este mes."}</p>`;
+  }
+  $("este-mes").innerHTML = html;
+}
+
+/* Calendario SVG de 12 meses, apilado por tarjeta. `opciones.simulada`
+   dibuja la parte hipotética con un patrón rayado. */
+function svgCalendario(meses, tope, opciones) {
+  const op = opciones || {};
+  const W = 360, H = 190, izq = 6, der = 6, arriba = 18, abajo = 30;
+  const anchoCol = (W - izq - der) / meses.length;
+  const barra = anchoCol * 0.68;
+  const pico = Math.max(1, tope || 0, ...meses.map((m) => m.total));
+  const escala = (H - arriba - abajo) / pico;
+  const tarjetas = tarjetasActuales();
+  const colorFor = (nombre) => L.colorTarjeta(tarjetas, nombre);
+  let s = `<svg class="calendario" viewBox="0 0 ${W} ${H}" role="img" aria-label="Cuotas por mes">`;
+  s += `<defs><pattern id="rayas" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="var(--acento)" opacity=".25"/><line x1="0" y1="0" x2="0" y2="6" stroke="var(--acento)" stroke-width="2.5"/></pattern></defs>`;
+  meses.forEach((m, i) => {
+    const x0 = izq + i * anchoCol, xb = x0 + (anchoCol - barra) / 2;
+    const esHoy = m.mes === hoy(), sel = m.mes === op.seleccion;
+    s += `<g class="col" tabindex="0" role="button" data-mes="${m.mes}" aria-label="${esc(L.nombreMes(m.mes))}: ${esc(L.formatoPesos(m.total))}">`;
+    s += `<rect class="fondo" x="${x0.toFixed(1)}" y="${arriba - 10}" width="${anchoCol.toFixed(1)}" height="${H - arriba - abajo + 16}" rx="6" fill="${sel ? "var(--acento-tenue)" : "transparent"}"/>`;
+    let y = H - abajo;
+    const porTarjeta = Object.entries(m.porTarjeta).sort((a, b) => b[1] - a[1]);
+    const reales = {}, simulado = m.items.filter((it) => it.simulada).reduce((a, it) => a + it.importe, 0);
+    m.items.forEach((it) => { if (!it.simulada) reales[it.tarjeta] = (reales[it.tarjeta] || 0) + it.importe; });
+    Object.entries(reales).sort((a, b) => b[1] - a[1]).forEach(([tarjeta, monto]) => {
+      const h = monto * escala;
+      y -= h;
+      s += `<rect x="${xb.toFixed(1)}" y="${y.toFixed(1)}" width="${barra.toFixed(1)}" height="${Math.max(0, h).toFixed(1)}" fill="${colorFor(tarjeta)}"><title>${esc(tarjeta)}: ${esc(L.formatoPesos(monto))}</title></rect>`;
+    });
+    if (simulado) {
+      const h = simulado * escala;
+      y -= h;
+      s += `<rect x="${xb.toFixed(1)}" y="${y.toFixed(1)}" width="${barra.toFixed(1)}" height="${h.toFixed(1)}" fill="url(#rayas)" stroke="var(--acento)" stroke-width="1"><title>Simulada: ${esc(L.formatoPesos(simulado))}</title></rect>`;
+    }
+    if (m.total > 0) {
+      s += `<text class="total" x="${(x0 + anchoCol / 2).toFixed(1)}" y="${(y - 3).toFixed(1)}" text-anchor="middle">${esc(abreviar(m.total))}</text>`;
+    }
+    void porTarjeta;
+    s += `<text class="${esHoy ? "hoy" : ""}" x="${(x0 + anchoCol / 2).toFixed(1)}" y="${H - 12}" text-anchor="middle">${esc(L.MESES_CORTOS[Number(m.mes.slice(5)) - 1])}</text>`;
+    if (m.mes.endsWith("-01") || i === 0) {
+      s += `<text class="total" x="${(x0 + anchoCol / 2).toFixed(1)}" y="${H - 2}" text-anchor="middle">${m.mes.slice(0, 4)}</text>`;
+    }
+    s += `</g>`;
+  });
+  if (tope) {
+    const yt = H - abajo - tope * escala;
+    s += `<line x1="${izq}" x2="${W - der}" y1="${yt.toFixed(1)}" y2="${yt.toFixed(1)}" stroke="var(--mal)" stroke-dasharray="4 3" stroke-width="1.2"/>`;
+    s += `<text x="${W - der}" y="${(yt - 4).toFixed(1)}" text-anchor="end" style="fill:var(--mal)">tope ${esc(abreviar(tope))}</text>`;
+  }
+  s += `</svg>`;
+  return s;
+}
+function abreviar(centavos) {
+  const pesos = centavos / 100;
+  if (pesos >= 1e6) return (pesos / 1e6).toFixed(pesos >= 1e7 ? 0 : 1).replace(".", ",") + " M";
+  if (pesos >= 1e3) return Math.round(pesos / 1e3) + " mil";
+  return String(Math.round(pesos));
+}
+function leyendaTarjetas() {
+  const t = tarjetasActuales();
+  if (!t.length) return "";
+  return `<div class="leyenda">${t.map((x) => `<span><i class="punto" style="background:${x.color}"></i>${esc(x.nombre)}</span>`).join("")}</div>`;
+}
+
+function renderCalendario() {
+  const cont = $("calendario");
+  if (!estado.compras.length) {
+    cont.innerHTML = `<p class="vacio">Cuando cargues compras, acá vas a ver cuánto cae cada mes y cuándo te liberás.</p>`;
+    $("detalle-mes").innerHTML = "";
+    return;
+  }
+  const meses = L.cuotasPorMes(estado.compras, hoy(), 12);
+  if (!mesSeleccionado || !meses.some((m) => m.mes === mesSeleccionado)) mesSeleccionado = hoy();
+  cont.innerHTML = svgCalendario(meses, estado.ajustes.tope, { seleccion: mesSeleccionado }) + leyendaTarjetas();
+  cont.querySelectorAll("g.col").forEach((g) => {
+    const elegir = () => { mesSeleccionado = g.dataset.mes; renderCalendario(); };
+    g.addEventListener("click", elegir);
+    g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); elegir(); } });
+  });
+  renderDetalleMes(meses.find((m) => m.mes === mesSeleccionado));
+}
+
+function renderDetalleMes(m) {
+  const cont = $("detalle-mes");
+  if (!m) { cont.innerHTML = ""; return; }
+  const tope = estado.ajustes.tope;
+  let html = `<h3>${esc(L.nombreMes(m.mes))} · <span class="num">${esc(L.formatoPesos(m.total))}</span>${tope && m.total > tope ? ` <span class="chip mal">pasa el tope</span>` : ""}</h3>`;
+  if (!m.items.length) {
+    html += `<p class="nota">No cae ninguna cuota. ${m.mes === hoy() ? "" : "Mes libre."}</p>`;
+  } else {
+    m.items.forEach((it) => {
+      html += `<div class="fila"><div class="izq"><i class="punto" style="background:${colorDe(it.tarjeta)}"></i><span>${esc(it.desc)}</span><span class="chip">${it.n}/${it.de}</span>${it.ultima ? `<span class="chip ok">última</span>` : ""}</div><b class="num">${esc(L.formatoPesos(it.importe))}</b></div>`;
+    });
+  }
+  cont.innerHTML = html;
+}
+
+function renderPesosHoy() {
+  const cont = $("pesos-hoy");
+  if (!estado.compras.length) { cont.innerHTML = ""; cont.classList.add("oculto"); return; }
+  cont.classList.remove("oculto");
+  const infl = estado.ajustes.inflacion;
+  const s = L.saldos(estado.compras, hoy(), infl);
+  let html = `<h2>Lo que falta pagar</h2>`;
+  if (!s.nominal) {
+    html += `<p class="veredicto ok">No debés nada: todas las compras están pagas.</p>`;
+    cont.innerHTML = html;
+    return;
+  }
+  html += `<div class="cifra num">${esc(L.formatoPesos(s.nominal))}<small>nominal</small></div>`;
+  html += `<p class="num" style="margin:6px 0 0"><b>${esc(L.formatoPesos(s.presente))}</b> en pesos de hoy <span class="nota">con ${esc(L.porcentaje(infl))} mensual de inflación</span></p>`;
+  if (infl > 0 && s.nominal > s.presente) {
+    const ahorro = s.nominal - s.presente;
+    html += `<p class="nota num">La inflación te "descuenta" ${esc(L.formatoPesos(ahorro))} (${Math.round(ahorro / s.nominal * 100)} %) de lo que falta.</p>`;
+  }
+  html += `<h3>Por compra</h3>`;
+  s.porCompra.forEach((c) => {
+    html += `<div class="fila"><div class="izq"><i class="punto" style="background:${colorDe(c.tarjeta)}"></i><span>${esc(c.desc)}</span><span class="chip">faltan ${c.restantes}</span></div><div class="monto" style="text-align:right"><b class="num">${esc(L.formatoPesos(c.nominal))}</b><br><span class="nota num">${esc(L.formatoPesos(c.presente))} hoy</span></div></div>`;
+  });
+  cont.innerHTML = html;
+}
+
+/* ------------------------------------------------------------ compras */
+function renderLista() {
+  const cont = $("lista-compras");
+  if (!estado.compras.length) {
+    cont.innerHTML = `<p class="vacio">Sin compras cargadas. Tocá <b>Agregar compra</b> para empezar.</p>`;
+    return;
+  }
+  const mes = hoy();
+  const conEstado = estado.compras.map((c) => ({ c, e: L.estadoCompra(c, mes) }));
+  const activas = conEstado.filter((x) => !x.e.terminada)
+    .sort((a, b) => (a.e.ultimaCuota < b.e.ultimaCuota ? -1 : a.e.ultimaCuota > b.e.ultimaCuota ? 1 : 0));
+  const terminadas = conEstado.filter((x) => x.e.terminada)
+    .sort((a, b) => (a.e.ultimaCuota > b.e.ultimaCuota ? -1 : 1));
+  const item = ({ c, e }) => {
+    const cuota = L.cuotasDe(c)[0].importe;
+    const progreso = c.cuotas ? (e.pagadas / c.cuotas) * 100 : 0;
+    const sub = [c.tienda, L.nombreMes(L.mesDeFecha(c.fecha), true), c.tarjeta].filter(Boolean).join(" · ");
+    const cuando = e.terminada ? `terminó en ${L.nombreMes(e.ultimaCuota, true)}`
+      : e.restantes === 1 ? `última cuota en ${L.nombreMes(e.ultimaCuota, true)}`
+      : `hasta ${L.nombreMes(e.ultimaCuota, true)}`;
+    return `<div class="compra" data-id="${esc(c.id)}">
+      <div class="cab"><div class="titulo"><div>${esc(c.desc)}${c.nota ? ` <span class="chip" title="${esc(c.nota)}">nota</span>` : ""}</div><div class="sub"><i class="punto" style="background:${colorDe(c.tarjeta)};width:8px;height:8px"></i> ${esc(sub)}</div></div>
+      <div class="monto"><b class="num">${esc(L.formatoPesos(cuota))}</b><span>× ${c.cuotas}</span></div></div>
+      <div class="pie"><div class="barra" title="${e.pagadas} de ${c.cuotas} pagadas"><i style="width:${progreso.toFixed(0)}%"></i></div>
+      <span class="nota num">${e.pagadas}/${c.cuotas} · ${e.terminada ? "pagada" : "faltan " + esc(L.formatoPesos(e.saldo))} · ${esc(cuando)}</span></div>
+      <div class="pie" style="justify-content:flex-end"><div class="botones">
+        <button type="button" class="chico" data-accion="editar">Editar</button>
+        <button type="button" class="chico peligro" data-accion="eliminar">Eliminar</button></div></div>
+    </div>`;
+  };
+  let html = activas.length ? activas.map(item).join("") : `<p class="vacio">No hay compras en curso.</p>`;
+  if (terminadas.length) {
+    html += `<details class="terminadas"><summary>Terminadas (${terminadas.length})</summary>${terminadas.map(item).join("")}</details>`;
+  }
+  cont.innerHTML = html;
+  cont.querySelectorAll("button[data-accion]").forEach((b) => {
+    const id = b.closest(".compra").dataset.id;
+    b.addEventListener("click", () => (b.dataset.accion === "editar" ? editar(id) : eliminar(id, b)));
+  });
+}
+
+function renderTarjetasSugeridas() {
+  $("lista-tarjetas").innerHTML = tarjetasActuales().map((t) => `<option value="${esc(t.nombre)}">`).join("");
+}
+
+function abrirForm(compra) {
+  const f = $("form-compra");
+  f.reset();
+  limpiarErrores(f);
+  f.elements.id.value = compra ? compra.id : "";
+  $("form-titulo").textContent = compra ? "Editar compra" : "Nueva compra";
+  if (compra) {
+    f.elements.desc.value = compra.desc;
+    f.elements.tienda.value = compra.tienda;
+    f.elements.fecha.value = compra.fecha;
+    f.elements.total.value = L.formatoPesos(compra.total).replace("$ ", "");
+    f.elements.cuotas.value = compra.cuotas;
+    f.elements.primeraCuota.value = compra.primeraCuota;
+    f.elements.tarjeta.value = compra.tarjeta === L.SIN_TARJETA ? "" : compra.tarjeta;
+    f.elements.nota.value = compra.nota;
+  } else {
+    f.elements.fecha.value = L.fechaActual();
+  }
+  $("card-form").classList.remove("oculto");
+  $("btn-nueva").classList.add("oculto");
+  $("card-form").scrollIntoView({ block: "start", behavior: "smooth" });
+  f.elements.desc.focus();
+}
+function cerrarForm() {
+  $("card-form").classList.add("oculto");
+  $("btn-nueva").classList.remove("oculto");
+}
+function limpiarErrores(f) {
+  f.querySelectorAll(".campo.invalido").forEach((c) => c.classList.remove("invalido"));
+}
+function mostrarErrores(f, errores) {
+  limpiarErrores(f);
+  Object.entries(errores).forEach(([campo, msj]) => {
+    const input = f.elements[campo];
+    if (!input) return;
+    const c = input.closest(".campo");
+    c.classList.add("invalido");
+    c.querySelector(".error").textContent = msj;
+  });
+  const primero = f.querySelector(".campo.invalido input");
+  if (primero) primero.focus();
+}
+function leerForm(f) {
+  const d = {};
+  Array.from(f.elements).forEach((el) => { if (el.name) d[el.name] = el.value; });
+  return d;
+}
+
+$("btn-nueva").addEventListener("click", () => abrirForm(null));
+$("btn-cancelar").addEventListener("click", cerrarForm);
+$("form-compra").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const r = L.normalizarCompra(leerForm(f));
+  if (!r.ok) { mostrarErrores(f, r.errores); return; }
+  const idx = estado.compras.findIndex((c) => c.id === r.compra.id);
+  if (idx >= 0) estado.compras[idx] = r.compra; else estado.compras.push(r.compra);
+  guardar();
+  cerrarForm();
+  renderTodo();
+  toast(idx >= 0 ? "Compra actualizada" : "Compra guardada");
+});
+
+function editar(id) {
+  const c = estado.compras.find((x) => x.id === id);
+  if (c) abrirForm(c);
+}
+function eliminar(id, boton) {
+  if (confirmarBorrado !== id) {
+    confirmarBorrado = id;
+    boton.textContent = "¿Seguro? Tocá de nuevo";
+    setTimeout(() => { if (confirmarBorrado === id) { confirmarBorrado = null; renderLista(); } }, 4000);
+    return;
+  }
+  confirmarBorrado = null;
+  estado.compras = estado.compras.filter((c) => c.id !== id);
+  guardar();
+  renderTodo();
+  toast("Compra eliminada");
+}
+
+/* ----------------------------------------------------------- simulador */
+$("form-sim").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const d = leerForm(f);
+  const r = L.normalizarCompra({
+    desc: d.desc || "Compra hipotética", fecha: L.fechaActual(), total: d.total, cuotas: d.cuotas,
+    primeraCuota: d.primeraCuota, tarjeta: d.tarjeta,
+  });
+  if (!r.ok) { mostrarErrores(f, r.errores); return; }
+  limpiarErrores(f);
+  const s = L.simular(estado.compras, r.compra, hoy(), 12, estado.ajustes.tope);
+  const tope = estado.ajustes.tope;
+  let html = `<h2>${esc(r.compra.desc)}: ${esc(L.formatoPesos(s.cuota))} por mes</h2>`;
+  html += `<p class="nota num">${r.compra.cuotas} cuota${r.compra.cuotas === 1 ? "" : "s"} de ${esc(L.nombreMes(r.compra.primeraCuota, true))} a ${esc(L.nombreMes(s.ultimaCuota, true))}.</p>`;
+  if (tope) {
+    if (s.nuevosExcedidos.length) {
+      html += `<p class="veredicto mal">Te pasarías del tope en ${s.nuevosExcedidos.length === 1 ? "un mes" : s.nuevosExcedidos.length + " meses"}: ${esc(s.nuevosExcedidos.map((m) => L.nombreMes(m, true)).join(", "))}.</p>`;
+    } else if (s.excedidos.length) {
+      html += `<p class="veredicto aviso">No agrega meses nuevos por encima del tope, pero ya te pasás en ${esc(s.excedidos.map((m) => L.nombreMes(m, true)).join(", "))}.</p>`;
+    } else {
+      html += `<p class="veredicto ok">Entra: ningún mes supera el tope de ${esc(L.formatoPesos(tope))}. El mes más cargado quedaría en ${esc(L.formatoPesos(s.picoCon))}.</p>`;
+    }
+  } else {
+    html += `<p class="veredicto info num">El mes más cargado pasaría de ${esc(L.formatoPesos(s.picoSin))} a ${esc(L.formatoPesos(s.picoCon))}. Si ponés un tope en Ajustes, te digo si entra.</p>`;
+  }
+  const presente = L.cuotasDe(r.compra).reduce((a, c) => a + L.valorPresente(c.importe, L.diferenciaMeses(hoy(), c.mes), estado.ajustes.inflacion), 0);
+  if (estado.ajustes.inflacion > 0 && presente < r.compra.total) {
+    html += `<p class="nota num">En pesos de hoy, esas cuotas suman ${esc(L.formatoPesos(presente))} de los ${esc(L.formatoPesos(r.compra.total))} nominales.</p>`;
+  }
+  html += `<h3>Cómo quedarían los meses</h3>` + svgCalendario(s.meses, tope, {}) + leyendaTarjetas() +
+    `<div class="leyenda"><span><i class="punto" style="background:repeating-linear-gradient(45deg,var(--acento) 0 2px,transparent 2px 5px);border:1px solid var(--acento)"></i>la compra simulada</span></div>`;
+  const sal = $("sim-salida");
+  sal.innerHTML = html;
+  sal.classList.remove("oculto");
+  sal.scrollIntoView({ block: "start", behavior: "smooth" });
+});
+
+/* ------------------------------------------------------------ ajustes */
+function renderAjustes() {
+  const f = $("form-ajustes");
+  f.elements.tope.value = estado.ajustes.tope ? L.formatoPesos(estado.ajustes.tope).replace("$ ", "") : "";
+  f.elements.inflacion.value = estado.ajustes.inflacion;
+  const n = estado.compras.length;
+  $("estado-guardado").textContent = hayStorage
+    ? `${n} compra${n === 1 ? "" : "s"} guardada${n === 1 ? "" : "s"} en este navegador. No viajan a otro dispositivo: para pasarlas, descargá el JSON e importalo allá.`
+    : "Este navegador no deja guardar datos: descargá un respaldo antes de cerrar.";
+}
+$("form-ajustes").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const errores = {};
+  const topeTxt = f.elements.tope.value.trim();
+  let tope = null;
+  if (topeTxt) {
+    tope = L.aCentavos(topeTxt);
+    if (!(tope > 0)) errores.tope = "Poné un importe mayor a cero, o dejalo vacío.";
+  }
+  const infl = Number(String(f.elements.inflacion.value).replace(",", "."));
+  if (!Number.isFinite(infl) || infl < 0 || infl > 100) errores.inflacion = "Un porcentaje entre 0 y 100.";
+  if (Object.keys(errores).length) { mostrarErrores(f, errores); return; }
+  limpiarErrores(f);
+  estado.ajustes.tope = tope;
+  estado.ajustes.inflacion = Math.round(infl * 100) / 100;
+  guardar();
+  renderTodo();
+  toast("Ajustes guardados");
+});
+
+function descargar(nombre, contenido, tipo) {
+  const blob = new Blob([contenido], { type: tipo });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = nombre;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+$("btn-exportar").addEventListener("click", () => {
+  descargar("cuotas-en-curso-" + L.fechaActual() + ".json", L.aJSON(estado), "application/json");
+  toast("JSON descargado");
+});
+$("btn-csv").addEventListener("click", () => {
+  descargar("cuotas-" + L.fechaActual() + ".csv", "﻿" + L.aCSV(estado.compras), "text/csv;charset=utf-8");
+  toast("CSV descargado");
+});
+$("btn-importar").addEventListener("click", () => $("archivo-import").click());
+$("archivo-import").addEventListener("change", (e) => {
+  const archivo = e.target.files[0];
+  if (!archivo) return;
+  const lector = new FileReader();
+  lector.onload = () => importarTexto(String(lector.result));
+  lector.readAsText(archivo);
+  e.target.value = "";
+});
+function importarTexto(texto) {
+  const r = L.deJSON(texto);
+  const salida = $("import-estado");
+  if (r.error) { salida.innerHTML = `<span style="color:var(--mal)">${esc(r.error)}</span>`; return; }
+  const modo = document.querySelector("input[name=modo-import]:checked").value;
+  if (modo === "reemplazar") {
+    estado = r.estado;
+  } else {
+    const ids = new Set(estado.compras.map((c) => c.id));
+    r.estado.compras.forEach((c) => {
+      if (ids.has(c.id)) c.id = L.nuevoId();
+      estado.compras.push(c);
+    });
+  }
+  guardar();
+  renderTodo();
+  const n = r.estado.compras.length;
+  salida.textContent = `${modo === "reemplazar" ? "Se reemplazó todo con" : "Se agregaron"} ${n} compra${n === 1 ? "" : "s"}.` +
+    (r.descartadas.length ? ` Se descartaron ${r.descartadas.length} que venían rotas.` : "");
+  toast("Importado");
+}
+window.cuotasImportarTexto = importarTexto;
+
+let confirmarTodo = false;
+$("btn-borrar").addEventListener("click", (e) => {
+  if (!confirmarTodo) {
+    confirmarTodo = true;
+    e.target.textContent = "¿Seguro? Tocá de nuevo para borrar todo";
+    setTimeout(() => { confirmarTodo = false; e.target.textContent = "Borrar todo"; }, 5000);
+    return;
+  }
+  confirmarTodo = false;
+  e.target.textContent = "Borrar todo";
+  estado = L.estadoInicial();
+  try { localStorage.removeItem(L.CLAVE); } catch (err) { /* sin storage */ }
+  renderTodo();
+  toast("Se borró todo");
+});
+
+/* ------------------------------------------------------------- render */
+function renderTodo() {
+  renderAvisoGuardado();
+  renderEsteMes();
+  renderCalendario();
+  renderPesosHoy();
+  renderLista();
+  renderTarjetasSugeridas();
+  renderAjustes();
+}
+
+cargar();
+renderTodo();
+
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+})();
+</script>
+</body>
+</html>

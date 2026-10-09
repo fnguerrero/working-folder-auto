@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0f1020">
+<title>Globos</title>
+<style>
+  :root { --bg: #0f1020; --fg: #e8e8f0; --accent: #8b7cff; --tap: 56px; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden;
+    -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  .capa { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 14px; padding: 24px 16px; text-align: center;
+    background: rgba(15, 16, 32, .82); backdrop-filter: blur(6px); }
+  .capa.oculta { display: none; }
+  h1 { margin: 0; font-size: clamp(2.2rem, 9vw, 3.6rem); letter-spacing: -.02em; }
+  h1 span { color: var(--accent); }
+  p { margin: 0; color: #b8b9cc; max-width: 32ch; font-size: 1.05rem; }
+  button { min-height: var(--tap); min-width: 220px; border: 0; border-radius: 16px; padding: 0 22px;
+    font: 700 1.2rem/1 inherit; color: #fff; cursor: pointer; touch-action: manipulation; }
+  button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+  .tranqui { background: #2ec4a6; }
+  .desafio { background: #ff6b6b; }
+  .suave { background: #2a2c4a; color: var(--fg); min-width: 0; }
+  .grande { font-size: clamp(3rem, 18vw, 6rem); font-weight: 800; line-height: 1; }
+  .hud { position: fixed; top: calc(10px + env(safe-area-inset-top)); left: 0; right: 0; display: flex;
+    justify-content: space-between; align-items: center; padding: 0 14px; pointer-events: none;
+    font-weight: 800; font-size: 1.4rem; text-shadow: 0 2px 6px rgba(0,0,0,.6); }
+  .hud[hidden] { display: none; }
+  .hud .num { font-size: 2.6rem; font-variant-numeric: tabular-nums; }
+  .hud button { pointer-events: auto; min-width: 0; min-height: 44px; font-size: 1rem;
+    background: rgba(42,44,74,.85); }
+  .ayuda { font-size: .9rem; color: #8e90a8; }
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="Globos subiendo; tocá para reventarlos"></canvas>
+
+<div class="hud" id="hud" hidden>
+  <span class="num" id="puntos">0</span>
+  <span id="tiempo"></span>
+  <button type="button" id="btn-salir" aria-label="Volver al menú">Salir</button>
+</div>
+
+<div class="capa" id="menu">
+  <h1><span>Globos</span></h1>
+  <p>Suben globos. Tocalos para reventarlos. Nada más.</p>
+  <button type="button" class="tranqui" id="btn-tranqui">Tranqui</button>
+  <p class="ayuda">Sin tiempo y sin perder, para los más chicos.</p>
+  <button type="button" class="desafio" id="btn-desafio">Desafío de 60 segundos</button>
+  <p class="ayuda" id="record"></p>
+  <p class="ayuda">Con teclado: flechas para elegir un globo, espacio para reventarlo, Esc para salir.</p>
+</div>
+
+<div class="capa oculta" id="fin">
+  <p>Reventaste</p>
+  <div class="grande" id="fin-puntos">0</div>
+  <p id="fin-texto"></p>
+  <button type="button" class="desafio" id="btn-otra">Otra vez</button>
+  <button type="button" class="suave" id="btn-menu">Menú</button>
+</div>
+
+<script>
+(function () {
+"use strict";
+const $ = (id) => document.getElementById(id);
+const canvas = $("c"), ctx = canvas.getContext("2d");
+const COLORES = ["#ff6b6b", "#ffd93d", "#6bcB77", "#4d96ff", "#ff8fab", "#c77dff", "#ff9f45", "#4ecdc4"];
+const CLAVE = "globos.record";
+const DURACION = 60;
+
+let ancho = 0, alto = 0, escala = 1;
+let modo = null;            // "tranqui" | "desafio" | null
+let globos = [], particulas = [], ondas = [];
+let puntos = 0, restante = 0, tiempoInicio = 0, ultimoTick = 0, acumSpawn = 0;
+let seleccionado = -1;      // índice del globo elegido con el teclado
+let animacion = null, pausado = false;
+
+/* ------------------------------------------------------------ récord */
+function leerRecord() {
+  try { return Number(localStorage.getItem(CLAVE)) || 0; } catch (e) { return 0; }
+}
+function guardarRecord(v) {
+  try { localStorage.setItem(CLAVE, String(v)); } catch (e) { /* sin storage, se juega igual */ }
+}
+function mostrarRecord() {
+  const r = leerRecord();
+  $("record").textContent = r ? "Tu récord en desafío: " + r + " globos." : "Todavía no hay récord en desafío.";
+}
+
+/* ------------------------------------------------------------ sonido */
+let audio = null;
+function asegurarAudio() {
+  if (audio) { if (audio.state === "suspended") audio.resume(); return; }
+  try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { audio = null; }
+}
+function sonidoPop(tam) {
+  if (!audio) return;
+  const t = audio.currentTime;
+  // Un golpe de ruido corto, más grave cuanto más grande el globo.
+  const dur = 0.09;
+  const buf = audio.createBuffer(1, Math.floor(audio.sampleRate * dur), audio.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2);
+  const ruido = audio.createBufferSource(); ruido.buffer = buf;
+  const filtro = audio.createBiquadFilter(); filtro.type = "bandpass";
+  filtro.frequency.value = 2600 - Math.min(1600, tam * 18); filtro.Q.value = 0.8;
+  const g = audio.createGain(); g.gain.setValueAtTime(0.9, t); g.gain.exponentialRampToValueAtTime(0.01, t + dur);
+  ruido.connect(filtro).connect(g).connect(audio.destination); ruido.start(t);
+  // Y un "plin" agudo arriba para que suene alegre.
+  const osc = audio.createOscillator(), g2 = audio.createGain();
+  osc.type = "sine"; osc.frequency.setValueAtTime(900 + Math.random() * 500, t);
+  osc.frequency.exponentialRampToValueAtTime(300, t + 0.12);
+  g2.gain.setValueAtTime(0.25, t); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+  osc.connect(g2).connect(audio.destination); osc.start(t); osc.stop(t + 0.15);
+}
+function sonidoFiesta() {
+  if (!audio) return;
+  const t = audio.currentTime;
+  [523, 659, 784, 1046].forEach((f, i) => {
+    const o = audio.createOscillator(), g = audio.createGain();
+    o.type = "triangle"; o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, t + i * 0.09); g.gain.exponentialRampToValueAtTime(0.3, t + i * 0.09 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.09 + 0.35);
+    o.connect(g).connect(audio.destination); o.start(t + i * 0.09); o.stop(t + i * 0.09 + 0.4);
+  });
+}
+
+/* ------------------------------------------------------------- lienzo */
+function redimensionar() {
+  escala = Math.min(2, window.devicePixelRatio || 1);
+  ancho = window.innerWidth; alto = window.innerHeight;
+  canvas.width = Math.floor(ancho * escala); canvas.height = Math.floor(alto * escala);
+  ctx.setTransform(escala, 0, 0, escala, 0, 0);
+}
+window.addEventListener("resize", redimensionar);
+redimensionar();
+
+/* ------------------------------------------------------------- globos */
+function parametros() {
+  // Qué tan grandes, rápidos y seguidos salen, según el modo y lo que pasó.
+  const base = Math.min(ancho, alto);
+  if (modo === "tranqui") {
+    return { radio: base * 0.11, velocidad: alto * 0.07, cadencia: 0.9, max: 7 };
+  }
+  const avance = Math.min(1, (DURACION - restante) / DURACION);  // 0 al inicio, 1 al final
+  return {
+    radio: base * (0.095 - 0.04 * avance),
+    velocidad: alto * (0.12 + 0.16 * avance),
+    cadencia: 0.75 - 0.42 * avance,
+    max: 12,
+  };
+}
+function nuevoGlobo() {
+  const p = parametros();
+  const r = p.radio * (0.85 + Math.random() * 0.3);
+  return {
+    x: r + Math.random() * (ancho - 2 * r), y: alto + r * 1.6,
+    r, color: COLORES[Math.floor(Math.random() * COLORES.length)],
+    vy: p.velocidad * (0.8 + Math.random() * 0.5),
+    fase: Math.random() * Math.PI * 2, balanceo: r * 0.35,
+    vivo: true,
+  };
+}
+function reventar(i, conSonido) {
+  const g = globos[i];
+  if (!g || !g.vivo) return;
+  g.vivo = false;
+  puntos++;
+  $("puntos").textContent = puntos;
+  if (conSonido !== false) sonidoPop(g.r);
+  ondas.push({ x: g.x, y: g.y, r: g.r * 0.6, max: g.r * 1.8, alfa: 1, color: g.color });
+  for (let k = 0; k < 14; k++) {
+    const a = Math.random() * Math.PI * 2, v = g.r * (2 + Math.random() * 4);
+    particulas.push({ x: g.x, y: g.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - g.r * 2,
+      vida: 0.6 + Math.random() * 0.4, color: Math.random() < 0.5 ? g.color : COLORES[Math.floor(Math.random() * COLORES.length)],
+      tam: g.r * (0.08 + Math.random() * 0.12), rot: Math.random() * 6 });
+  }
+  if (modo === "tranqui" && puntos % 10 === 0) { sonidoFiesta(); lluviaDePapelitos(); }
+  if (seleccionado === i) seleccionado = -1;
+}
+function lluviaDePapelitos() {
+  for (let k = 0; k < 80; k++) {
+    particulas.push({ x: Math.random() * ancho, y: -10 - Math.random() * alto * 0.3,
+      vx: (Math.random() - 0.5) * 60, vy: 120 + Math.random() * 160, vida: 2.2 + Math.random(),
+      color: COLORES[Math.floor(Math.random() * COLORES.length)], tam: 5 + Math.random() * 6, rot: Math.random() * 6, lenta: true });
+  }
+}
+function globoEn(x, y) {
+  // Del más cercano al frente; se acepta un margen extra para dedos chicos.
+  let mejor = -1, mejorD = Infinity;
+  globos.forEach((g, i) => {
+    if (!g.vivo) return;
+    const dx = x - (g.x + Math.sin(g.fase) * g.balanceo), dy = y - g.y;
+    const d = Math.hypot(dx, dy / 1.15);
+    if (d <= g.r * 1.25 && d < mejorD) { mejorD = d; mejor = i; }
+  });
+  return mejor;
+}
+
+/* ------------------------------------------------------------- bucle */
+function tick(ahora) {
+  animacion = requestAnimationFrame(tick);
+  if (pausado) { ultimoTick = ahora; return; }
+  const dt = Math.min(0.05, (ahora - ultimoTick) / 1000 || 0);
+  ultimoTick = ahora;
+
+  if (modo === "desafio") {
+    restante = Math.max(0, DURACION - (ahora - tiempoInicio) / 1000);
+    $("tiempo").textContent = Math.ceil(restante) + " s";
+    if (restante <= 0) { terminar(); return; }
+  }
+
+  const p = parametros();
+  acumSpawn += dt;
+  const vivos = globos.filter((g) => g.vivo).length;
+  if (acumSpawn >= p.cadencia && vivos < p.max) { acumSpawn = 0; globos.push(nuevoGlobo()); }
+
+  globos.forEach((g) => {
+    if (!g.vivo) return;
+    g.y -= g.vy * dt;
+    g.fase += dt * 2;
+    if (g.y < -g.r * 2) g.vivo = false;   // se escapó: no suma
+  });
+  globos = globos.filter((g) => g.vivo);
+  if (seleccionado >= globos.length) seleccionado = -1;
+
+  particulas.forEach((q) => {
+    q.vida -= dt; q.x += q.vx * dt; q.y += q.vy * dt; q.rot += dt * 4;
+    q.vy += (q.lenta ? 40 : 900) * dt;
+    if (!q.lenta) q.vx *= 0.98;
+  });
+  particulas = particulas.filter((q) => q.vida > 0 && q.y < alto + 20);
+  ondas.forEach((o) => { o.r += (o.max - o.r) * dt * 10; o.alfa -= dt * 4; });
+  ondas = ondas.filter((o) => o.alfa > 0);
+
+  dibujar();
+}
+
+function dibujar() {
+  const cielo = ctx.createLinearGradient(0, 0, 0, alto);
+  cielo.addColorStop(0, "#0f1020"); cielo.addColorStop(1, "#262a5c");
+  ctx.fillStyle = cielo; ctx.fillRect(0, 0, ancho, alto);
+
+  globos.forEach((g, i) => {
+    const x = g.x + Math.sin(g.fase) * g.balanceo, y = g.y;
+    // Hilo
+    ctx.strokeStyle = "rgba(255,255,255,.45)"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(x, y + g.r * 1.15);
+    ctx.quadraticCurveTo(x + g.r * 0.3, y + g.r * 1.8, x - g.r * 0.1, y + g.r * 2.4); ctx.stroke();
+    // Nudo
+    ctx.fillStyle = g.color;
+    ctx.beginPath(); ctx.moveTo(x, y + g.r * 1.05);
+    ctx.lineTo(x - g.r * 0.12, y + g.r * 1.22); ctx.lineTo(x + g.r * 0.12, y + g.r * 1.22); ctx.closePath(); ctx.fill();
+    // Cuerpo
+    ctx.beginPath(); ctx.ellipse(x, y, g.r, g.r * 1.15, 0, 0, Math.PI * 2); ctx.fill();
+    // Brillo
+    ctx.fillStyle = "rgba(255,255,255,.35)";
+    ctx.beginPath(); ctx.ellipse(x - g.r * 0.35, y - g.r * 0.45, g.r * 0.22, g.r * 0.32, -0.5, 0, Math.PI * 2); ctx.fill();
+    if (i === seleccionado) {
+      ctx.strokeStyle = "#fff"; ctx.lineWidth = 4; ctx.setLineDash([8, 6]);
+      ctx.beginPath(); ctx.ellipse(x, y, g.r * 1.25, g.r * 1.4, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  });
+
+  ondas.forEach((o) => {
+    ctx.globalAlpha = Math.max(0, o.alfa); ctx.strokeStyle = o.color; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.stroke();
+  });
+  ctx.globalAlpha = 1;
+  particulas.forEach((q) => {
+    ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.rot);
+    ctx.globalAlpha = Math.min(1, q.vida * 2); ctx.fillStyle = q.color;
+    ctx.fillRect(-q.tam / 2, -q.tam / 2, q.tam, q.tam * 0.6);
+    ctx.restore();
+  });
+  ctx.globalAlpha = 1;
+}
+
+/* ------------------------------------------------------------ control */
+function empezar(cual) {
+  asegurarAudio();
+  modo = cual; puntos = 0; globos = []; particulas = []; ondas = []; seleccionado = -1; acumSpawn = 9;
+  restante = DURACION; tiempoInicio = performance.now(); ultimoTick = tiempoInicio; pausado = false;
+  $("puntos").textContent = "0";
+  $("tiempo").textContent = cual === "desafio" ? DURACION + " s" : "";
+  $("menu").classList.add("oculta"); $("fin").classList.add("oculta");
+  $("hud").hidden = false;
+  cancelAnimationFrame(animacion);
+  animacion = requestAnimationFrame(tick);
+  canvas.focus();
+}
+function terminar() {
+  cancelAnimationFrame(animacion); animacion = null;
+  const fueDesafio = modo === "desafio";
+  modo = null;
+  $("hud").hidden = true;
+  $("fin-puntos").textContent = puntos;
+  let texto = puntos === 1 ? "un globo." : puntos + " globos.";
+  if (fueDesafio) {
+    const r = leerRecord();
+    if (puntos > r) { guardarRecord(puntos); texto = "¡Récord nuevo! Antes era " + r + "."; sonidoFiesta(); }
+    else if (puntos === r && r > 0) texto = "Empataste tu récord.";
+    else texto = "Tu récord es " + r + ".";
+  }
+  $("fin-texto").textContent = texto;
+  $("btn-otra").className = fueDesafio ? "desafio" : "tranqui";
+  $("btn-otra").dataset.modo = fueDesafio ? "desafio" : "tranqui";
+  $("fin").classList.remove("oculta");
+  mostrarRecord();
+  dibujar();
+}
+function alMenu() {
+  cancelAnimationFrame(animacion); animacion = null; modo = null;
+  $("hud").hidden = true; $("fin").classList.add("oculta"); $("menu").classList.remove("oculta");
+  mostrarRecord();
+}
+
+$("btn-tranqui").addEventListener("click", () => empezar("tranqui"));
+$("btn-desafio").addEventListener("click", () => empezar("desafio"));
+$("btn-otra").addEventListener("click", (e) => empezar(e.currentTarget.dataset.modo || "tranqui"));
+$("btn-menu").addEventListener("click", alMenu);
+$("btn-salir").addEventListener("click", () => (modo === "tranqui" && puntos ? terminar() : alMenu()));
+
+canvas.addEventListener("pointerdown", (e) => {
+  if (!modo) return;
+  e.preventDefault();
+  asegurarAudio();
+  const i = globoEn(e.clientX, e.clientY);
+  if (i >= 0) reventar(i);
+});
+
+document.addEventListener("keydown", (e) => {
+  if (!modo) return;
+  if (e.key === "Escape") { e.preventDefault(); $("btn-salir").click(); return; }
+  const vivos = globos.map((g, i) => i).filter((i) => globos[i].vivo);
+  if (!vivos.length) return;
+  if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "ArrowDown") {
+    e.preventDefault();
+    // Orden por posición horizontal; arriba/abajo recorren por altura.
+    const porX = vivos.slice().sort((a, b) => globos[a].x - globos[b].x);
+    const porY = vivos.slice().sort((a, b) => globos[a].y - globos[b].y);
+    const lista = e.key === "ArrowLeft" || e.key === "ArrowRight" ? porX : porY;
+    const paso = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1;
+    const pos = lista.indexOf(seleccionado);
+    seleccionado = pos < 0 ? lista[paso > 0 ? 0 : lista.length - 1] : lista[(pos + paso + lista.length) % lista.length];
+  } else if (e.key === " " || e.key === "Enter") {
+    e.preventDefault();
+    asegurarAudio();
+    // Sin selección, va el que está más abajo (el que tiene más tiempo de vida).
+    const i = seleccionado >= 0 && globos[seleccionado] ? seleccionado
+      : vivos.reduce((m, k) => (globos[k].y > globos[m].y ? k : m), vivos[0]);
+    reventar(i);
+  }
+});
+
+document.addEventListener("visibilitychange", () => {
+  pausado = document.hidden;
+  if (!document.hidden && modo === "desafio") tiempoInicio = performance.now() - (DURACION - restante) * 1000;
+});
+
+mostrarRecord();
+dibujar();
+window.Globos = { get modo() { return modo; }, get puntos() { return puntos; }, get globos() { return globos; },
+  reventar, empezar, terminar };
+})();
+</script>
+</body>
+</html>
