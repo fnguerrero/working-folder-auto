@@ -25,5 +25,14 @@
     "estado": "terminado",
     "probar": "apps/cuotas-en-curso/",
     "desde": "2026-10-09"
+  },
+  {
+    "slug": "json-a-csharp",
+    "nombre": "JSON a C#",
+    "categoria": "herramientas",
+    "descripcion": "Pegás un JSON y salen las clases o records de C# para System.Text.Json o Newtonsoft, con tipos inferidos. También interfaces TypeScript.",
+    "estado": "terminado",
+    "probar": "herramientas/json-a-csharp/",
+    "desde": "2026-10-10"
   }
 ]

@@ -16,6 +16,7 @@ Trabaja directo sobre `main`. Si algo no te gusta, se mueve a `_archivo/`.
 |---|---|---|---|---|
 | Simón dice | juegos | Cuatro colores con sonido y una secuencia que crece cada ronda. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/juegos/simon/) |
 | Globos | juegos | Reventar globos con el dedo: modo tranqui y desafío de 60 segundos. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/juegos/globos/) |
+| JSON a C# | herramientas | Pegás un JSON y salen las clases o records de C# con tipos inferidos; también TypeScript. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/herramientas/json-a-csharp/) |
 | Cuotas en curso | apps | Cuánto tenés comprometido en cuotas por mes y cuándo te liberás. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/apps/cuotas-en-curso/) |
 
 Las convenciones de estructura y trabajo están en [CLAUDE.md](CLAUDE.md).

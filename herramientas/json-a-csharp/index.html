@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<title>JSON a C#</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --card: #fff; --fg: #1d1d1f; --muted: #6b6b70; --line: #e4e2dc; --accent: #5b4fd6;
+    --accent-fg: #fff; --error: #c0392b; --ok: #1e7e4f; --code-bg: #fbfaf7;
+    --kw: #7c3aed; --ty: #0f766e; --str: #b45309; --attr: #1d4ed8; --com: #6b6b70;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111114; --card: #1b1b20; --fg: #ececf1; --muted: #9a9aa3; --line: #2a2a31; --accent: #9d93ff;
+      --accent-fg: #15131f; --error: #ff7b6b; --ok: #6fd39a; --code-bg: #15151a;
+      --kw: #c4b5fd; --ty: #5eead4; --str: #fcd34d; --attr: #93c5fd; --com: #8b8b95;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); display: flex; flex-direction: column; }
+  header { padding: 14px 16px 10px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+  h1 { margin: 0; font-size: 1.35rem; }
+  header p { margin: 0; color: var(--muted); font-size: .92rem; }
+  header a { color: var(--muted); }
+  .opciones { display: flex; flex-wrap: wrap; gap: 8px 12px; padding: 0 16px 10px; align-items: end; }
+  .opciones label { display: flex; flex-direction: column; gap: 3px; font-size: .78rem; color: var(--muted); }
+  .opciones label.check { flex-direction: row; align-items: center; gap: 6px; min-height: 40px; font-size: .88rem; color: var(--fg); }
+  .opciones input[type="text"], .opciones select {
+    font: inherit; font-size: .95rem; min-height: 40px; padding: 6px 10px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--card); color: var(--fg); min-width: 120px;
+  }
+  .opciones input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); margin: 0; }
+  main { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 16px 16px; min-height: 0; }
+  @media (max-width: 800px) { main { grid-template-columns: 1fr; } }
+  .panel { display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--line); border-radius: 12px; min-height: 320px; overflow: hidden; }
+  .barra { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  .barra h2 { margin: 0 auto 0 4px; font-size: .95rem; font-weight: 600; }
+  .barra button, .tabs button {
+    font: inherit; font-size: .88rem; min-height: 40px; padding: 6px 12px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--card); color: var(--fg);
+  }
+  .barra button:hover, .tabs button:hover { border-color: var(--accent); }
+  .barra button.primario { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .tabs { display: flex; gap: 4px; margin-right: auto; }
+  .tabs button[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  textarea, pre { flex: 1; margin: 0; padding: 12px; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; min-height: 240px; }
+  textarea { border: 0; resize: none; background: var(--code-bg); color: var(--fg); outline: none; width: 100%; }
+  textarea:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+  pre { overflow: auto; background: var(--code-bg); -webkit-overflow-scrolling: touch; }
+  pre code { white-space: pre; }
+  .estado { padding: 6px 12px; font-size: .85rem; color: var(--muted); border-top: 1px solid var(--line); min-height: 32px; }
+  .estado.error { color: var(--error); }
+  .estado.ok { color: var(--ok); }
+  .kw { color: var(--kw); } .ty { color: var(--ty); } .str { color: var(--str); } .attr { color: var(--attr); } .com { color: var(--com); font-style: italic; }
+  .aviso { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: .9rem; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .aviso.visible { opacity: 1; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<header>
+  <h1>JSON a C#</h1>
+  <p>Pegá un JSON y salen las clases para <code>System.Text.Json</code> o Newtonsoft. Todo pasa en tu navegador. <a href="README.md">Cómo funciona</a></p>
+</header>
+
+<form class="opciones" id="opciones" onsubmit="return false">
+  <label>Clase raíz <input type="text" id="op-nombreRaiz" value="Root" autocomplete="off" spellcheck="false"></label>
+  <label>Namespace <input type="text" id="op-espacio" placeholder="(ninguno)" autocomplete="off" spellcheck="false"></label>
+  <label>Estilo
+    <select id="op-estilo">
+      <option value="clase">class { get; set; }</option>
+      <option value="init">class { get; init; }</option>
+      <option value="record">record posicional</option>
+    </select>
+  </label>
+  <label>Atributos
+    <select id="op-atributos">
+      <option value="stj">System.Text.Json</option>
+      <option value="newtonsoft">Newtonsoft.Json</option>
+      <option value="ninguno">ninguno</option>
+    </select>
+  </label>
+  <label>Listas
+    <select id="op-coleccion">
+      <option value="List">List&lt;T&gt;</option>
+      <option value="array">T[]</option>
+      <option value="IReadOnlyList">IReadOnlyList&lt;T&gt;</option>
+    </select>
+  </label>
+  <label>Decimales
+    <select id="op-decimales">
+      <option value="double">double</option>
+      <option value="decimal">decimal</option>
+    </select>
+  </label>
+  <label class="check"><input type="checkbox" id="op-nrt" checked> Tipos anulables (<code>string?</code>)</label>
+  <label class="check"><input type="checkbox" id="op-required" checked> <code>required</code></label>
+  <label class="check"><input type="checkbox" id="op-fechas" checked> Detectar fechas y GUID</label>
+  <label class="check"><input type="checkbox" id="op-atributosSiempre"> Atributo en todas</label>
+</form>
+
+<main>
+  <section class="panel" aria-labelledby="t-entrada">
+    <div class="barra">
+      <h2 id="t-entrada">JSON</h2>
+      <button type="button" id="btn-ejemplo">Ejemplo</button>
+      <button type="button" id="btn-formatear">Formatear</button>
+      <button type="button" id="btn-limpiar">Limpiar</button>
+    </div>
+    <textarea id="entrada" aria-label="JSON de entrada" placeholder='{ "pegá": "acá tu JSON" }' spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
+    <div class="estado" id="estado-entrada" aria-live="polite"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="t-salida">
+    <div class="barra">
+      <h2 id="t-salida" class="sr">Salida</h2>
+      <div class="tabs" role="tablist" aria-label="Lenguaje de salida">
+        <button type="button" role="tab" id="tab-cs" aria-selected="true">C#</button>
+        <button type="button" role="tab" id="tab-ts" aria-selected="false">TypeScript</button>
+      </div>
+      <button type="button" id="btn-descargar">Descargar</button>
+      <button type="button" id="btn-copiar" class="primario">Copiar</button>
+    </div>
+    <pre id="salida" tabindex="0" aria-label="Código generado"><code id="codigo"></code></pre>
+    <div class="estado" id="estado-salida" aria-live="polite"></div>
+  </section>
+</main>
+<div class="aviso" id="aviso" role="status"></div>
+
+<script src="logica.js"></script>
+<script>
+(function () {
+  "use strict";
+  const L = window.JsonACSharp;
+  const $ = (id) => document.getElementById(id);
+  const CLAVE = "json-a-csharp.v1";
+  const CAMPOS = ["nombreRaiz", "espacio", "estilo", "atributos", "coleccion", "decimales", "nrt", "required", "fechas", "atributosSiempre"];
+
+  let lenguaje = "cs";
+  let ultimoCodigo = "";
+  let temporizador = null;
+
+  function leer() {
+    try { return JSON.parse(localStorage.getItem(CLAVE) || "null") || {}; } catch (e) { return {}; }
+  }
+  function guardar(datos) {
+    try { localStorage.setItem(CLAVE, JSON.stringify(datos)); } catch (e) { /* sin almacenamiento, no pasa nada */ }
+  }
+
+  function opciones() {
+    const o = {};
+    for (const c of CAMPOS) {
+      const el = $("op-" + c);
+      o[c] = el.type === "checkbox" ? el.checked : el.value;
+    }
+    return o;
+  }
+
+  function aplicarOpciones(o) {
+    for (const c of CAMPOS) {
+      if (!(c in o)) continue;
+      const el = $("op-" + c);
+      if (el.type === "checkbox") el.checked = !!o[c]; else el.value = o[c];
+    }
+  }
+
+  function escapar(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  const RE_CS = /("[^"]*")|(\[(?:property: )?)([A-Za-z]+)(?=\()|\b(using|namespace|public|class|record|required|get|set|init|bool|int|long|double|decimal|string|object)\b|\b(List|IReadOnlyList|Dictionary|DateTime|Guid|JsonElement|JToken)\b/g;
+  const RE_TS = /("[^"]*")|()()\b(export|interface|type|string|number|boolean|null|unknown|object)\b|\b(Record)\b/g;
+
+  /* Resaltado chico y seguro: se tokeniza en una sola pasada y cada pedazo se escapa por separado. */
+  function resaltar(codigo, lang) {
+    const re = lang === "cs" ? RE_CS : RE_TS;
+    return codigo.split("\n").map((linea) => {
+      if (/^\s*\/\//.test(linea)) return `<span class="com">${escapar(linea)}</span>`;
+      let salida = "", ultimo = 0;
+      re.lastIndex = 0;
+      for (let m; (m = re.exec(linea));) {
+        salida += escapar(linea.slice(ultimo, m.index));
+        if (m[1]) salida += `<span class="str">${escapar(m[1])}</span>`;
+        else if (m[3]) salida += `${escapar(m[2])}<span class="attr">${escapar(m[3])}</span>`;
+        else if (m[4]) salida += `<span class="kw">${escapar(m[4])}</span>`;
+        else salida += `<span class="ty">${escapar(m[5])}</span>`;
+        ultimo = m.index + m[0].length;
+      }
+      return salida + escapar(linea.slice(ultimo));
+    }).join("\n");
+  }
+
+  function estado(el, texto, clase) {
+    el.textContent = texto;
+    el.className = "estado" + (clase ? " " + clase : "");
+  }
+
+  function generar() {
+    const texto = $("entrada").value;
+    const op = opciones();
+    guardar({ opciones: op, entrada: texto.length < 200000 ? texto : "", lenguaje });
+    if (!texto.trim()) {
+      ultimoCodigo = "";
+      $("codigo").innerHTML = "";
+      estado($("estado-entrada"), "Pegá un JSON o tocá \"Ejemplo\".");
+      estado($("estado-salida"), "");
+      return;
+    }
+    let valor;
+    try {
+      valor = L.parsear(texto);
+    } catch (e) {
+      ultimoCodigo = "";
+      $("codigo").innerHTML = "";
+      estado($("estado-entrada"), "JSON inválido: " + e.message, "error");
+      estado($("estado-salida"), "");
+      return;
+    }
+    estado($("estado-entrada"), "JSON válido.", "ok");
+    const r = lenguaje === "cs" ? L.generarCSharp(valor, op) : L.generarTypeScript(valor, op);
+    ultimoCodigo = r.codigo;
+    $("codigo").innerHTML = resaltar(r.codigo, lenguaje);
+    const que = lenguaje === "cs" ? "clase" : "interfaz";
+    const plural = (n, s, p) => `${n} ${n === 1 ? s : p}`;
+    estado($("estado-salida"), `${plural(r.clases, que, que === "clase" ? "clases" : "interfaces")}, ${plural(r.propiedades, "propiedad", "propiedades")}.`);
+  }
+
+  function programar() {
+    clearTimeout(temporizador);
+    temporizador = setTimeout(generar, 150);
+  }
+
+  function aviso(texto) {
+    const el = $("aviso");
+    el.textContent = texto;
+    el.classList.add("visible");
+    clearTimeout(aviso.t);
+    aviso.t = setTimeout(() => el.classList.remove("visible"), 1800);
+  }
+
+  async function copiar() {
+    if (!ultimoCodigo) { aviso("No hay nada para copiar"); return; }
+    try {
+      await navigator.clipboard.writeText(ultimoCodigo);
+      aviso("Copiado");
+    } catch (e) {
+      const ta = document.createElement("textarea");
+      ta.value = ultimoCodigo;
+      ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand("copy"); } catch (e2) { ok = false; }
+      ta.remove();
+      aviso(ok ? "Copiado" : "No se pudo copiar: seleccioná el texto a mano");
+    }
+  }
+
+  function descargar() {
+    if (!ultimoCodigo) { aviso("No hay nada para descargar"); return; }
+    const nombre = (L.pascal(opciones().nombreRaiz || "Root")) + (lenguaje === "cs" ? ".cs" : ".ts");
+    const blob = new Blob([ultimoCodigo], { type: "text/plain;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  function elegirLenguaje(l) {
+    lenguaje = l;
+    $("tab-cs").setAttribute("aria-selected", String(l === "cs"));
+    $("tab-ts").setAttribute("aria-selected", String(l === "ts"));
+    const soloCs = ["op-espacio", "op-estilo", "op-atributos", "op-coleccion", "op-decimales", "op-nrt", "op-required", "op-fechas", "op-atributosSiempre"];
+    for (const id of soloCs) $(id).disabled = l !== "cs";
+    generar();
+  }
+
+  /* Eventos */
+  $("entrada").addEventListener("input", programar);
+  $("opciones").addEventListener("input", programar);
+  $("opciones").addEventListener("change", programar);
+  $("btn-ejemplo").onclick = () => { $("entrada").value = L.EJEMPLO; if ($("op-nombreRaiz").value === "Root") $("op-nombreRaiz").value = "Pedido"; generar(); };
+  $("btn-limpiar").onclick = () => { $("entrada").value = ""; generar(); $("entrada").focus(); };
+  $("btn-formatear").onclick = () => {
+    try { $("entrada").value = L.formatear($("entrada").value); generar(); }
+    catch (e) { estado($("estado-entrada"), "JSON inválido: " + e.message, "error"); }
+  };
+  $("btn-copiar").onclick = copiar;
+  $("btn-descargar").onclick = descargar;
+  $("tab-cs").onclick = () => elegirLenguaje("cs");
+  $("tab-ts").onclick = () => elegirLenguaje("ts");
+
+  /* Tab dentro del textarea mete dos espacios en vez de saltar de campo; Ctrl+Enter copia. */
+  $("entrada").addEventListener("keydown", (e) => {
+    if (e.key === "Tab" && !e.shiftKey) {
+      e.preventDefault();
+      const ta = e.target, ini = ta.selectionStart, fin = ta.selectionEnd;
+      ta.setRangeText("  ", ini, fin, "end");
+      programar();
+    }
+  });
+  document.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); copiar(); }
+  });
+
+  /* Arranque: recupera opciones y el último JSON. */
+  const guardado = leer();
+  if (guardado.opciones) aplicarOpciones(guardado.opciones);
+  if (typeof guardado.entrada === "string") $("entrada").value = guardado.entrada;
+  elegirLenguaje(guardado.lenguaje === "ts" ? "ts" : "cs");
+})();
+</script>
+</body>
+</html>
