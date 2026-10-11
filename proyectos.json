@@ -43,5 +43,14 @@
     "estado": "terminado",
     "probar": "experimentos/colas-p99/",
     "desde": "2026-10-11"
+  },
+  {
+    "slug": "cron-en-criollo",
+    "nombre": "Cron en criollo",
+    "categoria": "herramientas",
+    "descripcion": "Pegás una expresión cron (estándar o Quartz.NET) y te dice en castellano cuándo corre, con las próximas ejecuciones en hora argentina y el código para Hangfire o Quartz.",
+    "estado": "terminado",
+    "probar": "herramientas/cron-en-criollo/",
+    "desde": "2026-10-11"
   }
 ]
