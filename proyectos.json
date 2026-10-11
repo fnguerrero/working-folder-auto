@@ -34,5 +34,14 @@
     "estado": "terminado",
     "probar": "herramientas/json-a-csharp/",
     "desde": "2026-10-10"
+  },
+  {
+    "slug": "colas-p99",
+    "nombre": "Por qué explota el p99",
+    "categoria": "experimentos",
+    "descripcion": "Simulador de colas para backend: workers, pedidos por segundo y variabilidad contra Erlang C, Kingman y Little. Con diagnóstico y qué hacer.",
+    "estado": "terminado",
+    "probar": "experimentos/colas-p99/",
+    "desde": "2026-10-11"
   }
 ]

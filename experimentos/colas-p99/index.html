@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<title>Por qué explota el p99</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --card: #fff; --fg: #1d1d1f; --muted: #6b6b70; --line: #e4e2dc; --accent: #5b4fd6; --accent-fg: #fff;
+    --verde: #1e7e4f; --amarillo: #b7791f; --rojo: #c0392b; --teoria: #0f766e; --p50: #1d4ed8; --p99: #c0392b;
+    --banda-amarilla: rgba(183, 121, 31, .10); --banda-roja: rgba(192, 57, 43, .10); --grid: #ebe9e3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111114; --card: #1b1b20; --fg: #ececf1; --muted: #9a9aa3; --line: #2a2a31; --accent: #9d93ff; --accent-fg: #15131f;
+      --verde: #6fd39a; --amarillo: #f0b454; --rojo: #ff7b6b; --teoria: #5eead4; --p50: #93c5fd; --p99: #ff7b6b;
+      --banda-amarilla: rgba(240, 180, 84, .12); --banda-roja: rgba(255, 123, 107, .12); --grid: #26262d;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.45; }
+  header { padding: 18px 16px 6px; max-width: 1180px; margin: 0 auto; }
+  h1 { margin: 0; font-size: 1.5rem; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  header a, .texto a { color: var(--accent); }
+  main { max-width: 1180px; margin: 0 auto; padding: 10px 16px 32px; display: grid; gap: 14px; grid-template-columns: 340px 1fr; align-items: start; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+  .panel h2 { margin: 0 0 10px; font-size: 1rem; }
+  .presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .presets button, .acciones-ui button {
+    font: inherit; font-size: .85rem; min-height: 40px; padding: 6px 12px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--card); color: var(--fg);
+  }
+  .presets button:hover, .acciones-ui button:hover { border-color: var(--accent); }
+  .presets button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .control { display: grid; grid-template-columns: 1fr 92px; gap: 4px 8px; align-items: center; margin: 10px 0; }
+  .control label { font-size: .85rem; color: var(--muted); grid-column: 1 / -1; display: flex; justify-content: space-between; }
+  .control label b { color: var(--fg); font-weight: 600; }
+  .control input[type="range"] { width: 100%; accent-color: var(--accent); min-height: 40px; margin: 0; }
+  .control input[type="number"], .control select {
+    font: inherit; font-size: .95rem; min-height: 40px; padding: 6px 8px; border-radius: 8px; width: 100%;
+    border: 1px solid var(--line); background: var(--card); color: var(--fg);
+  }
+  .control.ancho select, .control.ancho input { grid-column: 1 / -1; }
+  .oculto { display: none !important; }
+  .acciones-ui { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(116px, 1fr)); gap: 8px; }
+  .tile { background: var(--bg); border-radius: 10px; padding: 10px 12px; }
+  .tile .v { font-size: 1.35rem; font-weight: 650; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+  .tile .k { font-size: .78rem; color: var(--muted); }
+  .tile .s { font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .zona-verde .tile.util .v { color: var(--verde); } .zona-amarilla .tile.util .v { color: var(--amarillo); }
+  .zona-roja .tile.util .v, .zona-inestable .tile.util .v { color: var(--rojo); }
+  .diag h3 { margin: 12px 0 6px; font-size: 1.05rem; }
+  .zona-verde .diag h3 { color: var(--verde); } .zona-amarilla .diag h3 { color: var(--amarillo); }
+  .zona-roja .diag h3, .zona-inestable .diag h3 { color: var(--rojo); }
+  .diag p, .diag li { margin: 6px 0; font-size: .93rem; }
+  .diag ul { margin: 4px 0 0; padding-left: 20px; }
+  .graficos { display: grid; gap: 14px; grid-column: 1 / -1; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .grafico canvas { width: 100%; height: 240px; display: block; touch-action: pan-y; }
+  .grafico .pie { font-size: .8rem; color: var(--muted); margin: 6px 0 0; }
+  .leyenda { display: flex; gap: 12px; flex-wrap: wrap; font-size: .8rem; color: var(--muted); margin: 0 0 6px; }
+  .leyenda i { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 5px; border-radius: 2px; }
+  .texto { grid-column: 1 / -1; max-width: 820px; }
+  .texto h2 { font-size: 1.2rem; margin: 4px 0 8px; }
+  .texto h3 { font-size: 1rem; margin: 18px 0 6px; }
+  .texto p, .texto li { font-size: .95rem; }
+  .texto code { font: .88em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--bg); padding: 1px 5px; border-radius: 5px; }
+  .texto .formula { font: 1rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--bg); padding: 8px 12px; border-radius: 8px; overflow-x: auto; }
+  table.cmp { border-collapse: collapse; width: 100%; font-size: .85rem; margin-top: 10px; font-variant-numeric: tabular-nums; }
+  table.cmp th, table.cmp td { text-align: right; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+  table.cmp th:first-child, table.cmp td:first-child { text-align: left; color: var(--muted); font-weight: 500; }
+  .aviso { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: .9rem; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .aviso.visible { opacity: 1; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Por qué explota el p99</h1>
+  <p>Un simulador de colas para entender la latencia de un backend: workers, pedidos por segundo y qué tan desparejos son los tiempos. Todo corre en tu navegador. <a href="../../">Volver</a></p>
+</header>
+<main id="main">
+  <section class="panel" aria-label="Escenario">
+    <h2>Escenario</h2>
+    <div class="presets" id="presets"></div>
+    <div class="control">
+      <label for="in-c">Workers (hilos, instancias, conexiones) <b id="v-c"></b></label>
+      <input type="range" id="r-c" min="1" max="64" step="1">
+      <input type="number" id="in-c" min="1" max="512" step="1" aria-label="Workers">
+    </div>
+    <div class="control">
+      <label for="in-l">Pedidos por segundo <b id="v-l"></b></label>
+      <input type="range" id="r-l" min="0" max="1000" step="1">
+      <input type="number" id="in-l" min="0.1" max="100000" step="any" aria-label="Pedidos por segundo">
+    </div>
+    <div class="control">
+      <label for="in-s">Tiempo de servicio promedio (ms) <b id="v-s"></b></label>
+      <input type="range" id="r-s" min="0" max="1000" step="1">
+      <input type="number" id="in-s" min="0.1" max="600000" step="any" aria-label="Tiempo de servicio promedio en ms">
+    </div>
+    <div class="control ancho">
+      <label for="in-d">Cómo se reparten los tiempos de servicio</label>
+      <select id="in-d"></select>
+    </div>
+    <div class="control" id="ctl-cv">
+      <label for="in-cv">Dispersión (coeficiente de variación) <b id="v-cv"></b></label>
+      <input type="range" id="r-cv" min="0.1" max="4" step="0.1">
+      <input type="number" id="in-cv" min="0.05" max="20" step="0.1" aria-label="Coeficiente de variación">
+    </div>
+    <div class="control" id="ctl-prob">
+      <label for="in-prob">Pedidos lentos (%) <b id="v-prob"></b></label>
+      <input type="range" id="r-prob" min="0.1" max="50" step="0.1">
+      <input type="number" id="in-prob" min="0.1" max="99" step="0.1" aria-label="Porcentaje de pedidos lentos">
+    </div>
+    <div class="control" id="ctl-factor">
+      <label for="in-factor">Cuántas veces más tardan los lentos <b id="v-factor"></b></label>
+      <input type="range" id="r-factor" min="2" max="100" step="1">
+      <input type="number" id="in-factor" min="1" max="10000" step="1" aria-label="Factor de los pedidos lentos">
+    </div>
+    <div class="control">
+      <label for="in-q">Cola máxima (0 = sin límite) <b id="v-q"></b></label>
+      <input type="range" id="r-q" min="0" max="200" step="1">
+      <input type="number" id="in-q" min="0" max="100000" step="1" aria-label="Cola máxima">
+    </div>
+    <div class="control ancho">
+      <label for="in-n">Pedidos simulados</label>
+      <select id="in-n">
+        <option value="5000">5.000 (rápido)</option>
+        <option value="20000" selected>20.000</option>
+        <option value="100000">100.000 (más preciso)</option>
+        <option value="300000">300.000 (lento en el celular)</option>
+      </select>
+    </div>
+    <div class="acciones-ui">
+      <button id="btn-tirada" type="button">Otra tirada 🎲</button>
+      <button id="btn-link" type="button">Copiar link</button>
+    </div>
+  </section>
+
+  <section class="panel" id="resultados" aria-label="Resultados">
+    <h2>Lo que mide la simulación</h2>
+    <div class="tiles">
+      <div class="tile util"><div class="v" id="t-util">–</div><div class="k">utilización</div><div class="s" id="t-util-s"></div></div>
+      <div class="tile"><div class="v" id="t-p50">–</div><div class="k">p50</div><div class="s" id="t-p50-s"></div></div>
+      <div class="tile"><div class="v" id="t-p99">–</div><div class="k">p99</div><div class="s" id="t-p99-s"></div></div>
+      <div class="tile"><div class="v" id="t-p999">–</div><div class="k">p99,9</div><div class="s" id="t-p999-s"></div></div>
+      <div class="tile"><div class="v" id="t-espera">–</div><div class="k">espera media en cola</div><div class="s" id="t-espera-s"></div></div>
+      <div class="tile"><div class="v" id="t-rech">–</div><div class="k">rechazados</div><div class="s" id="t-rech-s"></div></div>
+    </div>
+    <table class="cmp" aria-label="Teoría contra simulación">
+      <thead><tr><th>Teoría vs. simulación</th><th>Fórmula</th><th>Simulado</th></tr></thead>
+      <tbody id="cmp"></tbody>
+    </table>
+    <div class="diag" id="diag"></div>
+  </section>
+
+  <div class="graficos">
+    <section class="panel grafico" aria-label="Latencia según utilización">
+      <h2>El palo de hockey</h2>
+      <p class="leyenda"><span><i style="background: var(--teoria)"></i>media (fórmula)</span><span><i style="background: var(--p50)"></i>p50 (simulado)</span><span><i style="background: var(--p99)"></i>p99 (simulado)</span></p>
+      <canvas id="g-hockey" role="img" aria-label="Latencia en función de la utilización"></canvas>
+      <p class="pie">Latencia (vertical) según utilización (horizontal), con los mismos workers y la misma distribución: solo cambia la carga. La línea punteada es tu escenario.</p>
+    </section>
+    <section class="panel grafico" aria-label="Distribución de latencias">
+      <h2>Cómo se reparten las latencias</h2>
+      <canvas id="g-hist" role="img" aria-label="Histograma de latencias"></canvas>
+      <p class="pie" id="pie-hist">Cada barra es cuántos pedidos tardaron eso. Lo que pasa el p99,5 se junta en la última barra.</p>
+    </section>
+    <section class="panel grafico" aria-label="Cola en el tiempo">
+      <h2>La cola, segundo a segundo</h2>
+      <canvas id="g-cola" role="img" aria-label="Largo de la cola a lo largo de la simulación"></canvas>
+      <p class="pie" id="pie-cola">Pedidos esperando a que se libere un worker (sin contar los que están siendo atendidos).</p>
+    </section>
+  </div>
+
+  <article class="panel texto">
+    <h2>Lo que hay que saber (y en qué se nota en un backend)</h2>
+    <p>La mayoría de los problemas de latencia de un servicio no son "el código es lento": son <em>colas</em>. Un pool de hilos, un pool de conexiones a la base, una cola de mensajes con pocos consumidores, un semáforo, el <code>ThreadPool</code> de .NET: todos son el mismo objeto matemático, <strong>c workers atendiendo una cola</strong>. Y ese objeto tiene tres propiedades que conviene tener grabadas.</p>
+
+    <h3>1. La curva no es recta: dobla alrededor del 70-80%</h3>
+    <p>A mitad de capacidad la espera es casi nula. Al 80% ya se nota. Al 90% la espera media se multiplica, y al 95% el p99 vale varias veces el p50. La forma que lo captura es la de <strong>Erlang C</strong> (1917, para centrales telefónicas, y sigue siendo exacta para este modelo con tiempos de servicio exponenciales):</p>
+    <p class="formula">Wq = C(c, a) / (c·μ − λ)      con a = λ/μ, ρ = a/c</p>
+    <p>Lo importante no es la fórmula sino el denominador: <code>c·μ − λ</code> es la capacidad que sobra. Cuando la utilización se acerca a 1, ese número se acerca a 0 y la espera se dispara. Un servidor al 95% no está "casi lleno": está veinte veces peor que uno al 50%. Y el <strong>p99 explota antes que la media</strong>, porque los pedidos que caen justo detrás de una ráfaga o de uno lento se llevan toda la cola encima.</p>
+
+    <h3>2. La variabilidad cuesta igual que la carga</h3>
+    <p>Dos servicios con la misma media de 120 ms pueden tener colas muy distintas. La corrección de <strong>Kingman</strong> (1961) y <strong>Allen-Cunneen</strong> para distribuciones generales dice que la espera se multiplica por</p>
+    <p class="formula">(ca² + cs²) / 2</p>
+    <p>donde <code>ca²</code> es la variabilidad de las llegadas (1 si son al azar) y <code>cs²</code> la del tiempo de servicio (varianza / media²). Con tiempos parejos la cola es la mitad que con exponencial. Con el patrón típico de una API que tiene un 5% de pedidos 20 veces más lentos (una query sin índice, un cliente que pide todo sin paginar), <code>cs²</code> pasa de 1 a 4,5 y la espera de <em>todos</em> se casi triplica. Por eso achicar la cola de los lentos mejora el p99 de los rápidos: probalo en el simulador cambiando solo la distribución.</p>
+
+    <h3>3. Little: tres números que siempre cierran</h3>
+    <p class="formula">L = λ · W</p>
+    <p>La cantidad de pedidos adentro del sistema es la tasa de llegada por el tiempo que pasan adentro. Vale para cualquier cola estable, sin importar distribuciones. Sirve para verificar números de producción: si entran 50 pedidos por segundo y la latencia media es 140 ms, en todo momento hay unos 7 pedidos adentro; si tu pool tiene 8 conexiones y ves 20 "en vuelo", algo del modelo no es lo que creés.</p>
+
+    <h3>Qué hacer con esto</h3>
+    <ul>
+      <li><strong>Dimensionar al 70-80%</strong>, no al 95%. La capacidad "ociosa" es la que vacía la cola después de una ráfaga.</li>
+      <li><strong>Un worker más rinde más de lo que parece</strong> cuando estás en la zona roja: no suma un 12% de capacidad, divide la espera por dos o por tres. El simulador te lo calcula en "Qué podés hacer".</li>
+      <li><strong>Cortá la cola de los lentos</strong>: timeouts a las queries, paginación obligatoria, un pool aparte para lo pesado. Baja <code>cs²</code> y mejora el p99 de todo lo demás.</li>
+      <li><strong>Limitá la cola</strong> (un <code>Channel</code> con capacidad, <code>SemaphoreSlim</code> con timeout, un 503 rápido). Rechazar el 2% con error inmediato es mejor que que el 100% espere 3 segundos. El simulador muestra ese canje con "Cola máxima".</li>
+      <li><strong>Desconfiá de la media</strong>: mirá p50, p99 y la cola. Una media de 140 ms con un p99 de 900 significa que una de cada cien pantallas se cuelga casi un segundo.</li>
+      <li>Los <strong>reintentos</strong> en un sistema saturado suben λ justo cuando menos capacidad sobra. Reintentar con backoff y con un presupuesto (circuit breaker) es lo que evita el efecto bola de nieve.</li>
+    </ul>
+
+    <h3>Qué es y qué no es este simulador</h3>
+    <p>Es un modelo <strong>M/G/c</strong>: llegadas de Poisson (independientes y sin horarios pico), una sola cola FIFO sin prioridades, c workers idénticos y tiempos de servicio independientes de la carga. En la vida real las llegadas vienen en ráfagas correlacionadas (peor que Poisson), el GC y la contención hacen que el servicio se degrade cuando hay carga, y hay colas encadenadas (web → pool de la DB → disco). Todo eso empeora las cosas respecto del modelo: tomalo como piso, no como techo. La simulación es exacta para el modelo que simula; las fórmulas son exactas para servicio exponencial y aproximadas (Allen-Cunneen) para los otros casos, por eso difieren un poco. Los percentiles a utilización muy alta tienen mucho ruido estadístico: subí la cantidad de pedidos o probá otra tirada.</p>
+
+    <h3>Fuentes</h3>
+    <ul>
+      <li>A. K. Erlang, <em>Solution of some problems in the theory of probabilities of significance in automatic telephone exchanges</em>, 1917. La fórmula C.</li>
+      <li>J. D. C. Little, <em>A proof for the queuing formula L = λW</em>, Operations Research 9(3), 1961.</li>
+      <li>J. F. C. Kingman, <em>The single server queue in heavy traffic</em>, Mathematical Proceedings of the Cambridge Philosophical Society 57(4), 1961.</li>
+      <li>A. O. Allen, <em>Probability, Statistics, and Queueing Theory with Computer Science Applications</em>, 2.ª ed., Academic Press, 1990. La aproximación de Allen-Cunneen para G/G/c.</li>
+      <li>N. J. Gunther, <em>Guerrilla Capacity Planning</em>, Springer, 2007. El "palo de hockey" y el dimensionamiento práctico.</li>
+      <li>M. Harchol-Balter, <em>Performance Modeling and Design of Computer Systems</em>, Cambridge University Press, 2013. El tratamiento moderno, con sistemas de cómputo como ejemplo.</li>
+    </ul>
+  </article>
+</main>
+<div class="aviso" id="aviso" role="status"></div>
+<script src="logica.js"></script>
+<script>
+(function () {
+  "use strict";
+  const L = window.Colas;
+  const $ = (id) => document.getElementById(id);
+  const CLAVE = "colas-p99.escenario";
+
+  const PRESETS = [
+    { id: "api", nombre: "API típica", c: 8, lambda: 50, servicio: 120, distribucion: "lognormal", cv: 1, prob: 5, factor: 20, colaMax: 0 },
+    { id: "pool", nombre: "Pool de la DB", c: 10, lambda: 180, servicio: 50, distribucion: "bimodal", cv: 1, prob: 5, factor: 20, colaMax: 0 },
+    { id: "consumidor", nombre: "Un consumidor", c: 1, lambda: 4, servicio: 200, distribucion: "exponencial", cv: 1, prob: 5, factor: 20, colaMax: 0 },
+    { id: "limite", nombre: "Al límite", c: 4, lambda: 31, servicio: 120, distribucion: "exponencial", cv: 1, prob: 5, factor: 20, colaMax: 0 },
+    { id: "cola", nombre: "Con cola máxima", c: 8, lambda: 70, servicio: 120, distribucion: "exponencial", cv: 1, prob: 5, factor: 20, colaMax: 10 },
+  ];
+
+  let estado = Object.assign({ pedidos: 20000, semilla: 1 }, PRESETS[0]);
+  let cacheCurva = { clave: null, datos: null };
+  let ultimo = null;
+  let temporizador = null;
+
+  /* ---------- Estado: URL, localStorage ---------- */
+  function leerEstado() {
+    const q = new URLSearchParams(location.search);
+    const n = (k, min, max) => { const v = parseFloat(q.get(k)); return isFinite(v) ? Math.min(max, Math.max(min, v)) : null; };
+    if ([...q.keys()].length) {
+      const e = Object.assign({}, estado);
+      if (n("c", 1, 512) !== null) e.c = Math.round(n("c", 1, 512));
+      if (n("l", 0.1, 100000) !== null) e.lambda = n("l", 0.1, 100000);
+      if (n("s", 0.1, 600000) !== null) e.servicio = n("s", 0.1, 600000);
+      if (q.get("d") && L.DISTRIBUCIONES[q.get("d")]) e.distribucion = q.get("d");
+      if (n("cv", 0.05, 20) !== null) e.cv = n("cv", 0.05, 20);
+      if (n("p", 0.1, 99) !== null) e.prob = n("p", 0.1, 99);
+      if (n("f", 1, 10000) !== null) e.factor = n("f", 1, 10000);
+      if (n("q", 0, 100000) !== null) e.colaMax = Math.round(n("q", 0, 100000));
+      if (n("n", 5000, 300000) !== null) e.pedidos = Math.round(n("n", 5000, 300000));
+      if (n("seed", 1, 1e9) !== null) e.semilla = Math.round(n("seed", 1, 1e9));
+      e.id = null;
+      return e;
+    }
+    try {
+      const g = JSON.parse(localStorage.getItem(CLAVE));
+      if (g && typeof g === "object" && g.c) return Object.assign({}, estado, g);
+    } catch (e) { /* sin memoria, no pasa nada */ }
+    return estado;
+  }
+  function guardar() {
+    try { localStorage.setItem(CLAVE, JSON.stringify(estado)); } catch (e) { /* idem */ }
+  }
+  function linkActual() {
+    const q = new URLSearchParams({ c: estado.c, l: estado.lambda, s: estado.servicio, d: estado.distribucion, q: estado.colaMax, n: estado.pedidos, seed: estado.semilla });
+    if (estado.distribucion === "lognormal") q.set("cv", estado.cv);
+    if (estado.distribucion === "bimodal") { q.set("p", estado.prob); q.set("f", estado.factor); }
+    return location.origin + location.pathname + "?" + q.toString();
+  }
+
+  /* ---------- Controles ---------- */
+  /* Sliders con escala logarítmica para pedidos/s y servicio: 0..1000 ↦ [min, max] en log. */
+  const ESCALAS = { l: [0.5, 5000], s: [1, 10000] };
+  const aLog = (k, v) => { const [a, b] = ESCALAS[k]; return Math.round(1000 * Math.log(Math.min(b, Math.max(a, v)) / a) / Math.log(b / a)); };
+  const deLog = (k, p) => { const [a, b] = ESCALAS[k]; return a * Math.pow(b / a, p / 1000); };
+  const redondear = (v) => v >= 100 ? Math.round(v) : v >= 10 ? Math.round(v * 10) / 10 : Math.round(v * 100) / 100;
+
+  function pintarControles() {
+    $("r-c").value = Math.min(64, estado.c); $("in-c").value = estado.c; $("v-c").textContent = estado.c;
+    $("r-l").value = aLog("l", estado.lambda); $("in-l").value = redondear(estado.lambda); $("v-l").textContent = `${redondear(estado.lambda)} /s`;
+    $("r-s").value = aLog("s", estado.servicio); $("in-s").value = redondear(estado.servicio); $("v-s").textContent = L.ms(estado.servicio / 1000);
+    $("in-d").value = estado.distribucion;
+    $("r-cv").value = estado.cv; $("in-cv").value = estado.cv; $("v-cv").textContent = `cv = ${estado.cv}`;
+    $("r-prob").value = estado.prob; $("in-prob").value = estado.prob; $("v-prob").textContent = `${estado.prob}%`;
+    $("r-factor").value = Math.min(100, estado.factor); $("in-factor").value = estado.factor; $("v-factor").textContent = `×${estado.factor}`;
+    $("r-q").value = Math.min(200, estado.colaMax); $("in-q").value = estado.colaMax; $("v-q").textContent = estado.colaMax ? `${estado.colaMax} pedidos` : "sin límite";
+    $("in-n").value = String(estado.pedidos);
+    $("ctl-cv").classList.toggle("oculto", estado.distribucion !== "lognormal");
+    $("ctl-prob").classList.toggle("oculto", estado.distribucion !== "bimodal");
+    $("ctl-factor").classList.toggle("oculto", estado.distribucion !== "bimodal");
+    for (const b of $("presets").children) b.setAttribute("aria-pressed", String(b.dataset.id === estado.id));
+  }
+
+  function cambiar(parcial, inmediato) {
+    Object.assign(estado, parcial);
+    if (!("id" in parcial)) estado.id = null;
+    pintarControles();
+    guardar();
+    clearTimeout(temporizador);
+    if (inmediato) correr(); else temporizador = setTimeout(correr, 120);
+  }
+
+  function conectar() {
+    const sel = $("in-d");
+    for (const [k, d] of Object.entries(L.DISTRIBUCIONES)) {
+      const o = document.createElement("option"); o.value = k; o.textContent = d.nombre; sel.appendChild(o);
+    }
+    sel.addEventListener("change", () => cambiar({ distribucion: sel.value }, true));
+    for (const p of PRESETS) {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = p.nombre; b.dataset.id = p.id;
+      b.addEventListener("click", () => cambiar(Object.assign({}, p), true));
+      $("presets").appendChild(b);
+    }
+    const entero = (v, min, max) => Math.min(max, Math.max(min, Math.round(v) || min));
+    $("r-c").addEventListener("input", (e) => cambiar({ c: entero(+e.target.value, 1, 64) }));
+    $("in-c").addEventListener("change", (e) => cambiar({ c: entero(+e.target.value, 1, 512) }, true));
+    $("r-l").addEventListener("input", (e) => cambiar({ lambda: redondear(deLog("l", +e.target.value)) }));
+    $("in-l").addEventListener("change", (e) => cambiar({ lambda: Math.min(100000, Math.max(0.1, +e.target.value || 0.1)) }, true));
+    $("r-s").addEventListener("input", (e) => cambiar({ servicio: redondear(deLog("s", +e.target.value)) }));
+    $("in-s").addEventListener("change", (e) => cambiar({ servicio: Math.min(600000, Math.max(0.1, +e.target.value || 0.1)) }, true));
+    $("r-cv").addEventListener("input", (e) => cambiar({ cv: +e.target.value }));
+    $("in-cv").addEventListener("change", (e) => cambiar({ cv: Math.min(20, Math.max(0.05, +e.target.value || 1)) }, true));
+    $("r-prob").addEventListener("input", (e) => cambiar({ prob: +e.target.value }));
+    $("in-prob").addEventListener("change", (e) => cambiar({ prob: Math.min(99, Math.max(0.1, +e.target.value || 5)) }, true));
+    $("r-factor").addEventListener("input", (e) => cambiar({ factor: entero(+e.target.value, 1, 100) }));
+    $("in-factor").addEventListener("change", (e) => cambiar({ factor: entero(+e.target.value, 1, 10000) }, true));
+    $("r-q").addEventListener("input", (e) => cambiar({ colaMax: entero(+e.target.value, 0, 200) }));
+    $("in-q").addEventListener("change", (e) => cambiar({ colaMax: entero(+e.target.value, 0, 100000) }, true));
+    $("in-n").addEventListener("change", (e) => cambiar({ pedidos: +e.target.value, id: estado.id }, true));
+    $("btn-tirada").addEventListener("click", () => cambiar({ semilla: (estado.semilla % 1000000) + 1, id: estado.id }, true));
+    $("btn-link").addEventListener("click", async () => {
+      const url = linkActual();
+      try { await navigator.clipboard.writeText(url); avisar("Link copiado"); }
+      catch (e) { history.replaceState(null, "", url); avisar("El link quedó en la barra de direcciones"); }
+    });
+    let ancho = window.innerWidth;
+    window.addEventListener("resize", () => { if (window.innerWidth !== ancho) { ancho = window.innerWidth; if (ultimo) pintarGraficos(ultimo); } });
+    if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (ultimo) pintarGraficos(ultimo); });
+  }
+
+  function avisar(t) {
+    const a = $("aviso"); a.textContent = t; a.classList.add("visible");
+    clearTimeout(avisar.t); avisar.t = setTimeout(() => a.classList.remove("visible"), 1800);
+  }
+
+  /* ---------- Simular y mostrar ---------- */
+  function opcionesSim() {
+    return {
+      lambda: estado.lambda, media: estado.servicio / 1000, c: estado.c, distribucion: estado.distribucion,
+      parametros: { cv: estado.cv, probLenta: estado.prob / 100, factorLenta: estado.factor },
+      pedidos: estado.pedidos, semilla: estado.semilla, colaMax: estado.colaMax > 0 ? estado.colaMax : Infinity,
+    };
+  }
+
+  function correr() {
+    const op = opcionesSim();
+    const te = L.teoria(op);
+    const si = L.simular(op);
+    const dg = L.diagnostico(op, te, si);
+    ultimo = { op, te, si, dg };
+    pintarResultados(ultimo);
+    pintarGraficos(ultimo);
+    document.title = `p99 ${L.ms(si.percentiles.p99)} al ${L.pct(te.rho)} · Por qué explota el p99`;
+  }
+
+  function pintarResultados({ op, te, si, dg }) {
+    $("main").className = `zona-${dg.zona}`;
+    const p = si.percentiles;
+    $("t-util").textContent = L.pct(si.utilizacion);
+    $("t-util-s").textContent = `fórmula: ${L.pct(te.rho)}`;
+    $("t-p50").textContent = L.ms(p.p50);
+    $("t-p50-s").textContent = `media ${L.ms(si.media)}`;
+    $("t-p99").textContent = L.ms(p.p99);
+    $("t-p99-s").textContent = `${(p.p99 / Math.max(p.p50, 1e-9)).toFixed(1)}× el p50`;
+    $("t-p999").textContent = L.ms(p.p999);
+    $("t-p999-s").textContent = `máx ${L.ms(p.max)}`;
+    $("t-espera").textContent = L.ms(si.esperaMedia);
+    $("t-espera-s").textContent = `${L.pct(si.pEspera)} esperó algo`;
+    $("t-rech").textContent = si.rechazados ? L.pct(si.fraccionRechazada) : "0";
+    $("t-rech-s").textContent = si.rechazados ? `${si.rechazados} de ${si.pedidosMedidos}` : (op.colaMax === Infinity ? "sin cola máxima" : `cola máxima ${op.colaMax}`);
+
+    const filas = [
+      ["Utilización ρ", L.pct(te.rho), L.pct(si.utilizacion)],
+      ["Prob. de esperar (Erlang C)", te.estable ? L.pct(te.pEspera) : "—", L.pct(si.pEspera)],
+      ["Espera media en cola Wq", L.ms(te.espera), L.ms(si.esperaMedia)],
+      ["Latencia media W", L.ms(te.tiempo), L.ms(si.media)],
+      ["En cola Lq = λ·Wq", te.estable ? te.enCola.toFixed(2) : "∞", si.enColaMedia.toFixed(2)],
+    ];
+    if (op.distribucion === "exponencial") filas.push(["p99 de la espera", L.ms(te.esperaPercentil(0.99)), L.ms(si.esperaPercentiles.p99)]);
+    $("cmp").innerHTML = filas.map(([a, b, c]) => `<tr><td>${a}</td><td>${b}</td><td>${c}</td></tr>`).join("");
+    if (op.colaMax !== Infinity) {
+      $("cmp").insertAdjacentHTML("beforeend", `<tr><td colspan="3" style="text-align:left">Las fórmulas suponen cola infinita; con cola máxima la simulación es la que vale.</td></tr>`);
+    }
+
+    const d = $("diag");
+    d.innerHTML = "";
+    const h = document.createElement("h3"); h.textContent = dg.titulo; d.appendChild(h);
+    for (const t of dg.parrafos) { const e = document.createElement("p"); e.textContent = t; d.appendChild(e); }
+    if (dg.acciones.length) {
+      const t = document.createElement("p"); t.innerHTML = "<strong>Qué podés hacer</strong>"; d.appendChild(t);
+      const ul = document.createElement("ul");
+      for (const a of dg.acciones) { const li = document.createElement("li"); li.textContent = a; ul.appendChild(li); }
+      d.appendChild(ul);
+    }
+  }
+
+  /* ---------- Gráficos ---------- */
+  function lienzo(id) {
+    const c = $(id);
+    const dpr = window.devicePixelRatio || 1;
+    const w = c.clientWidth || 300, h = c.clientHeight || 240;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    const ctx = c.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    ctx.font = "11px system-ui, sans-serif";
+    return { ctx, w, h };
+  }
+  const color = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const M = { izq: 46, der: 10, arr: 8, aba: 26 };
+
+  function ejes(ctx, w, h, xTicks, yTicks, xTexto, yTexto) {
+    ctx.strokeStyle = color("--grid"); ctx.fillStyle = color("--muted"); ctx.lineWidth = 1;
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    for (const [y, t] of yTicks) { ctx.beginPath(); ctx.moveTo(M.izq, y); ctx.lineTo(w - M.der, y); ctx.stroke(); ctx.fillText(t, M.izq - 6, y); }
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    for (const [x, t] of xTicks) ctx.fillText(t, x, h - M.aba + 6);
+    ctx.strokeStyle = color("--line"); ctx.beginPath(); ctx.moveTo(M.izq, M.arr); ctx.lineTo(M.izq, h - M.aba); ctx.lineTo(w - M.der, h - M.aba); ctx.stroke();
+    if (xTexto) { ctx.textAlign = "right"; ctx.fillText(xTexto, w - M.der, h - M.aba + 6); }
+    if (yTexto) { ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText(yTexto, M.izq + 4, M.arr); }
+  }
+  const msCorto = (s) => { const v = s * 1000; return v >= 1000 ? `${(v / 1000).toFixed(v >= 10000 ? 0 : 1)} s` : `${Math.round(v)} ms`; };
+
+  function pasoLindo(maximo, cuantos) {
+    const bruto = maximo / cuantos, p = Math.pow(10, Math.floor(Math.log10(bruto)));
+    for (const m of [1, 2, 2.5, 5, 10]) if (m * p >= bruto) return m * p;
+    return 10 * p;
+  }
+
+  function pintarGraficos(u) {
+    pintarHockey(u); pintarHistograma(u); pintarCola(u);
+  }
+
+  function pintarHockey({ op, te, si }) {
+    const clave = JSON.stringify([op.c, op.media, op.distribucion, op.parametros, op.pedidos, op.semilla]);
+    if (cacheCurva.clave !== clave) cacheCurva = { clave, datos: L.curvaUtilizacion(op) };
+    const datos = cacheCurva.datos;
+    const { ctx, w, h } = lienzo("g-hockey");
+    const X = (rho) => M.izq + rho * (w - M.izq - M.der);
+    const visibles = datos.filter((d) => d.rho <= 0.9);
+    let yMax = Math.max(...visibles.map((d) => Math.max(d.p99, d.tiempoTeorico)), op.media * 2);
+    yMax = Math.max(yMax, Math.min(si.percentiles.p99, yMax * 2)) * 1.1;
+    const Y = (v) => h - M.aba - Math.min(1.02, Math.max(0, v / yMax)) * (h - M.arr - M.aba);
+    const paso = pasoLindo(yMax, 4);
+    const yTicks = []; for (let v = 0; v <= yMax; v += paso) yTicks.push([Y(v), msCorto(v)]);
+    const xTicks = [0, .25, .5, .75, 1].map((r) => [X(r), `${r * 100}%`]);
+    ctx.fillStyle = color("--banda-amarilla"); ctx.fillRect(X(0.7), M.arr, X(0.85) - X(0.7), h - M.arr - M.aba);
+    ctx.fillStyle = color("--banda-roja"); ctx.fillRect(X(0.85), M.arr, X(1) - X(0.85), h - M.arr - M.aba);
+    ejes(ctx, w, h, xTicks, yTicks, "", "");
+    ctx.save(); ctx.beginPath(); ctx.rect(M.izq, 0, w - M.izq - M.der, h - M.aba); ctx.clip();
+    const serie = (clave, col, ancho) => {
+      ctx.strokeStyle = col; ctx.lineWidth = ancho; ctx.beginPath();
+      datos.forEach((d, i) => { const x = X(d.rho), y = Y(d[clave]); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); });
+      ctx.stroke();
+      ctx.fillStyle = col; for (const d of datos) { ctx.beginPath(); ctx.arc(X(d.rho), Y(d[clave]), 2.5, 0, Math.PI * 2); ctx.fill(); }
+    };
+    serie("p99", color("--p99"), 2); serie("p50", color("--p50"), 2); serie("tiempoTeorico", color("--teoria"), 2);
+    if (te.rho <= 1.02) {
+      ctx.setLineDash([4, 4]); ctx.strokeStyle = color("--fg"); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(X(te.rho), M.arr); ctx.lineTo(X(te.rho), h - M.aba); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = color("--p99"); ctx.beginPath(); ctx.arc(X(te.rho), Y(si.percentiles.p99), 5, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = color("--card"); ctx.lineWidth = 2; ctx.stroke();
+    } else {
+      ctx.fillStyle = color("--card"); ctx.globalAlpha = 0.85; ctx.fillRect(M.izq + 1, M.arr + 12, w - M.izq - M.der - 2, 16); ctx.globalAlpha = 1;
+      ctx.fillStyle = color("--rojo"); ctx.textAlign = "right"; ctx.textBaseline = "top";
+      ctx.fillText(`tu escenario: ${L.pct(te.rho)}, fuera de escala →`, w - M.der - 4, M.arr + 14);
+    }
+    ctx.restore();
+  }
+
+  function pintarHistograma({ si }) {
+    const { ctx, w, h } = lienzo("g-hist");
+    const cajas = Math.max(20, Math.min(60, Math.floor((w - M.izq - M.der) / 6)));
+    const hi = L.histograma(si.latencias, cajas);
+    const maxC = Math.max(1, ...hi.conteo);
+    const X = (s) => M.izq + Math.min(1, s / hi.hasta) * (w - M.izq - M.der);
+    const Y = (n) => h - M.aba - (n / maxC) * (h - M.arr - M.aba);
+    const pasoX = pasoLindo(hi.hasta, 5);
+    const xTicks = []; for (let v = 0; v <= hi.hasta; v += pasoX) xTicks.push([X(v), msCorto(v)]);
+    const pasoY = pasoLindo(maxC, 4);
+    const yTicks = []; for (let v = 0; v <= maxC; v += pasoY) yTicks.push([Y(v), String(v)]);
+    ejes(ctx, w, h, xTicks, yTicks, "", "");
+    const anchoBarra = (w - M.izq - M.der) / cajas;
+    ctx.fillStyle = color("--accent");
+    hi.conteo.forEach((n, i) => { if (n) ctx.fillRect(M.izq + i * anchoBarra + 0.5, Y(n), Math.max(1, anchoBarra - 1), h - M.aba - Y(n)); });
+    const marca = (v, col, t, lado) => {
+      const x = X(v); ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(x, M.arr); ctx.lineTo(x, h - M.aba); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = col; ctx.textBaseline = "top"; ctx.textAlign = lado; ctx.fillText(t, x + (lado === "left" ? 4 : -4), M.arr + 16);
+    };
+    const p = si.percentiles;
+    marca(p.p50, color("--p50"), `p50 ${msCorto(p.p50)}`, X(p.p50) < w * 0.6 ? "left" : "right");
+    marca(p.p99, color("--p99"), `p99 ${msCorto(p.p99)}`, X(p.p99) < w * 0.6 ? "left" : "right");
+  }
+
+  function pintarCola({ si, op }) {
+    const { ctx, w, h } = lienzo("g-cola");
+    const serie = si.serie;
+    const tMax = serie.length ? serie[serie.length - 1].t : 1;
+    const maxCola = Math.max(1, ...serie.map((p) => p.cola));
+    const X = (t) => M.izq + (t / tMax) * (w - M.izq - M.der);
+    const Y = (n) => h - M.aba - (n / maxCola) * (h - M.arr - M.aba);
+    const pasoX = pasoLindo(tMax, 5);
+    const xTicks = []; for (let v = 0; v <= tMax; v += pasoX) xTicks.push([X(v), `${Math.round(v)} s`]);
+    const pasoY = pasoLindo(maxCola, 4);
+    const yTicks = []; for (let v = 0; v <= maxCola; v += pasoY) yTicks.push([Y(v), String(Math.round(v))]);
+    ejes(ctx, w, h, xTicks, yTicks, "", "");
+    if (op.colaMax !== Infinity && op.colaMax <= maxCola * 1.05) {
+      ctx.strokeStyle = color("--rojo"); ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(M.izq, Y(op.colaMax)); ctx.lineTo(w - M.der, Y(op.colaMax)); ctx.stroke(); ctx.setLineDash([]);
+    }
+    ctx.beginPath(); ctx.moveTo(X(0), Y(0));
+    for (const p of serie) ctx.lineTo(X(p.t), Y(p.cola));
+    ctx.lineTo(X(tMax), Y(0)); ctx.closePath();
+    ctx.fillStyle = color("--accent"); ctx.globalAlpha = 0.25; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = color("--accent"); ctx.lineWidth = 1.5; ctx.beginPath();
+    serie.forEach((p, i) => { if (i) ctx.lineTo(X(p.t), Y(p.cola)); else ctx.moveTo(X(p.t), Y(p.cola)); });
+    ctx.stroke();
+    $("pie-cola").textContent = `Pedidos esperando a que se libere un worker, en ${Math.round(tMax)} s simulados. Pico: ${maxCola}. La media (${si.enColaMedia.toFixed(1)}) esconde los picos: eso es el p99.`;
+  }
+
+  /* ---------- Arranque ---------- */
+  estado = leerEstado();
+  conectar();
+  pintarControles();
+  correr();
+})();
+</script>
+</body>
+</html>
