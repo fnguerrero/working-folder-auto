@@ -52,5 +52,14 @@
     "estado": "terminado",
     "probar": "herramientas/cron-en-criollo/",
     "desde": "2026-10-11"
+  },
+  {
+    "slug": "xilofon",
+    "nombre": "Xilofón",
+    "categoria": "juegos",
+    "descripcion": "Ocho láminas de colores que suenan con los dedos, con bichos que saltan y canciones que se tocan solas. Para Valentín: sin puntaje ni perder.",
+    "estado": "terminado",
+    "probar": "juegos/xilofon/",
+    "desde": "2026-10-12"
   }
 ]

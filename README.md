@@ -20,5 +20,6 @@ Trabaja directo sobre `main`. Si algo no te gusta, se mueve a `_archivo/`.
 | Cuotas en curso | apps | Cuánto tenés comprometido en cuotas por mes y cuándo te liberás. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/apps/cuotas-en-curso/) |
 | Por qué explota el p99 | experimentos | Simulador de colas para backend: workers, carga y variabilidad contra Erlang C y Little, con diagnóstico. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/experimentos/colas-p99/) |
 | Cron en criollo | herramientas | Explica expresiones cron (estándar y Quartz.NET) en castellano, con próximas ejecuciones en hora argentina y snippets de C#. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/herramientas/cron-en-criollo/) |
+| Xilofón | juegos | Ocho láminas que suenan con los dedos, con bichos y canciones que se tocan solas. Para Valentín. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/juegos/xilofon/) |
 
 Las convenciones de estructura y trabajo están en [CLAUDE.md](CLAUDE.md).

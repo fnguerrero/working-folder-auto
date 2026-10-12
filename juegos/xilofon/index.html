@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#fff6e5">
+<title>Xilofón</title>
+<style>
+  :root {
+    --bg: #fff6e5; --fg: #3a2d1f; --suave: #8a7a66; --tap: 48px;
+    --sombra: 0 6px 0 rgba(0, 0, 0, .18), 0 10px 24px rgba(0, 0, 0, .12);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden;
+    -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+    touch-action: none; overscroll-behavior: none; }
+  body { display: flex; flex-direction: column;
+    padding: calc(8px + env(safe-area-inset-top)) calc(8px + env(safe-area-inset-right))
+             calc(8px + env(safe-area-inset-bottom)) calc(8px + env(safe-area-inset-left)); }
+
+  .barra { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: 0 0 auto;
+    padding: 2px 4px 10px; }
+  .barra h1 { margin: 0; font-size: 1.25rem; letter-spacing: -.01em; }
+  .barra h1 span { color: #e8572a; }
+  .botones { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .botones button { min-height: var(--tap); min-width: var(--tap); border: 0; border-radius: 14px; padding: 0 14px;
+    font: 700 .95rem/1 inherit; color: var(--fg); background: #fff; box-shadow: 0 3px 0 rgba(0,0,0,.12);
+    cursor: pointer; touch-action: manipulation; }
+  .botones button:focus-visible { outline: 3px solid #e8572a; outline-offset: 2px; }
+  .botones button[aria-pressed="true"] { background: #ffd166; }
+  .botones button.sonando { background: #ffd166; animation: late .6s ease-in-out infinite alternate; }
+  @keyframes late { from { box-shadow: 0 3px 0 rgba(0,0,0,.12); } to { box-shadow: 0 3px 0 rgba(0,0,0,.12), 0 0 0 6px rgba(255, 209, 102, .55); } }
+
+  #teclas { flex: 1 1 auto; display: flex; gap: 10px; min-height: 0; position: relative; }
+  .tecla { position: relative; display: flex; align-items: center; justify-content: center;
+    border: 0; border-radius: 22px; color: #fff; background: var(--color); box-shadow: var(--sombra);
+    font: 800 clamp(1.6rem, 6vmin, 3rem)/1 inherit; text-shadow: 0 2px 0 rgba(0,0,0,.25);
+    cursor: pointer; transition: transform .08s ease-out, filter .08s ease-out; touch-action: none;
+    outline: none; }
+  .tecla:focus-visible { box-shadow: var(--sombra), 0 0 0 4px #fff, 0 0 0 7px var(--color); }
+  .tecla::before, .tecla::after { content: ""; position: absolute; width: 14px; height: 14px; border-radius: 50%;
+    background: rgba(255, 255, 255, .55); box-shadow: inset 0 2px 3px rgba(0,0,0,.25); }
+  .tecla.suena { transform: scale(1.04); filter: brightness(1.18) saturate(1.2); transition-duration: .03s; }
+  .tecla .nota { pointer-events: none; }
+  .tecla .bicho { position: absolute; font-size: clamp(2rem, 9vmin, 4.5rem); pointer-events: none;
+    animation: subir 1s ease-out forwards; filter: drop-shadow(0 3px 4px rgba(0,0,0,.25)); }
+  @keyframes subir {
+    0% { transform: translate(-50%, -50%) scale(.3) rotate(-15deg); opacity: 0; }
+    20% { transform: translate(-50%, -70%) scale(1.15) rotate(8deg); opacity: 1; }
+    100% { transform: translate(-50%, -220%) scale(1) rotate(-6deg); opacity: 0; }
+  }
+  .estrella { position: absolute; width: 10px; height: 10px; border-radius: 50%; pointer-events: none;
+    background: #fff; animation: volar .7s ease-out forwards; }
+  @keyframes volar { to { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; } }
+
+  /* Vertical (celular parado): las láminas apiladas, de más larga a más corta, como un xilofón real. */
+  @media (orientation: portrait) {
+    #teclas { flex-direction: column; align-items: center; }
+    .tecla { flex: 1 1 0; width: calc(100% - var(--acorte) * 1%); }
+    .tecla::before { left: 12%; top: 50%; margin-top: -7px; }
+    .tecla::after { right: 12%; top: 50%; margin-top: -7px; }
+  }
+  /* Apaisado (compu o celular acostado): láminas paradas, una al lado de la otra. */
+  @media (orientation: landscape) {
+    #teclas { flex-direction: row; align-items: flex-end; }
+    .tecla { flex: 1 1 0; height: calc(100% - var(--acorte) * 1%); }
+    .tecla::before { top: 10%; left: 50%; margin-left: -7px; }
+    .tecla::after { bottom: 10%; left: 50%; margin-left: -7px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tecla .bicho { animation-duration: .5s; }
+    .estrella { display: none; }
+    .botones button.sonando { animation: none; }
+  }
+</style>
+</head>
+<body>
+<header class="barra">
+  <h1><span>Xilofón</span></h1>
+  <div class="botones" role="group" aria-label="Canciones">
+    <button type="button" data-cancion="estrellita">Estrellita</button>
+    <button type="button" data-cancion="alegria">Alegría</button>
+    <button type="button" data-cancion="fray">Fray Santiago</button>
+    <button type="button" id="btn-timbre" aria-pressed="false" aria-label="Cambiar el sonido">🎵 Metal</button>
+  </div>
+</header>
+
+<main id="teclas" aria-label="Láminas del xilofón: tocalas para que suenen"></main>
+
+<script>
+"use strict";
+(() => {
+  // Do mayor, una octava: Do4 a Do5. Cada lámina tiene color, nombre, frecuencia, bicho y tecla del teclado.
+  const LAMINAS = [
+    { nota: "Do",  hz: 261.63, color: "#e8572a", bicho: "🐸", teclas: ["1", "a"] },
+    { nota: "Re",  hz: 293.66, color: "#f28c28", bicho: "🐥", teclas: ["2", "s"] },
+    { nota: "Mi",  hz: 329.63, color: "#f4c430", bicho: "🐱", teclas: ["3", "d"] },
+    { nota: "Fa",  hz: 349.23, color: "#5cb85c", bicho: "🐶", teclas: ["4", "f"] },
+    { nota: "Sol", hz: 392.00, color: "#2ec4a6", bicho: "🐷", teclas: ["5", "g"] },
+    { nota: "La",  hz: 440.00, color: "#3b8beb", bicho: "🐮", teclas: ["6", "h"] },
+    { nota: "Si",  hz: 493.88, color: "#7a5cff", bicho: "🦁", teclas: ["7", "j"] },
+    { nota: "Do'", hz: 523.25, color: "#e05aa8", bicho: "🐘", teclas: ["8", "k"] },
+  ];
+  // Canciones: índice de lámina (0 = Do) y duración en pulsos; "-" es un silencio.
+  const CANCIONES = {
+    estrellita: { pulso: 480, notas: "0 0 4 4 5 5 4:2 3 3 2 2 1 1 0:2 4 4 3 3 2 2 1:2 4 4 3 3 2 2 1:2 0 0 4 4 5 5 4:2 3 3 2 2 1 1 0:2" },
+    alegria:    { pulso: 420, notas: "2 2 3 4 4 3 2 1 0 0 1 2 2:1.5 1:0.5 1:2 2 2 3 4 4 3 2 1 0 0 1 2 1:1.5 0:0.5 0:2" },
+    fray:       { pulso: 450, notas: "0 1 2 0 0 1 2 0 2 3 4:2 2 3 4:2 4:0.5 5:0.5 4:0.5 3:0.5 2 0 4:0.5 5:0.5 4:0.5 3:0.5 2 0 0 4 0:2 0 4 0:2" },
+  };
+
+  const teclas = document.getElementById("teclas");
+  const btnTimbre = document.getElementById("btn-timbre");
+  const reduceMovimiento = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---------- Láminas ----------
+  const elementos = LAMINAS.map((l, i) => {
+    const el = document.createElement("button");
+    el.type = "button";
+    el.className = "tecla";
+    el.dataset.i = i;
+    el.style.setProperty("--color", l.color);
+    el.style.setProperty("--acorte", i * 5); // cada lámina es un 5 % más corta que la anterior
+    el.setAttribute("aria-label", `${l.nota} (tecla ${l.teclas[0]} o ${l.teclas[1].toUpperCase()})`);
+    el.innerHTML = `<span class="nota">${l.nota}</span>`;
+    teclas.appendChild(el);
+    return el;
+  });
+
+  // ---------- Sonido ----------
+  let ctx = null, master = null;
+  let timbre = "metal"; // "metal" (xilofón) o "madera" (marimba)
+  try { timbre = localStorage.getItem("xilofon-timbre") === "madera" ? "madera" : "metal"; } catch (e) {}
+  pintarTimbre();
+
+  function audio() {
+    try {
+      if (!ctx) {
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+        master = ctx.createGain();
+        master.gain.value = 0.5;
+        const comp = ctx.createDynamicsCompressor();
+        comp.threshold.value = -18; comp.ratio.value = 6;
+        master.connect(comp).connect(ctx.destination);
+      }
+      if (ctx.state === "suspended") ctx.resume();
+      return ctx;
+    } catch (e) { return null; }
+  }
+
+  function sonar(i) {
+    const ac = audio();
+    if (!ac) return;
+    const hz = LAMINAS[i].hz;
+    const t = ac.currentTime;
+    const metal = timbre === "metal";
+    const dur = metal ? 1.6 : 1.0;
+
+    const salida = ac.createGain();
+    salida.gain.setValueAtTime(0, t);
+    salida.gain.linearRampToValueAtTime(1, t + 0.004);
+    salida.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    salida.connect(master);
+
+    // Fundamental y parciales inarmónicos: las barras metálicas suenan con parciales altos
+    // (≈ 2.76 y 5.4 veces la fundamental); la madera, más sorda y con el parcial en 4 (afinación de marimba).
+    const parciales = metal
+      ? [[1, 1, dur], [2.76, 0.35, dur * 0.45], [5.4, 0.12, dur * 0.25]]
+      : [[1, 1, dur], [4, 0.22, dur * 0.3], [9.2, 0.05, dur * 0.12]];
+    for (const [mult, vol, d] of parciales) {
+      const o = ac.createOscillator();
+      o.type = metal ? "sine" : "triangle";
+      o.frequency.value = hz * mult;
+      const g = ac.createGain();
+      g.gain.setValueAtTime(vol, t);
+      g.gain.exponentialRampToValueAtTime(0.0005, t + d);
+      o.connect(g).connect(salida);
+      o.start(t); o.stop(t + d + 0.05);
+    }
+    // El golpe del palillo: un soplo de ruido muy corto.
+    const n = ac.createBufferSource();
+    const buf = ac.createBuffer(1, Math.floor(ac.sampleRate * 0.03), ac.sampleRate);
+    const datos = buf.getChannelData(0);
+    for (let k = 0; k < datos.length; k++) datos[k] = (Math.random() * 2 - 1) * (1 - k / datos.length);
+    n.buffer = buf;
+    const ng = ac.createGain(); ng.gain.value = metal ? 0.25 : 0.4;
+    const filtro = ac.createBiquadFilter(); filtro.type = "bandpass"; filtro.frequency.value = hz * 3; filtro.Q.value = 1;
+    n.connect(filtro).connect(ng).connect(salida);
+    n.start(t);
+  }
+
+  function pintarTimbre() {
+    const metal = timbre === "metal";
+    btnTimbre.textContent = metal ? "🎵 Metal" : "🪵 Madera";
+    btnTimbre.setAttribute("aria-pressed", String(!metal));
+  }
+  btnTimbre.addEventListener("click", () => {
+    timbre = timbre === "metal" ? "madera" : "metal";
+    try { localStorage.setItem("xilofon-timbre", timbre); } catch (e) {}
+    pintarTimbre();
+    tocar(4);
+  });
+
+  // ---------- Tocar una lámina: sonido + luz + bicho ----------
+  function tocar(i, x, y) {
+    const el = elementos[i];
+    if (!el) return;
+    sonar(i);
+    el.classList.remove("suena");
+    void el.offsetWidth; // reinicia la transición si se toca seguido
+    el.classList.add("suena");
+    clearTimeout(el._apagar);
+    el._apagar = setTimeout(() => el.classList.remove("suena"), 160);
+
+    const r = el.getBoundingClientRect();
+    const cx = (x == null ? r.left + r.width / 2 : x) - r.left;
+    const cy = (y == null ? r.top + r.height / 2 : y) - r.top;
+    const bicho = document.createElement("span");
+    bicho.className = "bicho";
+    bicho.textContent = LAMINAS[i].bicho;
+    bicho.style.left = cx + "px"; bicho.style.top = cy + "px";
+    el.appendChild(bicho);
+    bicho.addEventListener("animationend", () => bicho.remove());
+    if (!reduceMovimiento) {
+      for (let k = 0; k < 6; k++) {
+        const e = document.createElement("span");
+        e.className = "estrella";
+        const ang = (k / 6) * Math.PI * 2 + Math.random() * 0.6;
+        const d = 40 + Math.random() * 50;
+        e.style.left = cx + "px"; e.style.top = cy + "px";
+        e.style.setProperty("--dx", Math.cos(ang) * d + "px");
+        e.style.setProperty("--dy", Math.sin(ang) * d + "px");
+        el.appendChild(e);
+        e.addEventListener("animationend", () => e.remove());
+      }
+    }
+    // Si hay demasiados adornos acumulados (manos muy rápidas), se limpian los más viejos.
+    const adornos = el.querySelectorAll(".bicho, .estrella");
+    for (let k = 0; k < adornos.length - 40; k++) adornos[k].remove();
+  }
+
+  // ---------- Dedos y mouse: varios a la vez, y deslizar hace glissando ----------
+  const ultimaPorDedo = new Map();
+  function laminaEn(x, y) {
+    const el = document.elementFromPoint(x, y);
+    const tecla = el && el.closest ? el.closest(".tecla") : null;
+    return tecla ? Number(tecla.dataset.i) : -1;
+  }
+  teclas.addEventListener("pointerdown", (ev) => {
+    ev.preventDefault();
+    const i = laminaEn(ev.clientX, ev.clientY);
+    if (i < 0) return;
+    ultimaPorDedo.set(ev.pointerId, i);
+    tocar(i, ev.clientX, ev.clientY);
+  });
+  teclas.addEventListener("pointermove", (ev) => {
+    if (!ultimaPorDedo.has(ev.pointerId)) return;
+    if (ev.pointerType === "mouse" && ev.buttons === 0) { ultimaPorDedo.delete(ev.pointerId); return; }
+    const i = laminaEn(ev.clientX, ev.clientY);
+    if (i >= 0 && i !== ultimaPorDedo.get(ev.pointerId)) {
+      ultimaPorDedo.set(ev.pointerId, i);
+      tocar(i, ev.clientX, ev.clientY);
+    }
+  });
+  const soltar = (ev) => ultimaPorDedo.delete(ev.pointerId);
+  teclas.addEventListener("pointerup", soltar);
+  teclas.addEventListener("pointercancel", soltar);
+  window.addEventListener("blur", () => ultimaPorDedo.clear());
+  // Que el clic con teclado (Enter o espacio sobre una lámina enfocada) también suene.
+  teclas.addEventListener("click", (ev) => {
+    if (ev.detail === 0) { // detail 0 = disparado por teclado
+      const tecla = ev.target.closest(".tecla");
+      if (tecla) tocar(Number(tecla.dataset.i));
+    }
+  });
+
+  // ---------- Teclado ----------
+  const porTecla = new Map();
+  LAMINAS.forEach((l, i) => l.teclas.forEach((t) => porTecla.set(t, i)));
+  const apretadas = new Set();
+  window.addEventListener("keydown", (ev) => {
+    if (ev.repeat || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    const k = ev.key.toLowerCase();
+    if (k === "escape") { parar(); return; }
+    if (!porTecla.has(k) || apretadas.has(k)) return;
+    apretadas.add(k);
+    ev.preventDefault();
+    tocar(porTecla.get(k));
+  });
+  window.addEventListener("keyup", (ev) => apretadas.delete(ev.key.toLowerCase()));
+
+  // ---------- Canciones: se iluminan las láminas y suenan, para mirar y copiar ----------
+  let cancionActual = null, temporizadores = [];
+  function parar() {
+    temporizadores.forEach(clearTimeout); temporizadores = [];
+    document.querySelectorAll("[data-cancion].sonando").forEach((b) => b.classList.remove("sonando"));
+    cancionActual = null;
+  }
+  function tocarCancion(nombre, boton) {
+    const c = CANCIONES[nombre];
+    if (!c) return;
+    if (cancionActual === nombre) { parar(); return; }
+    parar();
+    audio();
+    cancionActual = nombre;
+    boton.classList.add("sonando");
+    let t = 120;
+    for (const token of c.notas.trim().split(/\s+/)) {
+      const [nota, dur = "1"] = token.split(":");
+      if (nota !== "-") {
+        const i = Number(nota);
+        temporizadores.push(setTimeout(() => tocar(i), t));
+      }
+      t += c.pulso * Number(dur);
+    }
+    temporizadores.push(setTimeout(parar, t + 200));
+  }
+  document.querySelectorAll("[data-cancion]").forEach((b) => {
+    b.addEventListener("click", () => tocarCancion(b.dataset.cancion, b));
+  });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) parar(); });
+
+  // Para las pruebas automáticas.
+  window.__xilofon = { tocar, parar, LAMINAS, CANCIONES, timbre: () => timbre };
+})();
+</script>
+</body>
+</html>
