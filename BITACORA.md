@@ -2,6 +2,12 @@
 
 Una entrada por noche, la más nueva arriba.
 
+## 2026-10-12
+- **Xilofón** (juegos, nuevo, terminado): ocho láminas de colores para Valentín, multitáctiles y con glissando al deslizar, sonido de xilofón o marimba sintetizado con WebAudio, bichos y chispas en cada golpe, y tres canciones (Estrellita, Himno de la alegría, Fray Santiago) que se tocan solas iluminando las láminas. Sin puntaje ni menú. E2e a 360 y 1280 px. Probar: https://fnguerrero.github.io/working-folder-auto/juegos/xilofon/
+- **PostgreSQL para los que vienen de SQL Server** (escritos, nuevo, terminado): guía de 17 capítulos de T-SQL y SSMS a Postgres desde .NET: nombres y mayúsculas, tipos, identidad y `RETURNING`, consultas, fechas y Npgsql, `NULL` y unicidad, PL/pgSQL, MVCC y bloqueos, índices y `EXPLAIN`, `VACUUM`, `jsonb`, paginación y texto libre, roles, `psql` y backups, EF Core, chuleta y las diez sorpresas. Los 31 bloques de PostgreSQL se extraen de la página y se ejecutan contra un Postgres 16 real (se levantó uno en la nube para eso); e2e de la página a 360 y 1280 px. Probar: https://fnguerrero.github.io/working-folder-auto/escritos/postgres-desde-sqlserver/
+- Ideas nuevas: #11 (simulador de reintentos y circuit breaker), #12 (historia de la computación en Argentina, grande).
+- Sin pedidos `noche` en ninguno de los tres repos ni comentarios nuevos de Nico. Había 10 `sugerencia` abiertas, así que se dejaron solo dos ideas.
+
 ## 2026-10-11
 - **Por qué explota el p99** (experimentos, nuevo, terminado): simulador de colas para backend: workers, pedidos por segundo y distribución del tiempo de servicio; simulación de eventos discretos contrastada con Erlang C, Allen-Cunneen y Little, tres gráficos (palo de hockey, histograma, cola en el tiempo), diagnóstico en criollo con acciones y texto con fuentes. Tests `node --test` (simulación vs fórmulas) y e2e a 360 y 1280 px. Probar: https://fnguerrero.github.io/working-folder-auto/experimentos/colas-p99/
 - **Cron en criollo** (herramientas, nuevo, terminado): pegás una expresión cron (estándar o Quartz.NET con `?`, `L`, `W`, `#` y año) y la explica en castellano, con las próximas 10 ejecuciones en hora argentina, avisos de las trampas típicas, conversión entre dialectos y snippets de Hangfire, Quartz y NCrontab. Tests con fechas conocidas y e2e. Probar: https://fnguerrero.github.io/working-folder-auto/herramientas/cron-en-criollo/
