@@ -61,5 +61,14 @@
     "estado": "terminado",
     "probar": "juegos/xilofon/",
     "desde": "2026-10-12"
+  },
+  {
+    "slug": "postgres-desde-sqlserver",
+    "nombre": "PostgreSQL para los que vienen de SQL Server",
+    "categoria": "escritos",
+    "descripcion": "Guía de 17 capítulos para pasar de T-SQL y SSMS a PostgreSQL desde .NET: tipos, fechas, transacciones, índices, jsonb, Npgsql y EF Core. Todos los ejemplos ejecutados contra Postgres 16.",
+    "estado": "terminado",
+    "probar": "escritos/postgres-desde-sqlserver/",
+    "desde": "2026-10-12"
   }
 ]

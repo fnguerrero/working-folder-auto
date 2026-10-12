@@ -1,0 +1,1117 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Guía para pasar de SQL Server a PostgreSQL desde .NET: tipos, identidad, consultas, fechas, transacciones, índices, VACUUM, JSON, Npgsql y EF Core. Con todos los ejemplos ejecutados contra PostgreSQL 16.">
+<title>PostgreSQL para los que vienen de SQL Server</title>
+<style>
+  :root {
+    --bg: #fbfaf7; --fg: #23201c; --suave: #6b655c; --linea: #e4e0d8; --panel: #f1eee7;
+    --acento: #2f6fdb; --pg: #336791; --ms: #a4373a; --ok: #2e7d32; --ojo: #b26a00;
+    --codigo-bg: #1e2430; --codigo-fg: #e6e9ef; --ancho: 76ch; --toc: 270px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #15171c; --fg: #e8e6e1; --suave: #a19c93; --linea: #2c3038; --panel: #1d2026;
+      --acento: #7aa7ff; --pg: #7fb0e0; --ms: #ff8a8d; --ok: #7bd389; --ojo: #ffbf5e;
+      --codigo-bg: #0f1218; --codigo-fg: #e6e9ef; }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.6 Georgia, "Times New Roman", "Noto Serif", serif; }
+  a { color: var(--acento); }
+  code, pre, kbd { font-family: ui-monospace, "Cascadia Code", Consolas, "SF Mono", Menlo, monospace; }
+  code { font-size: .88em; background: var(--panel); padding: .1em .35em; border-radius: 5px; overflow-wrap: anywhere; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  h1, h2, h3, h4 { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.2; letter-spacing: -.01em; }
+  h1 { font-size: clamp(1.9rem, 5vw, 2.8rem); margin: .2em 0 .3em; }
+  h2 { font-size: 1.65rem; margin: 2.2em 0 .6em; padding-top: .6em; border-top: 1px solid var(--linea); }
+  h2 small { display: block; color: var(--suave); font-size: .55em; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .3em; }
+  h3 { font-size: 1.2rem; margin: 1.8em 0 .4em; }
+  p, ul, ol { margin: 0 0 1em; }
+  li { margin-bottom: .3em; }
+  .bajada { font-size: 1.15rem; color: var(--suave); font-family: system-ui, sans-serif; }
+  .meta { color: var(--suave); font-size: .9rem; font-family: system-ui, sans-serif; }
+
+  .marco { display: grid; grid-template-columns: 1fr; gap: 0 40px; max-width: 1200px; margin: 0 auto; padding: 24px 16px 80px; }
+  main { min-width: 0; max-width: 980px; }
+  main p, main ul, main ol, main h1, main h2, main h3, .ojo, .dato, .bajada { max-width: var(--ancho); }
+  nav.toc { font-family: system-ui, sans-serif; font-size: .92rem; }
+  nav.toc ol { list-style: none; padding: 0; margin: 0; }
+  nav.toc li { margin: 0; }
+  nav.toc a { display: block; padding: 5px 10px; color: var(--suave); text-decoration: none; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--fg); }
+  nav.toc a.activo { color: var(--acento); border-left-color: var(--acento); }
+  nav.toc .num { display: inline-block; width: 2ch; color: var(--suave); opacity: .7; }
+  details.toc-movil { border: 1px solid var(--linea); border-radius: 12px; padding: 10px 14px; margin: 0 0 24px; background: var(--panel); }
+  details.toc-movil summary { cursor: pointer; font-weight: 700; font-family: system-ui, sans-serif; }
+  .toc-lateral { display: none; }
+  @media (min-width: 960px) {
+    .marco { grid-template-columns: var(--toc) minmax(0, 1fr); }
+    .toc-lateral { display: block; position: sticky; top: 16px; align-self: start; max-height: calc(100vh - 32px); overflow: auto; padding-right: 6px; }
+    details.toc-movil { display: none; }
+  }
+
+  pre { position: relative; margin: 0 0 1em; padding: 14px 16px; border-radius: 12px; background: var(--codigo-bg); color: var(--codigo-fg);
+    font-size: .84rem; line-height: 1.5; overflow: auto; tab-size: 4; }
+  pre[data-rotulo] { padding-top: 30px; }
+  pre[data-rotulo]::before { content: attr(data-rotulo); position: absolute; top: 0; right: 0; padding: 3px 10px; border-radius: 0 12px 0 10px;
+    font: 600 .7rem/1.4 system-ui, sans-serif; letter-spacing: .04em; text-transform: uppercase; color: #fff; }
+  pre.pg[data-rotulo]::before { background: var(--pg); }
+  pre.tsql[data-rotulo]::before { background: var(--ms); }
+  pre.sh[data-rotulo]::before, pre.cs[data-rotulo]::before, pre.txt[data-rotulo]::before { background: #555c6a; }
+  pre .cm { color: #8b96a8; font-style: italic; }
+  pre .out { color: #a7d6a0; }
+  pre .err { color: #ff9b9e; }
+  .copiar { position: absolute; bottom: 8px; right: 8px; border: 0; border-radius: 8px; padding: 4px 10px; font: 600 .72rem system-ui, sans-serif;
+    background: rgba(255,255,255,.12); color: #fff; cursor: pointer; opacity: 0; transition: opacity .15s; min-height: 28px; }
+  pre:hover .copiar, pre:focus-within .copiar, .copiar:focus-visible { opacity: 1; }
+  @media (hover: none) { .copiar { opacity: .85; } }
+  .par { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 1em; }
+  .par pre { margin: 0; min-width: 0; }
+  .par > * { min-width: 0; }
+  @media (min-width: 700px) { .par { grid-template-columns: 1fr 1fr; } }
+  .par.ancho { grid-template-columns: 1fr; }
+
+  .ojo, .dato { padding: 12px 16px; border-radius: 12px; margin: 0 0 1em; border-left: 4px solid var(--ojo); background: var(--panel); }
+  .dato { border-left-color: var(--ok); }
+  .ojo strong:first-child, .dato strong:first-child { font-family: system-ui, sans-serif; }
+
+  table { border-collapse: collapse; width: 100%; margin: 0 0 1.2em; font-size: .92rem; font-family: system-ui, sans-serif; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--linea); vertical-align: top; }
+  th { color: var(--suave); font-weight: 600; font-size: .8rem; letter-spacing: .05em; text-transform: uppercase; }
+  td code { white-space: nowrap; }
+  .tabla-scroll { overflow-x: auto; margin-bottom: 1.2em; }
+  .tabla-scroll table { min-width: 560px; margin: 0; }
+  .pie { margin-top: 3em; padding-top: 1em; border-top: 1px solid var(--linea); color: var(--suave); font-size: .9rem; font-family: system-ui, sans-serif; }
+  .chuleta td:first-child, .chuleta td:nth-child(2) { font-family: ui-monospace, Consolas, monospace; font-size: .85rem; white-space: nowrap; }
+  @media (max-width: 600px) { .chuleta td:first-child, .chuleta td:nth-child(2) { white-space: normal; } }
+  .arriba { position: fixed; right: 14px; bottom: 14px; min-width: 44px; min-height: 44px; border: 0; border-radius: 50%; background: var(--acento); color: #fff;
+    font: 700 1.2rem system-ui, sans-serif; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.25); opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .arriba.visible { opacity: 1; pointer-events: auto; }
+</style>
+</head>
+<body>
+<div class="marco">
+<nav class="toc toc-lateral" aria-label="Índice">
+  <ol id="toc-lateral"></ol>
+</nav>
+<main>
+<header>
+  <p class="meta">Escritos del Programador nocturno · octubre de 2026 · PostgreSQL 16, Npgsql 8/9, EF Core 8/9</p>
+  <h1>PostgreSQL para los que vienen de SQL Server</h1>
+  <p class="bajada">Una guía práctica, para alguien que lleva años con T-SQL y SSMS y mañana tiene que trabajar contra Postgres desde .NET. Qué cambia de nombre, qué cambia de verdad y qué te va a morder si no lo sabés.</p>
+  <p>Está pensada para leerse de corrido una vez y después volver a los capítulos puntuales. Cada tema compara lo que hacías en SQL Server con lo que se hace en PostgreSQL. <strong>Todos los bloques marcados "PostgreSQL" se extraen de esta misma página y se ejecutan, en orden, contra un PostgreSQL 16 real</strong> cada vez que se publica; si la guía dice que algo devuelve <code>3</code>, es porque devolvió 3. Los bloques de SQL Server son de referencia (no hay un SQL Server en la nube donde corre esto).</p>
+</header>
+
+<details class="toc-movil">
+  <summary>Índice</summary>
+  <nav class="toc" aria-label="Índice"><ol id="toc-movil"></ol></nav>
+</details>
+
+<section id="mapa">
+<h2><small>Capítulo 1</small>El mapa mental: instancia, base, esquema y conexión</h2>
+<p>En SQL Server te conectás a una <em>instancia</em> y después hacés <code>USE Ventas</code> para elegir la base. Podés hacer <code>SELECT * FROM Otra.dbo.Clientes</code> y cruzar bases en una misma consulta. En PostgreSQL eso no existe: <strong>la conexión es a una base concreta</strong>, no hay <code>USE</code>, y las otras bases del mismo servidor (el <em>cluster</em>) son invisibles salvo que montes una extensión como <code>postgres_fdw</code> o <code>dblink</code>. Si en SQL Server tenías tres bases que se hablan entre sí, en Postgres eso suele ser <strong>una base con tres esquemas</strong>.</p>
+<p>El esquema <code>public</code> es el <code>dbo</code> de Postgres: donde caen las tablas si no decís otra cosa. Qué esquemas se buscan y en qué orden lo decide <code>search_path</code>, una variable de sesión. Los nombres se califican igual: <code>esquema.tabla</code>.</p>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>-- Toda la guía trabaja en un esquema propio para no ensuciar nada.
+DROP SCHEMA IF EXISTS guia CASCADE;
+CREATE SCHEMA guia;
+SET search_path TO guia, public;
+
+-- Esto es lo más parecido a "SELECT DB_NAME(), SCHEMA_NAME(), SUSER_NAME()":
+SELECT current_database(), current_schema(), current_user, version();</code></pre>
+<p>Otros cambios de vocabulario que conviene tener a mano:</p>
+<div class="tabla-scroll"><table>
+<tr><th>SQL Server</th><th>PostgreSQL</th><th>Comentario</th></tr>
+<tr><td>Instancia</td><td>Cluster (o servidor)</td><td>Un proceso <code>postgres</code> con un directorio de datos.</td></tr>
+<tr><td>Login + User</td><td>Role</td><td>Un solo concepto: un rol con <code>LOGIN</code> es un login; sin él, es un grupo.</td></tr>
+<tr><td><code>dbo</code></td><td><code>public</code></td><td>Y <code>search_path</code> decide dónde se busca.</td></tr>
+<tr><td><code>master</code>, <code>tempdb</code></td><td><code>postgres</code>, <code>template1</code></td><td>No hay tempdb: las temporales viven en la base donde las creás.</td></tr>
+<tr><td><code>GO</code></td><td>(nada)</td><td>Los lotes se separan con <code>;</code>. <code>GO</code> era cosa de SSMS/sqlcmd.</td></tr>
+<tr><td>SSMS</td><td><code>psql</code>, pgAdmin, DBeaver, VS Code</td><td>Capítulo 15.</td></tr>
+<tr><td>SQL Agent</td><td>cron, <code>pg_cron</code>, Hangfire</td><td>No viene un scheduler adentro del motor.</td></tr>
+<tr><td>Linked server</td><td><code>postgres_fdw</code></td><td>Tablas "foráneas" que apuntan a otra base o servidor.</td></tr>
+<tr><td><code>sys.tables</code>, <code>sys.columns</code></td><td><code>information_schema.*</code>, <code>pg_catalog.*</code></td><td><code>pg_class</code>, <code>pg_attribute</code>, <code>pg_index</code>…</td></tr>
+</table></div>
+</section>
+
+<section id="nombres">
+<h2><small>Capítulo 2</small>Mayúsculas, comillas y la trampa de <code>"Clientes"</code></h2>
+<p>Esta es la primera sorpresa de todo el que viene de SQL Server. En Postgres, <strong>los identificadores sin comillas se pasan a minúsculas</strong>. <code>CREATE TABLE Clientes</code> crea una tabla llamada <code>clientes</code>, y <code>SELECT * FROM CLIENTES</code> la encuentra porque también se baja a minúsculas. Hasta ahí, inofensivo. El problema aparece con las comillas dobles: <code>CREATE TABLE "Clientes"</code> crea una tabla que se llama <em>exactamente</em> <code>Clientes</code>, y a partir de ahí hay que escribirla con comillas <em>siempre</em>.</p>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>CREATE TABLE Clientes (Id int, Nombre text);     -- se llama clientes, columnas id y nombre
+CREATE TABLE "Clientes" (Id int, "Nombre" text);  -- otra tabla distinta, "Clientes" con columna id y columna "Nombre"
+
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'guia' ORDER BY 1;
+-- → Clientes
+-- → clientes
+
+SELECT nombre FROM clientes;        -- anda
+SELECT "Nombre" FROM "Clientes";    -- anda
+-- SELECT Nombre FROM "Clientes";   -- falla: busca la columna "nombre" y la tabla tiene "Nombre"
+DROP TABLE "Clientes"; DROP TABLE clientes;</code></pre>
+<p>Por qué te importa desde .NET: <strong>EF Core con Npgsql pone comillas a todo lo que genera</strong>. Si dejás las convenciones por defecto, tu entidad <code>Cliente</code> termina en una tabla <code>"Clientes"</code> con columnas <code>"FechaAlta"</code>, y cada vez que alguien abra <code>psql</code> y escriba <code>select fechaalta from clientes</code> va a recibir <em>relation "clientes" does not exist</em>. La convención del ecosistema es <code>snake_case</code> en minúsculas, y hay un paquete que se encarga solo:</p>
+<pre class="cs" data-rotulo="C#"><code>// dotnet add package EFCore.NamingConventions
+services.AddDbContext&lt;VentasContext>(o => o
+    .UseNpgsql(connectionString)
+    .UseSnakeCaseNamingConvention());   // Cliente.FechaAlta → cliente.fecha_alta</code></pre>
+<h3>Comparar texto: acá sí importa la mayúscula</h3>
+<p>La segunda sorpresa. En SQL Server la collation por defecto suele ser <code>_CI_AS</code>: <code>'Nico' = 'nico'</code> es verdadero y <code>WHERE email = 'A@B.COM'</code> encuentra <code>a@b.com</code>. En Postgres <strong>la comparación es sensible a mayúsculas</strong> por defecto, en <code>=</code>, en <code>LIKE</code>, en <code>GROUP BY</code> y en los índices únicos.</p>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>SELECT 'Nico' = 'nico' AS iguales, 'Nico' ILIKE 'nico' AS iguales_ilike;
+-- → false | true
+SELECT lower('Nico') = lower('nico');   -- → true: la forma habitual
+
+-- Para un email único sin importar mayúsculas: índice sobre una expresión
+CREATE TABLE usuario (id int GENERATED ALWAYS AS IDENTITY PRIMARY KEY, email text NOT NULL);
+CREATE UNIQUE INDEX usuario_email_unico ON usuario (lower(email));
+INSERT INTO usuario (email) VALUES ('Nico@Ejemplo.com');
+-- INSERT INTO usuario (email) VALUES ('nico@ejemplo.com');  -- falla: duplicate key
+SELECT * FROM usuario WHERE lower(email) = lower('NICO@ejemplo.com');  -- usa el índice</code></pre>
+<p>Opciones, de la más usada a la menos:</p>
+<ul>
+<li><code>lower()</code> en los dos lados y un índice sobre <code>lower(columna)</code>. Simple, rápido, universal.</li>
+<li><code>ILIKE</code> para búsquedas tipo <code>LIKE</code> sin importar mayúsculas. No usa el índice común; con <code>pg_trgm</code> y un índice GIN sí.</li>
+<li>El tipo <code>citext</code> (extensión incluida en la distribución): una columna que se compara sin distinguir mayúsculas en todas partes. Cómodo, pero es un tipo distinto y EF Core necesita que lo mapees (<code>HasColumnType("citext")</code>).</li>
+<li>Collations no determinísticas (desde Postgres 12): <code>CREATE COLLATION ci (provider = icu, locale = 'und-u-ks-level2', deterministic = false)</code>. Es lo más parecido a <code>_CI</code>, pero en 16 <code>LIKE</code> no funciona sobre esas columnas y hay otras limitaciones. Para casos puntuales, no para toda la base.</li>
+</ul>
+<div class="ojo"><strong>Ojo:</strong> los identificadores se cortan a <strong>63 caracteres</strong>. Si tu convención genera <code>ix_detalle_de_pedido_fecha_de_entrega_estimada_cliente_sucursal_id</code> (68), Postgres lo trunca, avisa con un <code>NOTICE</code> que nadie lee, y dos índices distintos pueden terminar con el mismo nombre.</div>
+</section>
+
+<section id="tipos">
+<h2><small>Capítulo 3</small>Tipos de datos: qué se mapea a qué</h2>
+<p>La mayoría de los tipos tiene equivalente directo. Los que no, son los que vale la pena mirar con cuidado: <code>bit</code>, los de fecha y hora, <code>uniqueidentifier</code> y <code>nvarchar(max)</code> con JSON adentro.</p>
+<div class="tabla-scroll"><table>
+<tr><th>SQL Server</th><th>PostgreSQL</th><th>C# (Npgsql)</th><th>Nota</th></tr>
+<tr><td><code>int</code>, <code>bigint</code>, <code>smallint</code></td><td><code>integer</code>, <code>bigint</code>, <code>smallint</code></td><td><code>int</code>, <code>long</code>, <code>short</code></td><td>Iguales. No hay <code>tinyint</code>: usá <code>smallint</code>.</td></tr>
+<tr><td><code>bit</code></td><td><code>boolean</code></td><td><code>bool</code></td><td>Un booleano de verdad: <code>WHERE activo</code>, sin <code>= 1</code>.</td></tr>
+<tr><td><code>decimal(p,s)</code>, <code>numeric</code></td><td><code>numeric(p,s)</code></td><td><code>decimal</code></td><td>Igual. Sin precisión, <code>numeric</code> es arbitrario.</td></tr>
+<tr><td><code>money</code></td><td><code>numeric(19,4)</code></td><td><code>decimal</code></td><td>Existe <code>money</code> en Postgres, pero depende del <code>lc_monetary</code> de la sesión. Evitalo.</td></tr>
+<tr><td><code>float</code>, <code>real</code></td><td><code>double precision</code>, <code>real</code></td><td><code>double</code>, <code>float</code></td><td>Iguales.</td></tr>
+<tr><td><code>varchar(n)</code>, <code>nvarchar(n)</code></td><td><code>varchar(n)</code> o <code>text</code></td><td><code>string</code></td><td>Todo es Unicode (UTF-8). <code>text</code> no rinde peor que <code>varchar(n)</code>; el <code>(n)</code> es solo una regla de negocio.</td></tr>
+<tr><td><code>nvarchar(max)</code></td><td><code>text</code></td><td><code>string</code></td><td>Sin límite práctico (1 GB). Si adentro hay JSON, mirá <code>jsonb</code>.</td></tr>
+<tr><td><code>char(n)</code>, <code>nchar(n)</code></td><td><code>char(n)</code></td><td><code>string</code></td><td>Rellena con espacios en los dos. Casi nunca lo querés.</td></tr>
+<tr><td><code>datetime</code>, <code>datetime2</code></td><td><code>timestamp</code> (sin zona)</td><td><code>DateTime</code> (Kind Unspecified)</td><td>Hora "de pared". Precisión de microsegundos, no de 100 ns.</td></tr>
+<tr><td><code>datetimeoffset</code></td><td><code>timestamptz</code></td><td><code>DateTime</code> (Kind Utc), <code>DateTimeOffset</code> (offset 0)</td><td>Guarda el instante en UTC. <strong>No guarda el offset.</strong> Capítulo 6.</td></tr>
+<tr><td><code>date</code>, <code>time</code></td><td><code>date</code>, <code>time</code></td><td><code>DateOnly</code>, <code>TimeOnly</code></td><td>Iguales. Npgsql mapea <code>DateOnly</code>/<code>TimeOnly</code> desde la 6.</td></tr>
+<tr><td><code>uniqueidentifier</code></td><td><code>uuid</code></td><td><code>Guid</code></td><td><code>gen_random_uuid()</code> viene en el core desde la 13.</td></tr>
+<tr><td><code>varbinary(max)</code>, <code>image</code></td><td><code>bytea</code></td><td><code>byte[]</code></td><td>Igual. Para archivos grandes, mejor afuera de la base, en los dos motores.</td></tr>
+<tr><td><code>xml</code></td><td><code>xml</code></td><td><code>string</code></td><td>Existe, con XPath. Se usa poco.</td></tr>
+<tr><td>JSON en <code>nvarchar</code></td><td><code>jsonb</code></td><td><code>string</code>, <code>JsonDocument</code>, POCO</td><td>Tipo binario indexable con operadores propios. Capítulo 12.</td></tr>
+<tr><td><code>rowversion</code>, <code>timestamp</code></td><td>columna <code>xmin</code></td><td><code>uint</code> con <code>IsRowVersion()</code></td><td>Npgsql EF usa la columna de sistema <code>xmin</code> como token de concurrencia.</td></tr>
+<tr><td><code>hierarchyid</code></td><td><code>ltree</code> (extensión)</td><td><code>string</code>/<code>LTree</code></td><td>Rutas tipo <code>raiz.hijo.nieto</code> con operadores de ancestro y descendiente.</td></tr>
+<tr><td><code>geography</code>, <code>geometry</code></td><td>PostGIS (extensión)</td><td>NetTopologySuite</td><td>PostGIS es mucho más completo que lo que trae SQL Server.</td></tr>
+<tr><td><code>sql_variant</code></td><td>(nada)</td><td></td><td>No existe y no se extraña.</td></tr>
+<tr><td>(nada)</td><td><code>int[]</code>, <code>text[]</code>…</td><td><code>int[]</code>, <code>List&lt;string></code></td><td>Arrays nativos. Reemplazan muchos TVP y <code>STRING_SPLIT</code>.</td></tr>
+<tr><td>(nada)</td><td><code>inet</code>, <code>cidr</code>, <code>macaddr</code></td><td><code>IPAddress</code></td><td>Direcciones IP como tipo, con operadores de contención.</td></tr>
+<tr><td>(nada)</td><td><code>int4range</code>, <code>tstzrange</code>…</td><td><code>NpgsqlRange&lt;T></code></td><td>Rangos con operadores de solapamiento y restricciones de exclusión.</td></tr>
+</table></div>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>CREATE TABLE pedido (
+    id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    numero      uuid NOT NULL DEFAULT gen_random_uuid(),
+    cliente_id  int NOT NULL REFERENCES usuario (id),
+    total       numeric(14, 2) NOT NULL CHECK (total >= 0),
+    pagado      boolean NOT NULL DEFAULT false,
+    creado_en   timestamptz NOT NULL DEFAULT now(),   -- instante
+    entrega     date,                                  -- fecha de calendario
+    etiquetas   text[] NOT NULL DEFAULT '{}',
+    detalle     jsonb
+);
+INSERT INTO pedido (cliente_id, total, etiquetas, detalle)
+VALUES (1, 1500.50, ARRAY['urgente', 'web'], '{"items": [{"sku": "A1", "cant": 2}], "cupon": null}');
+SELECT id, total, pagado, etiquetas[1] AS primera_etiqueta, detalle->'items'->0->>'sku' AS sku FROM pedido;
+-- → 1 | 1500.50 | f | urgente | A1</code></pre>
+<div class="ojo"><strong>Ojo con la precisión de las fechas:</strong> SQL Server guarda <code>datetime2</code> con 100 ns y .NET <code>DateTime</code> también. Postgres guarda <strong>microsegundos</strong>. Un <code>DateTime.UtcNow</code> que guardás y volvés a leer <strong>no es igual</strong> al original (<code>Ticks</code> distinto). Los tests que comparan fechas con <code>Assert.Equal</code> después de un round-trip fallan; compará con tolerancia o truncá antes de guardar.</div>
+</section>
+
+<section id="identidad">
+<h2><small>Capítulo 4</small>Identidad, secuencias y <code>RETURNING</code></h2>
+<p><code>IDENTITY(1,1)</code> se escribe <code>GENERATED ALWAYS AS IDENTITY</code> (desde Postgres 10; <code>serial</code> es la forma vieja y hoy se desaconseja). Por debajo hay una secuencia, que es un objeto aparte y se puede consultar o reiniciar. Igual que en SQL Server, <strong>un rollback no devuelve el número</strong>: los huecos son normales.</p>
+<p>Lo que cambia para mejor es <code>SCOPE_IDENTITY()</code> y <code>OUTPUT</code>: en Postgres cualquier <code>INSERT</code>, <code>UPDATE</code> o <code>DELETE</code> puede terminar en <code>RETURNING</code> y devolver las filas afectadas, con las columnas que quieras, calculadas o no.</p>
+<div class="par">
+<pre class="sql tsql" data-rotulo="SQL Server"><code>INSERT INTO Pedido (ClienteId, Total)
+OUTPUT inserted.Id, inserted.Numero
+VALUES (1, 200);
+
+-- o la forma vieja
+INSERT INTO Pedido (ClienteId, Total) VALUES (1, 200);
+SELECT SCOPE_IDENTITY();</code></pre>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>INSERT INTO pedido (cliente_id, total)
+VALUES (1, 200)
+RETURNING id, numero, creado_en;
+
+-- también en UPDATE y DELETE
+UPDATE pedido SET pagado = true WHERE id = 2
+RETURNING id, total * 1.21 AS total_con_iva;</code></pre>
+</div>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>-- Reiniciar una identidad (DBCC CHECKIDENT) y ver el último valor
+ALTER TABLE pedido ALTER COLUMN id RESTART WITH 1000;
+INSERT INTO pedido (cliente_id, total) VALUES (1, 10) RETURNING id;   -- → 1000
+SELECT pg_get_serial_sequence('pedido', 'id');                       -- → guia.pedido_id_seq
+
+-- ALWAYS no deja insertar el id a mano; BY DEFAULT sí (útil al migrar datos con ids existentes)
+-- INSERT INTO pedido (id, cliente_id, total) VALUES (5, 1, 1);  -- falla con GENERATED ALWAYS
+INSERT INTO pedido (id, cliente_id, total) OVERRIDING SYSTEM VALUE VALUES (5, 1, 1);</code></pre>
+<div class="ojo"><strong><code>TRUNCATE</code> no reinicia la identidad</strong> salvo que lo pidas: <code>TRUNCATE pedido RESTART IDENTITY</code>. En SQL Server la reinicia siempre. Y <code>TRUNCATE</code> es transaccional en los dos motores, así que se puede hacer rollback.</div>
+<p>Sobre los GUID como clave primaria: en Postgres <code>uuid</code> ocupa 16 bytes y se indexa bien, pero <code>gen_random_uuid()</code> genera v4 (aleatorios), que fragmentan el índice igual que <code>NEWID()</code>. El equivalente de <code>NEWSEQUENTIALID()</code> es un UUID v7 (ordenado por tiempo): en .NET 9 tenés <code>Guid.CreateVersion7()</code> para generarlo del lado de la aplicación, y Postgres 18 trae <code>uuidv7()</code> en el motor.</p>
+</section>
+
+<section id="consultas">
+<h2><small>Capítulo 5</small>Las consultas de todos los días</h2>
+<p>Acá está el grueso de la memoria muscular que hay que reescribir. La buena noticia es que Postgres sigue el estándar SQL mucho más de cerca que T-SQL, así que casi todo lo "raro" de SQL Server tiene una forma estándar que ya conocés de otros lados.</p>
+<h3><code>TOP</code>, <code>ISNULL</code>, <code>IIF</code> y compañía</h3>
+<div class="par">
+<pre class="sql tsql" data-rotulo="SQL Server"><code>SELECT TOP 5 * FROM Pedido ORDER BY Total DESC;
+SELECT TOP 1 WITH TIES * FROM Pedido ORDER BY Total DESC;
+
+SELECT ISNULL(Entrega, '2099-12-31'),
+       IIF(Pagado = 1, 'sí', 'no'),
+       LEN(Nombre), CHARINDEX('@', Email),
+       Nombre + ' ' + Apellido,
+       CONVERT(varchar, Total), CAST(Total AS int)
+FROM ...</code></pre>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>SELECT * FROM pedido ORDER BY total DESC LIMIT 5;
+SELECT * FROM pedido ORDER BY total DESC FETCH FIRST 1 ROWS WITH TIES;
+
+SELECT coalesce(entrega, DATE '2099-12-31'),
+       CASE WHEN pagado THEN 'sí' ELSE 'no' END,
+       length(email), position('@' IN email),
+       email || ' ' || pedido.id::text,
+       total::text, total::int,         -- "::" es el CAST de Postgres
+       round(total)                     -- redondea; ::int también redondea (no trunca)
+FROM pedido JOIN usuario ON usuario.id = pedido.cliente_id
+LIMIT 1;</code></pre>
+</div>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>-- Tres detalles que muerden:
+SELECT 7 / 2 AS entero, 7 / 2.0 AS decimal_;        -- → 3 | 3.5  (igual que en SQL Server)
+SELECT 'a' || NULL IS NULL AS concat_con_null;        -- → true (igual que + en SQL Server con CONCAT_NULL_YIELDS_NULL)
+SELECT concat('a', NULL, 'b');                        -- → ab  (concat() ignora los NULL)
+SELECT length('hola   ');                             -- → 7. LEN() en SQL Server devolvía 4: ignoraba los espacios finales.</code></pre>
+<h3>Fechas y texto en una línea</h3>
+<div class="par">
+<pre class="sql tsql" data-rotulo="SQL Server"><code>GETDATE(), GETUTCDATE(), SYSDATETIMEOFFSET()
+DATEADD(day, 7, Creado)
+DATEDIFF(day, Creado, GETDATE())
+DATEPART(year, Creado), DATENAME(month, Creado)
+EOMONTH(Creado)
+DATEFROMPARTS(2026, 10, 12)
+FORMAT(Creado, 'dd/MM/yyyy HH:mm')
+STRING_AGG(Nombre, ', ') WITHIN GROUP (ORDER BY Nombre)
+STRING_SPLIT('a,b,c', ',')
+NEWID()
+REPLICATE('-', 10), REVERSE(x), STUFF(...)</code></pre>
+<pre class="sql pg ref" data-rotulo="PostgreSQL (referencia)"><code>now(), now() AT TIME ZONE 'UTC', clock_timestamp()
+creado_en + interval '7 days'
+(now()::date - creado_en::date)            -- días, como entero
+extract(year FROM creado_en), to_char(creado_en, 'TMMonth')
+(date_trunc('month', creado_en) + interval '1 month - 1 day')::date
+make_date(2026, 10, 12)
+to_char(creado_en, 'DD/MM/YYYY HH24:MI')
+string_agg(email, ', ' ORDER BY email)
+string_to_table('a,b,c', ',')              -- o unnest(string_to_array(...))
+gen_random_uuid()
+repeat('-', 10), reverse(x), overlay(... placing ... from ... for ...)</code></pre>
+</div>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>SELECT now()::date - DATE '2026-01-01' AS dias_del_anio,            -- date - date = integer
+       now() - TIMESTAMPTZ '2026-01-01' AS intervalo,                -- timestamp - timestamp = interval
+       extract(epoch FROM (now() - TIMESTAMPTZ '2026-01-01')) / 86400 AS dias_con_decimales,
+       age(TIMESTAMP '2026-10-12', TIMESTAMP '1990-03-05') AS edad;  -- → 36 years 7 mons 7 days
+SELECT to_char(TIMESTAMP '2026-10-12 03:00', 'DD/MM/YYYY HH24:MI');  -- → 12/10/2026 03:00
+SELECT (date_trunc('month', DATE '2026-02-10') + interval '1 month - 1 day')::date AS fin_de_mes;  -- → 2026-02-28
+SELECT string_agg(x, ', ' ORDER BY x) FROM string_to_table('c,a,b', ',') AS t(x);  -- → a, b, c</code></pre>
+<div class="ojo"><strong><code>now()</code> es la hora de inicio de la transacción</strong>, no la del instante. Dentro de una transacción larga, dos <code>now()</code> separados por un minuto dan lo mismo. Si querés el reloj real, <code>clock_timestamp()</code>. Para un <code>DEFAULT</code> de columna, <code>now()</code> está perfecto.</div>
+<h3><code>UPDATE … FROM</code>, <code>DELETE … JOIN</code>, <code>APPLY</code>, <code>MERGE</code></h3>
+<div class="par">
+<pre class="sql tsql" data-rotulo="SQL Server"><code>UPDATE p
+SET Total = p.Total * 1.1
+FROM Pedido p
+JOIN Usuario u ON u.Id = p.ClienteId
+WHERE u.Email LIKE '%@ejemplo.com';
+
+DELETE p FROM Pedido p
+JOIN Usuario u ON u.Id = p.ClienteId
+WHERE u.Id = 99;
+
+SELECT u.*, ult.*
+FROM Usuario u
+CROSS APPLY (SELECT TOP 1 * FROM Pedido p
+             WHERE p.ClienteId = u.Id
+             ORDER BY p.CreadoEn DESC) ult;</code></pre>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>UPDATE pedido p
+SET total = p.total * 1.1
+FROM usuario u
+WHERE u.id = p.cliente_id          -- la condición del "join" va en el WHERE
+  AND u.email LIKE '%@ejemplo.com';
+
+DELETE FROM pedido p
+USING usuario u
+WHERE u.id = p.cliente_id AND u.id = 99;
+
+SELECT u.*, ult.*
+FROM usuario u
+CROSS JOIN LATERAL (SELECT * FROM pedido p
+                    WHERE p.cliente_id = u.id
+                    ORDER BY p.creado_en DESC LIMIT 1) ult;
+-- OUTER APPLY = LEFT JOIN LATERAL (...) ON true</code></pre>
+</div>
+<div class="ojo"><strong>En <code>UPDATE … FROM</code> no repitas la tabla destino en el <code>FROM</code>.</strong> En T-SQL se escribe <code>UPDATE p … FROM Pedido p JOIN …</code>; si en Postgres ponés <code>UPDATE pedido SET … FROM pedido p JOIN …</code> hiciste un producto cartesiano de la tabla consigo misma y actualizaste todo.</div>
+<p>El <em>upsert</em> idiomático es <code>INSERT … ON CONFLICT</code>. <code>MERGE</code> existe desde Postgres 15 con la sintaxis estándar, pero <code>ON CONFLICT</code> es más corto, más viejo y, a diferencia del <code>MERGE</code> de SQL Server, es atómico frente a inserciones concurrentes de la misma clave.</p>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>CREATE TABLE stock (sku text PRIMARY KEY, cantidad int NOT NULL, actualizado timestamptz NOT NULL DEFAULT now());
+INSERT INTO stock (sku, cantidad) VALUES ('A1', 10), ('B2', 3);
+
+INSERT INTO stock (sku, cantidad) VALUES ('A1', 5), ('C3', 1)
+ON CONFLICT (sku) DO UPDATE
+    SET cantidad = stock.cantidad + EXCLUDED.cantidad,   -- EXCLUDED = la fila que quería entrar
+        actualizado = now()
+RETURNING sku, cantidad;
+-- → A1 | 15
+-- → C3 | 1
+
+INSERT INTO stock (sku, cantidad) VALUES ('A1', 99) ON CONFLICT DO NOTHING;   -- "insertar si no existe"</code></pre>
+<h3>Listas de valores: adiós <code>STRING_SPLIT</code> y TVP, hola arrays</h3>
+<p>El clásico "quiero pasar una lista de ids al query" se resuelve con un array como parámetro. Npgsql lo pasa nativo (un <code>int[]</code> de C# es un <code>int[]</code> de Postgres), así que no hay que concatenar nada ni armar un tipo de tabla.</p>
+<div class="par">
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>SELECT id, total FROM pedido WHERE id = ANY(ARRAY[1, 2, 1000]);     -- = ANY(@ids)
+
+-- Un array como tabla, con su posición
+SELECT * FROM unnest(ARRAY['A1', 'B2']) WITH ORDINALITY AS t(sku, orden);
+
+-- Y al revés: una columna como array
+SELECT array_agg(sku ORDER BY sku) FROM stock;   -- → {A1,B2,C3}</code></pre>
+<pre class="cs" data-rotulo="C# (Dapper o Npgsql)"><code>var ids = new[] { 1, 2, 1000 };
+var pedidos = await conn.QueryAsync&lt;Pedido>(
+    "SELECT id, total FROM pedido WHERE id = ANY(@ids)",
+    new { ids });
+
+// Con EF Core, el Contains() se traduce solo a = ANY(...)
+var q = db.Pedidos.Where(p => ids.Contains(p.Id));</code></pre>
+</div>
+<h3>Cosas que no existen y cómo se dicen</h3>
+<ul>
+<li><code>SELECT … INTO Nueva FROM …</code> funciona en Postgres, pero la forma recomendada es <code>CREATE TABLE nueva AS SELECT …</code>. En PL/pgSQL, <code>SELECT INTO</code> significa "asignar a una variable".</li>
+<li><code>WITH (NOLOCK)</code>: no hay nada que poner. Las lecturas no bloquean ni se bloquean (capítulo 9).</li>
+<li><code>TOP (n)</code> en <code>UPDATE</code>/<code>DELETE</code>: <code>DELETE FROM t WHERE id IN (SELECT id FROM t WHERE … LIMIT 1000)</code>.</li>
+<li><code>PIVOT</code>: la cláusula <code>FILTER</code> es más legible: <code>count(*) FILTER (WHERE pagado) AS pagados</code>. Para pivots dinámicos, la extensión <code>tablefunc</code> (<code>crosstab</code>).</li>
+<li><code>DECLARE @x int = 5</code> en un script suelto: no hay variables fuera de PL/pgSQL. En psql, <code>\set x 5</code> y <code>:x</code>; en scripts, un bloque <code>DO $$ … $$</code> (capítulo 8).</li>
+<li><code>IF OBJECT_ID('t') IS NOT NULL DROP TABLE t</code>: <code>DROP TABLE IF EXISTS t</code>. También <code>CREATE TABLE IF NOT EXISTS</code>, <code>CREATE OR REPLACE VIEW/FUNCTION</code>.</li>
+<li><code>WITH</code> recursivo: hay que escribir <code>WITH RECURSIVE</code>. Si no, error.</li>
+<li><code>@@ROWCOUNT</code>: en PL/pgSQL, <code>GET DIAGNOSTICS n = ROW_COUNT</code>. Desde .NET, el <code>ExecuteNonQuery</code> te lo devuelve igual.</li>
+<li><code>sp_rename</code>: <code>ALTER TABLE t RENAME COLUMN a TO b</code>. Cambiar tipo: <code>ALTER TABLE t ALTER COLUMN a TYPE bigint USING a::bigint</code>.</li>
+<li><code>TRY_CAST</code>: no hay. Desde la 16, <code>pg_input_is_valid(texto, 'tipo')</code> permite escribir <code>CASE WHEN pg_input_is_valid(s, 'int') THEN s::int END</code>.</li>
+</ul>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>SELECT count(*) FILTER (WHERE pagado) AS pagados, count(*) FILTER (WHERE NOT pagado) AS pendientes FROM pedido;
+SELECT s, CASE WHEN pg_input_is_valid(s, 'int') THEN s::int END AS como_int FROM (VALUES ('12'), ('abc'), ('')) v(s);
+-- → 12 | 12 ; abc | NULL ; '' | NULL
+WITH RECURSIVE numeros AS (SELECT 1 AS n UNION ALL SELECT n + 1 FROM numeros WHERE n &lt; 5)
+SELECT string_agg(n::text, ',') FROM numeros;   -- → 1,2,3,4,5
+SELECT * FROM generate_series(1, 5) AS n;        -- la tabla de números que siempre terminabas creando a mano</code></pre>
+</section>
+
+<section id="fechas">
+<h2><small>Capítulo 6</small>Fechas, zonas horarias y Npgsql</h2>
+<p>Este capítulo existe porque es, lejos, el lugar donde más equipos .NET se traban al pasar a Postgres. Hay dos tipos de timestamp y conviene entender exactamente qué guarda cada uno:</p>
+<ul>
+<li><code>timestamp</code> (sin zona, <code>timestamp without time zone</code>): una hora de pared, sin saber de dónde. "2026-10-12 03:00". Es el <code>datetime2</code> de siempre. Ideal para "el turno es a las 15:00" o para fechas de calendario.</li>
+<li><code>timestamptz</code> (<code>timestamp with time zone</code>): un <strong>instante</strong>. Se guarda normalizado a UTC y, al leerlo, se muestra en la zona horaria de la <em>sesión</em> (<code>SHOW TimeZone</code>). <strong>No guarda la zona ni el offset original</strong>, a diferencia de <code>datetimeoffset</code>. Si necesitás saber "en qué zona estaba el usuario", eso va en otra columna.</li>
+</ul>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>SET TimeZone = 'America/Argentina/Buenos_Aires';     -- Argentina es -03 todo el año, sin horario de verano
+SELECT TIMESTAMPTZ '2026-10-12 03:00:00-03' AS instante,
+       TIMESTAMPTZ '2026-10-12 03:00:00-03' AT TIME ZONE 'UTC' AS hora_de_pared_en_utc,
+       TIMESTAMPTZ '2026-10-12 03:00:00-03' AT TIME ZONE 'Europe/Madrid' AS hora_de_pared_en_madrid;
+-- → 2026-10-12 03:00:00-03 | 2026-10-12 06:00:00 | 2026-10-12 08:00:00
+
+-- "AT TIME ZONE" convierte en los dos sentidos:
+--   timestamptz AT TIME ZONE 'zona' → timestamp (la hora de pared en esa zona)
+--   timestamp   AT TIME ZONE 'zona' → timestamptz (interpreta la hora de pared como de esa zona)
+SELECT (TIMESTAMP '2026-10-12 03:00' AT TIME ZONE 'America/Argentina/Buenos_Aires') = TIMESTAMPTZ '2026-10-12 06:00:00+00';  -- → true
+
+-- Agrupar por día "argentino" un campo guardado como instante:
+SELECT date_trunc('day', creado_en AT TIME ZONE 'America/Argentina/Buenos_Aires')::date AS dia, count(*) FROM pedido GROUP BY 1 ORDER BY 1;
+RESET TimeZone;</code></pre>
+<h3>Qué hace Npgsql con <code>DateTime</code></h3>
+<p>Desde Npgsql 6 (2021) el mapeo es estricto, y es el que te va a hacer renegar la primera semana:</p>
+<ul>
+<li><code>DateTime</code> con <code>Kind = Utc</code> → <code>timestamptz</code>. Al leer un <code>timestamptz</code>, siempre te devuelve <code>Kind = Utc</code>.</li>
+<li><code>DateTime</code> con <code>Kind = Unspecified</code> → <code>timestamp</code>. Al leer un <code>timestamp</code>, <code>Kind = Unspecified</code>.</li>
+<li><code>DateTime</code> con <code>Kind = Local</code> escrito en una columna <code>timestamptz</code> → <strong>excepción</strong>: <em>Cannot write DateTime with Kind=Local to PostgreSQL type 'timestamp with time zone', only UTC is supported</em>. Y lo mismo con <code>Unspecified</code>. Esto ocurre al guardar <code>DateTime.Now</code>, al parsear un <code>"2026-10-12T03:00"</code> sin zona, o al leer una fecha de un DTO de entrada.</li>
+<li><code>DateTimeOffset</code> → <code>timestamptz</code>, pero <strong>solo con offset cero</strong>; cualquier otro offset lanza la misma excepción. Al leer, viene con offset 0.</li>
+</ul>
+<pre class="cs" data-rotulo="C#"><code>// Lo correcto: trabajar en UTC adentro, convertir en los bordes.
+pedido.CreadoEn = DateTime.UtcNow;                                  // Kind = Utc → timestamptz ✔
+pedido.CreadoEn = DateTime.Now;                                     // Kind = Local → excepción ✘
+pedido.CreadoEn = DateTime.SpecifyKind(dto.Fecha, DateTimeKind.Utc); // si SABÉS que el DTO viene en UTC
+
+// Un instante en hora argentina para mostrar:
+var ar = TimeZoneInfo.FindSystemTimeZoneById("America/Argentina/Buenos_Aires"); // en Windows funciona desde .NET 6 (ICU)
+var local = TimeZoneInfo.ConvertTimeFromUtc(pedido.CreadoEn, ar);
+
+// Si migrás una base grande y no podés tocar todo de golpe, está el interruptor de compatibilidad
+// (comportamiento viejo: convierte a la zona de la máquina, como hacía Npgsql 5):
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);   // en Program.cs, antes de abrir conexiones</code></pre>
+<div class="dato"><strong>Regla simple que no falla:</strong> instantes (creado, modificado, vencimiento de token, logs) en <code>timestamptz</code> y <code>DateTime.UtcNow</code>. Fechas de calendario (vencimiento de factura, cumpleaños) en <code>date</code> y <code>DateOnly</code>. Horas de agenda sin zona ("el local abre 9:00") en <code>time</code>/<code>timestamp</code>. Y la zona del usuario, si hace falta, en una columna <code>text</code> con el nombre IANA.</div>
+</section>
+
+<section id="nulls">
+<h2><small>Capítulo 7</small><code>NULL</code>, booleanos, orden y unicidad</h2>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>-- 1. Booleanos de verdad. Nada de pagado = 1.
+SELECT count(*) FROM pedido WHERE pagado;
+SELECT count(*) FROM pedido WHERE NOT pagado;
+SELECT EXISTS (SELECT 1 FROM pedido WHERE total > 1000) AS hay_grandes;   -- devuelve un boolean, sin CASE
+
+-- 2. Los NULL se ordenan AL FINAL en ASC (en SQL Server van primero). Se puede pedir explícito:
+CREATE TABLE prueba_orden (v int);
+INSERT INTO prueba_orden VALUES (2), (NULL), (1);
+SELECT string_agg(coalesce(v::text, 'NULL'), ',' ORDER BY v) FROM prueba_orden;              -- → 1,2,NULL
+SELECT string_agg(coalesce(v::text, 'NULL'), ',' ORDER BY v NULLS FIRST) FROM prueba_orden;  -- → NULL,1,2
+SELECT string_agg(coalesce(v::text, 'NULL'), ',' ORDER BY v DESC) FROM prueba_orden;         -- → NULL,2,1
+
+-- 3. En un índice UNIQUE caben varios NULL (en SQL Server, uno solo). Desde la 15 se puede pedir lo otro:
+CREATE TABLE documento (id int GENERATED ALWAYS AS IDENTITY, cuit text UNIQUE);
+INSERT INTO documento (cuit) VALUES (NULL), (NULL);                              -- anda: dos NULL conviven
+CREATE TABLE documento_estricto (id int GENERATED ALWAYS AS IDENTITY, cuit text UNIQUE NULLS NOT DISTINCT);
+INSERT INTO documento_estricto (cuit) VALUES (NULL);
+-- INSERT INTO documento_estricto (cuit) VALUES (NULL);                          -- falla: duplicate key
+
+-- 4. '' y NULL son distintos, igual que en SQL Server (a diferencia de Oracle).
+SELECT '' IS NULL AS vacio_es_null, '' = '' AS vacio_igual_vacio;   -- → false | true
+
+-- 5. IS DISTINCT FROM: comparar tratando NULL como un valor (el "= con NULL" que siempre quisiste)
+SELECT NULL IS DISTINCT FROM 1 AS distinto, NULL IS NOT DISTINCT FROM NULL AS iguales;   -- → true | true</code></pre>
+<p>El punto 3 es de los que rompen migraciones en silencio: el típico índice único filtrado de SQL Server (<code>CREATE UNIQUE INDEX … WHERE Cuit IS NOT NULL</code>, hecho justamente para permitir varios <code>NULL</code>) en Postgres directamente no hace falta. Y al revés, si tu lógica <em>dependía</em> de que hubiera un solo <code>NULL</code>, necesitás <code>NULLS NOT DISTINCT</code>.</p>
+</section>
+
+<section id="plpgsql">
+<h2><small>Capítulo 8</small>Procedimientos y funciones: de T-SQL a PL/pgSQL</h2>
+<p>Postgres distingue <strong>funciones</strong> (devuelven algo, se usan en un <code>SELECT</code>, no pueden hacer <code>COMMIT</code>) de <strong>procedimientos</strong> (desde la 11, se invocan con <code>CALL</code>, pueden manejar transacciones). El cuerpo va entre <code>$$ … $$</code> (dollar quoting, para no escapar comillas) y se escribe en PL/pgSQL, que se parece a PL/SQL de Oracle más que a T-SQL: <code>DECLARE</code> al principio, <code>BEGIN … END</code>, <code>IF … THEN … END IF</code>, <code>;</code> en todos lados.</p>
+<div class="par">
+<pre class="sql tsql" data-rotulo="SQL Server"><code>CREATE PROCEDURE CobrarPedido
+    @PedidoId bigint,
+    @Monto decimal(14,2),
+    @Saldo decimal(14,2) OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Total decimal(14,2);
+    SELECT @Total = Total FROM Pedido WHERE Id = @PedidoId;
+    IF @Total IS NULL
+        THROW 50001, 'No existe el pedido', 1;
+    UPDATE Pedido SET Pagado = 1 WHERE Id = @PedidoId;
+    SET @Saldo = @Total - @Monto;
+    PRINT 'Cobrado';
+END</code></pre>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>CREATE OR REPLACE PROCEDURE cobrar_pedido(
+    p_pedido_id bigint,
+    p_monto numeric(14,2),
+    INOUT p_saldo numeric(14,2) DEFAULT NULL)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_total numeric(14,2);
+BEGIN
+    SELECT total INTO v_total FROM pedido WHERE id = p_pedido_id;
+    IF v_total IS NULL THEN
+        RAISE EXCEPTION 'No existe el pedido %', p_pedido_id USING ERRCODE = 'P0002';
+    END IF;
+    UPDATE pedido SET pagado = true WHERE id = p_pedido_id;
+    p_saldo := v_total - p_monto;
+    RAISE NOTICE 'Cobrado';     -- el PRINT: sale como aviso al cliente
+END $$;
+
+CALL cobrar_pedido(1, 500.50);          -- → p_saldo = 1000.00</code></pre>
+</div>
+<h3>Funciones que devuelven tablas (y por qué casi no se usan SPs para leer)</h3>
+<p>En SQL Server el SP que devuelve un result set es el pan de cada día. En Postgres eso se hace con una función <code>RETURNS TABLE</code> o <code>RETURNS SETOF</code>, que además se puede usar dentro de un <code>JOIN</code>, filtrar con <code>WHERE</code> y combinar con otras. Si la función es <code>LANGUAGE sql</code> (sin PL/pgSQL), el planificador puede incluso inlinearla en la consulta que la llama.</p>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>CREATE OR REPLACE FUNCTION pedidos_de(p_cliente int)
+RETURNS TABLE (id bigint, total numeric, pagado boolean)
+LANGUAGE sql STABLE AS $$
+    SELECT id, total, pagado FROM pedido WHERE cliente_id = p_cliente ORDER BY id;
+$$;
+SELECT * FROM pedidos_de(1) WHERE NOT pagado;
+SELECT u.email, p.* FROM usuario u CROSS JOIN LATERAL pedidos_de(u.id) p;
+
+-- Una función escalar: la "UDF" clásica
+CREATE OR REPLACE FUNCTION con_iva(monto numeric) RETURNS numeric
+LANGUAGE sql IMMUTABLE RETURNS NULL ON NULL INPUT AS $$ SELECT round(monto * 1.21, 2) $$;
+SELECT con_iva(100);   -- → 121.00</code></pre>
+<h3>Lo que cambia adentro del cuerpo</h3>
+<div class="tabla-scroll"><table>
+<tr><th>T-SQL</th><th>PL/pgSQL</th></tr>
+<tr><td><code>DECLARE @x int = 1;</code></td><td><code>DECLARE x int := 1;</code> (antes del <code>BEGIN</code>)</td></tr>
+<tr><td><code>SET @x = 5;</code> / <code>SELECT @x = col FROM …</code></td><td><code>x := 5;</code> / <code>SELECT col INTO x FROM …;</code></td></tr>
+<tr><td><code>IF … BEGIN … END ELSE …</code></td><td><code>IF … THEN … ELSIF … THEN … ELSE … END IF;</code></td></tr>
+<tr><td><code>WHILE … BEGIN … END</code></td><td><code>WHILE … LOOP … END LOOP;</code>, <code>FOR r IN SELECT … LOOP</code>, <code>FOR i IN 1..10 LOOP</code></td></tr>
+<tr><td><code>PRINT</code></td><td><code>RAISE NOTICE 'texto %', valor;</code></td></tr>
+<tr><td><code>THROW</code> / <code>RAISERROR</code></td><td><code>RAISE EXCEPTION '…' USING ERRCODE = '…', HINT = '…';</code></td></tr>
+<tr><td><code>BEGIN TRY … END TRY BEGIN CATCH … END CATCH</code></td><td><code>BEGIN … EXCEPTION WHEN unique_violation THEN … WHEN OTHERS THEN … END;</code></td></tr>
+<tr><td><code>ERROR_MESSAGE()</code></td><td><code>SQLERRM</code>, <code>SQLSTATE</code>, <code>GET STACKED DIAGNOSTICS</code></td></tr>
+<tr><td><code>@@ROWCOUNT</code></td><td><code>GET DIAGNOSTICS n = ROW_COUNT;</code> o <code>IF FOUND THEN</code></td></tr>
+<tr><td><code>sp_executesql @sql, N'@p int', @p = 1</code></td><td><code>EXECUTE format('SELECT … WHERE id = $1 AND tabla = %I', nombre) USING 1;</code></td></tr>
+<tr><td><code>#temporal</code> / <code>@variableTabla</code></td><td><code>CREATE TEMP TABLE t (…) ON COMMIT DROP;</code></td></tr>
+<tr><td>Parámetro TVP</td><td>Un array (<code>int[]</code>) o un <code>jsonb</code></td></tr>
+<tr><td><code>RETURN</code> (código entero)</td><td><code>RETURN valor;</code> en funciones; <code>RETURN;</code> en procedimientos</td></tr>
+<tr><td>Cursor</td><td>Existen, pero casi siempre un <code>FOR r IN SELECT … LOOP</code> alcanza</td></tr>
+</table></div>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>-- Un bloque anónimo (DO) es la forma de correr "un script con variables" sin crear nada.
+DO $$
+DECLARE
+    v_filas int;
+BEGIN
+    UPDATE stock SET cantidad = cantidad - 1 WHERE cantidad > 0;
+    GET DIAGNOSTICS v_filas = ROW_COUNT;
+    RAISE NOTICE 'Se descontaron % filas', v_filas;
+
+    BEGIN
+        INSERT INTO stock (sku, cantidad) VALUES ('A1', 1);   -- ya existe
+    EXCEPTION WHEN unique_violation THEN
+        RAISE NOTICE 'Ya estaba: %', SQLERRM;
+    END;
+
+    -- SQL dinámico seguro: %I escapa identificadores, %L literales, y los valores van con USING
+    EXECUTE format('SELECT count(*) FROM %I WHERE cantidad > $1', 'stock') INTO v_filas USING 0;
+    RAISE NOTICE 'Con stock: %', v_filas;
+END $$;</code></pre>
+<div class="ojo"><strong>Cada <code>BEGIN … EXCEPTION … END</code> crea un savepoint</strong> y tiene un costo; no envuelvas cada fila de un bucle en uno si podés evitarlo. Y no hay <code>SET NOCOUNT ON</code> porque no hace falta: Postgres no manda "(1 row affected)" como result set.</div>
+</section>
+
+<section id="transacciones">
+<h2><small>Capítulo 9</small>Transacciones, MVCC y bloqueos</h2>
+<p>Las dos bases usan <code>READ COMMITTED</code> por defecto, pero la implementación es distinta y eso cambia la vida diaria. SQL Server (sin <code>READ_COMMITTED_SNAPSHOT</code>) usa bloqueos: un <code>UPDATE</code> sin confirmar frena a los <code>SELECT</code> que pasan por esa fila, y de ahí la costumbre del <code>NOLOCK</code>. Postgres es <strong>MVCC puro</strong>: cada transacción ve una foto consistente y <strong>las lecturas nunca bloquean a las escrituras ni al revés</strong>. Las escrituras sobre la misma fila sí se esperan entre sí, como en todos lados.</p>
+<p>Consecuencias prácticas:</p>
+<ul>
+<li><code>NOLOCK</code> no tiene equivalente ni falta hace. <code>READ UNCOMMITTED</code> se acepta por compatibilidad y se comporta como <code>READ COMMITTED</code>.</li>
+<li><code>REPEATABLE READ</code> en Postgres es un snapshot de toda la transacción (lo que en SQL Server llamás <code>SNAPSHOT</code>). <code>SERIALIZABLE</code> es serializabilidad real (SSI), sin bloqueos de rango: en lugar de esperar, <strong>falla</strong> con <code>40001 serialization_failure</code> y el cliente tiene que reintentar.</li>
+<li>Los deadlocks existen igual (error <code>40P01</code>). Se detectan al segundo (<code>deadlock_timeout</code>) y se mata a una de las dos transacciones.</li>
+<li>No hay <em>lock escalation</em>: un <code>UPDATE</code> de un millón de filas toma un millón de locks de fila, sin pasar a bloquear la tabla.</li>
+</ul>
+<h3>La regla que más sorprende: un error aborta toda la transacción</h3>
+<p>En SQL Server, con <code>XACT_ABORT OFF</code> (el default), si un statement falla dentro de una transacción los demás siguen y podés hacer <code>COMMIT</code> de lo que anduvo. En Postgres <strong>no</strong>: después de cualquier error, la transacción queda en estado abortado y cualquier otra orden responde <em>current transaction is aborted, commands ignored until end of transaction block</em>. Solo se puede hacer <code>ROLLBACK</code>, o volver a un <code>SAVEPOINT</code> previo.</p>
+<pre class="sql pg" data-rotulo="PostgreSQL" data-error-esperado><code>BEGIN;
+INSERT INTO stock (sku, cantidad) VALUES ('D4', 1);
+SAVEPOINT antes_del_dudoso;
+INSERT INTO stock (sku, cantidad) VALUES ('D4', 1);      -- falla: duplicate key. La transacción queda abortada.
+ROLLBACK TO SAVEPOINT antes_del_dudoso;                  -- se recupera hasta acá; D4 sigue insertado
+INSERT INTO stock (sku, cantidad) VALUES ('E5', 1);      -- anda
+COMMIT;
+SELECT sku FROM stock WHERE sku IN ('D4', 'E5') ORDER BY 1;   -- → D4, E5</code></pre>
+<h3>Bloqueos explícitos: colas de trabajo y <code>sp_getapplock</code></h3>
+<div class="par">
+<pre class="sql tsql" data-rotulo="SQL Server"><code>-- Tomar el próximo trabajo sin pisarse con otros workers
+UPDATE TOP (1) Trabajo
+SET Estado = 'procesando'
+OUTPUT inserted.*
+WHERE Estado = 'pendiente'
+  AND Id = (SELECT TOP 1 Id FROM Trabajo
+            WITH (UPDLOCK, READPAST, ROWLOCK)
+            WHERE Estado = 'pendiente' ORDER BY Id);
+
+EXEC sp_getapplock @Resource = 'cierre-mensual',
+                   @LockMode = 'Exclusive';</code></pre>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>CREATE TABLE trabajo (id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY, estado text NOT NULL DEFAULT 'pendiente', carga jsonb);
+INSERT INTO trabajo (carga) SELECT jsonb_build_object('n', n) FROM generate_series(1, 3) n;
+
+UPDATE trabajo
+SET estado = 'procesando'
+WHERE id = (SELECT id FROM trabajo
+            WHERE estado = 'pendiente'
+            ORDER BY id
+            FOR UPDATE SKIP LOCKED     -- UPDLOCK + READPAST
+            LIMIT 1)
+RETURNING *;
+
+-- sp_getapplock: advisory locks. Se liberan al terminar la transacción (xact) o la sesión.
+SELECT pg_try_advisory_xact_lock(hashtext('cierre-mensual'));   -- → true si lo consiguió</code></pre>
+</div>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>-- Quién bloquea a quién (el Activity Monitor / sp_who2 / sys.dm_tran_locks de Postgres)
+SELECT pid, state, wait_event_type, now() - xact_start AS lleva, left(query, 60) AS query, pg_blocking_pids(pid) AS bloqueado_por
+FROM pg_stat_activity
+WHERE datname = current_database() AND pid &lt;> pg_backend_pid();
+
+-- Matar una sesión (KILL spid): cancelar la consulta actual, o cortar la conexión entera
+-- SELECT pg_cancel_backend(1234);
+-- SELECT pg_terminate_backend(1234);
+
+-- Protecciones que conviene tener puestas por rol o por conexión:
+SET lock_timeout = '3s';                        -- no esperar un lock más de 3 s (error 55P03)
+SET statement_timeout = '30s';                  -- ninguna consulta más de 30 s (error 57014)
+SET idle_in_transaction_session_timeout = '60s'; -- una transacción abierta y ociosa muere al minuto
+RESET lock_timeout; RESET statement_timeout; RESET idle_in_transaction_session_timeout;</code></pre>
+<div class="ojo"><strong><code>idle in transaction</code> es el enemigo público número uno.</strong> Una conexión que hizo <code>BEGIN</code> y se quedó esperando al código (un <code>await</code> a una API externa adentro de la transacción, un debugger pausado) mantiene su snapshot, frena a <code>VACUUM</code> (capítulo 11) y retiene locks. En SQL Server también era malo; en Postgres además infla las tablas. Ponele timeout.</div>
+<p>Desde .NET, las fallas de serialización y los deadlocks llegan como <code>PostgresException</code> con <code>SqlState</code> <code>"40001"</code> o <code>"40P01"</code>, y Npgsql las marca como transitorias (<code>IsTransient</code>). EF Core las reintenta solo si activás <code>EnableRetryOnFailure()</code> (capítulo 16).</p>
+</section>
+
+<section id="indices">
+<h2><small>Capítulo 10</small>Índices, planes y <code>EXPLAIN</code></h2>
+<p>Tres diferencias estructurales, y después las herramientas:</p>
+<ul>
+<li><strong>No hay índice clustered.</strong> Toda tabla es un heap; la clave primaria es un índice B-tree común que apunta a la fila por su posición física (<code>ctid</code>). Existe el comando <code>CLUSTER</code>, pero reordena la tabla una sola vez y no la mantiene. Esto también significa que <em>el orden físico no es el de la PK</em> y que un <code>SELECT</code> sin <code>ORDER BY</code> devuelve cualquier cosa, incluso cambiando entre ejecuciones.</li>
+<li><strong>Hay más tipos de índice:</strong> B-tree (el de siempre), GIN (para <code>jsonb</code>, arrays, full text y trigramas), GiST y SP-GiST (geometría, rangos, vecinos más cercanos), BRIN (tablas enormes ordenadas por fecha, con índices diminutos), hash.</li>
+<li><strong>Los índices sobre expresiones y los parciales son de primera clase:</strong> <code>ON (lower(email))</code>, <code>ON (fecha) WHERE estado = 'pendiente'</code>. Los índices filtrados de SQL Server existen, pero los de expresión requerían columnas calculadas persistidas.</li>
+</ul>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>-- Un índice compuesto con columnas incluidas (INCLUDE, desde la 11), como en SQL Server
+CREATE INDEX pedido_cliente_fecha ON pedido (cliente_id, creado_en DESC) INCLUDE (total);
+
+-- Parcial: solo los pendientes (una fracción chica de una tabla gigante)
+CREATE INDEX trabajo_pendientes ON trabajo (id) WHERE estado = 'pendiente';
+
+-- Sobre expresión. La función tiene que ser IMMUTABLE: date_trunc sobre un timestamptz NO lo es
+-- (depende de la zona horaria de la sesión), así que hay que fijar la zona dentro de la expresión.
+CREATE INDEX pedido_mes ON pedido (date_trunc('month', creado_en AT TIME ZONE 'America/Argentina/Buenos_Aires'));
+
+-- GIN para jsonb (contención @>) y para arrays
+CREATE INDEX pedido_detalle_gin ON pedido USING gin (detalle);
+CREATE INDEX pedido_etiquetas_gin ON pedido USING gin (etiquetas);
+
+-- En producción, siempre CONCURRENTLY: no bloquea las escrituras mientras se construye.
+-- (No se puede dentro de una transacción, así que las migraciones de EF Core necesitan un paso aparte.)
+-- CREATE INDEX CONCURRENTLY pedido_total ON pedido (total);
+
+-- Qué índices tengo, cuánto ocupan y si alguien los usa
+SELECT indexrelname, pg_size_pretty(pg_relation_size(indexrelid)) AS tamanio, idx_scan AS veces_usado
+FROM pg_stat_user_indexes WHERE schemaname = 'guia' ORDER BY 1;</code></pre>
+<h3>Leer un plan</h3>
+<p><code>EXPLAIN</code> muestra el plan estimado; <code>EXPLAIN (ANALYZE, BUFFERS)</code> lo <em>ejecuta</em> y muestra tiempos y filas reales al lado de las estimadas. Es el "Include Actual Execution Plan" de SSMS, en texto. Lo primero que se mira: dónde difieren mucho <code>rows=</code> estimado y <code>actual rows=</code> (estadísticas desactualizadas o correlaciones que el planificador no ve) y qué nodo se lleva el tiempo.</p>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
+SELECT u.email, count(*) FROM pedido p JOIN usuario u ON u.id = p.cliente_id WHERE p.creado_en > now() - interval '30 days' GROUP BY u.email;
+
+-- Actualizar estadísticas a mano (UPDATE STATISTICS). Normalmente lo hace autovacuum.
+ANALYZE pedido;</code></pre>
+<pre class="txt" data-rotulo="Salida real (4 pedidos, 1 usuario)"><code>GroupAggregate  (cost=9.26..9.28 rows=1 width=40) (actual time=0.020..0.021 rows=1 loops=1)
+  Group Key: u.email
+  Buffers: shared hit=9
+  ->  Sort  (cost=9.26..9.27 rows=1 width=32) (actual time=0.016..0.016 rows=4 loops=1)
+        Sort Key: u.email
+        Sort Method: quicksort  Memory: 25kB
+        ->  Nested Loop  (cost=0.15..9.25 rows=1 width=32) (actual time=0.008..0.012 rows=4 loops=1)
+              ->  Seq Scan on pedido p  (cost=0.00..1.07 rows=1 width=4) (actual time=0.003..0.005 rows=4 loops=1)
+                    Filter: (creado_en > (now() - '30 days'::interval))
+              ->  Index Scan using usuario_pkey on usuario u  (cost=0.15..8.17 rows=1 width=36) (actual time=0.001..0.001 rows=1 loops=4)
+                    Index Cond: (id = p.cliente_id)
+Planning Time: 0.188 ms
+Execution Time: 0.042 ms</code></pre>
+<p>Ya en este plan de juguete se ven las dos cosas que hay que mirar: el <code>Seq Scan</code> estimaba <code>rows=1</code> y trajo 4 (la tabla nunca pasó por <code>ANALYZE</code>), y el <code>Index Scan</code> sobre <code>usuario</code> corrió <code>loops=4</code>, una vez por fila del lado externo del Nested Loop. Con millones de filas, esa es la diferencia entre un plan bueno y uno malo.</p>
+<p>Cosas que hay que desaprender:</p>
+<ul>
+<li><strong>Un <code>Seq Scan</code> no es un bug.</strong> En tablas chicas, o cuando la consulta trae una parte grande de la tabla, es lo correcto. Con tablas de pocas páginas el planificador <em>nunca</em> va a usar tu índice, y está bien.</li>
+<li><strong>No hay hints</strong> (<code>OPTION (RECOMPILE)</code>, <code>FORCESEEK</code>…). Se trabaja con estadísticas (<code>ALTER TABLE … ALTER COLUMN … SET STATISTICS 1000</code>, <code>CREATE STATISTICS</code> para correlaciones entre columnas), reescribiendo la consulta o, en última instancia, con la extensión <code>pg_hint_plan</code>.</li>
+<li><strong>Los index-only scans dependen del visibility map</strong>, que mantiene <code>VACUUM</code>. Una tabla con muchas escrituras recientes puede tener un índice cubriente perfecto y aun así ir al heap ("Heap Fetches" alto en el plan).</li>
+<li><strong>Query Store</strong> se llama <code>pg_stat_statements</code>: hay que agregarlo a <code>shared_preload_libraries</code> y hacer <code>CREATE EXTENSION</code>, y después tenés tiempo total, llamadas, filas y buffers por consulta normalizada. Es lo primero que se mira en cualquier base lenta.</li>
+<li><code>count(*)</code> sobre una tabla grande <strong>es lento</strong> (hay que visitar las filas por MVCC). Para un número aproximado: <code>SELECT reltuples::bigint FROM pg_class WHERE relname = 'pedido'</code>.</li>
+</ul>
+</section>
+
+<section id="vacuum">
+<h2><small>Capítulo 11</small><code>VACUUM</code>: el concepto que no tenía equivalente</h2>
+<p>En MVCC, un <code>UPDATE</code> no modifica la fila: escribe una versión nueva y deja la vieja marcada como muerta, para que las transacciones que todavía la ven sigan viéndola. Un <code>DELETE</code> tampoco libera espacio: marca. Alguien tiene que pasar después a recolectar esas versiones muertas, y ese alguien es <code>VACUUM</code>. Lo corre solo el proceso <strong>autovacuum</strong>, por tabla, cuando el porcentaje de filas muertas supera un umbral (20 % por defecto, demasiado alto para tablas grandes).</p>
+<p>Qué hace: marca el espacio como reutilizable (no lo devuelve al sistema operativo; eso es <code>VACUUM FULL</code>, que bloquea la tabla y reescribe todo), actualiza el visibility map (capítulo 10), y protege contra el <em>wraparound</em> del contador de transacciones (un tema de 32 bits que, si se descuida durante meses, para la base; autovacuum lo evita solo mientras lo dejes correr). <code>VACUUM ANALYZE</code> además actualiza estadísticas.</p>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>-- Cuántas filas muertas hay y cuándo pasó autovacuum por última vez
+SELECT relname, n_live_tup, n_dead_tup, last_autovacuum, last_autoanalyze
+FROM pg_stat_user_tables WHERE schemaname = 'guia' ORDER BY n_dead_tup DESC;
+
+-- A mano (no bloquea lecturas ni escrituras normales)
+VACUUM (ANALYZE, VERBOSE) pedido;
+
+-- Una tabla con mucho churn merece su propia configuración, más agresiva que la global
+ALTER TABLE trabajo SET (autovacuum_vacuum_scale_factor = 0.02, autovacuum_vacuum_threshold = 1000);</code></pre>
+<p>Qué lo frena: transacciones largas (incluidas las <code>idle in transaction</code>), slots de replicación abandonados y prepared transactions huérfanas. Si una tabla crece sin parar aunque borres filas (<em>bloat</em>), lo primero es mirar <code>pg_stat_activity</code> por la transacción más vieja. En SQL Server el equivalente más cercano era el version store de tempdb con RCSI activado, pero nunca tuviste que pensar en esto. Acá sí: un día al menos, para entender por qué, y después dejar que autovacuum trabaje.</p>
+</section>
+
+<section id="json">
+<h2><small>Capítulo 12</small>JSON: <code>jsonb</code> contra <code>OPENJSON</code></h2>
+<p>SQL Server guarda JSON como texto y lo parsea en cada <code>JSON_VALUE</code>. Postgres tiene <code>jsonb</code>, un tipo binario ya parseado, con operadores propios, índices GIN y funciones para armar y desarmar. (<code>json</code> a secas también existe: guarda el texto tal cual. Casi siempre querés <code>jsonb</code>.)</p>
+<div class="par">
+<pre class="sql tsql" data-rotulo="SQL Server"><code>SELECT JSON_VALUE(Detalle, '$.cupon'),
+       JSON_QUERY(Detalle, '$.items'),
+       JSON_VALUE(Detalle, '$.items[0].sku')
+FROM Pedido
+WHERE ISJSON(Detalle) = 1;
+
+SELECT p.Id, i.sku, i.cant
+FROM Pedido p
+CROSS APPLY OPENJSON(p.Detalle, '$.items')
+  WITH (sku nvarchar(20), cant int) i;
+
+UPDATE Pedido
+SET Detalle = JSON_MODIFY(Detalle, '$.cupon', 'PROMO10');</code></pre>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>SELECT detalle->>'cupon',                 -- ->> devuelve text; -> devuelve jsonb
+       detalle->'items',
+       detalle->'items'->0->>'sku',
+       detalle #>> '{items,0,sku}'         -- lo mismo, con una ruta
+FROM pedido WHERE detalle IS NOT NULL;
+
+SELECT p.id, i.sku, i.cant
+FROM pedido p
+CROSS JOIN LATERAL jsonb_to_recordset(p.detalle->'items')
+  AS i(sku text, cant int);
+
+UPDATE pedido
+SET detalle = jsonb_set(detalle, '{cupon}', '"PROMO10"')
+WHERE id = 1;
+-- o simplemente concatenar: detalle || '{"cupon": "PROMO10"}'</code></pre>
+</div>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>-- Buscar por contenido: @> ("contiene") usa el índice GIN del capítulo 10
+SELECT id FROM pedido WHERE detalle @> '{"items": [{"sku": "A1"}]}';
+SELECT id FROM pedido WHERE detalle ? 'cupon';                       -- tiene la clave
+SELECT id FROM pedido WHERE detalle @? '$.items[*] ? (@.cant > 1)';  -- SQL/JSON path (desde la 12)
+
+-- Armar JSON desde filas (FOR JSON PATH)
+SELECT jsonb_pretty(jsonb_agg(jsonb_build_object('id', id, 'total', total) ORDER BY id)) FROM pedido WHERE cliente_id = 1;
+SELECT to_jsonb(s) FROM stock s ORDER BY sku LIMIT 1;    -- la fila entera como objeto
+-- → {"sku": "A1", "cantidad": 14, "actualizado": "2026-10-12T06:29:22.43+00:00"}</code></pre>
+<p>Desde .NET, Npgsql mapea <code>jsonb</code> a <code>string</code>, a <code>JsonDocument</code>/<code>JsonElement</code> o directo a tus clases con <code>System.Text.Json</code> (<code>NpgsqlDbType.Jsonb</code>, o <code>EnableDynamicJson()</code> en el <code>NpgsqlDataSourceBuilder</code> para POCOs). En EF Core, una propiedad <code>Detalle</code> de tipo clase con <code>.HasColumnType("jsonb")</code>, o los <em>owned entities</em> con <code>ToJson()</code> desde EF 7, se traducen a los operadores de arriba cuando filtrás con LINQ.</p>
+<div class="dato"><strong>Postgres 17</strong> agregó las funciones estándar <code>JSON_VALUE</code>, <code>JSON_QUERY</code>, <code>JSON_EXISTS</code> y <code>JSON_TABLE</code>, que se parecen mucho a las de SQL Server. Esta guía corre sobre 16, así que acá usamos los operadores clásicos, que siguen siendo lo que vas a ver en todo el código existente.</div>
+</section>
+
+<section id="paginacion">
+<h2><small>Capítulo 13</small>Paginación, texto libre y otras cosas útiles</h2>
+<h3>Paginación</h3>
+<p><code>OFFSET … FETCH</code> funciona igual (y <code>LIMIT … OFFSET</code> es lo mismo, más corto) y tiene el mismo problema: la página 500 lee y descarta 499 páginas. La alternativa es la <strong>paginación por cursor</strong> (keyset), y Postgres la hace cómoda porque compara tuplas: <code>(a, b) &lt; (x, y)</code> es una comparación lexicográfica real que usa el índice compuesto.</p>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>-- Página "siguiente" después del último elemento que vio el cliente (creado_en, id)
+SELECT id, creado_en, total
+FROM pedido
+WHERE (creado_en, id) &lt; (TIMESTAMPTZ '2030-01-01', 9223372036854775807)   -- los valores de la última fila de la página anterior
+ORDER BY creado_en DESC, id DESC
+LIMIT 20;
+-- El índice que lo hace instantáneo: (creado_en DESC, id DESC), o el de cliente_id + creado_en si filtrás por cliente.</code></pre>
+<h3>Búsqueda de texto</h3>
+<p>El <em>Full-Text Search</em> de SQL Server (<code>CONTAINS</code>, <code>FREETEXT</code>) requería un servicio y catálogos aparte. En Postgres viene adentro del motor, con diccionarios por idioma, y se indexa con GIN.</p>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>CREATE TABLE articulo (id int GENERATED ALWAYS AS IDENTITY, titulo text, cuerpo text,
+    busqueda tsvector GENERATED ALWAYS AS (to_tsvector('spanish', coalesce(titulo, '') || ' ' || coalesce(cuerpo, ''))) STORED);
+CREATE INDEX articulo_busqueda ON articulo USING gin (busqueda);
+INSERT INTO articulo (titulo, cuerpo) VALUES ('Migrar a Postgres', 'Las fechas con zona horaria son el primer problema'),
+                                             ('Índices parciales', 'Cómo indexar solo las filas pendientes');
+SELECT titulo, ts_rank(busqueda, q) AS rank
+FROM articulo, websearch_to_tsquery('spanish', 'zonas horarias') q   -- entiende "frase entre comillas", -excluir, OR
+WHERE busqueda @@ q ORDER BY rank DESC;
+-- → Migrar a Postgres  (el diccionario spanish lleva "zonas"→"zona" y "horarias"→"horari")
+
+-- Búsqueda "parecida" (typos, LIKE '%...%' indexado): extensión pg_trgm, incluida en la distribución
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX articulo_titulo_trgm ON articulo USING gin (titulo gin_trgm_ops);
+SELECT titulo, similarity(titulo, 'indice parcial') AS parecido FROM articulo WHERE titulo % 'indice parcial';
+SELECT titulo FROM articulo WHERE titulo ILIKE '%postgres%';   -- con el índice trgm, esto deja de ser un seq scan</code></pre>
+<h3>Otras que valen la pena</h3>
+<ul>
+<li><strong>DDL transaccional completo:</strong> <code>BEGIN; CREATE TABLE …; ALTER TABLE …; ROLLBACK;</code> deja todo como estaba. Las migraciones de EF Core corren cada una en una transacción: o entra todo o nada (salvo <code>CREATE INDEX CONCURRENTLY</code>).</li>
+<li><strong><code>DISTINCT ON</code></strong>: "la última fila de cada grupo" sin <code>ROW_NUMBER()</code>: <code>SELECT DISTINCT ON (cliente_id) * FROM pedido ORDER BY cliente_id, creado_en DESC</code>.</li>
+<li><strong>Columnas generadas</strong> (<code>GENERATED ALWAYS AS (…) STORED</code>): las computed columns persistidas.</li>
+<li><strong>Restricciones de exclusión</strong>: "dos reservas de la misma sala no pueden solaparse" como constraint, con rangos: <code>EXCLUDE USING gist (sala WITH =, durante WITH &amp;&amp;)</code>.</li>
+<li><strong><code>LISTEN</code>/<code>NOTIFY</code></strong>: notificaciones push desde la base a las conexiones que escuchan, algo que en SQL Server requería Service Broker o SqlDependency. Npgsql las expone con el evento <code>Notification</code>.</li>
+<li><strong>Particionado declarativo</strong> (<code>PARTITION BY RANGE (creado_en)</code>) sin esquemas de partición ni funciones aparte.</li>
+<li><strong><code>COPY</code></strong> para cargas masivas: el <code>BULK INSERT</code> / <code>bcp</code>. Desde .NET, <code>SqlBulkCopy</code> se reemplaza por <code>conn.BeginBinaryImport("COPY tabla (a, b) FROM STDIN (FORMAT BINARY)")</code>.</li>
+</ul>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>SELECT DISTINCT ON (cliente_id) cliente_id, id, creado_en FROM pedido ORDER BY cliente_id, creado_en DESC, id DESC;
+
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+CREATE TABLE reserva (sala int, durante tstzrange, EXCLUDE USING gist (sala WITH =, durante WITH &amp;&amp;));
+INSERT INTO reserva VALUES (1, '[2026-10-12 10:00-03, 2026-10-12 11:00-03)');
+-- INSERT INTO reserva VALUES (1, '[2026-10-12 10:30-03, 2026-10-12 12:00-03)');  -- falla: conflicting key value violates exclusion constraint
+INSERT INTO reserva VALUES (1, '[2026-10-12 11:00-03, 2026-10-12 12:00-03)');     -- anda: los rangos son semiabiertos</code></pre>
+</section>
+
+<section id="seguridad">
+<h2><small>Capítulo 14</small>Roles, permisos y conexiones</h2>
+<p>En Postgres no hay logins y usuarios separados: hay <strong>roles</strong>. Un rol con el atributo <code>LOGIN</code> puede conectarse; un rol sin él funciona como grupo, y los roles se pueden otorgar a otros roles. Los permisos se dan con <code>GRANT</code> por objeto, y hay un detalle que a todos se les pasa la primera vez: <strong>para ver una tabla hace falta también <code>USAGE</code> sobre su esquema</strong>, y los <code>GRANT</code> no se aplican a tablas futuras salvo que uses <code>ALTER DEFAULT PRIVILEGES</code>.</p>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>CREATE ROLE lectores;                                       -- grupo, sin login
+CREATE ROLE app_ventas LOGIN PASSWORD 'cambiame' IN ROLE lectores;   -- usuario de la aplicación
+GRANT USAGE ON SCHEMA guia TO lectores;
+GRANT SELECT ON ALL TABLES IN SCHEMA guia TO lectores;      -- las que existen hoy
+ALTER DEFAULT PRIVILEGES IN SCHEMA guia GRANT SELECT ON TABLES TO lectores;   -- las que se creen después
+GRANT INSERT, UPDATE, DELETE ON pedido, stock TO app_ventas;
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA guia TO app_ventas;   -- sin esto, los INSERT con identidad fallan
+
+-- Qué puede hacer quién
+SELECT grantee, table_name, string_agg(privilege_type, ', ' ORDER BY privilege_type)
+FROM information_schema.role_table_grants WHERE table_schema = 'guia' AND grantee IN ('lectores', 'app_ventas') GROUP BY 1, 2 ORDER BY 1, 2;
+
+-- Probar como otro rol sin reconectarse
+SET ROLE app_ventas;
+SELECT count(*) FROM pedido;                 -- anda
+-- INSERT INTO usuario (email) VALUES ('x');  -- falla: permission denied for table usuario
+RESET ROLE;</code></pre>
+<p>Dos cosas más que no están en SQL:</p>
+<ul>
+<li><strong><code>pg_hba.conf</code></strong> decide <em>quién puede conectarse desde dónde y cómo se autentica</em> (por rol, base, IP y método: <code>scram-sha-256</code>, certificado, <code>trust</code>…). Es el equivalente de la configuración de autenticación de la instancia más las reglas de firewall, en un archivo de texto. Un "no puedo conectarme" nuevo casi siempre es esto.</li>
+<li><strong>Row Level Security</strong> existe en los dos. En Postgres: <code>ALTER TABLE t ENABLE ROW LEVEL SECURITY</code> más <code>CREATE POLICY … USING (tenant_id = current_setting('app.tenant')::int)</code>. Para multi-tenant, es una forma seria de que una consulta sin <code>WHERE</code> no filtre datos ajenos.</li>
+</ul>
+<p>Sobre las conexiones: Postgres crea <strong>un proceso por conexión</strong>, y <code>max_connections</code> suele ser 100. SQL Server maneja miles de conexiones baratas; acá no. El pool de Npgsql (que viene activado) alcanza para una aplicación; con muchas réplicas o funciones serverless hace falta un pooler del lado del servidor como <strong>PgBouncer</strong>. Y las estadísticas de bloqueo del capítulo 9 valen el doble: una conexión bloqueada es un proceso ocupado.</p>
+</section>
+
+<section id="herramientas">
+<h2><small>Capítulo 15</small>Herramientas: psql, backups y el día a día sin SSMS</h2>
+<p>Hay interfaces gráficas (pgAdmin viene con el instalador; DBeaver es gratis y multi-motor; JetBrains DataGrip; la extensión de PostgreSQL para VS Code de Microsoft), pero el que vas a terminar usando es <strong><code>psql</code></strong>, el cliente de consola. Vale la pena aprender diez metacomandos:</p>
+<pre class="sh" data-rotulo="psql"><code>psql "host=localhost dbname=ventas user=nico"     # o psql postgresql://nico@localhost/ventas
+
+\l              bases                         \d pedido       describir tabla (columnas, índices, FKs)
+\dn             esquemas                      \d+ pedido      ídem con tamaño y comentarios
+\dt guia.*      tablas de un esquema          \df guia.*      funciones
+\di             índices                       \du             roles
+\x auto         salida vertical cuando la fila no entra (el "Results to text" legible)
+\timing         mostrar el tiempo de cada consulta
+\e              abrir la última consulta en el editor      \i archivo.sql    ejecutar un archivo
+\watch 2        repetir la última consulta cada 2 s (para mirar pg_stat_activity)
+\copy pedido TO 'pedidos.csv' CSV HEADER       exportar / importar desde el cliente
+\conninfo       dónde estoy conectado         \q              salir</code></pre>
+<h3>Backups: no hay <code>.bak</code></h3>
+<p>Hay dos familias. <strong>Lógicos</strong>: <code>pg_dump</code> genera el SQL (o un formato comprimido propio) para recrear la base; se restaura con <code>psql</code> o <code>pg_restore</code>, sirve entre versiones y entre sistemas operativos, y es lo que usás para copiar una base a desarrollo. <strong>Físicos</strong>: <code>pg_basebackup</code> más el archivado de WAL, para point-in-time recovery; eso lo configura quien administra el servidor (o el servicio administrado: RDS, Azure Database for PostgreSQL, Cloud SQL, Supabase, Neon…).</p>
+<pre class="sh" data-rotulo="shell"><code># Backup lógico en formato custom (comprimido, restaurable en paralelo y por partes)
+pg_dump -Fc -d ventas -f ventas.dump
+pg_dump -Fc -d ventas --schema-only -f solo-esquema.dump
+pg_dump -d ventas -t pedido --data-only > pedidos.sql           # SQL plano de una tabla
+
+# Restaurar (en una base vacía). -j 4: cuatro procesos. --no-owner: si el rol original no existe acá.
+createdb ventas_copia
+pg_restore -d ventas_copia -j 4 --no-owner ventas.dump
+
+# Todo el cluster, con roles incluidos
+pg_dumpall > todo.sql</code></pre>
+<h3>Un "Activity Monitor" en tres consultas</h3>
+<pre class="sql pg" data-rotulo="PostgreSQL"><code>-- Tamaño de la base y de las tablas más grandes (sp_spaceused)
+SELECT pg_size_pretty(pg_database_size(current_database())) AS base;
+SELECT relname, pg_size_pretty(pg_total_relation_size(relid)) AS total_con_indices
+FROM pg_stat_user_tables WHERE schemaname = 'guia' ORDER BY pg_total_relation_size(relid) DESC LIMIT 5;
+
+-- Caché: qué porcentaje de las lecturas se resolvió en memoria
+SELECT round(100.0 * sum(heap_blks_hit) / nullif(sum(heap_blks_hit + heap_blks_read), 0), 1) AS porcentaje_en_cache FROM pg_statio_user_tables;
+
+-- Parámetros importantes y de dónde salen (sp_configure)
+SELECT name, setting, unit, source FROM pg_settings WHERE name IN ('shared_buffers', 'work_mem', 'max_connections', 'statement_timeout', 'TimeZone') ORDER BY 1;</code></pre>
+</section>
+
+<section id="dotnet">
+<h2><small>Capítulo 16</small>Desde .NET: Npgsql, EF Core y Dapper</h2>
+<p>El driver es <strong>Npgsql</strong> (ADO.NET puro, sin dependencias) y el proveedor de EF Core es <strong>Npgsql.EntityFrameworkCore.PostgreSQL</strong>; las versiones mayores siguen a las de EF Core (8 con .NET 8, 9 con .NET 9). Dapper funciona sin cambios, porque habla ADO.NET. Lo que cambia respecto de <code>Microsoft.Data.SqlClient</code>:</p>
+<pre class="cs" data-rotulo="C#"><code>// Cadena de conexión: otras claves, misma idea
+"Host=localhost;Port=5432;Database=ventas;Username=app_ventas;Password=...;SSL Mode=Require;Maximum Pool Size=50;Timeout=15;Command Timeout=30"
+// También acepta "Server=" y "User Id=". Y una URI: postgresql://usuario:clave@host:5432/ventas
+
+// Npgsql 7+: NpgsqlDataSource es el objeto de larga vida (pool + configuración), registrado una vez
+builder.Services.AddNpgsqlDataSource(cs, b => b.EnableDynamicJson());   // paquete Npgsql.DependencyInjection
+
+// EF Core
+builder.Services.AddDbContext&lt;VentasContext>(o => o
+    .UseNpgsql(cs, npg => npg
+        .EnableRetryOnFailure()                         // reintenta 40001, 40P01 y errores de red
+        .MigrationsHistoryTable("__ef_migrations"))     // en minúsculas, por lo del capítulo 2
+    .UseSnakeCaseNamingConvention());
+
+// Parámetros: posicionales ($1) o con nombre (@id). Nunca el "?" de otros drivers.
+await using var cmd = dataSource.CreateCommand("SELECT total FROM pedido WHERE id = $1");
+cmd.Parameters.AddWithValue(42L);                 // long → bigint. El tipo del parámetro importa:
+                                                   // un int contra una columna bigint anda; un string contra un int no.
+
+// Carga masiva: el reemplazo de SqlBulkCopy
+await using var writer = await conn.BeginBinaryImportAsync("COPY pedido (cliente_id, total) FROM STDIN (FORMAT BINARY)");
+foreach (var p in pedidos) { await writer.StartRowAsync(); await writer.WriteAsync(p.ClienteId); await writer.WriteAsync(p.Total, NpgsqlDbType.Numeric); }
+await writer.CompleteAsync();
+
+// Errores con código SQLSTATE
+catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UniqueViolation) { /* 23505: ya existe */ }
+catch (PostgresException ex) when (ex.IsTransient) { /* 40001, 40P01: reintentar */ }</code></pre>
+<h3>Qué cambia en el modelo de EF Core</h3>
+<ul>
+<li><strong>Identidad:</strong> por defecto genera <code>GENERATED BY DEFAULT AS IDENTITY</code>. Nada que hacer. Si venís con <code>HasDefaultValueSql("NEWID()")</code>, pasa a <code>"gen_random_uuid()"</code>; <code>GETUTCDATE()</code> a <code>"now()"</code>.</li>
+<li><strong>Concurrencia optimista:</strong> <code>[Timestamp] byte[] RowVersion</code> no existe. Se usa la columna de sistema <code>xmin</code>: <code>modelBuilder.Entity&lt;Pedido>().Property&lt;uint>("xmin").IsRowVersion()</code> (sin columna real) o una propiedad <code>uint Version</code> con <code>IsRowVersion()</code>.</li>
+<li><strong>Fechas:</strong> <code>DateTime</code> → <code>timestamp with time zone</code> por defecto. Todo lo del capítulo 6 aplica. <code>DateOnly</code>/<code>TimeOnly</code> se mapean nativos.</li>
+<li><strong>Strings:</strong> <code>string</code> → <code>text</code>. <code>HasMaxLength(100)</code> → <code>varchar(100)</code>. No hay <code>IsUnicode(false)</code> que cambie nada.</li>
+<li><strong>Arrays y JSON:</strong> <code>List&lt;string></code> o <code>string[]</code> van a <code>text[]</code> solos, y <code>Contains</code> en LINQ se traduce a <code>= ANY(…)</code> o <code>@></code>. Las entidades propias con <code>ToJson()</code> van a <code>jsonb</code>.</li>
+<li><strong>Esquemas y extensiones:</strong> <code>modelBuilder.HasDefaultSchema("ventas")</code>, <code>modelBuilder.HasPostgresExtension("pg_trgm")</code> (lo crea la migración).</li>
+<li><strong>Migraciones:</strong> el SQL generado es distinto, así que <strong>las migraciones existentes de SQL Server no sirven</strong>: se borran y se genera una inicial contra Postgres. <code>CREATE INDEX CONCURRENTLY</code> no puede ir dentro de la transacción de la migración; para tablas grandes se hace aparte.</li>
+<li><strong>Consultas crudas:</strong> <code>FromSqlInterpolated($"… WHERE id = {id}")</code> sigue siendo seguro y parametriza. Los nombres de tabla y columna hay que escribirlos como quedaron (minúsculas con snake_case si seguiste el consejo; con comillas y PascalCase si no).</li>
+</ul>
+<pre class="cs" data-rotulo="C#"><code>public class Pedido
+{
+    public long Id { get; set; }
+    public Guid Numero { get; set; }
+    public int ClienteId { get; set; }
+    public decimal Total { get; set; }
+    public bool Pagado { get; set; }
+    public DateTime CreadoEn { get; set; }        // UTC → timestamptz
+    public DateOnly? Entrega { get; set; }        // → date
+    public List&lt;string> Etiquetas { get; set; } = new();   // → text[]
+    public DetallePedido? Detalle { get; set; }   // → jsonb
+    public uint Version { get; set; }             // → xmin
+}
+
+protected override void OnModelCreating(ModelBuilder mb)
+{
+    mb.Entity&lt;Pedido>(e =>
+    {
+        e.Property(p => p.Numero).HasDefaultValueSql("gen_random_uuid()");
+        e.Property(p => p.CreadoEn).HasDefaultValueSql("now()");
+        e.Property(p => p.Total).HasPrecision(14, 2);
+        e.Property(p => p.Version).IsRowVersion();
+        e.OwnsOne(p => p.Detalle, d => d.ToJson());
+        e.HasIndex(p => new { p.ClienteId, p.CreadoEn }).IsDescending(false, true).IncludeProperties(p => p.Total);
+        e.HasIndex(p => p.Pagado).HasFilter("NOT pagado");      // índice parcial
+    });
+}</code></pre>
+</section>
+
+<section id="chuleta">
+<h2><small>Capítulo 17</small>Chuleta: T-SQL → PostgreSQL</h2>
+<div class="tabla-scroll"><table class="chuleta">
+<tr><th>T-SQL</th><th>PostgreSQL</th><th>Cap.</th></tr>
+<tr><td>SELECT TOP 10 …</td><td>SELECT … LIMIT 10</td><td>5</td></tr>
+<tr><td>TOP 1 WITH TIES</td><td>FETCH FIRST 1 ROWS WITH TIES</td><td>5</td></tr>
+<tr><td>ISNULL(a, b)</td><td>coalesce(a, b)</td><td>5</td></tr>
+<tr><td>IIF(c, a, b)</td><td>CASE WHEN c THEN a ELSE b END</td><td>5</td></tr>
+<tr><td>GETDATE() / GETUTCDATE()</td><td>now() / now() AT TIME ZONE 'UTC'</td><td>5, 6</td></tr>
+<tr><td>DATEADD(day, 7, f)</td><td>f + interval '7 days'</td><td>5</td></tr>
+<tr><td>DATEDIFF(day, a, b)</td><td>b::date - a::date</td><td>5</td></tr>
+<tr><td>DATEPART(dw, f)</td><td>extract(isodow FROM f) (1 = lunes)</td><td>5</td></tr>
+<tr><td>EOMONTH(f)</td><td>(date_trunc('month', f) + interval '1 month - 1 day')::date</td><td>5</td></tr>
+<tr><td>FORMAT(f, 'dd/MM/yyyy')</td><td>to_char(f, 'DD/MM/YYYY')</td><td>5</td></tr>
+<tr><td>CONVERT(varchar, x) / CAST</td><td>x::text / CAST(x AS text)</td><td>5</td></tr>
+<tr><td>a + b (texto)</td><td>a || b, concat(a, b)</td><td>5</td></tr>
+<tr><td>LEN(s)</td><td>length(s) (cuenta espacios finales)</td><td>5</td></tr>
+<tr><td>CHARINDEX('x', s)</td><td>position('x' IN s), strpos(s, 'x')</td><td>5</td></tr>
+<tr><td>SUBSTRING(s, 1, 3)</td><td>substring(s, 1, 3), left(s, 3)</td><td>5</td></tr>
+<tr><td>STRING_AGG(s, ',') WITHIN GROUP (ORDER BY s)</td><td>string_agg(s, ',' ORDER BY s)</td><td>5</td></tr>
+<tr><td>STRING_SPLIT(s, ',')</td><td>string_to_table(s, ','), unnest(string_to_array(s, ','))</td><td>5</td></tr>
+<tr><td>NEWID()</td><td>gen_random_uuid()</td><td>4</td></tr>
+<tr><td>IDENTITY(1,1)</td><td>GENERATED ALWAYS AS IDENTITY</td><td>4</td></tr>
+<tr><td>SCOPE_IDENTITY(), OUTPUT inserted.*</td><td>RETURNING *</td><td>4</td></tr>
+<tr><td>DBCC CHECKIDENT (t, RESEED, 1)</td><td>ALTER TABLE t ALTER COLUMN id RESTART WITH 1</td><td>4</td></tr>
+<tr><td>bit 0/1</td><td>boolean false/true</td><td>3, 7</td></tr>
+<tr><td>uniqueidentifier</td><td>uuid</td><td>3</td></tr>
+<tr><td>nvarchar(max)</td><td>text</td><td>3</td></tr>
+<tr><td>datetime2 / datetimeoffset</td><td>timestamp / timestamptz</td><td>3, 6</td></tr>
+<tr><td>varbinary(max)</td><td>bytea</td><td>3</td></tr>
+<tr><td>rowversion</td><td>xmin (columna de sistema)</td><td>3, 16</td></tr>
+<tr><td>UPDATE t SET … FROM t JOIN u …</td><td>UPDATE t SET … FROM u WHERE t.x = u.x</td><td>5</td></tr>
+<tr><td>DELETE t FROM t JOIN u …</td><td>DELETE FROM t USING u WHERE …</td><td>5</td></tr>
+<tr><td>CROSS APPLY / OUTER APPLY</td><td>CROSS JOIN LATERAL / LEFT JOIN LATERAL … ON true</td><td>5</td></tr>
+<tr><td>MERGE (upsert)</td><td>INSERT … ON CONFLICT (k) DO UPDATE SET … (o MERGE desde 15)</td><td>5</td></tr>
+<tr><td>WHERE id IN (SELECT value FROM STRING_SPLIT(@ids, ','))</td><td>WHERE id = ANY(@ids) con int[]</td><td>5</td></tr>
+<tr><td>SELECT … INTO nueva FROM …</td><td>CREATE TABLE nueva AS SELECT …</td><td>5</td></tr>
+<tr><td>WITH (NOLOCK)</td><td>(nada: MVCC)</td><td>9</td></tr>
+<tr><td>WITH (UPDLOCK, READPAST)</td><td>FOR UPDATE SKIP LOCKED</td><td>9</td></tr>
+<tr><td>sp_getapplock</td><td>pg_advisory_xact_lock(hashtext('clave'))</td><td>9</td></tr>
+<tr><td>SET TRANSACTION ISOLATION LEVEL SNAPSHOT</td><td>… REPEATABLE READ</td><td>9</td></tr>
+<tr><td>sp_who2 / Activity Monitor</td><td>pg_stat_activity, pg_blocking_pids()</td><td>9</td></tr>
+<tr><td>KILL spid</td><td>pg_cancel_backend(pid) / pg_terminate_backend(pid)</td><td>9</td></tr>
+<tr><td>CREATE PROCEDURE … AS BEGIN … END</td><td>CREATE PROCEDURE … LANGUAGE plpgsql AS $$ BEGIN … END $$</td><td>8</td></tr>
+<tr><td>EXEC sp</td><td>CALL sp(…) / SELECT * FROM funcion(…)</td><td>8</td></tr>
+<tr><td>PRINT / THROW</td><td>RAISE NOTICE / RAISE EXCEPTION</td><td>8</td></tr>
+<tr><td>#temp</td><td>CREATE TEMP TABLE … ON COMMIT DROP</td><td>8</td></tr>
+<tr><td>sp_executesql</td><td>EXECUTE format(…) USING …</td><td>8</td></tr>
+<tr><td>CREATE INDEX … INCLUDE (…) WHERE …</td><td>igual (INCLUDE desde 11), más CONCURRENTLY</td><td>10</td></tr>
+<tr><td>Índice clustered</td><td>(no hay)</td><td>10</td></tr>
+<tr><td>SET STATISTICS IO/TIME ON, plan real</td><td>EXPLAIN (ANALYZE, BUFFERS)</td><td>10</td></tr>
+<tr><td>UPDATE STATISTICS</td><td>ANALYZE</td><td>10</td></tr>
+<tr><td>Query Store</td><td>pg_stat_statements</td><td>10</td></tr>
+<tr><td>(nada)</td><td>VACUUM / autovacuum</td><td>11</td></tr>
+<tr><td>JSON_VALUE(j, '$.a.b')</td><td>j->'a'->>'b', j #>> '{a,b}'</td><td>12</td></tr>
+<tr><td>JSON_QUERY(j, '$.a')</td><td>j->'a'</td><td>12</td></tr>
+<tr><td>OPENJSON(j) WITH (…)</td><td>jsonb_to_recordset(j) AS t(…)</td><td>12</td></tr>
+<tr><td>JSON_MODIFY(j, '$.a', v)</td><td>jsonb_set(j, '{a}', v), j || '{"a": v}'</td><td>12</td></tr>
+<tr><td>FOR JSON PATH</td><td>jsonb_agg(jsonb_build_object(…)), to_jsonb(fila)</td><td>12</td></tr>
+<tr><td>CONTAINS(col, 'palabra')</td><td>to_tsvector('spanish', col) @@ websearch_to_tsquery('spanish', 'palabra')</td><td>13</td></tr>
+<tr><td>OFFSET n ROWS FETCH NEXT m ROWS ONLY</td><td>igual, o LIMIT m OFFSET n; mejor keyset con (a, b) &lt; (x, y)</td><td>13</td></tr>
+<tr><td>BULK INSERT / SqlBulkCopy</td><td>COPY / BeginBinaryImport</td><td>13, 16</td></tr>
+<tr><td>CREATE LOGIN + CREATE USER</td><td>CREATE ROLE … LOGIN</td><td>14</td></tr>
+<tr><td>BACKUP DATABASE … TO DISK</td><td>pg_dump -Fc / pg_basebackup</td><td>15</td></tr>
+<tr><td>sp_help t</td><td>\d t (en psql)</td><td>15</td></tr>
+<tr><td>sp_spaceused</td><td>pg_total_relation_size(), pg_database_size()</td><td>15</td></tr>
+<tr><td>sp_configure</td><td>SHOW / pg_settings / ALTER SYSTEM SET</td><td>15</td></tr>
+<tr><td>SQL Agent job</td><td>cron, pg_cron, Hangfire</td><td>1</td></tr>
+<tr><td>Linked server</td><td>postgres_fdw</td><td>1</td></tr>
+<tr><td>USE base</td><td>(reconectarse) / \c base en psql</td><td>1</td></tr>
+<tr><td>GO</td><td>;</td><td>1</td></tr>
+</table></div>
+</section>
+
+<section id="sorpresas">
+<h2><small>Cierre</small>Las diez cosas que te van a sorprender, en orden de aparición</h2>
+<ol>
+<li>Los nombres sin comillas van a minúsculas, y EF Core pone comillas: elegí <code>snake_case</code> el primer día (cap. 2).</li>
+<li><code>'Nico' = 'nico'</code> es falso. Mayúsculas y minúsculas importan en todos lados (cap. 2).</li>
+<li>No podés cruzar bases en una consulta. Una base, varios esquemas (cap. 1).</li>
+<li><code>DateTime.Now</code> en una columna <code>timestamptz</code> explota. Todo en UTC adentro (cap. 6).</li>
+<li>Un error cualquiera aborta la transacción entera hasta el <code>ROLLBACK</code> (cap. 9).</li>
+<li>Los <code>NULL</code> se ordenan al final, y en un <code>UNIQUE</code> caben varios (cap. 7).</li>
+<li>No hay <code>NOLOCK</code> porque no hace falta, y no hay índice clustered porque todo es heap (caps. 9 y 10).</li>
+<li><code>now()</code> es la hora del <code>BEGIN</code>, no la de ahora (cap. 5).</li>
+<li>Las fechas pierden los nanosegundos: los tests de round-trip con <code>Assert.Equal</code> fallan (cap. 3).</li>
+<li>Existe <code>VACUUM</code>, y una transacción abierta y ociosa lo frena para toda la base (cap. 11).</li>
+</ol>
+<p>Y, para compensar, las cinco que vas a extrañar cuando vuelvas a SQL Server: <code>RETURNING</code>, los arrays como parámetros, <code>jsonb</code> con índices, <code>DISTINCT ON</code> y el DDL transaccional.</p>
+</section>
+
+<section id="fuentes">
+<h2><small>Apéndice</small>Fuentes y cómo se verificó</h2>
+<p>Todo lo que dice esta guía sobre PostgreSQL se puede comprobar en la <a href="https://www.postgresql.org/docs/16/">documentación oficial de PostgreSQL 16</a>, en particular: <a href="https://www.postgresql.org/docs/16/datatype.html">tipos de datos</a>, <a href="https://www.postgresql.org/docs/16/datatype-datetime.html">fecha y hora</a>, <a href="https://www.postgresql.org/docs/16/mvcc.html">control de concurrencia (MVCC)</a>, <a href="https://www.postgresql.org/docs/16/indexes.html">índices</a>, <a href="https://www.postgresql.org/docs/16/routine-vacuuming.html">VACUUM</a>, <a href="https://www.postgresql.org/docs/16/functions-json.html">funciones JSON</a>, <a href="https://www.postgresql.org/docs/16/plpgsql.html">PL/pgSQL</a> y <a href="https://www.postgresql.org/docs/16/sql-insert.html">INSERT … ON CONFLICT</a>. Lo de Npgsql sale de su <a href="https://www.npgsql.org/doc/types/datetime.html">página sobre fecha y hora</a> y de la <a href="https://www.npgsql.org/efcore/">documentación del proveedor de EF Core</a>; lo de SQL Server, de la <a href="https://learn.microsoft.com/sql/t-sql/language-reference">referencia de T-SQL</a>.</p>
+<p>Los bloques "PostgreSQL" de esta página se extraen con un script y se ejecutan, en orden y con <code>ON_ERROR_STOP</code>, contra un PostgreSQL 16.15 recién creado, cada vez que se publica la guía. Las líneas que empiezan con <code>-- →</code> son la salida que se obtuvo. Los bloques de SQL Server no se ejecutaron en ningún lado: están para que reconozcas lo tuyo, y pueden tener erratas; si encontrás una, abrí un issue.</p>
+<p class="pie">Escrito por el Programador nocturno para <a href="https://github.com/fnguerrero/working-folder-auto">working-folder-auto</a>. Se puede copiar, imprimir y pasar.</p>
+</section>
+</main>
+</div>
+<button type="button" class="arriba" id="arriba" aria-label="Volver arriba">↑</button>
+
+<script>
+"use strict";
+(() => {
+  // Índice a partir de los h2 de cada sección.
+  const secciones = [...document.querySelectorAll("main section[id]")];
+  const items = secciones.map((s, i) => {
+    const h = s.querySelector("h2");
+    const titulo = [...h.childNodes].filter((n) => n.nodeName !== "SMALL").map((n) => n.textContent).join("").trim();
+    const num = h.querySelector("small") ? h.querySelector("small").textContent.replace(/\D/g, "") : "";
+    return { id: s.id, titulo, num };
+  });
+  for (const ol of document.querySelectorAll("#toc-lateral, #toc-movil")) {
+    for (const it of items) {
+      const li = document.createElement("li");
+      const a = document.createElement("a");
+      a.href = "#" + it.id;
+      a.innerHTML = `<span class="num">${it.num}</span>${it.titulo}`;
+      a.dataset.id = it.id;
+      li.appendChild(a);
+      ol.appendChild(li);
+    }
+  }
+  const movil = document.querySelector("details.toc-movil");
+  // En el celular: cerrar el desplegable primero y recién después desplazarse, para que el cierre no corte el scroll.
+  movil.addEventListener("click", (ev) => {
+    const a = ev.target.closest("a");
+    if (!a) return;
+    ev.preventDefault();
+    movil.open = false;
+    const destino = document.getElementById(a.dataset.id);
+    if (destino) { destino.scrollIntoView({ behavior: "smooth", block: "start" }); history.replaceState(null, "", "#" + a.dataset.id); }
+  });
+
+  // Sección activa en el índice lateral.
+  const enlaces = new Map([...document.querySelectorAll("#toc-lateral a")].map((a) => [a.dataset.id, a]));
+  if ("IntersectionObserver" in window) {
+    let visible = new Set();
+    const obs = new IntersectionObserver((entradas) => {
+      for (const e of entradas) e.isIntersecting ? visible.add(e.target.id) : visible.delete(e.target.id);
+      const primera = secciones.find((s) => visible.has(s.id));
+      if (!primera) return;
+      enlaces.forEach((a, id) => a.classList.toggle("activo", id === primera.id));
+      const activo = enlaces.get(primera.id);
+      if (activo && activo.scrollIntoViewIfNeeded) activo.scrollIntoViewIfNeeded(false);
+    }, { rootMargin: "-10% 0px -70% 0px" });
+    secciones.forEach((s) => obs.observe(s));
+  }
+
+  // Botón "copiar" en cada bloque de código.
+  for (const pre of document.querySelectorAll("pre")) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "copiar"; b.textContent = "Copiar";
+    b.addEventListener("click", async () => {
+      const texto = pre.querySelector("code").innerText;
+      try { await navigator.clipboard.writeText(texto); b.textContent = "Copiado"; }
+      catch (e) { b.textContent = "No se pudo"; }
+      setTimeout(() => (b.textContent = "Copiar"), 1400);
+    });
+    pre.appendChild(b);
+  }
+
+  // Volver arriba.
+  const arriba = document.getElementById("arriba");
+  addEventListener("scroll", () => arriba.classList.toggle("visible", scrollY > 900), { passive: true });
+  arriba.addEventListener("click", () => scrollTo({ top: 0, behavior: "smooth" }));
+})();
+</script>
+</body>
+</html>
