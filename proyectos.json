@@ -79,5 +79,14 @@
     "estado": "terminado",
     "probar": "apps/lo-que-te-corresponde/",
     "desde": "2026-10-13"
+  },
+  {
+    "slug": "guid-vs-identity",
+    "nombre": "GUID o identity: qué le pasa al índice",
+    "categoria": "experimentos",
+    "descripcion": "Un B+tree en el navegador al que se le insertan claves int identity, GUID aleatorios, GUID v7 y secuenciales, para medir divisiones, llenado, fragmentación y páginas calientes. Con qué hacer y fuentes.",
+    "estado": "terminado",
+    "probar": "experimentos/guid-vs-identity/",
+    "desde": "2026-10-13"
   }
 ]

@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12131a">
+<meta name="description" content="Simulador de B+tree que inserta claves int identity, GUID aleatorios, GUID v7 y GUID secuenciales, y mide divisiones de página, llenado, fragmentación y páginas calientes.">
+<title>GUID o identity</title>
+<style>
+:root{
+  --fondo:#f5f5f8; --tarjeta:#ffffff; --hundido:#ebecf2; --texto:#17181f; --suave:#5d5f6e;
+  --tenue:#8e90a0; --linea:#dcdde5; --acento:#5b4fd6; --acento-tenue:#e8e6fa;
+  --ok:#1f8a5b; --ok-tenue:#e1f3ea; --aviso:#a86b0a; --aviso-tenue:#fbf0d9;
+  --mal:#c23b2b; --mal-tenue:#fbe4e1; --sombra:0 1px 2px rgba(20,22,40,.06);
+  --s-identity:#3b63d8; --s-aleatorio:#c23b2b; --s-v7:#d9890b; --s-secuencial:#1f8a5b;
+  --r:12px; --tap:44px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --fondo:#12131a; --tarjeta:#1b1c25; --hundido:#242631; --texto:#eceef5; --suave:#aeb1c2;
+    --tenue:#7d8093; --linea:#2f3140; --acento:#9d93ff; --acento-tenue:#2a2749;
+    --ok:#4fcf8f; --ok-tenue:#1b3328; --aviso:#f0b64a; --aviso-tenue:#3a2e14;
+    --mal:#ff7a69; --mal-tenue:#3d1f1b; --sombra:none;
+    --s-identity:#7f9cff; --s-aleatorio:#ff7a69; --s-v7:#f0b64a; --s-secuencial:#4fcf8f;
+  }
+}
+:root[data-theme="dark"]{
+  --fondo:#12131a; --tarjeta:#1b1c25; --hundido:#242631; --texto:#eceef5; --suave:#aeb1c2;
+  --tenue:#7d8093; --linea:#2f3140; --acento:#9d93ff; --acento-tenue:#2a2749;
+  --ok:#4fcf8f; --ok-tenue:#1b3328; --aviso:#f0b64a; --aviso-tenue:#3a2e14;
+  --mal:#ff7a69; --mal-tenue:#3d1f1b; --sombra:none;
+  --s-identity:#7f9cff; --s-aleatorio:#ff7a69; --s-v7:#f0b64a; --s-secuencial:#4fcf8f;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--fondo);color:var(--texto);
+  font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  padding:0 16px calc(24px + env(safe-area-inset-bottom));
+  padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+.app{max-width:860px;margin:0 auto}
+header.top{padding:calc(18px + env(safe-area-inset-top)) 0 0}
+header.top h1{margin:0;font-size:1.45rem;letter-spacing:-.01em}
+header.top p{margin:4px 0 0;color:var(--suave);font-size:.95rem;max-width:62ch}
+.card{background:var(--tarjeta);border:1px solid var(--linea);border-radius:var(--r);padding:16px;margin:14px 0 0;box-shadow:var(--sombra)}
+.card h2{margin:0 0 10px;font-size:1.05rem}
+.card h3{margin:16px 0 6px;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--tenue)}
+p{margin:8px 0}
+.nota{color:var(--suave);font-size:.88rem}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+form .grilla{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+@media (min-width:720px){form .grilla{grid-template-columns:repeat(5,1fr)}}
+form .campo{margin:0 0 12px}
+form label{display:block;font-size:.85rem;font-weight:600;color:var(--suave);margin:0 0 4px}
+form input,form select{width:100%;min-height:var(--tap);border:1px solid var(--linea);border-radius:10px;
+  background:var(--fondo);color:var(--texto);font:1rem/1.3 inherit;padding:8px 12px}
+form input:focus-visible,form select:focus-visible,button:focus-visible{outline:2px solid var(--acento);outline-offset:1px}
+form .ayuda{color:var(--tenue);font-size:.78rem;margin:4px 0 0}
+button{min-height:var(--tap);border-radius:10px;border:1px solid var(--linea);background:var(--tarjeta);
+  color:var(--texto);font:600 .95rem/1 inherit;padding:0 16px;cursor:pointer;touch-action:manipulation}
+button.primario{background:var(--acento);border-color:var(--acento);color:#fff}
+button:disabled{opacity:.5;cursor:default}
+.acciones{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.progreso{flex:1 1 160px;height:10px;border-radius:999px;background:var(--hundido);overflow:hidden}
+.progreso i{display:block;height:100%;background:var(--acento);width:0;transition:width .15s}
+.estado{color:var(--tenue);font-size:.85rem;min-width:8ch}
+
+.tarjetas{display:grid;grid-template-columns:1fr;gap:10px;margin-top:4px}
+@media (min-width:600px){.tarjetas{grid-template-columns:1fr 1fr}}
+.esc{border:1px solid var(--linea);border-left:5px solid var(--c);border-radius:10px;padding:12px 14px}
+.esc h3{margin:0 0 2px;font-size:.95rem;text-transform:none;letter-spacing:0;color:var(--texto)}
+.esc .sub{color:var(--tenue);font-size:.8rem;margin:0 0 8px}
+.esc dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:0;font-size:.9rem}
+.esc dt{color:var(--suave)}
+.esc dd{margin:0;text-align:right;font-weight:600}
+.esc dd.mal{color:var(--mal)} .esc dd.ok{color:var(--ok)} .esc dd.aviso{color:var(--aviso)}
+
+svg.grafico{width:100%;height:auto;display:block;margin-top:8px}
+svg.grafico text{font:11px system-ui,sans-serif;fill:var(--suave)}
+svg.grafico .eje{stroke:var(--linea);stroke-width:1}
+svg.grafico .grilla{stroke:var(--linea);stroke-width:1;stroke-dasharray:2 4}
+svg.grafico .linea{fill:none;stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round}
+svg.grafico .barra text{fill:var(--texto);font-weight:600}
+.leyenda{display:flex;flex-wrap:wrap;gap:6px 16px;margin:8px 0 0;font-size:.85rem;color:var(--suave)}
+.leyenda span{display:inline-flex;align-items:center;gap:6px}
+.leyenda i{display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--c)}
+.veredicto{border-radius:10px;padding:10px 12px;margin:10px 0 0;font-size:.95rem}
+.veredicto.info{background:var(--acento-tenue);color:var(--acento)}
+.veredicto.aviso{background:var(--aviso-tenue);color:var(--aviso)}
+.diag p{margin:6px 0}
+.texto h2{font-size:1.05rem;margin:18px 0 6px}
+.texto h2:first-child{margin-top:0}
+.texto ul,.texto ol{padding-left:20px;margin:6px 0}
+.texto li{margin:4px 0}
+.texto a{color:var(--acento)}
+.texto code{font:.88em ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--hundido);padding:1px 5px;border-radius:5px}
+.texto pre{background:var(--hundido);padding:10px 12px;border-radius:10px;overflow-x:auto;font:.84rem/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;margin:8px 0}
+table.tabla{width:100%;border-collapse:collapse;font-size:.9rem;margin:8px 0}
+table.tabla th,table.tabla td{text-align:left;padding:6px 8px 6px 0;border-bottom:1px solid var(--linea);vertical-align:top}
+table.tabla th{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--tenue)}
+.oculto{display:none !important}
+footer{margin:20px 0 0;color:var(--tenue);font-size:.82rem}
+footer a{color:var(--acento)}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top">
+  <h1>GUID o identity: qué le pasa al índice</h1>
+  <p>Un B+tree de verdad, en el navegador, al que se le insertan claves <code>int identity</code>, GUID aleatorios, GUID v7 de .NET y GUID secuenciales, para ver con números qué pasa con las páginas: cuántas se dividen, cuán llenas quedan, cuán desordenadas y cuántas hay que tener en memoria.</p>
+</header>
+
+<div class="card">
+  <h2>Escenario</h2>
+  <form id="form" novalidate>
+    <div class="grilla">
+      <div class="campo">
+        <label for="n">Filas a insertar</label>
+        <select id="n">
+          <option value="20000">20.000</option>
+          <option value="50000">50.000</option>
+          <option value="100000" selected>100.000</option>
+          <option value="250000">250.000</option>
+          <option value="500000">500.000</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label for="carga">Resto de la fila (bytes)</label>
+        <input id="carga" type="number" inputmode="numeric" min="0" max="4000" step="10" value="100">
+        <p class="ayuda">Lo que mide la fila sin la clave. Define cuántas entran por página de 8 KB.</p>
+      </div>
+      <div class="campo">
+        <label for="motor">Motor</label>
+        <select id="motor">
+          <option value="fin" selected>SQL Server</option>
+          <option value="derecha">PostgreSQL</option>
+          <option value="mitad">De libro (50/50)</option>
+        </select>
+        <p class="ayuda">Qué hace con la última página cuando se llena.</p>
+      </div>
+      <div class="campo">
+        <label for="por-ms">Inserciones por milisegundo</label>
+        <input id="por-ms" type="number" inputmode="numeric" min="1" max="1000" step="1" value="5">
+        <p class="ayuda">Solo afecta al GUID v7: dentro del mismo ms sus bits son aleatorios.</p>
+      </div>
+      <div class="campo">
+        <label for="semilla">Semilla</label>
+        <input id="semilla" type="number" inputmode="numeric" min="1" max="999999" step="1" value="1">
+        <p class="ayuda">Misma semilla, mismos GUID.</p>
+      </div>
+    </div>
+    <div class="acciones">
+      <button type="submit" class="primario" id="correr">Correr</button>
+      <div class="progreso" aria-hidden="true"><i id="barra"></i></div>
+      <span class="estado" id="estado"></span>
+    </div>
+  </form>
+</div>
+
+<div class="card oculto" id="resultados">
+  <h2>Resultado</h2>
+  <div class="tarjetas" id="tarjetas"></div>
+  <div class="diag" id="diag"></div>
+
+  <h3>Llenado de las hojas a medida que se inserta</h3>
+  <svg class="grafico" id="g-llenado" role="img" aria-label="Llenado de las páginas hoja según la cantidad de filas insertadas, una línea por tipo de clave"></svg>
+  <div class="leyenda" id="leyenda"></div>
+
+  <h3>Comparación final</h3>
+  <svg class="grafico" id="g-barras" role="img" aria-label="Barras comparando tamaño, llenado, fragmentación y páginas calientes por tipo de clave"></svg>
+</div>
+
+<div class="card texto">
+  <h2>Qué se mide</h2>
+  <ul>
+    <li><strong>Páginas hoja y tamaño.</strong> Cuántas páginas de 8 KB ocupa el nivel que tiene las filas (en SQL Server, con índice agrupado, eso es la tabla). Más páginas es más disco, más lecturas y más memoria para lo mismo.</li>
+    <li><strong>Llenado.</strong> Promedio de qué tan llena quedó cada hoja. Con claves secuenciales las páginas se llenan completas; con claves al azar el B-tree se estabiliza en ln 2 ≈ 69 %, que es un resultado clásico (Yao, 1978).</li>
+    <li><strong>Divisiones de página.</strong> Cada vez que una hoja se llena hay que partirla, mover filas y escribir dos páginas (y a veces el padre). Son las escrituras más caras del índice y las que llenan el log de transacciones.</li>
+    <li><strong>Fragmentación.</strong> Porcentaje de hojas cuya siguiente en orden lógico no está físicamente a continuación. Es la <code>avg_fragmentation_in_percent</code> de <code>sys.dm_db_index_physical_stats</code>, aproximada. Castiga los barridos de rango en disco, no tanto las búsquedas puntuales.</li>
+    <li><strong>Páginas calientes.</strong> Cuántas hojas distintas se escribieron en las últimas 1.000 inserciones. Con claves secuenciales son un puñado y viven en caché; con claves al azar son casi todas, así que cada inserción es, potencialmente, una lectura de disco y una página sucia más.</li>
+  </ul>
+
+  <h2>Qué suele salir</h2>
+  <ul>
+    <li><strong>GUID aleatorio</strong> (<code>NEWID()</code>, <code>Guid.NewGuid()</code>): llenado ≈ 69 %, fragmentación ≈ 100 %, prácticamente todas las páginas calientes. Ocupa más por la clave de 16 bytes <em>y</em> por el 31 % de aire en cada página. En SQL Server, además, la clave agrupada viaja dentro de cada índice no agrupado, así que los 16 bytes se pagan una vez por índice.</li>
+    <li><strong>int identity</strong>: llenado ≈ 100 %, sin fragmentación, 15 páginas calientes. Es el mejor caso, y su costo escondido es otro: todas las inserciones pelean por la misma última página (<code>PAGELATCH_EX</code>), algo que SQL Server 2019 mitiga con <code>OPTIMIZE_FOR_SEQUENTIAL_KEY</code>.</li>
+    <li><strong>GUID secuencial estricto</strong> (<code>NEWSEQUENTIALID()</code>, el <code>SequentialGuidValueGenerator</code> de EF Core): igual que identity, con páginas más grandes por la clave de 16 bytes.</li>
+    <li><strong>GUID v7</strong> (<code>Guid.CreateVersion7()</code>, .NET 9): es el más interesante. Lleva el tiempo en milisegundos adelante, así que las inserciones van siempre al final del índice: las páginas calientes son pocas, como con identity, y eso ya es la mayor parte del beneficio. Pero dentro del mismo milisegundo sus bits son aleatorios, así que con varias inserciones por milisegundo las claves de ese ms caen desordenadas sobre la última página. En el modelo de SQL Server eso rompe la optimización de "página nueva con la fila nueva" y provoca divisiones a la mitad: el llenado baja a 55-70 % y aparece fragmentación. En PostgreSQL, que deja la página izquierda al 90 % en cualquier división del extremo derecho, el efecto es mucho menor. Probá con 1, 5 y 50 inserciones por milisegundo.</li>
+  </ul>
+
+  <h2>Qué hacer con esto</h2>
+  <ul>
+    <li>Si la clave la pone la base, <code>int</code> o <code>bigint identity</code> siguen siendo la opción más barata para el índice agrupado. Se puede tener además un GUID como clave alternativa (índice único no agrupado) para exponerlo afuera.</li>
+    <li>Si la clave la genera la aplicación (para armar grafos de objetos antes de guardar, para sistemas distribuidos), usá un GUID con orden temporal: <code>Guid.CreateVersion7()</code> en .NET 9, o el generador secuencial de EF Core para SQL Server. Nunca <code>Guid.NewGuid()</code> como clave agrupada en tablas que crecen.</li>
+    <li>Cuidado con el orden de SQL Server: compara los GUID por grupos de bytes de derecha a izquierda (los últimos 6 bytes primero). Un v7 "de RFC" no es secuencial para SQL Server si se guarda como <code>uniqueidentifier</code>; EF Core lo sabe y por eso su generador acomoda los bytes. En PostgreSQL y en el orden de .NET, el v7 sí es secuencial tal cual.</li>
+    <li>En PostgreSQL la tabla es un heap y el orden físico no lo decide la clave: lo que sufre es el índice de la primaria, con los mismos efectos de esta simulación. PostgreSQL 18 trae <code>uuidv7()</code> nativo; antes, <code>gen_random_uuid()</code> es v4.</li>
+    <li>Si ya tenés una tabla con GUID aleatorios, un <code>fillfactor</code> menor y un rebuild periódico reducen las divisiones, a costa de más páginas. No lo arregla: lo administra.</li>
+  </ul>
+
+  <h2>Cómo está hecho el modelo (y qué no es)</h2>
+  <ul>
+    <li>Páginas de 8.192 bytes con 96 de cabecera y 10 de sobrecarga por fila. La capacidad de una hoja sale de ahí: con 100 bytes de carga entran 71 filas con clave <code>int</code> y 64 con GUID.</li>
+    <li>Las hojas se encadenan en orden lógico y cada página nueva recibe el siguiente número físico, como una asignación secuencial en el archivo. Las páginas internas se numeran en la misma secuencia, por eso hasta el caso perfecto muestra una fragmentación residual chica.</li>
+    <li>Divisiones: siempre 50/50, salvo cuando se llena la última hoja y la fila nueva es la mayor de todas. Ahí SQL Server abre una página nueva solo con la fila nueva, PostgreSQL deja la vieja al 90 % (su <code>fillfactor</code> por defecto) y el B-tree "de libro" parte a la mitad igual.</li>
+    <li>No hay borrados, ni actualizaciones, ni reutilización de espacio, ni <code>fillfactor</code> configurable, ni concurrencia (no se modela la contención de la última página), ni caché con tamaño. Los GUID aleatorios salen de un generador determinista para que la misma semilla repita el resultado. Es un modelo para entender el mecanismo, no un benchmark del motor.</li>
+  </ul>
+
+  <h2>Fuentes</h2>
+  <ul>
+    <li>Andrew Chi-Chih Yao, <em>On random 2-3 trees</em> (Acta Informatica, 1978) y el resultado general de que un B-tree con inserciones al azar se estabiliza en ln 2 de ocupación.</li>
+    <li><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/newsequentialid-transact-sql" rel="noopener" target="_blank">NEWSEQUENTIALID (Transact-SQL)</a>, Microsoft Learn.</li>
+    <li><a href="https://learn.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-db-index-physical-stats-transact-sql" rel="noopener" target="_blank">sys.dm_db_index_physical_stats</a>, Microsoft Learn: definición de la fragmentación lógica.</li>
+    <li><a href="https://learn.microsoft.com/en-us/dotnet/api/system.guid.createversion7" rel="noopener" target="_blank">Guid.CreateVersion7</a>, .NET 9, y <a href="https://www.rfc-editor.org/rfc/rfc9562" rel="noopener" target="_blank">RFC 9562</a> (UUID v7).</li>
+    <li><a href="https://learn.microsoft.com/en-us/ef/core/modeling/generated-properties" rel="noopener" target="_blank">Generated values</a>, EF Core: el generador de GUID secuenciales para SQL Server.</li>
+    <li><a href="https://www.postgresql.org/docs/current/btree-implementation.html" rel="noopener" target="_blank">B-Tree implementation</a> y <a href="https://www.postgresql.org/docs/current/sql-createindex.html" rel="noopener" target="_blank">CREATE INDEX</a> (fillfactor), documentación de PostgreSQL.</li>
+    <li>Kimberly Tripp, <em>GUIDs as PRIMARY KEYs and/or the clustering key</em> (SQLskills), y Paul Randal, <em>Tracking page splits using the transaction log</em> (SQLskills), sobre divisiones buenas y malas.</li>
+  </ul>
+</div>
+
+<footer>Hecho por el <a href="../../">Programador nocturno</a>. Corre entero en tu navegador.</footer>
+</div>
+
+<script src="logica.js"></script>
+<script>
+(function () {
+  "use strict";
+  const I = window.Indice;
+  const $ = (id) => document.getElementById(id);
+  const ESCENARIOS = [
+    { tipo: "identity", clase: "identity", corto: "int identity" },
+    { tipo: "guid-aleatorio", clase: "aleatorio", corto: "GUID aleatorio" },
+    { tipo: "guid-v7", clase: "v7", corto: "GUID v7" },
+    { tipo: "guid-secuencial", clase: "secuencial", corto: "GUID secuencial" },
+  ];
+  const color = (e) => `var(--s-${e.clase})`;
+  const SVG = "http://www.w3.org/2000/svg";
+  const el = (tag, attrs, texto) => {
+    const n = document.createElementNS(SVG, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (texto != null) n.textContent = texto;
+    return n;
+  };
+
+  let corriendo = false;
+  window.ultimoResultado = null;
+
+  function leerForm() {
+    return {
+      n: Number($("n").value),
+      bytesCarga: Math.min(4000, Math.max(0, Number($("carga").value) || 0)),
+      division: $("motor").value,
+      insercionesPorMs: Math.min(1000, Math.max(1, Number($("por-ms").value) || 1)),
+      semilla: Math.max(1, Number($("semilla").value) || 1),
+    };
+  }
+
+  function correrTodo(ev) {
+    if (ev) ev.preventDefault();
+    if (corriendo) return;
+    corriendo = true;
+    $("correr").disabled = true;
+    const opciones = leerForm();
+    const total = opciones.n * ESCENARIOS.length;
+    const resultados = [];
+    let idx = 0, it = null, hechoAntes = 0;
+
+    function paso() {
+      if (!it) {
+        if (idx >= ESCENARIOS.length) return terminar();
+        it = I.correrPorPasos(Object.assign({ tipo: ESCENARIOS[idx].tipo, muestras: 60 }, opciones), 10000);
+        $("estado").textContent = ESCENARIOS[idx].corto + "…";
+      }
+      const { value, done } = it.next();
+      if (done) {
+        resultados.push(value);
+        hechoAntes += opciones.n;
+        idx++; it = null;
+      } else {
+        $("barra").style.width = ((hechoAntes + value.hecho) / total * 100).toFixed(1) + "%";
+      }
+      setTimeout(paso, 0);
+    }
+    function terminar() {
+      $("barra").style.width = "100%";
+      $("estado").textContent = "Listo";
+      corriendo = false;
+      $("correr").disabled = false;
+      window.ultimoResultado = { opciones, resultados };
+      mostrar(opciones, resultados);
+    }
+    setTimeout(paso, 0);
+  }
+
+  function mostrar(opciones, rs) {
+    $("resultados").classList.remove("oculto");
+    const porTipo = Object.fromEntries(rs.map((r) => [r.tipo, r]));
+    const base = porTipo.identity;
+
+    // Tarjetas.
+    const cont = $("tarjetas");
+    cont.innerHTML = "";
+    ESCENARIOS.forEach((e, i) => {
+      const r = rs[i];
+      const d = document.createElement("div");
+      d.className = "esc";
+      d.style.setProperty("--c", color(e));
+      d.id = "esc-" + e.clase;
+      const claseLlenado = r.llenado > 0.85 ? "ok" : r.llenado > 0.6 ? "aviso" : "mal";
+      const claseFrag = r.fragmentacion < 0.1 ? "ok" : r.fragmentacion < 0.5 ? "aviso" : "mal";
+      const claseCal = r.hojasCalientes < 50 ? "ok" : r.hojasCalientes < r.hojas * 0.3 ? "aviso" : "mal";
+      d.innerHTML = `<h3>${r.nombre}</h3><p class="sub">clave de ${r.bytesClave} bytes · ${r.capacidadHoja} filas por página · altura ${r.altura}</p>
+        <dl>
+          <dt>Páginas hoja</dt><dd class="num">${I.fmtEntero(r.hojas)} <span style="font-weight:400;color:var(--tenue)">(${I.fmtBytes(r.bytesHojas)})</span></dd>
+          <dt>Llenado</dt><dd class="num ${claseLlenado}">${I.fmtPorcentaje(r.llenado, 1)}</dd>
+          <dt>Divisiones</dt><dd class="num">${I.fmtEntero(r.divisionesHoja)}</dd>
+          <dt>Fragmentación</dt><dd class="num ${claseFrag}">${I.fmtPorcentaje(r.fragmentacion, 1)}</dd>
+          <dt>Páginas calientes</dt><dd class="num ${claseCal}">${I.fmtEntero(r.hojasCalientes)} <span style="font-weight:400;color:var(--tenue)">de ${I.fmtEntero(r.hojas)}</span></dd>
+        </dl>`;
+      cont.appendChild(d);
+    });
+
+    // Diagnóstico.
+    const al = porTipo["guid-aleatorio"], v7 = porTipo["guid-v7"], sec = porTipo["guid-secuencial"];
+    const pct = (a, b) => I.fmtPorcentaje(a / b - 1, 0);
+    const diag = $("diag");
+    diag.innerHTML = "";
+    const parrafo = (clase, html) => { const p = document.createElement("div"); p.className = "veredicto " + clase; p.innerHTML = html; diag.appendChild(p); };
+    parrafo("info", `Con ${I.fmtEntero(opciones.n)} filas, el <strong>GUID aleatorio</strong> ocupa <strong>${pct(al.bytesHojas, base.bytesHojas)} más</strong> que <strong>int identity</strong> (${I.fmtBytes(al.bytesHojas)} contra ${I.fmtBytes(base.bytesHojas)}): ${I.fmtPorcentaje(1 - al.llenado, 0)} de cada página es aire y la clave mide cuatro veces más. En las últimas 1.000 inserciones tocó <strong>${I.fmtEntero(al.hojasCalientes)} páginas distintas</strong> contra ${I.fmtEntero(base.hojasCalientes)}: eso es lo que no entra en caché.`);
+    const v7bien = v7.llenado >= sec.llenado - 0.03 && v7.fragmentacion <= sec.fragmentacion + 0.03;
+    const v7texto = v7bien
+      ? `A ${opciones.insercionesPorMs} inserción${opciones.insercionesPorMs === 1 ? "" : "es"} por milisegundo, el <strong>GUID v7</strong> rinde como un secuencial estricto: ${I.fmtPorcentaje(v7.llenado, 0)} de llenado y ${I.fmtEntero(v7.hojasCalientes)} páginas calientes. Subí las inserciones por milisegundo para ver cuándo se degrada.`
+      : `A ${opciones.insercionesPorMs} inserciones por milisegundo, el <strong>GUID v7</strong> conserva las páginas calientes bajas (${I.fmtEntero(v7.hojasCalientes)}), pero las claves desordenadas dentro del mismo milisegundo le bajan el llenado a ${I.fmtPorcentaje(v7.llenado, 0)} y le dejan ${I.fmtPorcentaje(v7.fragmentacion, 0)} de fragmentación${opciones.division === "fin" ? ", porque rompen la optimización de última página de SQL Server" : ""}. El <strong>secuencial estricto</strong> no tiene ese problema (${I.fmtPorcentaje(sec.llenado, 0)}, ${I.fmtPorcentaje(sec.fragmentacion, 0)}).`;
+    parrafo(v7bien ? "info" : "aviso", v7texto);
+
+    dibujarLlenado(rs);
+    dibujarBarras(rs);
+    const ley = $("leyenda");
+    ley.innerHTML = "";
+    ESCENARIOS.forEach((e) => { const s = document.createElement("span"); s.style.setProperty("--c", color(e)); s.innerHTML = `<i></i>${e.corto}`; ley.appendChild(s); });
+  }
+
+  // El viewBox toma el ancho real del contenedor, así el texto queda a 11 px en cualquier pantalla.
+  function anchoDe(svg) { return Math.max(300, Math.round(svg.getBoundingClientRect().width) || 720); }
+  let temporizador = null;
+  window.addEventListener("resize", () => {
+    if (!window.ultimoResultado) return;
+    clearTimeout(temporizador);
+    temporizador = setTimeout(() => { dibujarLlenado(window.ultimoResultado.resultados); dibujarBarras(window.ultimoResultado.resultados); }, 150);
+  });
+
+  function dibujarLlenado(rs) {
+    const svg = $("g-llenado");
+    svg.innerHTML = "";
+    const W = anchoDe(svg), H = 260, ml = 44, mr = 12, mt = 12, mb = 32;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const n = rs[0].n;
+    const x = (i) => ml + (i / n) * (W - ml - mr);
+    const y = (v) => mt + (1 - v) * (H - mt - mb);
+    for (const v of [0, 0.25, 0.5, 0.75, 1]) {
+      svg.appendChild(el("line", { x1: ml, x2: W - mr, y1: y(v), y2: y(v), class: v === 0 ? "eje" : "grilla" }));
+      svg.appendChild(el("text", { x: ml - 6, y: y(v) + 4, "text-anchor": "end" }, Math.round(v * 100) + " %"));
+    }
+    for (const f of [0, 0.25, 0.5, 0.75, 1]) {
+      svg.appendChild(el("text", { x: x(n * f), y: H - 12, "text-anchor": f === 0 ? "start" : f === 1 ? "end" : "middle" }, I.fmtEntero(n * f)));
+    }
+    svg.appendChild(el("text", { x: W - mr, y: H - 1, "text-anchor": "end" }, "filas insertadas"));
+    rs.forEach((r, i) => {
+      const d = r.serie.map((p, k) => `${k ? "L" : "M"}${x(p.i).toFixed(1)},${y(p.llenado).toFixed(1)}`).join(" ");
+      svg.appendChild(el("path", { d, class: "linea", stroke: color(ESCENARIOS[i]), "data-tipo": r.tipo }));
+    });
+  }
+
+  function dibujarBarras(rs) {
+    const svg = $("g-barras");
+    svg.innerHTML = "";
+    const metricas = [
+      { nombre: "Tamaño (hojas)", valor: (r) => r.bytesHojas, texto: (r) => I.fmtBytes(r.bytesHojas) },
+      { nombre: "Llenado", valor: (r) => r.llenado, texto: (r) => I.fmtPorcentaje(r.llenado, 0), max: 1 },
+      { nombre: "Fragmentación", valor: (r) => r.fragmentacion, texto: (r) => I.fmtPorcentaje(r.fragmentacion, 0), max: 1 },
+      { nombre: "Páginas calientes", valor: (r) => r.hojasCalientes, texto: (r) => I.fmtEntero(r.hojasCalientes) },
+    ];
+    const W = anchoDe(svg), filaH = 22, grupoH = filaH * rs.length + 26, ml = W < 480 ? 100 : 130, mr = 64;
+    const H = grupoH * metricas.length + 8;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    metricas.forEach((m, gi) => {
+      const y0 = gi * grupoH + 8;
+      svg.appendChild(el("text", { x: 0, y: y0 + 12, "font-weight": "600" }, m.nombre));
+      const max = m.max || Math.max(...rs.map(m.valor)) || 1;
+      rs.forEach((r, i) => {
+        const y = y0 + 18 + i * filaH;
+        const w = Math.max(1, (m.valor(r) / max) * (W - ml - mr));
+        const g = el("g", { class: "barra" });
+        g.appendChild(el("text", { x: ml - 8, y: y + 14, "text-anchor": "end", "font-weight": "400" }, ESCENARIOS[i].corto));
+        g.appendChild(el("rect", { x: ml, y: y + 3, width: w.toFixed(1), height: filaH - 7, rx: 4, fill: color(ESCENARIOS[i]) }));
+        g.appendChild(el("text", { x: ml + w + 6, y: y + 14 }, m.texto(r)));
+        svg.appendChild(g);
+      });
+    });
+  }
+
+  $("form").addEventListener("submit", correrTodo);
+  // Primera corrida automática, chica, para que la página no esté vacía.
+  if (!window.__sinAutoCorrida) {
+    $("n").value = "50000";
+    correrTodo();
+  }
+})();
+</script>
+</body>
+</html>
