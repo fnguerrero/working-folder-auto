@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12131a">
+<meta name="description" content="Calculadora laboral argentina: liquidación final por despido o renuncia, aguinaldo y vacaciones, con el detalle de cada concepto y el artículo de la ley.">
+<title>Lo que te corresponde</title>
+<style>
+:root{
+  --fondo:#f5f5f8; --tarjeta:#ffffff; --hundido:#ebecf2; --texto:#17181f; --suave:#5d5f6e;
+  --tenue:#8e90a0; --linea:#dcdde5; --acento:#1f7a6b; --acento-tenue:#dff1ed;
+  --ok:#1f8a5b; --ok-tenue:#e1f3ea; --aviso:#a86b0a; --aviso-tenue:#fbf0d9;
+  --mal:#c23b2b; --mal-tenue:#fbe4e1; --sombra:0 1px 2px rgba(20,22,40,.06);
+  --r:12px; --tap:44px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --fondo:#12131a; --tarjeta:#1b1c25; --hundido:#242631; --texto:#eceef5; --suave:#aeb1c2;
+    --tenue:#7d8093; --linea:#2f3140; --acento:#5fd0b8; --acento-tenue:#1d3a35;
+    --ok:#4fcf8f; --ok-tenue:#1b3328; --aviso:#f0b64a; --aviso-tenue:#3a2e14;
+    --mal:#ff7a69; --mal-tenue:#3d1f1b; --sombra:none;
+  }
+}
+:root[data-theme="dark"]{
+  --fondo:#12131a; --tarjeta:#1b1c25; --hundido:#242631; --texto:#eceef5; --suave:#aeb1c2;
+  --tenue:#7d8093; --linea:#2f3140; --acento:#5fd0b8; --acento-tenue:#1d3a35;
+  --ok:#4fcf8f; --ok-tenue:#1b3328; --aviso:#f0b64a; --aviso-tenue:#3a2e14;
+  --mal:#ff7a69; --mal-tenue:#3d1f1b; --sombra:none;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--fondo);color:var(--texto);
+  font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  padding:0 16px calc(24px + env(safe-area-inset-bottom));
+  padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+.app{max-width:760px;margin:0 auto}
+header.top{padding:calc(18px + env(safe-area-inset-top)) 0 0}
+header.top h1{margin:0;font-size:1.45rem;letter-spacing:-.01em}
+header.top p{margin:2px 0 0;color:var(--tenue);font-size:.9rem}
+nav.tabs{position:sticky;top:0;z-index:5;display:flex;gap:4px;margin:14px -16px 0;padding:6px 16px;
+  background:var(--fondo);border-bottom:1px solid var(--linea);overflow-x:auto;scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{flex:1 0 auto;min-height:var(--tap);appearance:none;border:0;background:none;
+  color:var(--suave);font:600 .92rem/1 inherit;padding:0 12px;border-radius:999px;cursor:pointer;white-space:nowrap}
+nav.tabs button[aria-selected="true"]{background:var(--acento-tenue);color:var(--acento)}
+nav.tabs button:focus-visible{outline:2px solid var(--acento);outline-offset:2px}
+section.panel{display:none;padding-top:16px}
+section.panel.activo{display:block}
+@media (min-width:720px){
+  .dos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+  .dos>.card{margin:0}
+}
+.card{background:var(--tarjeta);border:1px solid var(--linea);border-radius:var(--r);padding:16px;
+  margin:0 0 14px;box-shadow:var(--sombra)}
+.card h2{margin:0 0 10px;font-size:1.05rem}
+.card h3{margin:16px 0 6px;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--tenue)}
+p{margin:8px 0}
+.nota{color:var(--suave);font-size:.88rem}
+.cifra{font-size:2rem;font-weight:700;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums;word-break:break-word}
+.cifra small{display:block;font-size:.85rem;font-weight:500;color:var(--suave);margin-top:4px;letter-spacing:0}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.fila{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 0;border-top:1px solid var(--linea)}
+.fila:first-child{border-top:0}
+.fila.total{font-weight:700}
+.chip{display:inline-block;font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:999px;
+  background:var(--hundido);color:var(--suave);white-space:nowrap;vertical-align:middle}
+.chip.ok{background:var(--ok-tenue);color:var(--ok)}
+.chip.acento{background:var(--acento-tenue);color:var(--acento)}
+.veredicto{border-radius:10px;padding:10px 12px;margin:10px 0 0;font-size:.93rem}
+.veredicto.aviso{background:var(--aviso-tenue);color:var(--aviso)}
+.veredicto.info{background:var(--acento-tenue);color:var(--acento)}
+.veredicto.mal{background:var(--mal-tenue);color:var(--mal)}
+table.detalle{width:100%;border-collapse:collapse;margin:8px 0 0;font-size:.92rem}
+table.detalle th{text-align:left;font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--tenue);padding:6px 0;border-bottom:1px solid var(--linea)}
+table.detalle td{padding:8px 0;border-bottom:1px solid var(--linea);vertical-align:top}
+table.detalle td.monto,table.detalle th.monto{text-align:right;white-space:nowrap;padding-left:10px}
+table.detalle td .calc{display:block;color:var(--tenue);font-size:.8rem;margin-top:2px}
+table.detalle tr.total td{font-weight:700;border-bottom:0}
+button,.boton{min-height:var(--tap);border-radius:10px;border:1px solid var(--linea);background:var(--tarjeta);
+  color:var(--texto);font:600 .95rem/1 inherit;padding:0 16px;cursor:pointer;touch-action:manipulation}
+button.primario{background:var(--acento);border-color:var(--acento);color:#fff}
+button:focus-visible{outline:2px solid var(--acento);outline-offset:2px}
+.acciones{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+form .campo{margin:0 0 12px}
+form label{display:block;font-size:.85rem;font-weight:600;color:var(--suave);margin:0 0 4px}
+form input,form select{width:100%;min-height:var(--tap);border:1px solid var(--linea);border-radius:10px;
+  background:var(--fondo);color:var(--texto);font:1rem/1.3 inherit;padding:8px 12px}
+form input:focus-visible,form select:focus-visible{outline:2px solid var(--acento);outline-offset:1px;border-color:var(--acento)}
+form .grilla{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+form .error{display:none;color:var(--mal);font-size:.82rem;margin:4px 0 0}
+form .campo.invalido .error{display:block}
+form .campo.invalido input,form .campo.invalido select{border-color:var(--mal)}
+form .ayuda{color:var(--tenue);font-size:.8rem;margin:4px 0 0}
+label.check{display:flex;align-items:center;gap:10px;min-height:var(--tap);font-size:.95rem;font-weight:500;color:var(--texto);cursor:pointer}
+label.check input{width:22px;height:22px;min-height:0;margin:0;accent-color:var(--acento)}
+details{border-top:1px solid var(--linea);margin-top:4px;padding-top:6px}
+details summary{cursor:pointer;min-height:var(--tap);display:flex;align-items:center;font-size:.9rem;font-weight:600;color:var(--suave)}
+details[open] summary{margin-bottom:8px}
+.oculto{display:none !important}
+.texto h2{font-size:1.05rem;margin:18px 0 6px}
+.texto h2:first-child{margin-top:0}
+.texto ul{padding-left:20px;margin:6px 0}
+.texto li{margin:4px 0}
+.texto a{color:var(--acento)}
+footer{margin:20px 0 0;color:var(--tenue);font-size:.82rem}
+footer a{color:var(--acento)}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top">
+  <h1>Lo que te corresponde</h1>
+  <p>Liquidación final, aguinaldo y vacaciones según la Ley de Contrato de Trabajo.</p>
+</header>
+
+<nav class="tabs" role="tablist" aria-label="Secciones">
+  <button id="tab-liquidacion" role="tab" aria-selected="true" aria-controls="liquidacion">Liquidación final</button>
+  <button id="tab-aguinaldo" role="tab" aria-selected="false" aria-controls="aguinaldo">Aguinaldo</button>
+  <button id="tab-vacaciones" role="tab" aria-selected="false" aria-controls="vacaciones">Vacaciones</button>
+  <button id="tab-como" role="tab" aria-selected="false" aria-controls="como">Cómo se calcula</button>
+</nav>
+
+<!-- ============================================================ liquidación -->
+<section id="liquidacion" class="panel activo" role="tabpanel" aria-labelledby="tab-liquidacion">
+<div class="dos">
+<div class="card">
+  <h2>Tus datos</h2>
+  <form id="form-liq" novalidate autocomplete="off">
+    <div class="campo">
+      <label for="liq-motivo">Cómo termina la relación</label>
+      <select id="liq-motivo">
+        <option value="despido">Despido sin causa (o despido indirecto)</option>
+        <option value="renuncia">Renuncia</option>
+        <option value="con-causa">Despido con causa o mutuo acuerdo</option>
+      </select>
+    </div>
+    <div class="grilla">
+      <div class="campo">
+        <label for="liq-ingreso">Fecha de ingreso</label>
+        <input id="liq-ingreso" type="date">
+        <p class="error"></p>
+      </div>
+      <div class="campo">
+        <label for="liq-egreso">Fecha de egreso</label>
+        <input id="liq-egreso" type="date">
+        <p class="error"></p>
+      </div>
+    </div>
+    <div class="campo">
+      <label for="liq-sueldo">Sueldo bruto mensual</label>
+      <input id="liq-sueldo" type="text" inputmode="decimal" placeholder="1.500.000">
+      <p class="ayuda">El de bolsillo más los aportes. Sin aguinaldo ni premios anuales.</p>
+      <p class="error"></p>
+    </div>
+    <div class="campo solo-despido">
+      <label for="liq-mejor">Mejor sueldo bruto del último año (opcional)</label>
+      <input id="liq-mejor" type="text" inputmode="decimal" placeholder="Si fue igual, dejalo vacío">
+      <p class="ayuda">Base de la indemnización por antigüedad: la mejor remuneración mensual, normal y habitual de los últimos 12 meses.</p>
+      <p class="error"></p>
+    </div>
+    <div class="campo solo-despido">
+      <label class="check"><input id="liq-preaviso" type="checkbox"> Me dieron el preaviso por escrito y lo trabajé</label>
+    </div>
+    <details class="solo-despido">
+      <summary>Ajustes finos</summary>
+      <div class="campo">
+        <label for="liq-prueba">Período de prueba</label>
+        <select id="liq-prueba">
+          <option value="6">6 meses (ley)</option>
+          <option value="3">3 meses (antes de 2024)</option>
+          <option value="8">8 meses (convenio, empresas de hasta 100)</option>
+          <option value="12">12 meses (convenio, empresas de hasta 5)</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label for="liq-tope">Tope del convenio para la antigüedad (opcional)</label>
+        <input id="liq-tope" type="text" inputmode="decimal" placeholder="3 × promedio del convenio">
+        <p class="ayuda">Lo publica la Secretaría de Trabajo por convenio. Si no lo sabés, dejalo vacío: se calcula sin tope.</p>
+        <p class="error"></p>
+      </div>
+    </details>
+  </form>
+</div>
+
+<div>
+<div class="card" id="liq-resultado">
+  <h2>Resultado</h2>
+  <p class="nota" id="liq-vacio">Completá las fechas y el sueldo para ver el cálculo.</p>
+  <div id="liq-con-datos" class="oculto">
+    <div class="cifra"><span id="liq-neto" class="num"></span><small>neto estimado, descontando aportes</small></div>
+    <p class="nota" id="liq-antiguedad"></p>
+    <div id="liq-avisos"></div>
+    <table class="detalle" aria-label="Detalle por concepto">
+      <thead><tr><th>Concepto</th><th class="monto">Monto</th></tr></thead>
+      <tbody id="liq-conceptos"></tbody>
+      <tfoot>
+        <tr><td>Bruto</td><td class="monto num" id="liq-bruto"></td></tr>
+        <tr><td>Aportes (17 % sobre lo remunerativo)</td><td class="monto num" id="liq-aportes"></td></tr>
+        <tr class="total"><td>Neto estimado</td><td class="monto num" id="liq-neto-2"></td></tr>
+      </tfoot>
+    </table>
+    <div class="acciones"><button type="button" id="liq-copiar">Copiar el detalle</button></div>
+  </div>
+</div>
+<div class="card">
+  <h2>Qué tener en cuenta</h2>
+  <ul class="texto" style="padding-left:20px;margin:0">
+    <li>Es un estimado para saber si lo que te ofrecen está cerca. Los convenios y los jueces pueden sumar o cambiar cosas: con plata en juego, consultá un abogado laboralista o un contador.</li>
+    <li>No calcula impuesto a las ganancias: la indemnización por antigüedad está exenta, pero el resto puede tributar según tu escala.</li>
+    <li>El empleador tiene 4 días hábiles para pagar desde que termina el contrato (art. 255 bis). Si no paga y tenés que ir a juicio, puede corresponder un 50 % más sobre antigüedad, preaviso e integración (ley 25.323, art. 2).</li>
+    <li>Si el convenio adoptó un fondo o sistema de cese laboral (ley 27.742), la antigüedad se cobra desde ahí, no de esta cuenta.</li>
+    <li>Despido por embarazo, maternidad o matrimonio, o de un delegado gremial, tiene indemnizaciones agravadas que acá no están.</li>
+  </ul>
+</div>
+</div>
+</div>
+</section>
+
+<!-- ============================================================ aguinaldo -->
+<section id="aguinaldo" class="panel" role="tabpanel" aria-labelledby="tab-aguinaldo">
+<div class="dos">
+<div class="card">
+  <h2>Tus datos</h2>
+  <form id="form-sac" novalidate autocomplete="off">
+    <div class="campo">
+      <label for="sac-sueldo">Mejor sueldo bruto mensual del semestre</label>
+      <input id="sac-sueldo" type="text" inputmode="decimal" placeholder="1.500.000">
+      <p class="ayuda">El más alto que cobraste en el semestre, con horas extra y comisiones si las hubo.</p>
+      <p class="error"></p>
+    </div>
+    <div class="campo">
+      <label for="sac-fecha">Fecha de referencia</label>
+      <input id="sac-fecha" type="date">
+      <p class="ayuda">Cualquier día del semestre que querés calcular. Hoy, si es el que viene.</p>
+      <p class="error"></p>
+    </div>
+    <div class="grilla">
+      <div class="campo">
+        <label for="sac-ingreso">Ingreso (si fue en el semestre)</label>
+        <input id="sac-ingreso" type="date">
+        <p class="error"></p>
+      </div>
+      <div class="campo">
+        <label for="sac-sin-goce">Días sin goce de sueldo</label>
+        <input id="sac-sin-goce" type="number" inputmode="numeric" min="0" step="1" placeholder="0">
+      </div>
+    </div>
+  </form>
+</div>
+<div class="card">
+  <h2>Resultado</h2>
+  <p class="nota" id="sac-vacio">Poné el sueldo para ver el aguinaldo.</p>
+  <div id="sac-con-datos" class="oculto">
+    <div class="cifra"><span id="sac-neto" class="num"></span><small>neto estimado del aguinaldo</small></div>
+    <p class="nota" id="sac-detalle"></p>
+    <div class="fila"><span>Bruto (la mitad del mejor sueldo, proporcional)</span><span class="num" id="sac-bruto"></span></div>
+    <div class="fila"><span>Aportes (17 %)</span><span class="num" id="sac-aportes"></span></div>
+    <div class="fila total"><span>Neto estimado</span><span class="num" id="sac-neto-2"></span></div>
+    <div class="veredicto info" id="sac-pago"></div>
+  </div>
+</div>
+</div>
+</section>
+
+<!-- ============================================================ vacaciones -->
+<section id="vacaciones" class="panel" role="tabpanel" aria-labelledby="tab-vacaciones">
+<div class="dos">
+<div class="card">
+  <h2>Tus datos</h2>
+  <form id="form-vac" novalidate autocomplete="off">
+    <div class="grilla">
+      <div class="campo">
+        <label for="vac-ingreso">Fecha de ingreso</label>
+        <input id="vac-ingreso" type="date">
+        <p class="error"></p>
+      </div>
+      <div class="campo">
+        <label for="vac-anio">Año de las vacaciones</label>
+        <input id="vac-anio" type="number" inputmode="numeric" min="1990" max="2100" step="1">
+        <p class="error"></p>
+      </div>
+    </div>
+    <div class="campo">
+      <label for="vac-sueldo">Sueldo bruto mensual</label>
+      <input id="vac-sueldo" type="text" inputmode="decimal" placeholder="1.500.000">
+      <p class="error"></p>
+    </div>
+    <div class="campo oculto" id="vac-campo-reales">
+      <label for="vac-reales">Días efectivamente trabajados en el año (opcional)</label>
+      <input id="vac-reales" type="number" inputmode="numeric" min="0" step="1" placeholder="Si lo sabés exacto">
+      <p class="ayuda">Con menos de medio año, corresponde un día por cada 20 trabajados. Si no lo cargás, se estima con 5 días por semana.</p>
+    </div>
+  </form>
+</div>
+<div class="card">
+  <h2>Resultado</h2>
+  <p class="nota" id="vac-vacio">Poné la fecha de ingreso y el sueldo.</p>
+  <div id="vac-con-datos" class="oculto">
+    <div class="cifra"><span id="vac-dias" class="num"></span><small id="vac-regla"></small></div>
+    <div class="fila"><span>Valor de cada día (sueldo / 25)</span><span class="num" id="vac-dia"></span></div>
+    <div class="fila"><span>Bruto de las vacaciones</span><span class="num" id="vac-bruto"></span></div>
+    <div class="fila"><span>De eso, plus vacacional</span><span class="num" id="vac-plus"></span></div>
+    <div class="fila"><span>Aportes (17 %)</span><span class="num" id="vac-aportes"></span></div>
+    <div class="fila total"><span>Neto estimado</span><span class="num" id="vac-neto"></span></div>
+    <div class="veredicto info" id="vac-ventana"></div>
+  </div>
+</div>
+</div>
+</section>
+
+<!-- ============================================================ cómo se calcula -->
+<section id="como" class="panel" role="tabpanel" aria-labelledby="tab-como">
+<div class="card texto">
+  <h2>Qué es esto</h2>
+  <p>Una cuenta transparente de lo que dice la Ley de Contrato de Trabajo (20.744) con las reformas de la ley 27.742 de 2024, para empleados en relación de dependencia con sueldo mensual. Cada concepto muestra la fórmula con tus números, así podés compararla renglón por renglón con lo que te liquidaron. No reemplaza a un profesional: es para llegar a la charla sabiendo de qué se habla.</p>
+
+  <h2>Liquidación final</h2>
+  <ul>
+    <li><strong>Días trabajados del mes</strong> (art. 74): sueldo / 30 × días hasta el egreso. Si el egreso es el último día, el mes entero.</li>
+    <li><strong>SAC proporcional</strong> (arts. 121 a 123 y ley 23.041): la mitad de la mejor remuneración del semestre, en proporción a los días trabajados sobre los días reales del semestre.</li>
+    <li><strong>Vacaciones no gozadas</strong> (art. 156): los días que corresponden por antigüedad al 31 de diciembre, proporcionales a la fracción del año trabajada, pagados a sueldo / 25 por día (art. 155). Lleva SAC (una doceava parte).</li>
+    <li><strong>Indemnización por antigüedad</strong> (art. 245): un mes de la mejor remuneración mensual, normal y habitual del último año, sin aguinaldo ni conceptos anuales, por cada año de servicio o fracción mayor de tres meses. Nunca menos de un mes. Si el convenio tiene tope (tres veces el promedio de sus remuneraciones), se aplica, pero no puede recortar más del 33 % del sueldo real (Corte Suprema, "Vizzoti", 2004). No hay durante el período de prueba (art. 92 bis).</li>
+    <li><strong>Preaviso</strong> (arts. 231 y 232): 15 días en el período de prueba, un mes hasta cinco años de antigüedad, dos meses si es más. Si no se dio, se paga como indemnización sustitutiva, con SAC. Si se dio y se trabajó, no corresponde nada extra.</li>
+    <li><strong>Integración del mes de despido</strong> (art. 233): cuando el despido sin preaviso cae en un día que no es fin de mes, se pagan los días que faltan hasta el último, con SAC. No hay en el período de prueba.</li>
+    <li><strong>Renuncia, despido con causa y mutuo acuerdo</strong> (arts. 240, 241 y 242): solo lo trabajado, el SAC proporcional y las vacaciones no gozadas.</li>
+  </ul>
+
+  <h2>Aguinaldo</h2>
+  <p>Es el 50 % de la mayor remuneración mensual del semestre (ley 23.041). La primera cuota se paga el 30 de junio y la segunda el 18 de diciembre (art. 122, texto ley 27.073), con hasta cuatro días hábiles de tolerancia. Si no se trabajó el semestre completo (ingreso, egreso o licencia sin goce de sueldo), va en proporción a los días trabajados.</p>
+
+  <h2>Vacaciones</h2>
+  <p>Días corridos según la antigüedad al 31 de diciembre (art. 150): 14 hasta cinco años, 21 hasta diez, 28 hasta veinte y 35 después. Con menos de medio año trabajado, un día por cada veinte días efectivamente trabajados (art. 153). Se pagan a sueldo / 25 por día (art. 155), antes de empezarlas, y el "plus vacacional" es la diferencia contra sueldo / 30. Se toman entre el 1 de octubre y el 30 de abril (art. 154) y empiezan un lunes o el día siguiente al franco (art. 151).</p>
+
+  <h2>Criterios que tomamos</h2>
+  <ul>
+    <li>Los aportes del trabajador son el 17 %: 11 % de jubilación, 3 % de PAMI y 3 % de obra social. La cuota sindical, si la hay, no está.</li>
+    <li>Los aportes se descuentan de lo remunerativo (días trabajados y SAC proporcional). Las indemnizaciones (antigüedad, preaviso, integración, vacaciones no gozadas y sus SAC) van sin descuento.</li>
+    <li>El mes se toma de 30 días para prorratear sueldo, como hace la práctica de liquidación. Los semestres y el año, con sus días reales.</li>
+    <li>El período de prueba es de 6 meses desde la ley 27.742; antes era de 3. Los convenios pueden llevarlo a 8 o 12 según el tamaño de la empresa.</li>
+    <li>Las multas de las leyes 24.013 y 25.323 (art. 1) por empleo no registrado fueron derogadas en 2024; el recargo del art. 2 de la ley 25.323 sigue, pero depende de que haya juicio y no se calcula acá.</li>
+  </ul>
+
+  <h2>Fuentes</h2>
+  <ul>
+    <li><a href="https://servicios.infoleg.gob.ar/infolegInternet/anexos/25000-29999/25552/texact.htm" rel="noopener" target="_blank">Ley 20.744 de Contrato de Trabajo, texto actualizado (InfoLeg)</a></li>
+    <li><a href="https://servicios.infoleg.gob.ar/infolegInternet/anexos/400000-404999/401266/norma.htm" rel="noopener" target="_blank">Ley 27.742 "Bases", título de modernización laboral (InfoLeg)</a></li>
+    <li><a href="https://servicios.infoleg.gob.ar/infolegInternet/anexos/20000-24999/23041/norma.htm" rel="noopener" target="_blank">Ley 23.041 de sueldo anual complementario (InfoLeg)</a></li>
+    <li><a href="https://servicios.infoleg.gob.ar/infolegInternet/anexos/60000-64999/64558/norma.htm" rel="noopener" target="_blank">Ley 25.323, indemnizaciones agravadas (InfoLeg)</a></li>
+    <li><a href="https://www.argentina.gob.ar/trabajo/derechos" rel="noopener" target="_blank">Derechos laborales, Secretaría de Trabajo de la Nación</a></li>
+  </ul>
+  <p class="nota">Todo el cálculo corre en tu navegador. No se manda nada a ningún lado; lo último que cargaste queda guardado en este dispositivo para que no lo tengas que volver a escribir.</p>
+</div>
+</section>
+
+<footer>Hecho por el <a href="../../">Programador nocturno</a>. Para orientarte, no para pleitear.</footer>
+</div>
+
+<script src="logica.js"></script>
+<script>
+(function () {
+  "use strict";
+  const L = window.Laboral;
+  const $ = (id) => document.getElementById(id);
+  const CLAVE = "lo-que-te-corresponde.v1";
+
+  /* ------------------------------------------------------------ estado guardado */
+  function leerGuardado() {
+    try { return JSON.parse(localStorage.getItem(CLAVE) || "{}") || {}; } catch (e) { return {}; }
+  }
+  function guardar(parcial) {
+    try {
+      const actual = leerGuardado();
+      localStorage.setItem(CLAVE, JSON.stringify(Object.assign(actual, parcial)));
+    } catch (e) { /* sin localStorage no pasa nada */ }
+  }
+
+  /* ------------------------------------------------------------ pestañas */
+  const tabs = Array.from(document.querySelectorAll("nav.tabs button"));
+  function irA(id) {
+    tabs.forEach((b) => b.setAttribute("aria-selected", String(b.getAttribute("aria-controls") === id)));
+    document.querySelectorAll("section.panel").forEach((s) => s.classList.toggle("activo", s.id === id));
+    guardar({ tab: id });
+  }
+  tabs.forEach((b) => b.addEventListener("click", () => irA(b.getAttribute("aria-controls"))));
+
+  /* ------------------------------------------------------------ helpers de formulario */
+  function marcar(input, mensaje) {
+    const campo = input.closest(".campo");
+    if (!campo) return;
+    campo.classList.toggle("invalido", Boolean(mensaje));
+    const err = campo.querySelector(".error");
+    if (err) err.textContent = mensaje || "";
+  }
+  function pesos(input) {
+    const t = input.value.trim();
+    if (!t) return null;
+    return L.parsearPesos(t);
+  }
+  // Al salir del campo, se reescribe con puntos de miles para que se lea bien.
+  function prolijar(input) {
+    input.addEventListener("blur", () => {
+      const n = pesos(input);
+      if (n != null && !Number.isNaN(n) && n >= 0) input.value = L.fmt(n).replace("$ ", "").replace(/,00$/, "");
+    });
+  }
+  ["liq-sueldo", "liq-mejor", "liq-tope", "sac-sueldo", "vac-sueldo"].forEach((id) => prolijar($(id)));
+  const hoy = L.fechaHoy();
+
+  /* ------------------------------------------------------------ liquidación final */
+  const liq = {
+    motivo: $("liq-motivo"), ingreso: $("liq-ingreso"), egreso: $("liq-egreso"), sueldo: $("liq-sueldo"),
+    mejor: $("liq-mejor"), preaviso: $("liq-preaviso"), prueba: $("liq-prueba"), tope: $("liq-tope"),
+  };
+  let ultimaLiq = null;
+
+  function entradaLiq() {
+    return {
+      motivo: liq.motivo.value, ingreso: liq.ingreso.value, egreso: liq.egreso.value,
+      sueldo: pesos(liq.sueldo), mejorSueldo: pesos(liq.mejor), tope: pesos(liq.tope),
+      preavisoOtorgado: liq.preaviso.checked, mesesPrueba: Number(liq.prueba.value),
+    };
+  }
+  function calcularLiq() {
+    const e = entradaLiq();
+    document.querySelectorAll(".solo-despido").forEach((n) => n.classList.toggle("oculto", e.motivo !== "despido"));
+    guardar({ liq: { motivo: e.motivo, ingreso: e.ingreso, egreso: e.egreso, sueldo: liq.sueldo.value, mejor: liq.mejor.value,
+      preaviso: e.preavisoOtorgado, prueba: liq.prueba.value, tope: liq.tope.value } });
+
+    const vacio = !e.ingreso && !e.egreso && e.sueldo == null;
+    const errores = vacio ? {} : L.validarLiquidacion(e);
+    for (const k of ["ingreso", "egreso", "sueldo", "mejorSueldo", "tope"]) {
+      const input = { ingreso: liq.ingreso, egreso: liq.egreso, sueldo: liq.sueldo, mejorSueldo: liq.mejor, tope: liq.tope }[k];
+      marcar(input, errores[k]);
+    }
+    if (Number.isNaN(e.sueldo)) marcar(liq.sueldo, "No entiendo ese número.");
+    if (Number.isNaN(e.mejorSueldo)) marcar(liq.mejor, "No entiendo ese número.");
+    if (Number.isNaN(e.tope)) marcar(liq.tope, "No entiendo ese número.");
+
+    const r = vacio || Object.keys(errores).length || Number.isNaN(e.sueldo) || Number.isNaN(e.mejorSueldo) || Number.isNaN(e.tope)
+      ? null : L.liquidacionFinal(e);
+    ultimaLiq = r;
+    $("liq-vacio").classList.toggle("oculto", Boolean(r));
+    $("liq-con-datos").classList.toggle("oculto", !r);
+    if (!r) return;
+
+    $("liq-neto").textContent = L.fmt(r.totales.neto);
+    $("liq-neto-2").textContent = L.fmt(r.totales.neto);
+    $("liq-bruto").textContent = L.fmt(r.totales.bruto);
+    $("liq-aportes").textContent = "− " + L.fmt(r.totales.aportes);
+    const partes = [`Antigüedad: ${r.textoAntiguedad}.`];
+    if (r.aniosIndemnizables) partes.push(`Se indemnizan ${r.aniosIndemnizables} ${r.aniosIndemnizables === 1 ? "año" : "años"}.`);
+    if (r.mesesPreaviso) partes.push(`Preaviso: ${r.mesesPreaviso === 0.5 ? "15 días" : r.mesesPreaviso === 1 ? "1 mes" : "2 meses"}.`);
+    $("liq-antiguedad").textContent = partes.join(" ");
+
+    const avisos = $("liq-avisos");
+    avisos.innerHTML = "";
+    r.avisos.forEach((a) => {
+      const d = document.createElement("div");
+      d.className = "veredicto aviso";
+      d.textContent = a;
+      avisos.appendChild(d);
+    });
+
+    const cuerpo = $("liq-conceptos");
+    cuerpo.innerHTML = "";
+    r.conceptos.forEach((c) => {
+      const tr = document.createElement("tr");
+      const td1 = document.createElement("td");
+      td1.textContent = c.nombre + " ";
+      const chip = document.createElement("span");
+      chip.className = "chip" + (c.remunerativo ? " ok" : "");
+      chip.textContent = c.remunerativo ? "remunerativo" : "sin aportes";
+      td1.appendChild(chip);
+      const calc = document.createElement("span");
+      calc.className = "calc";
+      calc.textContent = c.calculo;
+      td1.appendChild(calc);
+      const td2 = document.createElement("td");
+      td2.className = "monto num";
+      td2.textContent = L.fmt(c.monto);
+      tr.append(td1, td2);
+      cuerpo.appendChild(tr);
+    });
+  }
+
+  function textoLiq(r) {
+    const e = entradaLiq();
+    const lineas = [
+      `Liquidación final (${L.MOTIVOS[r.motivo]})`,
+      `Ingreso ${L.fechaLarga(e.ingreso)}, egreso ${L.fechaLarga(e.egreso)}. Antigüedad: ${r.textoAntiguedad}.`,
+      `Sueldo bruto mensual: ${L.fmt(e.sueldo)}` + (e.mejorSueldo ? `, mejor del último año: ${L.fmt(e.mejorSueldo)}` : ""),
+      "",
+    ];
+    r.conceptos.forEach((c) => lineas.push(`${c.nombre}: ${L.fmt(c.monto)}  [${c.calculo}]`));
+    lineas.push("", `Bruto: ${L.fmt(r.totales.bruto)}`, `Aportes 17 % sobre lo remunerativo: ${L.fmt(r.totales.aportes)}`,
+      `Neto estimado: ${L.fmt(r.totales.neto)}`);
+    r.avisos.forEach((a) => lineas.push("", a));
+    lineas.push("", "Calculado con https://fnguerrero.github.io/working-folder-auto/apps/lo-que-te-corresponde/ (estimado, no es asesoramiento legal).");
+    return lineas.join("\n");
+  }
+  $("liq-copiar").addEventListener("click", async () => {
+    if (!ultimaLiq) return;
+    const t = textoLiq(ultimaLiq);
+    const boton = $("liq-copiar");
+    try {
+      await navigator.clipboard.writeText(t);
+      boton.textContent = "Copiado";
+    } catch (err) {
+      window.prompt("Copiá el detalle:", t);
+    }
+    setTimeout(() => { boton.textContent = "Copiar el detalle"; }, 1800);
+  });
+
+  Object.values(liq).forEach((el) => { el.addEventListener("input", calcularLiq); el.addEventListener("change", calcularLiq); });
+
+  /* ------------------------------------------------------------ aguinaldo */
+  const sac = { sueldo: $("sac-sueldo"), fecha: $("sac-fecha"), ingreso: $("sac-ingreso"), sinGoce: $("sac-sin-goce") };
+  function calcularSac() {
+    const sueldo = pesos(sac.sueldo);
+    guardar({ sac: { sueldo: sac.sueldo.value, fecha: sac.fecha.value, ingreso: sac.ingreso.value, sinGoce: sac.sinGoce.value } });
+    marcar(sac.sueldo, Number.isNaN(sueldo) ? "No entiendo ese número." : "");
+    marcar(sac.fecha, sac.fecha.value && !L.esFecha(sac.fecha.value) ? "Fecha inválida." : "");
+    marcar(sac.ingreso, sac.ingreso.value && !L.esFecha(sac.ingreso.value) ? "Fecha inválida." : "");
+    const fecha = L.esFecha(sac.fecha.value) ? sac.fecha.value : hoy;
+    const ok = sueldo > 0 && (!sac.ingreso.value || L.esFecha(sac.ingreso.value));
+    $("sac-vacio").classList.toggle("oculto", ok);
+    $("sac-con-datos").classList.toggle("oculto", !ok);
+    if (!ok) return;
+    const r = L.aguinaldo({ mejorSueldo: sueldo, fecha, ingreso: sac.ingreso.value || null, diasSinGoce: Number(sac.sinGoce.value) || 0 });
+    $("sac-neto").textContent = L.fmt(r.neto);
+    $("sac-neto-2").textContent = L.fmt(r.neto);
+    $("sac-bruto").textContent = L.fmt(r.bruto);
+    $("sac-aportes").textContent = "− " + L.fmt(r.aportes);
+    $("sac-detalle").textContent = r.completo
+      ? `${r.semestre.n}° semestre de ${r.semestre.anio}, trabajado completo: la mitad de ${L.fmt(sueldo)}.`
+      : `${r.semestre.n}° semestre de ${r.semestre.anio}: ${r.diasTrabajados} de ${r.diasSemestre} días trabajados. ${L.fmt(sueldo)} / 2 × ${r.diasTrabajados} / ${r.diasSemestre}.`;
+    $("sac-pago").textContent = `Se paga el ${L.fechaLarga(r.semestre.pago)}, con hasta 4 días hábiles de tolerancia.`;
+  }
+  Object.values(sac).forEach((el) => { el.addEventListener("input", calcularSac); el.addEventListener("change", calcularSac); });
+
+  /* ------------------------------------------------------------ vacaciones */
+  const vac = { ingreso: $("vac-ingreso"), anio: $("vac-anio"), sueldo: $("vac-sueldo"), reales: $("vac-reales") };
+  function calcularVac() {
+    const sueldo = pesos(vac.sueldo);
+    const anio = Number(vac.anio.value);
+    guardar({ vac: { ingreso: vac.ingreso.value, anio: vac.anio.value, sueldo: vac.sueldo.value, reales: vac.reales.value } });
+    marcar(vac.sueldo, Number.isNaN(sueldo) ? "No entiendo ese número." : "");
+    marcar(vac.ingreso, vac.ingreso.value && !L.esFecha(vac.ingreso.value) ? "Fecha inválida." : "");
+    marcar(vac.anio, vac.anio.value && !(anio >= 1990 && anio <= 2100) ? "Año fuera de rango." : "");
+    const ok = sueldo > 0 && L.esFecha(vac.ingreso.value) && anio >= 1990 && anio <= 2100;
+    $("vac-vacio").classList.toggle("oculto", ok);
+    $("vac-con-datos").classList.toggle("oculto", !ok);
+    if (!ok) { $("vac-campo-reales").classList.add("oculto"); return; }
+    const reales = vac.reales.value === "" ? null : Number(vac.reales.value);
+    const r = L.vacaciones({ ingreso: vac.ingreso.value, anio, sueldo, diasTrabajadosReales: reales });
+    $("vac-campo-reales").classList.toggle("oculto", r.mitadDelAnio);
+    $("vac-dias").textContent = `${r.dias} ${r.dias === 1 ? "día" : "días"}`;
+    $("vac-regla").textContent = r.regla === "art. 150"
+      ? `corridos de vacaciones por ${r.anios} ${r.anios === 1 ? "año" : "años"} de antigüedad al 31/12/${anio} (art. 150)`
+      : `por ${r.corridos} días corridos en ${anio}: uno cada 20 trabajados (art. 153)`;
+    $("vac-dia").textContent = L.fmt(r.valorDia);
+    $("vac-bruto").textContent = L.fmt(r.bruto);
+    $("vac-plus").textContent = L.fmt(r.plus);
+    $("vac-aportes").textContent = "− " + L.fmt(r.aportes);
+    $("vac-neto").textContent = L.fmt(r.neto);
+    $("vac-ventana").textContent = `Se toman entre el ${L.fechaLarga(r.ventana.desde)} y el ${L.fechaLarga(r.ventana.hasta)}, empiezan un lunes y se pagan antes de salir.`;
+  }
+  Object.values(vac).forEach((el) => { el.addEventListener("input", calcularVac); el.addEventListener("change", calcularVac); });
+
+  /* ------------------------------------------------------------ arranque */
+  const g = leerGuardado();
+  if (g.liq) {
+    liq.motivo.value = g.liq.motivo || "despido";
+    liq.ingreso.value = g.liq.ingreso || ""; liq.egreso.value = g.liq.egreso || "";
+    liq.sueldo.value = g.liq.sueldo || ""; liq.mejor.value = g.liq.mejor || "";
+    liq.preaviso.checked = Boolean(g.liq.preaviso); liq.prueba.value = g.liq.prueba || "6"; liq.tope.value = g.liq.tope || "";
+  }
+  if (!liq.egreso.value) liq.egreso.value = hoy;
+  if (g.sac) {
+    sac.sueldo.value = g.sac.sueldo || ""; sac.fecha.value = g.sac.fecha || ""; sac.ingreso.value = g.sac.ingreso || "";
+    sac.sinGoce.value = g.sac.sinGoce || "";
+  }
+  if (!sac.fecha.value) sac.fecha.value = hoy;
+  if (g.vac) {
+    vac.ingreso.value = g.vac.ingreso || ""; vac.anio.value = g.vac.anio || ""; vac.sueldo.value = g.vac.sueldo || "";
+    vac.reales.value = g.vac.reales || "";
+  }
+  if (!vac.anio.value) vac.anio.value = String(new Date().getFullYear());
+  if (!vac.ingreso.value && liq.ingreso.value) vac.ingreso.value = liq.ingreso.value;
+  if (!vac.sueldo.value && liq.sueldo.value) vac.sueldo.value = liq.sueldo.value;
+  if (!sac.sueldo.value && liq.sueldo.value) sac.sueldo.value = liq.sueldo.value;
+  calcularLiq(); calcularSac(); calcularVac();
+  irA(g.tab && document.getElementById(g.tab) ? g.tab : "liquidacion");
+})();
+</script>
+</body>
+</html>

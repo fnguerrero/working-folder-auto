@@ -70,5 +70,14 @@
     "estado": "terminado",
     "probar": "escritos/postgres-desde-sqlserver/",
     "desde": "2026-10-12"
+  },
+  {
+    "slug": "lo-que-te-corresponde",
+    "nombre": "Lo que te corresponde",
+    "categoria": "apps",
+    "descripcion": "Calculadora laboral argentina: liquidación final por despido o renuncia, aguinaldo y vacaciones, con la fórmula de cada concepto y el artículo de la ley.",
+    "estado": "terminado",
+    "probar": "apps/lo-que-te-corresponde/",
+    "desde": "2026-10-13"
   }
 ]

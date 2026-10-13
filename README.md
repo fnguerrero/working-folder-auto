@@ -22,5 +22,6 @@ Trabaja directo sobre `main`. Si algo no te gusta, se mueve a `_archivo/`.
 | Cron en criollo | herramientas | Explica expresiones cron (estándar y Quartz.NET) en castellano, con próximas ejecuciones en hora argentina y snippets de C#. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/herramientas/cron-en-criollo/) |
 | Xilofón | juegos | Ocho láminas que suenan con los dedos, con bichos y canciones que se tocan solas. Para Valentín. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/juegos/xilofon/) |
 | PostgreSQL para los que vienen de SQL Server | escritos | Guía de 17 capítulos de T-SQL a PostgreSQL desde .NET, con todos los ejemplos ejecutados contra Postgres 16. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/escritos/postgres-desde-sqlserver/) |
+| Lo que te corresponde | apps | Liquidación final, aguinaldo y vacaciones según la LCT, con la fórmula de cada concepto y su artículo. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/apps/lo-que-te-corresponde/) |
 
 Las convenciones de estructura y trabajo están en [CLAUDE.md](CLAUDE.md).
