@@ -24,6 +24,8 @@ https://fnguerrero.github.io/working-folder-auto/, así que nunca van datos pers
 - Directo sobre `main`: commit y push, sin PRs. Nunca force push ni reescribir historia.
 - Commits en español y descriptivos, sin `Co-Authored-By` ni menciones a Claude, Anthropic o la IA.
 - Textos en español rioplatense. El contexto es Argentina.
+- Cuando se le indica a Nico un lugar (un issue, una pantalla de GitHub, un proyecto), siempre con la URL completa para que haga clic, nunca "Settings → Pages" a secas.
+- Deploy: `.github/workflows/pages.yml` publica `main` en GitHub Pages en cada push (Source: GitHub Actions). Si el sitio no responde, revisar https://github.com/fnguerrero/working-folder-auto/actions antes de tocar nada.
 
 ## Proyectos web
 
