@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Trece experimentos sobre índices de SQL Server, medidos en lecturas y milisegundos contra un servidor real: heap, clave agrupada, selectividad, cubrientes, orden de columnas, sargabilidad, paginación, filtrados, estadísticas, escritura y columnstore.">
+<title>Índices con el cronómetro en la mano</title>
+<style>
+  :root {
+    --bg: #fbfaf7; --fg: #23201c; --suave: #6b655c; --linea: #e4e0d8; --panel: #f1eee7;
+    --acento: #0f6e8c; --bien: #2e7d32; --mal: #a4373a; --ojo: #b26a00;
+    --codigo-bg: #1e2430; --codigo-fg: #e6e9ef; --ancho: 76ch; --toc: 280px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #15171c; --fg: #e8e6e1; --suave: #a19c93; --linea: #2c3038; --panel: #1d2026;
+      --acento: #5cc3e4; --bien: #7bd389; --mal: #ff8a8d; --ojo: #ffbf5e; --codigo-bg: #0f1218; --codigo-fg: #e6e9ef; }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.6 Georgia, "Times New Roman", "Noto Serif", serif; }
+  a { color: var(--acento); }
+  code, pre, kbd { font-family: ui-monospace, "Cascadia Code", Consolas, "SF Mono", Menlo, monospace; }
+  code { font-size: .88em; background: var(--panel); padding: .1em .35em; border-radius: 5px; overflow-wrap: anywhere; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  h1, h2, h3, h4 { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.2; letter-spacing: -.01em; }
+  h1 { font-size: clamp(1.9rem, 5vw, 2.8rem); margin: .2em 0 .3em; }
+  h2 { font-size: 1.65rem; margin: 2.2em 0 .6em; padding-top: .6em; border-top: 1px solid var(--linea); }
+  h2 small { display: block; color: var(--suave); font-size: .55em; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .3em; }
+  h3 { font-size: 1.2rem; margin: 1.8em 0 .4em; }
+  p, ul, ol { margin: 0 0 1em; }
+  li { margin-bottom: .3em; }
+  .bajada { font-size: 1.15rem; color: var(--suave); font-family: system-ui, sans-serif; }
+  .meta { color: var(--suave); font-size: .9rem; font-family: system-ui, sans-serif; }
+  .marco { display: grid; grid-template-columns: 1fr; gap: 0 40px; max-width: 1200px; margin: 0 auto; padding: 24px 16px 80px; }
+  main { min-width: 0; max-width: 980px; }
+  main p, main ul, main ol, main h1, main h2, main h3, .ojo, .llevo, .bajada { max-width: var(--ancho); }
+  nav.toc { font-family: system-ui, sans-serif; font-size: .92rem; }
+  nav.toc ol { list-style: none; padding: 0; margin: 0; }
+  nav.toc li { margin: 0; }
+  nav.toc a { display: block; padding: 5px 10px; color: var(--suave); text-decoration: none; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--fg); }
+  nav.toc a.activo { color: var(--acento); border-left-color: var(--acento); }
+  nav.toc .num { display: inline-block; width: 2.2ch; color: var(--suave); opacity: .7; }
+  details.toc-movil { border: 1px solid var(--linea); border-radius: 12px; padding: 10px 14px; margin: 0 0 24px; background: var(--panel); }
+  details.toc-movil summary { cursor: pointer; font-weight: 700; font-family: system-ui, sans-serif; }
+  .toc-lateral { display: none; }
+  @media (min-width: 960px) {
+    .marco { grid-template-columns: var(--toc) minmax(0, 1fr); }
+    .toc-lateral { display: block; position: sticky; top: 16px; align-self: start; max-height: calc(100vh - 32px); overflow: auto; padding-right: 6px; }
+    details.toc-movil { display: none; }
+  }
+  pre { position: relative; margin: 0 0 1em; padding: 14px 16px; border-radius: 12px; background: var(--codigo-bg); color: var(--codigo-fg); font-size: .84rem; line-height: 1.5; overflow: auto; tab-size: 4; max-width: 100%; }
+  pre .copiar { position: absolute; top: 6px; right: 6px; font: 600 .72rem system-ui, sans-serif; background: rgba(255,255,255,.12); color: var(--codigo-fg); border: 0; border-radius: 6px; padding: 4px 8px; cursor: pointer; }
+  pre .copiar:hover { background: rgba(255,255,255,.22); }
+  .tabla { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 0 1.2em; border: 1px solid var(--linea); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; font: .9rem/1.4 system-ui, sans-serif; min-width: 520px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--linea); vertical-align: top; }
+  th { background: var(--panel); color: var(--suave); font-weight: 600; font-size: .8rem; letter-spacing: .03em; text-transform: uppercase; }
+  tr:last-child td { border-bottom: 0; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td code { font-size: .82em; }
+  .bien { color: var(--bien); font-weight: 700; } .mal { color: var(--mal); font-weight: 700; }
+  .ojo { border-left: 4px solid var(--ojo); background: var(--panel); padding: 10px 14px; border-radius: 0 10px 10px 0; margin: 0 0 1.2em; font-size: .97em; }
+  .ojo b:first-child { font-family: system-ui, sans-serif; }
+  .llevo { border: 1px solid var(--linea); border-radius: 12px; padding: 12px 16px; margin: 1.2em 0; background: var(--panel); }
+  .llevo h4 { margin: 0 0 .4em; font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; color: var(--suave); }
+  .llevo ul { margin: 0; padding-left: 20px; }
+  .llevo li { margin-bottom: .25em; }
+  .barra { display: inline-block; height: .7em; background: var(--acento); border-radius: 3px; vertical-align: middle; margin-right: 6px; opacity: .8; }
+  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 999px; font: .9rem system-ui, sans-serif; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .toast.visible { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="marco">
+<nav class="toc toc-lateral" aria-label="Índice"><ol id="toc-lateral"></ol></nav>
+<main>
+<p class="meta"><a href="../../">← Volver a la vitrina</a></p>
+<h1>Índices con el cronómetro en la mano</h1>
+<p class="bajada">Trece experimentos sobre índices de SQL Server, medidos en páginas leídas y milisegundos contra un servidor de verdad. Para gente que escribe consultas desde .NET y quiere saber qué pasa del otro lado.</p>
+<p class="meta">SQL Server 2022 (Developer, Linux, 4 CPU) · base de ejemplo «Tienda»: 400.000 pedidos, 1,2 millones de ítems, 50.000 clientes · todos los números salen de <a href="resultados.json">resultados.json</a>, generado con <a href="experimentos.sql">experimentos.sql</a>. Si querés ver cualquiera de estos planes explicado, está <a href="../../herramientas/plan-en-criollo/">Plan en criollo</a>.</p>
+
+<details class="toc-movil"><summary>Índice</summary><nav class="toc"><ol id="toc-movil"></ol></nav></details>
+
+<h2 id="intro"><small>Antes de empezar</small>Por qué contar páginas y no segundos</h2>
+<p>Cuando una consulta tarda, lo primero que uno mira es cuánto tarda. Es lo peor que se puede mirar: el tiempo depende de si los datos estaban en memoria, de qué más corría en ese momento, de la red, del cliente que consume las filas. La misma consulta da 20 ms y después 300 ms sin que nada haya cambiado en ella.</p>
+<p>Lo que sí es estable es <b>cuántas páginas de 8 KB tuvo que leer</b> el motor para contestar. SQL Server lo llama <i>lecturas lógicas</i> (logical reads) y lo informa con <code>SET STATISTICS IO ON</code> o dentro del plan de ejecución real. Una consulta que lee 19 páginas es rápida en cualquier servidor; una que lee 300.000 es lenta en cualquier servidor, aunque hoy le haya tocado todo en caché.</p>
+<p>Así que este escrito mide en páginas. El tiempo se anota al lado, con la salvedad de que es el de un contenedor sin carga y con todo en memoria: sirve para comparar entre experimentos, no como promesa.</p>
+<h3>La base de ejemplo</h3>
+<p>Una tienda: <code>Clientes</code> (50.000), <code>Productos</code> (2.000), <code>Pedidos</code> (400.000, con un mayorista, el cliente 1, que tiene 100.000) e <code>Items</code> (1.200.000). <code>Pedidos</code> arranca con dos índices: la clave primaria agrupada <code>PK_Pedidos</code> sobre <code>PedidoId</code> y un no agrupado <code>IX_Pedidos_ClienteId</code> sobre <code>ClienteId</code>. Cada capítulo crea lo que necesita y lo borra al final, así que los experimentos son independientes. El script completo, incluida la carga de datos, está en <a href="experimentos.sql"><code>experimentos.sql</code></a>.</p>
+<p>Cada consulta «medida» se corrió dos veces y se anotó la segunda (caché caliente), con <code>SET STATISTICS XML ON</code>, que devuelve el plan real con las lecturas y el tiempo por operador.</p>
+
+<h2 id="paginas"><small>Capítulo 1</small>La página y el cronómetro</h2>
+<p>Empecemos por saber cuánto ocupa lo que vamos a leer. <code>sys.dm_db_index_physical_stats</code> describe el índice agrupado de <code>Pedidos</code> nivel por nivel:</p>
+<div class="tabla"><table>
+<tr><th>Nivel</th><th class="n">Páginas</th><th class="n">Registros</th><th class="n">Bytes por registro</th><th class="n">Lleno</th></tr>
+<tr><td>0 (hojas: las filas)</td><td class="n">10.001</td><td class="n">400.000</td><td class="n">199</td><td class="n">99,3 %</td></tr>
+<tr><td>1 (intermedio)</td><td class="n">36</td><td class="n">10.001</td><td class="n">11</td><td class="n">44,6 %</td></tr>
+<tr><td>2 (raíz)</td><td class="n">1</td><td class="n">36</td><td class="n">11</td><td class="n">5,8 %</td></tr>
+</table></div>
+<p>Un árbol de tres niveles: una raíz, 36 páginas intermedias y 10.001 hojas donde viven las 400.000 filas, a 199 bytes y 40 filas por página. De acá sale un número que vamos a usar todo el tiempo: <b>llegar a una fila por su clave cuesta 3 lecturas</b> (raíz, intermedio, hoja). Y otro: <b>leer la tabla entera cuesta unas 10.000</b>.</p>
+<pre><code>SELECT SUM(Total) FROM dbo.Pedidos;     -- tres veces seguidas</code></pre>
+<div class="tabla"><table>
+<tr><th>Corrida</th><th class="n">Lecturas</th><th class="n">Tiempo</th><th>Plan</th></tr>
+<tr><td>1.ª</td><td class="n">10.471</td><td class="n">17 ms</td><td>Clustered Index Scan</td></tr>
+<tr><td>2.ª</td><td class="n">10.471</td><td class="n">16 ms</td><td>Clustered Index Scan</td></tr>
+<tr><td>3.ª</td><td class="n">10.471</td><td class="n">18 ms</td><td>Clustered Index Scan</td></tr>
+</table></div>
+<p>Las lecturas no se mueven; el tiempo baila. Y una sorpresa chica: <code>SELECT COUNT(*)</code> sobre la misma tabla lee <b>700</b> páginas, no 10.471. El motor no cuenta sobre la tabla sino sobre el índice más angosto que tenga (<code>IX_Pedidos_ClienteId</code>, 704 páginas), porque cualquier índice tiene exactamente una entrada por fila. Primera regla: <b>cuanto menos bytes por fila tiene lo que se lee, menos páginas hay que leer</b>. Todo lo que sigue es variaciones de eso.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Medí en lecturas lógicas, no en milisegundos. Es lo que se puede comparar antes y después de un cambio.</li>
+<li>Una fila por clave: 3 lecturas. La tabla entera: una lectura por página (~10.000 acá).</li>
+<li>El motor elige el índice más chico que tenga las columnas que hacen falta.</li>
+</ul></div>
+
+<h2 id="heap"><small>Capítulo 2</small>Heap o índice agrupado</h2>
+<p>Una tabla sin índice agrupado es un <i>heap</i>: las filas están donde cayeron. Copiamos <code>Pedidos</code> a un heap con <code>SELECT * INTO dbo.PedidosHeap</code> y buscamos un pedido por su id en las dos:</p>
+<pre><code>SELECT PedidoId, Total FROM dbo.PedidosHeap WHERE PedidoId = 123456;
+SELECT PedidoId, Total FROM dbo.Pedidos     WHERE PedidoId = 123456;</code></pre>
+<div class="tabla"><table>
+<tr><th>Tabla</th><th class="n">Lecturas</th><th class="n">Tiempo</th><th>Plan</th></tr>
+<tr><td>Heap</td><td class="n mal">10.005</td><td class="n">17 ms</td><td>Table Scan (paralelo)</td></tr>
+<tr><td>Con índice agrupado</td><td class="n bien">3</td><td class="n">0 ms</td><td>Clustered Index Seek</td></tr>
+</table></div>
+<p>Sin índice, el único modo de encontrar un id es leer todo. Esto es lo que pasa en cada tabla «temporal» o de staging que se crea sin clave y después se consulta por un campo.</p>
+<p>Ahora le creamos al heap un índice no agrupado sobre <code>ClienteId</code>, como el que tiene <code>Pedidos</code>, y buscamos los pedidos de un cliente con 5:</p>
+<div class="tabla"><table>
+<tr><th>Tabla</th><th class="n">Lecturas</th><th>Plan</th><th class="n">Páginas del índice</th></tr>
+<tr><td>Heap</td><td class="n">8</td><td>Index Seek + <b>RID Lookup</b> ×5</td><td class="n">902</td></tr>
+<tr><td>Con índice agrupado</td><td class="n">19</td><td>Index Seek + <b>Key Lookup</b> ×5</td><td class="n">704</td></tr>
+</table></div>
+<p>Dos cosas honestas. Primera: el RID Lookup es <i>más barato</i> por fila que el Key Lookup (1 lectura contra 3), porque el índice del heap guarda la dirección física de la fila y no hay que bajar por un árbol. Segunda: el índice sobre el heap es un 28 % más grande, porque esa dirección (RID) ocupa 8 bytes y el <code>int</code> de la clave agrupada 4.</p>
+<p>¿Entonces por qué todo el mundo recomienda índice agrupado? Porque el heap no tiene orden: no sirve para rangos, para <code>ORDER BY</code>, para <code>TOP</code>, ni para que el optimizador sepa dónde empieza y termina nada; porque las actualizaciones que agrandan una fila la mudan y dejan un «forwarded record» que cuesta una lectura extra para siempre; y porque, como vimos arriba, cualquier búsqueda por un campo sin índice es la tabla entera. El RID Lookup barato es el premio consuelo.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Toda tabla que se consulte por algo necesita un índice agrupado. Las tablas de staging y las temporales también, si se las va a buscar por un campo.</li>
+<li>Un heap no es «más rápido para insertar» en ningún escenario que te importe desde una aplicación.</li>
+</ul></div>
+
+<h2 id="clave"><small>Capítulo 3</small>La clave agrupada viaja en todos los índices</h2>
+<p>Cada entrada de un índice no agrupado lleva, además de sus columnas, la clave agrupada completa de la fila: es lo que usa el Key Lookup para llegar a la fila. Si la clave agrupada es ancha, <i>todos</i> los índices engordan. Para verlo, armamos <code>PedidosCodigo</code>: la misma tabla, pero con clave primaria agrupada sobre un código <code>nvarchar(60)</code> del estilo <code>PED-20260914-0123456-4242</code> en lugar del <code>int</code>.</p>
+<div class="tabla"><table>
+<tr><th>Objeto</th><th class="n">Clave int</th><th class="n">Clave nvarchar(60)</th><th class="n">Diferencia</th></tr>
+<tr><td>Índice agrupado (la tabla)</td><td class="n">10.039 páginas</td><td class="n">12.775 páginas</td><td class="n">+27 %</td></tr>
+<tr><td>Índice sobre ClienteId</td><td class="n">704 páginas</td><td class="n mal">3.197 páginas</td><td class="n">×4,5</td></tr>
+<tr><td>Buscar 5 pedidos de un cliente</td><td class="n">19 lecturas</td><td class="n">23 lecturas</td><td class="n">+4</td></tr>
+</table></div>
+<p>El índice sobre <code>ClienteId</code> pasa de 704 a 3.197 páginas sin que cambie su definición: cada entrada carga 50 caracteres de código en vez de 4 bytes. Multiplicá por la cantidad de índices de la tabla y por la cantidad de filas de una tabla de verdad.</p>
+<p>Lo mismo pasa con <code>uniqueidentifier</code> (16 bytes, y además aleatorio: en <a href="../../experimentos/guid-vs-identity/">GUID o identity</a> está medido qué le hace al llenado de páginas) y con claves compuestas de varias columnas. La clave agrupada ideal es angosta, única, creciente y que no cambie: un <code>int</code> o <code>bigint</code> identity casi siempre. El código de negocio va en un índice único aparte.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>La clave agrupada se copia en cada índice no agrupado: elegila angosta.</li>
+<li>Un código, un GUID o una clave compuesta pueden ser la clave primaria «lógica», pero el índice agrupado conviene que sea un entero.</li>
+</ul></div>
+
+<h2 id="selectividad"><small>Capítulo 4</small>Selectividad y el punto de inflexión</h2>
+<p>Un índice sobre una columna no garantiza que se use. <code>Estado</code> tiene cuatro valores con esta distribución:</p>
+<div class="tabla"><table>
+<tr><th>Estado</th><th class="n">Filas</th><th class="n">Porcentaje</th></tr>
+<tr><td>1</td><td class="n">194.073</td><td class="n">48,5 %</td></tr>
+<tr><td>2</td><td class="n">194.104</td><td class="n">48,5 %</td></tr>
+<tr><td>3</td><td class="n">3.989</td><td class="n">1,0 %</td></tr>
+<tr><td>4</td><td class="n">7.834</td><td class="n">2,0 %</td></tr>
+</table></div>
+<p>Creamos <code>IX_Pedidos_Estado</code> sobre <code>Estado</code> y pedimos <code>PedidoId, Total</code> por estado. Como el índice no tiene <code>Total</code>, usarlo implica un Key Lookup por fila. Con hints forzamos cada camino para ver qué cuesta:</p>
+<pre><code>SELECT PedidoId, Total FROM dbo.Pedidos WHERE Estado = 3;                     -- lo que elige el optimizador
+SELECT PedidoId, Total FROM dbo.Pedidos WITH (FORCESEEK) WHERE Estado = 3;    -- obligado a usar el índice
+SELECT PedidoId, Total FROM dbo.Pedidos WITH (FORCESCAN) WHERE Estado = 3;    -- obligado a leer todo</code></pre>
+<div class="tabla"><table>
+<tr><th>Filtro</th><th>Camino</th><th class="n">Lecturas</th><th class="n">Tiempo</th><th>Plan</th></tr>
+<tr><td rowspan="2">Estado = 3 (1 %, 3.989 filas)</td><td>Lo que eligió</td><td class="n">10.544</td><td class="n">20 ms</td><td>Clustered Index Scan</td></tr>
+<tr><td>Forzando el índice</td><td class="n">11.460</td><td class="n">12 ms</td><td>Index Seek + Key Lookup ×3.989</td></tr>
+<tr><td rowspan="2">Estado = 1 (48 %, 194.073 filas)</td><td>Lo que eligió</td><td class="n">10.039</td><td class="n">109 ms</td><td>Clustered Index Scan</td></tr>
+<tr><td>Forzando el índice</td><td class="n mal">558.165</td><td class="n">249 ms</td><td>Index Seek + Key Lookup ×194.073</td></tr>
+<tr><td rowspan="2">ClienteId = 4242 (5 filas)</td><td>Lo que eligió</td><td class="n bien">19</td><td class="n">0 ms</td><td>Index Seek + Key Lookup ×5</td></tr>
+<tr><td>Forzando leer todo</td><td class="n">10.544</td><td class="n">16 ms</td><td>Clustered Index Scan</td></tr>
+</table></div>
+<p>Con el 1 % de las filas, el optimizador prefirió leer toda la tabla, y tenía razón por poco: 3.989 lookups a 3 lecturas cada uno son 11.460, más que las 10.544 del recorrido. Con el 48 % ni se discute: 558.165 lecturas, 55 veces la tabla. Con 5 filas, el índice gana por 500 a 1.</p>
+<p>Ese es el <b>punto de inflexión</b> (tipping point): como cada lookup cuesta más o menos lo que cuesta leer una página entera, el índice deja de convenir cuando la cantidad de filas que devuelve se acerca a la cantidad de páginas de la tabla; en la práctica, entre el 0,5 % y el 2 % de las filas. No depende de la cantidad de valores distintos de la columna, depende de cuántas filas devuelve <i>esta</i> consulta. Un índice sobre <code>Estado</code> sirve para buscar los pendientes (1 %) y no sirve para buscar los entregados (48 %), y las dos consultas pueden ser la misma con otro parámetro. Lo que anuló al índice no fue la columna: fue el lookup. Y eso tiene arreglo.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Un índice que obliga a buscar el resto de la fila deja de servir cerca del 1 % de las filas.</li>
+<li>Si el optimizador elige un scan teniendo un índice, antes de forzarlo con hints mirá cuántas filas devuelve el filtro.</li>
+</ul></div>
+
+<h2 id="cubriente"><small>Capítulo 5</small>El índice cubriente</h2>
+<p>El problema del capítulo anterior es el viaje a la tabla por cada fila. Si el índice tiene todas las columnas que pide la consulta, no hay viaje: el índice la <i>cubre</i>. Las columnas que no se usan para buscar van en <code>INCLUDE</code>, que las guarda solo en las hojas y no las mete en el árbol.</p>
+<pre><code>-- Antes: solo IX_Pedidos_ClienteId (ClienteId)
+SELECT PedidoId, Fecha, Estado, Total FROM dbo.Pedidos WHERE ClienteId = 1;      -- el mayorista, 100.000 pedidos
+
+CREATE INDEX IX_Pedidos_ClienteId_Cub ON dbo.Pedidos (ClienteId) INCLUDE (Fecha, Estado, Total);</code></pre>
+<div class="tabla"><table>
+<tr><th>Consulta</th><th>Índice</th><th class="n">Lecturas</th><th class="n">Tiempo</th><th>Plan</th></tr>
+<tr><td rowspan="3">ClienteId = 1 (100.000 filas)</td><td>Sin cubrir, forzando el índice</td><td class="n mal">287.633</td><td class="n">154 ms</td><td>Index Seek + Key Lookup ×100.000</td></tr>
+<tr><td>Sin cubrir, lo que eligió</td><td class="n">10.544</td><td class="n">80 ms</td><td>Clustered Index Scan</td></tr>
+<tr><td>Cubriente</td><td class="n bien">375</td><td class="n">38 ms</td><td>Index Seek, nada más</td></tr>
+<tr><td rowspan="2">ClienteId = 4242 (5 filas)</td><td>Sin cubrir</td><td class="n">19</td><td class="n">0 ms</td><td>Index Seek + Key Lookup ×5</td></tr>
+<tr><td>Cubriente</td><td class="n bien">3</td><td class="n">0 ms</td><td>Index Seek</td></tr>
+<tr><td>SELECT * ... ClienteId = 4242</td><td>Cubriente (pero pide todo)</td><td class="n">18</td><td class="n">0 ms</td><td>Index Seek + Key Lookup ×5</td></tr>
+</table></div>
+<p>Para el mayorista, el índice cubriente lee 375 páginas: 28 veces menos que el recorrido que el optimizador había elegido y 767 veces menos que el índice sin cubrir. Y ya no hay punto de inflexión: el índice sirve para 5 filas y para 100.000, porque cada fila está en el índice completa y contigua.</p>
+<p>La última fila de la tabla es la trampa de siempre: <code>SELECT *</code> pide <code>Observaciones</code>, que no está en el índice, y vuelve el Key Lookup. Un índice cubriente cubre <i>una lista de columnas</i>; cada columna de más en el SELECT puede romperlo. Es el argumento técnico contra <code>SELECT *</code> y contra cargar entidades enteras cuando se necesitan tres campos (en EF Core, <code>.Select(p => new { p.PedidoId, p.Fecha, p.Total })</code> en lugar de traer el <code>Pedido</code>).</p>
+<p>El costo: el índice pasó de 704 a 1.499 páginas (las hojas ahora llevan tres columnas más) y cada INSERT y cada UPDATE de esas columnas lo mantiene. Capítulo 11.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Si una consulta importa, su índice debería cubrirla: columnas del WHERE en la clave, las del SELECT en INCLUDE.</li>
+<li>Pedí solo las columnas que usás. <code>SELECT *</code> y las entidades completas desarman el índice cubriente.</li>
+<li>El índice cubriente elimina el punto de inflexión del capítulo 4.</li>
+</ul></div>
+
+<h2 id="orden"><small>Capítulo 6</small>El orden de las columnas</h2>
+<p>Un índice sobre <code>(A, B)</code> está ordenado por A y, dentro de cada A, por B. Como una guía telefónica por apellido y nombre: sirve para buscar por apellido, o por apellido y nombre, pero no para buscar por nombre solo. Para la consulta «pedidos pendientes desde junio» creamos los dos órdenes posibles, con las mismas columnas incluidas:</p>
+<pre><code>CREATE INDEX IX_EF ON dbo.Pedidos (Estado, Fecha) INCLUDE (ClienteId, Total);
+CREATE INDEX IX_FE ON dbo.Pedidos (Fecha, Estado) INCLUDE (ClienteId, Total);
+
+SELECT PedidoId, ClienteId, Fecha, Total FROM dbo.Pedidos WHERE Estado = 3 AND Fecha >= '2026-06-01';</code></pre>
+<div class="tabla"><table>
+<tr><th>Filtro</th><th>Índice</th><th class="n">Lecturas</th><th>Plan</th></tr>
+<tr><td rowspan="2">Estado = 3 AND Fecha >= junio (605 filas)</td><td>(Estado, Fecha)</td><td class="n bien">6</td><td>Index Seek: va al estado 3, y dentro, desde junio</td></tr>
+<tr><td>(Fecha, Estado)</td><td class="n">251</td><td>Index Seek desde junio, y filtra el estado fila por fila</td></tr>
+<tr><td rowspan="2">Solo Fecha >= 15 de septiembre (8.760 filas)</td><td>(Estado, Fecha)</td><td class="n mal">1.495</td><td>Index <b>Scan</b>: Fecha no es la primera columna</td></tr>
+<tr><td>(Fecha, Estado)</td><td class="n bien">37</td><td>Index Seek</td></tr>
+<tr><td rowspan="2">Solo Estado = 3 (3.989 filas)</td><td>(Estado, Fecha)</td><td class="n bien">20</td><td>Index Seek</td></tr>
+<tr><td>(Fecha, Estado)</td><td class="n mal">1.496</td><td>Index Scan</td></tr>
+</table></div>
+<p>Para la consulta completa, <code>(Estado, Fecha)</code> lee 6 páginas y <code>(Fecha, Estado)</code> 251: con la igualdad primero, el rango queda contiguo; con el rango primero, el motor entra en junio y tiene que mirar el estado de cada pedido desde entonces. La regla: <b>primero las columnas de igualdad, después la de rango</b>; y de las de igualdad, primero la más selectiva si las consultas varían.</p>
+<p>Las otras cuatro filas muestran el otro lado: cada índice solo sirve para buscar si el filtro incluye su <i>primera</i> columna. Cuando no, el motor lo recorre entero (1.495 lecturas, igual que la tabla pero más chico) o lo ignora. Un índice sobre <code>(Estado, Fecha)</code> no reemplaza a uno sobre <code>(Fecha)</code>.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Igualdad antes que rango. <code>WHERE Estado = @e AND Fecha >= @f</code> quiere <code>(Estado, Fecha)</code>.</li>
+<li>La primera columna del índice tiene que estar en el WHERE; si no, el índice no busca.</li>
+<li>Antes de crear un índice, mirá los que ya existen: a veces alcanza con agregar una columna al final o en INCLUDE.</li>
+</ul></div>
+
+<h2 id="sargable"><small>Capítulo 7</small>Sargabilidad: cómo anular un índice sin querer</h2>
+<p>Un predicado es «sargable» (de <i>search argument</i>) cuando el motor puede usarlo para ir directo a un rango del índice. Se rompe cuando la columna no queda sola de un lado de la comparación. Con <code>IX_Pedidos_Fecha (Fecha) INCLUDE (Total)</code>, <code>IX_Pedidos_Total (Total)</code> y el <code>IX_Clientes_Email (Email)</code> que ya existía:</p>
+<div class="tabla"><table>
+<tr><th>Lo que se escribe</th><th class="n">Lecturas</th><th>Plan</th></tr>
+<tr><td><code>WHERE YEAR(Fecha) = 2026 AND MONTH(Fecha) = 9</code></td><td class="n mal">1.246</td><td>Index Scan: lee el índice entero y calcula YEAR y MONTH para cada fila</td></tr>
+<tr><td><code>WHERE Fecha >= '2026-09-01' AND Fecha < '2026-10-01'</code></td><td class="n bien">55</td><td>Index Seek</td></tr>
+<tr><td><code>WHERE CAST(Fecha AS date) = '2026-09-15'</code></td><td class="n">7</td><td>Index Seek (ver nota)</td></tr>
+<tr><td><code>WHERE Fecha >= '2026-09-15' AND Fecha < '2026-09-16'</code></td><td class="n bien">5</td><td>Index Seek</td></tr>
+<tr><td><code>WHERE Email = N'cliente777@ejemplo.com.ar'</code> (columna varchar, literal nvarchar)</td><td class="n mal">262</td><td>Index Scan + aviso de conversión implícita</td></tr>
+<tr><td><code>WHERE Email = 'cliente777@ejemplo.com.ar'</code></td><td class="n bien">5</td><td>Index Seek</td></tr>
+<tr><td><code>WHERE Email LIKE 'cliente777%'</code></td><td class="n bien">25</td><td>Index Seek (prefijo: es un rango)</td></tr>
+<tr><td><code>WHERE Email LIKE '%777@%'</code></td><td class="n mal">360</td><td>Index Scan</td></tr>
+<tr><td><code>WHERE Total * 1.21 > 6000</code></td><td class="n mal">946</td><td>Index Scan</td></tr>
+<tr><td><code>WHERE Total > 6000 / 1.21</code></td><td class="n bien">12</td><td>Index Seek</td></tr>
+</table></div>
+<p>Cuatro trampas, todas con el mismo arreglo: dejar la columna sola y mover la operación al otro lado. Las fechas se filtran por rango semiabierto (<code>>=</code> inicio, <code>&lt;</code> fin), nunca por <code>YEAR()</code>, <code>MONTH()</code> ni <code>BETWEEN</code> con horas. Los cálculos se hacen sobre el parámetro, no sobre la columna. El <code>LIKE</code> solo busca si el patrón empieza con texto fijo; «contiene» recorre todo (para eso existe Full-Text Search, o una columna normalizada).</p>
+<p class="ojo"><b>Nota sobre CAST(Fecha AS date).</b> Esa fila dio 7 lecturas y un seek: SQL Server sabe convertir <code>CAST(col AS date) = @d</code> en un rango. Pero estimó 1 fila donde había 542, porque no tiene estadísticas de la expresión. Con un join al lado, esa estimación errada es la que elige mal el plan. Preferí el rango explícito: anda igual de rápido y estima bien.</p>
+<p class="ojo"><b>La conversión implícita es la trampa de .NET.</b> En C#, <code>string</code> viaja como <code>nvarchar</code> salvo que se diga lo contrario. Si la columna es <code>varchar</code>, el motor convierte <i>la columna</i> al tipo del parámetro (porque <code>nvarchar</code> tiene más precedencia) y el índice deja de servir para buscar: 262 lecturas contra 5, y en una tabla grande es la tabla entera. Arreglos: en Dapper, <code>new DbString { Value = email, IsAnsi = true, Length = 200 }</code>; en EF Core, <code>.IsUnicode(false)</code> o <code>HasColumnType("varchar(200)")</code> en la configuración de la propiedad; en ADO.NET, <code>SqlDbType.VarChar</code>. O usar <code>nvarchar</code> en la columna, que es lo que hace EF por defecto cuando crea el esquema.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>La columna sola de un lado; funciones y cuentas, del otro.</li>
+<li>Fechas: <code>>= desde AND &lt; hasta</code>. Nunca <code>YEAR()</code>, <code>MONTH()</code> ni <code>CAST</code> sobre la columna.</li>
+<li>Si la columna es <code>varchar</code>, el parámetro tiene que ser <code>varchar</code>. Buscá «CONVERT_IMPLICIT» en los planes.</li>
+<li><code>LIKE 'algo%'</code> usa el índice; <code>LIKE '%algo%'</code> no.</li>
+</ul></div>
+
+<h2 id="paginacion"><small>Capítulo 8</small>ORDER BY, TOP y paginación</h2>
+<p>Un índice también es un orden. «Los últimos 50 pedidos» sin índice sobre <code>Fecha</code> obliga a leer y ordenar los 400.000 para quedarse con 50; con índice, se leen 50 desde el final:</p>
+<pre><code>SELECT TOP (50) PedidoId, Fecha, Total FROM dbo.Pedidos ORDER BY Fecha DESC;</code></pre>
+<div class="tabla"><table>
+<tr><th>Situación</th><th class="n">Lecturas</th><th class="n">Tiempo</th><th>Plan</th></tr>
+<tr><td>Sin índice sobre Fecha</td><td class="n mal">10.544</td><td class="n">37 ms</td><td>Clustered Index Scan → Sort (Top N) → Top</td></tr>
+<tr><td>Con IX_Pedidos_Fecha (Fecha) INCLUDE (Total)</td><td class="n bien">3</td><td class="n">0 ms</td><td>Index Scan hacia atrás, 50 filas → Top</td></tr>
+</table></div>
+<p>Ahora paginemos esa lista con <code>OFFSET … FETCH</code>, que es lo que generan EF Core (<code>Skip/Take</code>) y casi todas las grillas:</p>
+<pre><code>SELECT PedidoId, Fecha, Total FROM dbo.Pedidos
+ORDER BY Fecha DESC, PedidoId DESC
+OFFSET @saltar ROWS FETCH NEXT 50 ROWS ONLY;</code></pre>
+<div class="tabla"><table>
+<tr><th>Página</th><th class="n">Lecturas</th><th class="n">Tiempo</th><th>Qué hizo</th></tr>
+<tr><td>OFFSET 0 (primera)</td><td class="n bien">3</td><td class="n">0 ms</td><td>Leyó 50 filas del índice</td></tr>
+<tr><td>OFFSET 100.000 (página 2.001)</td><td class="n">317</td><td class="n">16 ms</td><td>Leyó 100.050 filas del índice y descartó 100.000</td></tr>
+<tr><td>OFFSET 350.000 (página 7.001)</td><td class="n mal">1.092</td><td class="n">74 ms</td><td>Leyó 350.050 filas y descartó 350.000</td></tr>
+<tr><td>Keyset: <code>WHERE Fecha &lt; @ultimaFecha</code> + TOP 50</td><td class="n bien">3</td><td class="n">0 ms</td><td>Index Seek al punto exacto, 50 filas</td></tr>
+</table></div>
+<p><code>OFFSET</code> no salta: lee y tira. Cada página es más cara que la anterior, y con un join o sin índice el costo se multiplica. La alternativa es la <b>paginación por clave</b> (keyset o «seek pagination»): en lugar de «saltá 350.000», «dame los 50 siguientes a la última fecha que mostré». El costo es constante en cualquier página. Se pierde el «ir a la página 7.001», que nadie usa; se gana que la página 7.001 no tumbe el servidor.</p>
+<pre><code>-- Primera página
+SELECT TOP (50) PedidoId, Fecha, Total FROM dbo.Pedidos ORDER BY Fecha DESC, PedidoId DESC;
+-- Siguientes: con la (Fecha, PedidoId) de la última fila mostrada
+SELECT TOP (50) PedidoId, Fecha, Total FROM dbo.Pedidos
+WHERE Fecha &lt; @ultimaFecha OR (Fecha = @ultimaFecha AND PedidoId &lt; @ultimoId)
+ORDER BY Fecha DESC, PedidoId DESC;</code></pre>
+<p>En EF Core es <code>.Where(p => p.Fecha &lt; ultimaFecha).OrderByDescending(p => p.Fecha).ThenByDescending(p => p.PedidoId).Take(50)</code>. El índice tiene que coincidir con el <code>ORDER BY</code> completo, incluida la columna de desempate.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Un índice cuyo orden coincide con el ORDER BY hace desaparecer el Sort y el TOP lee solo lo que devuelve.</li>
+<li>OFFSET lee todo lo que salta. Para listas largas, paginación por clave.</li>
+<li>El ORDER BY de una paginación necesita desempate (la clave) para ser determinista.</li>
+</ul></div>
+
+<h2 id="filtrados"><small>Capítulo 9</small>Índices filtrados y la trampa de los parámetros</h2>
+<p>Si la consulta de siempre es «pendientes desde tal fecha» y los pendientes son el 1 %, no hace falta indexar el 99 % restante. Un índice con <code>WHERE</code> solo guarda las filas que cumplen la condición:</p>
+<pre><code>CREATE INDEX IX_Pedidos_Pendientes ON dbo.Pedidos (Fecha) INCLUDE (ClienteId, Total) WHERE Estado = 3;</code></pre>
+<div class="tabla"><table>
+<tr><th>Índice</th><th class="n">Filas</th><th class="n">Páginas</th></tr>
+<tr><td>IX_Pedidos_Fecha (Fecha) INCLUDE (Total), completo</td><td class="n">400.000</td><td class="n">1.250</td></tr>
+<tr><td>IX_Pedidos_Pendientes, filtrado por Estado = 3</td><td class="n">3.989</td><td class="n bien">22</td></tr>
+</table></div>
+<p>Cincuenta y siete veces más chico, más barato de mantener (una inserción con estado 1 ni lo toca) y con estadísticas propias sobre la porción que importa. Ahora la trampa:</p>
+<div class="tabla"><table>
+<tr><th>Consulta</th><th class="n">Lecturas</th><th>Plan</th></tr>
+<tr><td><code>WHERE Estado = 3 AND Fecha >= '2026-06-01'</code> (literales)</td><td class="n bien">5</td><td>Index Seek sobre el filtrado</td></tr>
+<tr><td><code>WHERE Estado = @e AND Fecha >= @f</code> con <code>@e = 3</code> (sp_executesql)</td><td class="n mal">10.544</td><td>Clustered Index Scan, con el aviso <i>UnmatchedIndexes</i></td></tr>
+<tr><td><code>WHERE Estado = 3 AND Fecha >= @f</code> (solo la fecha parametrizada)</td><td class="n bien">5</td><td>Index Seek sobre el filtrado</td></tr>
+</table></div>
+<p>Con <code>Estado</code> como parámetro, el índice filtrado no se usa. El plan se compila una vez y se reutiliza con cualquier valor de <code>@e</code>; como el índice solo tiene el estado 3, un plan que lo use sería incorrecto para <code>@e = 1</code>, y el optimizador lo descarta. Lo avisa en el plan con <code>UnmatchedIndexes</code>. Desde Dapper o EF Core, donde todo lo que viene de una variable de C# se parametriza, esto pasa sin que nadie lo note.</p>
+<p>Los arreglos: escribir la condición del filtro como literal en el SQL (en EF, <code>.Where(p => p.Estado == 3)</code> con la constante en el código, no en una variable; o una consulta distinta para pendientes); <code>OPTION (RECOMPILE)</code>, que compila con el valor real cada vez; o en un procedimiento, <code>IF @e = 3</code> con la consulta literal adentro.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Índice filtrado para el subconjunto chico que se consulta siempre: pendientes, activos, no borrados.</li>
+<li>La columna del filtro tiene que aparecer como literal en la consulta, o el índice no se usa. Buscá «UnmatchedIndexes» en el plan.</li>
+</ul></div>
+
+<h2 id="estadisticas"><small>Capítulo 10</small>Estadísticas, variables y parámetros</h2>
+<p>El optimizador no mira los datos: mira un resumen de los datos, las <b>estadísticas</b>, y con eso decide. Para <code>IX_Pedidos_ClienteId</code>, <code>DBCC SHOW_STATISTICS</code> muestra un histograma de hasta 200 escalones; estos son los primeros:</p>
+<div class="tabla"><table>
+<tr><th class="n">RANGE_HI_KEY</th><th class="n">EQ_ROWS</th><th class="n">RANGE_ROWS</th><th class="n">AVG_RANGE_ROWS</th><th>Se lee como</th></tr>
+<tr><td class="n">1</td><td class="n">100.000</td><td class="n">0</td><td class="n">1</td><td>El cliente 1 tiene exactamente 100.000 pedidos</td></tr>
+<tr><td class="n">138</td><td class="n">14</td><td class="n">798</td><td class="n">5,87</td><td>Entre el 2 y el 137 hay 798 pedidos, unos 5,9 por cliente; el 138 tiene 14</td></tr>
+<tr><td class="n">430</td><td class="n">14</td><td class="n">1.756</td><td class="n">6,03</td><td>Entre el 139 y el 429, unos 6 por cliente</td></tr>
+<tr><td colspan="5">… y así hasta el cliente 50.000. Densidad general: 0,00002 (1 / 49.870 valores distintos), o sea <b>8 filas</b> por cliente «promedio».</td></tr>
+</table></div>
+<p>Con eso, el optimizador estima y elige. El punto es <i>con qué valor</i> estima, y eso depende de cómo se escribe la consulta:</p>
+<div class="tabla"><table>
+<tr><th>Consulta</th><th class="n">Estimó</th><th class="n">Hubo</th><th class="n">Lecturas</th><th class="n">Tiempo</th><th>Plan</th></tr>
+<tr><td><code>WHERE ClienteId = 1</code> (literal)</td><td class="n">100.000</td><td class="n">100.000</td><td class="n">10.544</td><td class="n">61 ms</td><td>Clustered Index Scan (correcto: 100.000 lookups serían peor)</td></tr>
+<tr><td><code>WHERE ClienteId = 4242</code> (literal)</td><td class="n">6</td><td class="n">5</td><td class="n">19</td><td class="n">0 ms</td><td>Index Seek + Key Lookup ×5</td></tr>
+<tr><td><code>DECLARE @c int = 1; … WHERE ClienteId = @c</code></td><td class="n mal">8</td><td class="n">100.000</td><td class="n mal">300.177</td><td class="n">225 ms</td><td>Index Seek + Key Lookup ×100.000</td></tr>
+<tr><td><code>DECLARE @c int = 4242; … WHERE ClienteId = @c</code></td><td class="n">8</td><td class="n">5</td><td class="n">19</td><td class="n">0 ms</td><td>Index Seek + Key Lookup ×5</td></tr>
+<tr><td>Lo mismo con <code>@c = 1</code> y <code>OPTION (RECOMPILE)</code></td><td class="n">100.000</td><td class="n">100.000</td><td class="n">10.544</td><td class="n">66 ms</td><td>Clustered Index Scan</td></tr>
+</table></div>
+<p>La tercera fila es la que duele. Con una <b>variable local</b>, el optimizador no conoce el valor al compilar (el <code>DECLARE</code> y el <code>SELECT</code> se compilan juntos, antes de ejecutarse) y usa la densidad: 8 filas. Para 8 filas, seek más lookup es perfecto. Para 100.000, son 300.177 lecturas: 28 veces más que el plan correcto. <code>OPTION (RECOMPILE)</code> lo arregla porque compila con el valor ya asignado.</p>
+<p>Con <b>parámetros</b> (un procedimiento almacenado, o <code>sp_executesql</code>, que es lo que mandan Dapper y EF Core) pasa otra cosa: el optimizador <i>sí</i> ve el valor de la primera ejecución y compila el plan para ese valor; el plan queda en caché y las siguientes ejecuciones lo reutilizan con cualquier valor. Si la primera fue el cliente 4242, el mayorista hereda el plan de 5 filas. Es el <i>parameter sniffing</i>, y es la misma tabla de arriba vista desde la caché. En <a href="../../herramientas/plan-en-criollo/">Plan en criollo</a>, el ejemplo «Parameter sniffing con spill» es exactamente eso.</p>
+<p>Los remedios, de menos a más invasivo: <code>OPTION (RECOMPILE)</code> en la consulta puntual (cuesta una compilación por ejecución; para una consulta que corre diez veces por segundo con 2 ms de compilación, es aceptable; para mil, no); <code>OPTION (OPTIMIZE FOR (@c = valor típico))</code> o <code>OPTIMIZE FOR UNKNOWN</code>; separar la consulta en dos cuando hay un caso claramente distinto; o un índice cubriente, que hace que el mismo plan sirva para los dos (capítulo 5: 375 lecturas para 100.000 filas y 3 para 5). SQL Server 2022 suma la optimización de planes sensibles a parámetros, que guarda hasta tres planes por consulta según el rango del valor.</p>
+<p>Y lo básico: las estadísticas se actualizan solas cuando cambia un 20 % de la tabla (menos en tablas grandes, desde 2016), y a mano con <code>UPDATE STATISTICS tabla WITH FULLSCAN</code>. Si el plan estima 1 fila donde hay 100.000 y no hay variables ni parámetros de por medio, lo primero es eso.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Literal: estima exacto. Variable local: estima el promedio. Parámetro: estima con el primer valor y reutiliza.</li>
+<li>Una consulta que a veces vuela y a veces se arrastra, con el mismo texto: parameter sniffing. Compará el valor compilado con el ejecutado en el plan.</li>
+<li>El índice cubriente es el remedio que no tiene efectos secundarios.</li>
+</ul></div>
+
+<h2 id="escribir"><small>Capítulo 11</small>El costo de escribir</h2>
+<p>Cada índice es una copia parcial de la tabla que hay que mantener en cada INSERT, en cada DELETE y en cada UPDATE que toque sus columnas. Insertamos 100.000 pedidos en una tabla vacía con solo la clave primaria, y después en la misma tabla con cinco índices no agrupados (sobre <code>ClienteId</code>, <code>Fecha</code>, <code>Estado</code>, <code>Total</code> y <code>(Estado, Fecha) INCLUDE (ClienteId, Total)</code>):</p>
+<div class="tabla"><table>
+<tr><th>Operación</th><th class="n">Lecturas</th><th class="n">Tiempo</th><th>Plan</th></tr>
+<tr><td>INSERT de 100.000 filas, solo clave primaria</td><td class="n">15.123</td><td class="n bien">214 ms</td><td>Clustered Index Insert</td></tr>
+<tr><td>INSERT de 100.000 filas, con 5 índices más</td><td class="n mal">234.991</td><td class="n mal">1.806 ms</td><td>Clustered Index Insert + 5 × (Table Spool → Sort → Index Insert)</td></tr>
+<tr><td>UPDATE Estado en 10.000 filas (columna con 2 índices)</td><td class="n">254</td><td class="n">123 ms</td><td>Clustered Index Update + mantenimiento de IX3 e IX5</td></tr>
+<tr><td>UPDATE Observaciones en 10.000 filas (sin índices)</td><td class="n">255</td><td class="n bien">21 ms</td><td>Clustered Index Update</td></tr>
+</table></div>
+<p>Ocho veces y media más lento con cinco índices: por cada uno, el motor ordena las 100.000 filas nuevas según su clave y las inserta. El UPDATE lo muestra desde el otro lado: cambiar una columna indexada cuesta seis veces más que cambiar una que no lo está, con la misma cantidad de filas. En espacio, los cinco índices suman 1.189 páginas sobre las 2.511 de la tabla: un 47 % más.</p>
+<p>Esto no es un argumento contra los índices: la tabla de ejemplo sin índices es la que lee 10.000 páginas para encontrar 5 filas. Es un argumento contra los índices <i>que nadie usa</i>, y contra crear uno por cada consulta sin mirar si uno existente ya la cubre con una columna más. Capítulo 13.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Cada índice se paga en cada escritura. Cinco índices, 8× más lento el INSERT masivo.</li>
+<li>Actualizar una columna indexada cuesta mucho más que una que no lo está: ojo con indexar columnas que cambian seguido (<code>UltimaModificacion</code>, contadores).</li>
+<li>Para cargas masivas: cargar primero, indexar después.</li>
+</ul></div>
+
+<h2 id="columnstore"><small>Capítulo 12</small>Columnstore: otro animal</h2>
+<p>Todo lo anterior son índices «de filas»: cada página guarda filas completas. Un índice <b>columnstore</b> guarda cada columna por separado, comprimida, en segmentos de un millón de filas, y el motor procesa de a lotes (batch mode). Está pensado para sumar y agrupar millones de filas, no para buscar una. Sobre <code>Items</code> (1,2 millones):</p>
+<pre><code>CREATE NONCLUSTERED COLUMNSTORE INDEX NCCI_Items ON dbo.Items (PedidoId, ProductoId, Cantidad, PrecioUnitario);
+
+SELECT pr.Categoria, COUNT_BIG(*), SUM(i.Cantidad * i.PrecioUnitario)
+FROM dbo.Items i JOIN dbo.Productos pr ON pr.ProductoId = i.ProductoId
+GROUP BY pr.Categoria;</code></pre>
+<div class="tabla"><table>
+<tr><th>Situación</th><th class="n">Lecturas</th><th class="n">Tiempo</th><th>Plan</th></tr>
+<tr><td>Agregación con índices de filas</td><td class="n">5.319</td><td class="n">53 ms</td><td>Index Scan de 1,2 M filas, 3 Hash Match, paralelo con 4 hilos</td></tr>
+<tr><td>Agregación con el columnstore</td><td class="n">17 (más lecturas de segmentos, que no se cuentan acá)</td><td class="n bien">22 ms</td><td>Columnstore Index Scan en batch mode, serial</td></tr>
+<tr><td>Búsqueda puntual: <code>WHERE PedidoId = 123456</code></td><td class="n">3</td><td class="n">0 ms</td><td>Index Seek sobre el índice de filas de siempre</td></tr>
+</table></div>
+<div class="tabla"><table>
+<tr><th>Índice sobre Items</th><th class="n">Páginas</th></tr>
+<tr><td>Agrupado (la tabla)</td><td class="n">5.662</td></tr>
+<tr><td>IX_Items_PedidoId, de filas, con las mismas 4 columnas</td><td class="n">5.219</td></tr>
+<tr><td>NCCI_Items, columnstore, con las mismas 4 columnas</td><td class="n bien">1.256</td></tr>
+</table></div>
+<p>Con 1,2 millones de filas la diferencia es 2,4× en tiempo y 4× en espacio, y el columnstore lo hizo con un hilo contra cuatro. El experimento es chico a propósito; con decenas de millones de filas la diferencia es de uno o dos órdenes de magnitud, porque la compresión por columna y el batch mode escalan con el volumen. La búsqueda puntual siguió usando el índice de filas: el optimizador elige por consulta, y por eso un columnstore <i>no agrupado</i> convive con los índices normales. Es la forma de tener reportes sobre la misma base transaccional sin armar un data warehouse.</p>
+<p>Lo que no se midió acá: el costo de mantenerlo con muchas inserciones chicas (van a un «deltastore» de filas hasta juntar un millón) y los <code>UPDATE</code>, que en columnstore son un DELETE más un INSERT. Para tablas que se escriben de a una fila todo el día y se consultan por clave, no es la herramienta.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Agregaciones sobre millones de filas: columnstore no agrupado sobre las columnas del reporte.</li>
+<li>Convive con los índices de filas; cada consulta usa el que le conviene.</li>
+<li>No es para buscar una fila ni para tablas con muchas actualizaciones.</li>
+</ul></div>
+
+<h2 id="dmv"><small>Capítulo 13</small>Lo que el servidor sabe de tus índices</h2>
+<p>Después de todos los experimentos le preguntamos al servidor qué registró. Dos vistas, las dos acumuladas desde el último reinicio (o desde que se creó el índice):</p>
+<pre><code>SELECT i.name, u.user_seeks, u.user_scans, u.user_lookups, u.user_updates
+FROM sys.indexes i
+LEFT JOIN sys.dm_db_index_usage_stats u ON u.object_id = i.object_id AND u.index_id = i.index_id AND u.database_id = DB_ID()
+WHERE i.object_id = OBJECT_ID('dbo.Pedidos');</code></pre>
+<div class="tabla"><table>
+<tr><th>Índice</th><th class="n">Seeks</th><th class="n">Scans</th><th class="n">Lookups</th><th class="n">Updates</th><th>Lectura</th></tr>
+<tr><td>PK_Pedidos</td><td class="n">12</td><td class="n">70</td><td class="n">77</td><td class="n">2</td><td>Se recorrió 70 veces y recibió 77 lookups: los capítulos 4, 5 y 10</td></tr>
+<tr><td>IX_Pedidos_ClienteId</td><td class="n">48</td><td class="n">4</td><td class="n">0</td><td class="n">0</td><td>Se usa para buscar. Vale lo que cuesta</td></tr>
+</table></div>
+<p>Un índice con <code>user_updates</code> altos y <code>seeks</code>, <code>scans</code> y <code>lookups</code> en cero durante semanas es un índice que solo cuesta. Antes de borrarlo, dos precauciones: que el servidor lleve bastante tiempo encendido (los contadores se pierden al reiniciar) y que no sea un índice único, que además de buscar está garantizando algo.</p>
+<p>La otra vista es la de <b>índices faltantes</b>: cada vez que el optimizador arma un plan y piensa «con un índice acá sería más barato», lo anota. Es lo que SSMS muestra en verde arriba del plan.</p>
+<pre><code>SELECT d.statement, d.equality_columns, d.inequality_columns, d.included_columns,
+       s.user_seeks, s.avg_user_impact, s.avg_total_user_cost
+FROM sys.dm_db_missing_index_details d
+JOIN sys.dm_db_missing_index_groups g ON g.index_handle = d.index_handle
+JOIN sys.dm_db_missing_index_group_stats s ON s.group_handle = g.index_group_handle
+WHERE d.database_id = DB_ID()
+ORDER BY s.avg_user_impact * s.avg_total_user_cost * s.user_seeks DESC;</code></pre>
+<p>En la base de prueba, al final quedó una sola sugerencia: <code>Clientes</code> por <code>FechaAlta</code> con <code>Nombre</code> incluida, impacto 54 %, pedida una vez. Las de <code>Pedidos</code> se borraron solas cuando se crearon y eliminaron los índices de los capítulos (la vista se limpia cuando cambia el esquema de la tabla). Cómo leerla: el impacto es cuánto bajaría el costo <i>de esa consulta</i>; <code>user_seeks</code> es cuántas veces se pidió; el costo, cuánto pesa la consulta. Un impacto de 95 % en una consulta que corrió una vez no vale un índice; uno de 40 % en una que corre diez mil veces por hora, sí. Y siempre hay que cruzarla con los índices que existen: muchas veces la sugerencia es un índice existente más una columna en INCLUDE, y lo correcto es modificar ese, no crear otro.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li><code>sys.dm_db_index_usage_stats</code> para encontrar índices que solo cuestan.</li>
+<li><code>sys.dm_db_missing_index_details</code> para encontrar los que faltan, ponderando por cuántas veces se pidieron.</li>
+<li>Las sugerencias son por consulta: hay que consolidarlas contra lo que ya existe antes de crear nada.</li>
+</ul></div>
+
+<h2 id="chuleta"><small>Cierre</small>La chuleta</h2>
+<div class="tabla"><table>
+<tr><th>Situación</th><th>Qué hacer</th><th>Capítulo</th></tr>
+<tr><td>Tabla que se consulta por un campo y no tiene índice agrupado</td><td>Ponerle uno, angosto y creciente (int identity)</td><td><a href="#heap">2</a>, <a href="#clave">3</a></td></tr>
+<tr><td>El optimizador no usa un índice que existe</td><td>Mirar cuántas filas devuelve: cerca del 1 % con lookups, prefiere el scan. Cubrir la consulta con INCLUDE</td><td><a href="#selectividad">4</a>, <a href="#cubriente">5</a></td></tr>
+<tr><td>Key Lookup con miles de ejecuciones en el plan</td><td>Agregar las columnas del SELECT al índice con INCLUDE; no pedir columnas de más</td><td><a href="#cubriente">5</a></td></tr>
+<tr><td>Filtro por igualdad y rango</td><td>Índice (igualdad, rango); la primera columna tiene que estar en el WHERE</td><td><a href="#orden">6</a></td></tr>
+<tr><td>Index Scan donde esperabas un Seek</td><td>Buscar funciones sobre la columna, CONVERT_IMPLICIT, LIKE '%…'; dejar la columna sola</td><td><a href="#sargable">7</a></td></tr>
+<tr><td>Columna varchar consultada desde C#</td><td>Mandar el parámetro como varchar (DbString IsAnsi, IsUnicode(false), SqlDbType.VarChar)</td><td><a href="#sargable">7</a></td></tr>
+<tr><td>Lista ordenada, TOP, paginación</td><td>Índice con el orden del ORDER BY; paginar por clave en vez de OFFSET</td><td><a href="#paginacion">8</a></td></tr>
+<tr><td>Consulta siempre sobre un subconjunto chico (pendientes, activos)</td><td>Índice filtrado, con la condición como literal en la consulta</td><td><a href="#filtrados">9</a></td></tr>
+<tr><td>Misma consulta, a veces rápida y a veces lenta</td><td>Parameter sniffing o variable local: RECOMPILE, OPTIMIZE FOR, índice cubriente</td><td><a href="#estadisticas">10</a></td></tr>
+<tr><td>Estimaciones muy distintas de las filas reales, sin parámetros</td><td>UPDATE STATISTICS WITH FULLSCAN</td><td><a href="#estadisticas">10</a></td></tr>
+<tr><td>Inserciones o updates lentos</td><td>Contar los índices; borrar los que no se usan; cargas masivas sin índices y después indexar</td><td><a href="#escribir">11</a>, <a href="#dmv">13</a></td></tr>
+<tr><td>Reportes que agrupan millones de filas</td><td>Columnstore no agrupado sobre las columnas del reporte</td><td><a href="#columnstore">12</a></td></tr>
+</table></div>
+<h3>Para el código .NET</h3>
+<ul>
+<li>Proyectá columnas: <code>.Select(p => new { … })</code> en EF, listas de columnas en Dapper. El índice cubriente depende de eso.</li>
+<li>Tipos: <code>varchar</code> en la base, <code>varchar</code> en el parámetro. En EF Core, <code>IsUnicode(false)</code> o <code>HasColumnType</code> en la configuración de la entidad.</li>
+<li>Fechas por rango: <code>p.Fecha >= desde && p.Fecha &lt; hasta</code>. Nunca <code>p.Fecha.Year == 2026</code> ni <code>p.Fecha.Date == hoy</code>.</li>
+<li>Paginación por clave en listas largas; <code>Skip/Take</code> solo para las primeras páginas.</li>
+<li>Los índices van en las migraciones: <code>HasIndex(p => new { p.Estado, p.Fecha }).IncludeProperties(p => new { p.ClienteId, p.Total }).HasFilter("[Estado] = 3")</code>.</li>
+<li>Cuando una consulta importa, mirá su plan real: <code>SET STATISTICS XML ON</code> y lo pegás en <a href="../../herramientas/plan-en-criollo/">Plan en criollo</a>.</li>
+</ul>
+<h3>Cómo se hizo</h3>
+<p>SQL Server 2022 Developer (16.0.4305) en un contenedor Linux con 4 CPU, base <code>Tienda</code> creada con el script del pie de <a href="experimentos.sql"><code>experimentos.sql</code></a>. Cada consulta se ejecutó desde Node con <code>SET STATISTICS XML ON</code>, se tomó el plan real que devuelve el servidor y de ahí salieron las lecturas lógicas (sumadas sobre todos los operadores), el tiempo (<code>QueryTimeStats</code>) y la forma del plan. Los tamaños vienen de <code>sys.dm_db_partition_stats</code> y <code>sys.dm_db_index_physical_stats</code>. Todo está en <a href="resultados.json"><code>resultados.json</code></a>, tal cual salió. Las cifras de tiempo son de un servidor sin carga y con los datos en memoria: comparalas entre sí, no con tu producción.</p>
+</main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+(function () {
+  "use strict";
+  const secciones = [...document.querySelectorAll("main h2[id]")];
+  const items = secciones.map((h, i) => {
+    const titulo = h.childNodes[h.childNodes.length - 1].textContent.trim();
+    const small = h.querySelector("small") ? h.querySelector("small").textContent.replace("Capítulo ", "") : "";
+    const num = /^\d+$/.test(small) ? small : "";
+    return `<li><a href="#${h.id}" data-id="${h.id}"><span class="num">${num}</span>${titulo}</a></li>`;
+  }).join("");
+  document.getElementById("toc-lateral").innerHTML = items;
+  document.getElementById("toc-movil").innerHTML = items;
+  const enlaces = [...document.querySelectorAll("nav.toc a")];
+  const activar = (id) => enlaces.forEach((a) => a.classList.toggle("activo", a.dataset.id === id));
+  let pendiente = false;
+  const calcular = () => {
+    pendiente = false;
+    let actual = secciones[0].id;
+    for (const s of secciones) { if (s.getBoundingClientRect().top <= 120) actual = s.id; else break; }
+    activar(actual);
+  };
+  window.addEventListener("scroll", () => { if (!pendiente) { pendiente = true; requestAnimationFrame(calcular); } }, { passive: true });
+  window.addEventListener("hashchange", () => setTimeout(calcular, 50));
+  calcular();
+  // Botón copiar en cada bloque de código
+  const toast = document.getElementById("toast");
+  for (const pre of document.querySelectorAll("pre")) {
+    const b = document.createElement("button"); b.type = "button"; b.className = "copiar"; b.textContent = "Copiar";
+    b.addEventListener("click", async () => {
+      const texto = pre.querySelector("code").textContent;
+      try { await navigator.clipboard.writeText(texto); } catch (e) { const ta = document.createElement("textarea"); ta.value = texto; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); } catch (e2) { /* nada */ } ta.remove(); }
+      toast.textContent = "Copiado"; toast.classList.add("visible"); setTimeout(() => toast.classList.remove("visible"), 1500);
+    });
+    pre.appendChild(b);
+  }
+})();
+</script>
+</body>
+</html>

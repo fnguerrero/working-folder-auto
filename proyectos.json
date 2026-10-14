@@ -97,5 +97,14 @@
     "estado": "terminado",
     "probar": "herramientas/plan-en-criollo/",
     "desde": "2026-10-14"
+  },
+  {
+    "slug": "indices-con-cronometro",
+    "nombre": "Índices con el cronómetro en la mano",
+    "categoria": "escritos",
+    "descripcion": "Trece experimentos sobre índices de SQL Server medidos en páginas leídas contra un servidor real: heap, clave agrupada, selectividad, cubrientes, orden de columnas, sargabilidad, paginación, filtrados, estadísticas, escritura y columnstore. Con chuleta y qué cambia en .NET.",
+    "estado": "terminado",
+    "probar": "escritos/indices-con-cronometro/",
+    "desde": "2026-10-14"
   }
 ]

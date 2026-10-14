@@ -1,0 +1,1954 @@
+{
+ "experimentos": {
+  "paginas": {
+   "scan1": [
+    {
+     "lecturas": 10471,
+     "lob": 0,
+     "fisicas": 0,
+     "ms": 17,
+     "cpu": 67,
+     "filas": 1,
+     "filasEst": 1,
+     "costo": 7.66489,
+     "dop": 4,
+     "ops": [
+      "Clustered Index Scan [PK_Pedidos]",
+      "Hash Match",
+      "Compute Scalar",
+      "Parallelism"
+     ],
+     "avisos": [],
+     "indicesFaltantes": []
+    },
+    {
+     "lecturas": 10471,
+     "lob": 0,
+     "fisicas": 0,
+     "ms": 16,
+     "cpu": 60,
+     "filas": 1,
+     "filasEst": 1,
+     "costo": 7.66489,
+     "dop": 4,
+     "ops": [
+      "Clustered Index Scan [PK_Pedidos]",
+      "Hash Match",
+      "Compute Scalar",
+      "Parallelism"
+     ],
+     "avisos": [],
+     "indicesFaltantes": []
+    },
+    {
+     "lecturas": 10471,
+     "lob": 0,
+     "fisicas": 0,
+     "ms": 18,
+     "cpu": 67,
+     "filas": 1,
+     "filasEst": 1,
+     "costo": 7.66489,
+     "dop": 4,
+     "ops": [
+      "Clustered Index Scan [PK_Pedidos]",
+      "Hash Match",
+      "Compute Scalar",
+      "Parallelism"
+     ],
+     "avisos": [],
+     "indicesFaltantes": []
+    }
+   ],
+   "count": {
+    "sql": "SELECT COUNT(*) AS N FROM dbo.Pedidos",
+    "lecturas": 700,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 50,
+    "cpu": 50,
+    "filas": 1,
+    "filasEst": 1,
+    "costo": 1.19736,
+    "dop": 1,
+    "ops": [
+     "Index Scan [IX_Pedidos_ClienteId]",
+     "Stream Aggregate",
+     "Compute Scalar"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "fisico": [
+    {
+     "index_id": 1,
+     "index_level": 0,
+     "page_count": "10001",
+     "record_count": "400000",
+     "avg_record_size_in_bytes": 198.999,
+     "avg_page_space_used_in_percent": 99.29794909809736
+    },
+    {
+     "index_id": 1,
+     "index_level": 1,
+     "page_count": "36",
+     "record_count": "10001",
+     "avg_record_size_in_bytes": 11,
+     "avg_page_space_used_in_percent": 44.59442797133679
+    },
+    {
+     "index_id": 1,
+     "index_level": 2,
+     "page_count": "1",
+     "record_count": "36",
+     "avg_record_size_in_bytes": 11,
+     "avg_page_space_used_in_percent": 5.757351124289597
+    }
+   ],
+   "tamanos": [
+    {
+     "indice": "PK_Pedidos",
+     "tipo": "CLUSTERED",
+     "paginas": "10039",
+     "filas": "400000",
+     "filtrado": false
+    },
+    {
+     "indice": "IX_Pedidos_ClienteId",
+     "tipo": "NONCLUSTERED",
+     "paginas": "704",
+     "filas": "400000",
+     "filtrado": false
+    }
+   ]
+  },
+  "heap": {
+   "heapPk": {
+    "sql": "SELECT PedidoId, Total FROM dbo.PedidosHeap WHERE PedidoId = 123456",
+    "lecturas": 10005,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 17,
+    "cpu": 67,
+    "filas": 1,
+    "filasEst": 1.00141,
+    "costo": 7.75812,
+    "dop": 4,
+    "ops": [
+     "Table Scan",
+     "Parallelism"
+    ],
+    "avisos": [],
+    "indicesFaltantes": [
+     "PedidoId"
+    ]
+   },
+   "clusterPk": {
+    "sql": "SELECT PedidoId, Total FROM dbo.Pedidos WHERE PedidoId = 123456",
+    "lecturas": 3,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 0,
+    "cpu": 0,
+    "filas": 1,
+    "filasEst": 1,
+    "costo": 0.0032831,
+    "dop": 1,
+    "ops": [
+     "Clustered Index Seek [PK_Pedidos]"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "idxHeap": "ok",
+   "heapRid": {
+    "sql": "SELECT PedidoId, Fecha, Total FROM dbo.PedidosHeap WHERE ClienteId = 4242",
+    "lecturas": 8,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 0,
+    "cpu": 0,
+    "filas": 5,
+    "filasEst": 5.92668,
+    "costo": 0.0196432,
+    "dop": 1,
+    "ops": [
+     "Index Seek [IX_PedidosHeap_ClienteId]",
+     "RID Lookup ×5",
+     "Nested Loops"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "clusterKey": {
+    "sql": "SELECT PedidoId, Fecha, Total FROM dbo.Pedidos WHERE ClienteId = 4242",
+    "lecturas": 19,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 0,
+    "cpu": 0,
+    "filas": 5,
+    "filasEst": 5.92668,
+    "costo": 0.0196432,
+    "dop": 1,
+    "ops": [
+     "Index Seek [IX_Pedidos_ClienteId]",
+     "Key Lookup [PK_Pedidos] ×5",
+     "Nested Loops"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "tamanos": [
+    {
+     "indice": null,
+     "tipo": "HEAP",
+     "paginas": "10006",
+     "filas": "400000",
+     "filtrado": false
+    },
+    {
+     "indice": "IX_PedidosHeap_ClienteId",
+     "tipo": "NONCLUSTERED",
+     "paginas": "902",
+     "filas": "400000",
+     "filtrado": false
+    }
+   ]
+  },
+  "claveAncha": {
+   "tamanosInt": [
+    {
+     "indice": "PK_Pedidos",
+     "tipo": "CLUSTERED",
+     "paginas": "10039",
+     "filas": "400000",
+     "filtrado": false
+    },
+    {
+     "indice": "IX_Pedidos_ClienteId",
+     "tipo": "NONCLUSTERED",
+     "paginas": "704",
+     "filas": "400000",
+     "filtrado": false
+    }
+   ],
+   "tamanosCodigo": [
+    {
+     "indice": "PK_PedidosCodigo",
+     "tipo": "CLUSTERED",
+     "paginas": "12775",
+     "filas": "400000",
+     "filtrado": false
+    },
+    {
+     "indice": "IX_PedidosCodigo_ClienteId",
+     "tipo": "NONCLUSTERED",
+     "paginas": "3197",
+     "filas": "400000",
+     "filtrado": false
+    }
+   ],
+   "lookupCodigo": {
+    "sql": "SELECT Codigo, Fecha, Total FROM dbo.PedidosCodigo WHERE ClienteId = 4242",
+    "lecturas": 23,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 0,
+    "cpu": 0,
+    "filas": 5,
+    "filasEst": 5.92668,
+    "costo": 0.0196438,
+    "dop": 1,
+    "ops": [
+     "Index Seek [IX_PedidosCodigo_ClienteId]",
+     "Key Lookup [PK_PedidosCodigo] ×5",
+     "Nested Loops"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "lookupInt": {
+    "sql": "SELECT PedidoId, Fecha, Total FROM dbo.Pedidos WHERE ClienteId = 4242",
+    "lecturas": 19,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 0,
+    "cpu": 0,
+    "filas": 5,
+    "filasEst": 5.92668,
+    "costo": 0.0196432,
+    "dop": 1,
+    "ops": [
+     "Index Seek [IX_Pedidos_ClienteId]",
+     "Key Lookup [PK_Pedidos] ×5",
+     "Nested Loops"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   }
+  },
+  "selectividad": {
+   "dist": [
+    {
+     "Estado": 1,
+     "Filas": 194073,
+     "Porcentaje": 48.52
+    },
+    {
+     "Estado": 2,
+     "Filas": 194104,
+     "Porcentaje": 48.53
+    },
+    {
+     "Estado": 3,
+     "Filas": 3989,
+     "Porcentaje": 1
+    },
+    {
+     "Estado": 4,
+     "Filas": 7834,
+     "Porcentaje": 1.96
+    }
+   ],
+   "e3": {
+    "sql": "SELECT PedidoId, Total FROM dbo.Pedidos WHERE Estado = 3",
+    "lecturas": 10544,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 20,
+    "cpu": 67,
+    "filas": 3989,
+    "filasEst": 3989,
+    "costo": 7.76105,
+    "dop": 4,
+    "ops": [
+     "Clustered Index Scan [PK_Pedidos]",
+     "Parallelism"
+    ],
+    "avisos": [],
+    "indicesFaltantes": [
+     "Estado incl Total"
+    ]
+   },
+   "e3seek": {
+    "sql": "SELECT PedidoId, Total FROM dbo.Pedidos WITH (FORCESEEK) WHERE Estado = 3",
+    "lecturas": 11460,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 12,
+    "cpu": 12,
+    "filas": 3989,
+    "filasEst": 3989,
+    "costo": 10.9362,
+    "dop": 1,
+    "ops": [
+     "Index Seek [IX_Pedidos_Estado]",
+     "Key Lookup [PK_Pedidos] ×3989",
+     "Nested Loops"
+    ],
+    "avisos": [],
+    "indicesFaltantes": [
+     "Estado incl Total"
+    ]
+   },
+   "e3scan": {
+    "sql": "SELECT PedidoId, Total FROM dbo.Pedidos WITH (FORCESCAN) WHERE Estado = 3",
+    "lecturas": 10544,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 18,
+    "cpu": 67,
+    "filas": 3989,
+    "filasEst": 3989,
+    "costo": 7.76105,
+    "dop": 4,
+    "ops": [
+     "Clustered Index Scan [PK_Pedidos]",
+     "Parallelism"
+    ],
+    "avisos": [],
+    "indicesFaltantes": [
+     "Estado incl Total"
+    ]
+   },
+   "e1": {
+    "sql": "SELECT PedidoId, Total FROM dbo.Pedidos WHERE Estado = 1",
+    "lecturas": 10039,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 109,
+    "cpu": 109,
+    "filas": 194073,
+    "filasEst": 194073,
+    "costo": 7.85069,
+    "dop": 1,
+    "ops": [
+     "Clustered Index Scan [PK_Pedidos]"
+    ],
+    "avisos": [],
+    "indicesFaltantes": [
+     "Estado incl Total"
+    ]
+   },
+   "e1seek": {
+    "sql": "SELECT PedidoId, Total FROM dbo.Pedidos WITH (FORCESEEK) WHERE Estado = 1",
+    "lecturas": 558165,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 249,
+    "cpu": 657,
+    "filas": 194073,
+    "filasEst": 194073,
+    "costo": 62.9642,
+    "dop": 4,
+    "ops": [
+     "Index Seek [IX_Pedidos_Estado]",
+     "Key Lookup [PK_Pedidos] ×194073",
+     "Nested Loops",
+     "Parallelism"
+    ],
+    "avisos": [],
+    "indicesFaltantes": [
+     "Estado incl Total"
+    ]
+   },
+   "c4242": {
+    "sql": "SELECT PedidoId, Total FROM dbo.Pedidos WHERE ClienteId = 4242",
+    "lecturas": 19,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 0,
+    "cpu": 0,
+    "filas": 5,
+    "filasEst": 5.92668,
+    "costo": 0.0196432,
+    "dop": 1,
+    "ops": [
+     "Index Seek [IX_Pedidos_ClienteId]",
+     "Key Lookup [PK_Pedidos] ×5",
+     "Nested Loops"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "c4242scan": {
+    "sql": "SELECT PedidoId, Total FROM dbo.Pedidos WITH (FORCESCAN) WHERE ClienteId = 4242",
+    "lecturas": 10544,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 16,
+    "cpu": 62,
+    "filas": 5,
+    "filasEst": 5.92668,
+    "costo": 7.75512,
+    "dop": 4,
+    "ops": [
+     "Clustered Index Scan [PK_Pedidos]",
+     "Parallelism"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   }
+  },
+  "cubriente": {
+   "lookup": {
+    "sql": "SELECT PedidoId, Fecha, Estado, Total FROM dbo.Pedidos WHERE ClienteId = 4242",
+    "lecturas": 19,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 0,
+    "cpu": 0,
+    "filas": 5,
+    "filasEst": 5.92668,
+    "costo": 0.0196432,
+    "dop": 1,
+    "ops": [
+     "Index Seek [IX_Pedidos_ClienteId]",
+     "Key Lookup [PK_Pedidos] ×5",
+     "Nested Loops"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "lookup1": {
+    "sql": "SELECT PedidoId, Fecha, Estado, Total FROM dbo.Pedidos WITH (FORCESEEK) WHERE ClienteId = 1",
+    "lecturas": 287633,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 154,
+    "cpu": 351,
+    "filas": 100000,
+    "filasEst": 100000,
+    "costo": 47.7067,
+    "dop": 4,
+    "ops": [
+     "Index Seek [IX_Pedidos_ClienteId]",
+     "Key Lookup [PK_Pedidos] ×100000",
+     "Nested Loops",
+     "Parallelism"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "lookup1libre": {
+    "sql": "SELECT PedidoId, Fecha, Estado, Total FROM dbo.Pedidos WHERE ClienteId = 1",
+    "lecturas": 10544,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 80,
+    "cpu": 170,
+    "filas": 100000,
+    "filasEst": 100000,
+    "costo": 7.97644,
+    "dop": 4,
+    "ops": [
+     "Clustered Index Scan [PK_Pedidos]",
+     "Parallelism"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "crear": "ok",
+   "cub": {
+    "sql": "SELECT PedidoId, Fecha, Estado, Total FROM dbo.Pedidos WHERE ClienteId = 4242",
+    "lecturas": 3,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 0,
+    "cpu": 0,
+    "filas": 5,
+    "filasEst": 5.92668,
+    "costo": 0.00328852,
+    "dop": 1,
+    "ops": [
+     "Index Seek [IX_Pedidos_ClienteId_Cub]"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "cub1": {
+    "sql": "SELECT PedidoId, Fecha, Estado, Total FROM dbo.Pedidos WHERE ClienteId = 1",
+    "lecturas": 375,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 38,
+    "cpu": 38,
+    "filas": 100000,
+    "filasEst": 100000,
+    "costo": 0.388097,
+    "dop": 1,
+    "ops": [
+     "Index Seek [IX_Pedidos_ClienteId_Cub]"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "cubStar": {
+    "sql": "SELECT * FROM dbo.Pedidos WHERE ClienteId = 4242",
+    "lecturas": 18,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 0,
+    "cpu": 0,
+    "filas": 5,
+    "filasEst": 5.92668,
+    "costo": 0.0196432,
+    "dop": 1,
+    "ops": [
+     "Index Seek [IX_Pedidos_ClienteId_Cub]",
+     "Key Lookup [PK_Pedidos] ×5",
+     "Nested Loops"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "tamanos": [
+    {
+     "indice": "PK_Pedidos",
+     "tipo": "CLUSTERED",
+     "paginas": "10039",
+     "filas": "400000",
+     "filtrado": false
+    },
+    {
+     "indice": "IX_Pedidos_ClienteId",
+     "tipo": "NONCLUSTERED",
+     "paginas": "704",
+     "filas": "400000",
+     "filtrado": false
+    },
+    {
+     "indice": "IX_Pedidos_ClienteId_Cub",
+     "tipo": "NONCLUSTERED",
+     "paginas": "1499",
+     "filas": "400000",
+     "filtrado": false
+    }
+   ]
+  },
+  "orden": {
+   "libre": {
+    "sql": "SELECT PedidoId, ClienteId, Fecha, Total FROM dbo.Pedidos WHERE Estado = 3 AND Fecha >= '2026-06-01'",
+    "lecturas": 6,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 1,
+    "cpu": 1,
+    "filas": 605,
+    "filasEst": 1630.08,
+    "costo": 0.00951953,
+    "dop": 1,
+    "ops": [
+     "Constant Scan",
+     "Compute Scalar",
+     "Index Seek [IX_EF]",
+     "Nested Loops"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "ef": {
+    "sql": "SELECT PedidoId, ClienteId, Fecha, Total FROM dbo.Pedidos WITH (INDEX (IX_EF)) WHERE Estado = 3 AND Fecha >= '2026-06-01'",
+    "lecturas": 6,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 0,
+    "cpu": 0,
+    "filas": 605,
+    "filasEst": 1630.08,
+    "costo": 0.00951953,
+    "dop": 1,
+    "ops": [
+     "Constant Scan",
+     "Compute Scalar",
+     "Index Seek [IX_EF]",
+     "Nested Loops"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "fe": {
+    "sql": "SELECT PedidoId, ClienteId, Fecha, Total FROM dbo.Pedidos WITH (INDEX (IX_FE)) WHERE Estado = 3 AND Fecha >= '2026-06-01'",
+    "lecturas": 251,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 4,
+    "cpu": 4,
+    "filas": 605,
+    "filasEst": 1630.08,
+    "costo": 0.260461,
+    "dop": 1,
+    "ops": [
+     "Constant Scan",
+     "Compute Scalar",
+     "Index Seek [IX_FE]",
+     "Nested Loops"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "soloFechaEf": {
+    "sql": "SELECT PedidoId, ClienteId, Fecha, Total FROM dbo.Pedidos WITH (INDEX (IX_EF)) WHERE Fecha >= '2026-09-15'",
+    "lecturas": 1495,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 32,
+    "cpu": 32,
+    "filas": 8760,
+    "filasEst": 8762.01,
+    "costo": 1.54476,
+    "dop": 1,
+    "ops": [
+     "Index Scan [IX_EF]"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "soloFechaFe": {
+    "sql": "SELECT PedidoId, ClienteId, Fecha, Total FROM dbo.Pedidos WITH (INDEX (IX_FE)) WHERE Fecha >= '2026-09-15'",
+    "lecturas": 37,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 7,
+    "cpu": 7,
+    "filas": 8760,
+    "filasEst": 8762.01,
+    "costo": 0.0366239,
+    "dop": 1,
+    "ops": [
+     "Constant Scan",
+     "Compute Scalar",
+     "Index Seek [IX_FE]",
+     "Nested Loops"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "soloEstadoFe": {
+    "sql": "SELECT PedidoId, ClienteId, Fecha, Total FROM dbo.Pedidos WITH (INDEX (IX_FE)) WHERE Estado = 3",
+    "lecturas": 1496,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 26,
+    "cpu": 26,
+    "filas": 3989,
+    "filasEst": 3989,
+    "costo": 1.54624,
+    "dop": 1,
+    "ops": [
+     "Index Scan [IX_FE]"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "soloEstadoEf": {
+    "sql": "SELECT PedidoId, ClienteId, Fecha, Total FROM dbo.Pedidos WITH (INDEX (IX_EF)) WHERE Estado = 3",
+    "lecturas": 20,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 3,
+    "cpu": 3,
+    "filas": 3989,
+    "filasEst": 3989,
+    "costo": 0.0179211,
+    "dop": 1,
+    "ops": [
+     "Index Seek [IX_EF]"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   }
+  },
+  "sargable": {
+   "yearMonth": {
+    "sql": "SELECT PedidoId, Total FROM dbo.Pedidos WHERE YEAR(Fecha) = 2026 AND MONTH(Fecha) = 9",
+    "lecturas": 1246,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 88,
+    "cpu": 88,
+    "filas": 16228,
+    "filasEst": 15502.7,
+    "costo": 1.40106,
+    "dop": 1,
+    "ops": [
+     "Index Scan [IX_Pedidos_Fecha]"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "rango": {
+    "sql": "SELECT PedidoId, Total FROM dbo.Pedidos WHERE Fecha >= '2026-09-01' AND Fecha < '2026-10-01'",
+    "lecturas": 55,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 8,
+    "cpu": 8,
+    "filas": 16228,
+    "filasEst": 16425.8,
+    "costo": 0.0583875,
+    "dop": 1,
+    "ops": [
+     "Constant Scan",
+     "Compute Scalar",
+     "Constant Scan",
+     "Compute Scalar",
+     "Concatenation",
+     "Merge Interval",
+     "Index Seek [IX_Pedidos_Fecha]",
+     "Nested Loops"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "castDate": {
+    "sql": "SELECT PedidoId, Total FROM dbo.Pedidos WHERE CAST(Fecha AS date) = '2026-09-15'",
+    "lecturas": 7,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 1,
+    "cpu": 1,
+    "filas": 542,
+    "filasEst": 1.20306,
+    "costo": 0.00328332,
+    "dop": 1,
+    "ops": [
+     "Constant Scan",
+     "Compute Scalar",
+     "Index Seek [IX_Pedidos_Fecha]",
+     "Nested Loops"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "rangoDia": {
+    "sql": "SELECT PedidoId, Total FROM dbo.Pedidos WHERE Fecha >= '2026-09-15' AND Fecha < '2026-09-16'",
+    "lecturas": 5,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 0,
+    "cpu": 0,
+    "filas": 542,
+    "filasEst": 16425.8,
+    "costo": 0.0583875,
+    "dop": 1,
+    "ops": [
+     "Constant Scan",
+     "Compute Scalar",
+     "Constant Scan",
+     "Compute Scalar",
+     "Concatenation",
+     "Merge Interval",
+     "Index Seek [IX_Pedidos_Fecha]",
+     "Nested Loops"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "emailN": {
+    "sql": "SELECT ClienteId, Nombre FROM dbo.Clientes WHERE Email = N'cliente777@ejemplo.com.ar'",
+    "lecturas": 262,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 9,
+    "cpu": 9,
+    "filas": 1,
+    "filasEst": 1,
+    "costo": 0.278718,
+    "dop": 1,
+    "ops": [
+     "Index Scan [IX_Clientes_Email]",
+     "Key Lookup [PK_Clientes] ×1",
+     "Nested Loops"
+    ],
+    "avisos": [
+     "PlanAffectingConvert",
+     "PlanAffectingConvert"
+    ],
+    "indicesFaltantes": []
+   },
+   "emailV": {
+    "sql": "SELECT ClienteId, Nombre FROM dbo.Clientes WHERE Email = 'cliente777@ejemplo.com.ar'",
+    "lecturas": 5,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 0,
+    "cpu": 0,
+    "filas": 1,
+    "filasEst": 1,
+    "costo": 0.00657038,
+    "dop": 1,
+    "ops": [
+     "Index Seek [IX_Clientes_Email]",
+     "Key Lookup [PK_Clientes] ×1",
+     "Nested Loops"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "likePrefijo": {
+    "sql": "SELECT ClienteId, Nombre FROM dbo.Clientes WHERE Email LIKE 'cliente777%'",
+    "lecturas": 25,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 0,
+    "cpu": 0,
+    "filas": 11,
+    "filasEst": 19.9203,
+    "costo": 0.0647198,
+    "dop": 1,
+    "ops": [
+     "Index Seek [IX_Clientes_Email]",
+     "Key Lookup [PK_Clientes] ×11",
+     "Nested Loops"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "likeContiene": {
+    "sql": "SELECT ClienteId, Nombre FROM dbo.Clientes WHERE Email LIKE '%777@%'",
+    "lecturas": 360,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 14,
+    "cpu": 14,
+    "filas": 50,
+    "filasEst": 1.99203,
+    "costo": 0.295424,
+    "dop": 1,
+    "ops": [
+     "Index Scan [IX_Clientes_Email]",
+     "Key Lookup [PK_Clientes] ×50",
+     "Nested Loops"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "totalExpr": {
+    "sql": "SELECT PedidoId FROM dbo.Pedidos WHERE Total * 1.21 > 6000",
+    "lecturas": 946,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 42,
+    "cpu": 42,
+    "filas": 3384,
+    "filasEst": 3331.66,
+    "costo": 1.13884,
+    "dop": 1,
+    "ops": [
+     "Index Scan [IX_Pedidos_Total]"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "totalCol": {
+    "sql": "SELECT PedidoId FROM dbo.Pedidos WHERE Total > 6000 / 1.21",
+    "lecturas": 12,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 2,
+    "cpu": 2,
+    "filas": 3384,
+    "filasEst": 3332.93,
+    "costo": 0.0121334,
+    "dop": 1,
+    "ops": [
+     "Constant Scan",
+     "Compute Scalar",
+     "Index Seek [IX_Pedidos_Total]",
+     "Nested Loops"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   }
+  },
+  "ordenTop": {
+   "top50Sin": {
+    "sql": "SELECT TOP (50) PedidoId, Fecha, Total FROM dbo.Pedidos WITH (INDEX (PK_Pedidos)) ORDER BY Fecha DESC",
+    "lecturas": 10544,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 37,
+    "cpu": 134,
+    "filas": 50,
+    "filasEst": 50,
+    "costo": 24.7488,
+    "dop": 4,
+    "ops": [
+     "Clustered Index Scan [PK_Pedidos]",
+     "Sort",
+     "Parallelism",
+     "Top"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "top50Con": {
+    "sql": "SELECT TOP (50) PedidoId, Fecha, Total FROM dbo.Pedidos ORDER BY Fecha DESC",
+    "lecturas": 3,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 0,
+    "cpu": 0,
+    "filas": 50,
+    "filasEst": 50,
+    "costo": 0.00345443,
+    "dop": 1,
+    "ops": [
+     "Index Scan [IX_Pedidos_Fecha]",
+     "Top"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "offset0": {
+    "sql": "SELECT PedidoId, Fecha, Total FROM dbo.Pedidos ORDER BY Fecha DESC, PedidoId DESC OFFSET 0 ROWS FETCH NEXT 50 ROWS ONLY",
+    "lecturas": 3,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 0,
+    "cpu": 0,
+    "filas": 50,
+    "filasEst": 50,
+    "costo": 0.00345443,
+    "dop": 1,
+    "ops": [
+     "Index Scan [IX_Pedidos_Fecha]",
+     "Top"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "offset100k": {
+    "sql": "SELECT PedidoId, Fecha, Total FROM dbo.Pedidos ORDER BY Fecha DESC, PedidoId DESC OFFSET 100000 ROWS FETCH NEXT 50 ROWS ONLY",
+    "lecturas": 317,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 16,
+    "cpu": 16,
+    "filas": 50,
+    "filasEst": 50,
+    "costo": 0.352899,
+    "dop": 1,
+    "ops": [
+     "Index Scan [IX_Pedidos_Fecha]",
+     "Top"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "offset350k": {
+    "sql": "SELECT PedidoId, Fecha, Total FROM dbo.Pedidos ORDER BY Fecha DESC, PedidoId DESC OFFSET 350000 ROWS FETCH NEXT 50 ROWS ONLY",
+    "lecturas": 1092,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 74,
+    "cpu": 74,
+    "filas": 50,
+    "filasEst": 50,
+    "costo": 1.22651,
+    "dop": 1,
+    "ops": [
+     "Index Scan [IX_Pedidos_Fecha]",
+     "Top"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "keyset": {
+    "sql": "SELECT TOP (50) PedidoId, Fecha, Total FROM dbo.Pedidos WHERE Fecha < '2025-01-01' ORDER BY Fecha DESC, PedidoId DESC",
+    "lecturas": 3,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 0,
+    "cpu": 0,
+    "filas": 50,
+    "filasEst": 50,
+    "costo": 0.0034541,
+    "dop": 1,
+    "ops": [
+     "Constant Scan",
+     "Compute Scalar",
+     "Index Seek [IX_Pedidos_Fecha]",
+     "Nested Loops",
+     "Top"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "tamanos": [
+    {
+     "indice": "PK_Pedidos",
+     "tipo": "CLUSTERED",
+     "paginas": "10039",
+     "filas": "400000",
+     "filtrado": false
+    },
+    {
+     "indice": "IX_Pedidos_ClienteId",
+     "tipo": "NONCLUSTERED",
+     "paginas": "704",
+     "filas": "400000",
+     "filtrado": false
+    },
+    {
+     "indice": "IX_Pedidos_Fecha",
+     "tipo": "NONCLUSTERED",
+     "paginas": "1250",
+     "filas": "400000",
+     "filtrado": false
+    }
+   ]
+  },
+  "filtrado": {
+   "tamanos": [
+    {
+     "indice": "PK_Pedidos",
+     "tipo": "CLUSTERED",
+     "paginas": "10039",
+     "filas": "400000",
+     "filtrado": false
+    },
+    {
+     "indice": "IX_Pedidos_ClienteId",
+     "tipo": "NONCLUSTERED",
+     "paginas": "704",
+     "filas": "400000",
+     "filtrado": false
+    },
+    {
+     "indice": "IX_Pedidos_Pendientes",
+     "tipo": "NONCLUSTERED",
+     "paginas": "22",
+     "filas": "3989",
+     "filtrado": true
+    }
+   ],
+   "literal": {
+    "sql": "SELECT PedidoId, ClienteId, Fecha, Total FROM dbo.Pedidos WHERE Estado = 3 AND Fecha >= '2026-06-01'",
+    "lecturas": 5,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 0,
+    "cpu": 0,
+    "filas": 605,
+    "filasEst": 66820.3,
+    "costo": 0.0782658,
+    "dop": 1,
+    "ops": [
+     "Constant Scan",
+     "Compute Scalar",
+     "Index Seek [IX_Pedidos_Pendientes]",
+     "Nested Loops"
+    ],
+    "avisos": [
+     "UnmatchedIndexes"
+    ],
+    "indicesFaltantes": []
+   },
+   "parametro": {
+    "sql": "EXEC sp_executesql N'SELECT PedidoId, ClienteId, Fecha, Total FROM dbo.Pedidos WHERE Estado = @e AND Fecha >= @f', N'@e tinyint, @f datetime2(0)', @e = 3, @f = '2026-06-01'",
+    "lecturas": 10544,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 16,
+    "cpu": 61,
+    "filas": 605,
+    "filasEst": 649.19,
+    "costo": 7.83661,
+    "dop": 4,
+    "ops": [
+     "Clustered Index Scan [PK_Pedidos]",
+     "Parallelism"
+    ],
+    "avisos": [
+     "UnmatchedIndexes"
+    ],
+    "indicesFaltantes": [
+     "Estado,Fecha incl ClienteId,Total"
+    ]
+   },
+   "parametroFecha": {
+    "sql": "EXEC sp_executesql N'SELECT PedidoId, ClienteId, Fecha, Total FROM dbo.Pedidos WHERE Estado = 3 AND Fecha >= @f', N'@f datetime2(0)', @f = '2026-06-01'",
+    "lecturas": 5,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 0,
+    "cpu": 0,
+    "filas": 605,
+    "filasEst": 66820.3,
+    "costo": 0.0782658,
+    "dop": 1,
+    "ops": [
+     "Index Seek [IX_Pedidos_Pendientes]"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   }
+  },
+  "estadisticas": {
+   "histograma": [
+    {
+     "RANGE_HI_KEY": 1,
+     "RANGE_ROWS": 0,
+     "EQ_ROWS": 100000,
+     "DISTINCT_RANGE_ROWS": "0",
+     "AVG_RANGE_ROWS": 1
+    },
+    {
+     "RANGE_HI_KEY": 138,
+     "RANGE_ROWS": 798,
+     "EQ_ROWS": 14,
+     "DISTINCT_RANGE_ROWS": "136",
+     "AVG_RANGE_ROWS": 5.867647171020508
+    },
+    {
+     "RANGE_HI_KEY": 430,
+     "RANGE_ROWS": 1756,
+     "EQ_ROWS": 14,
+     "DISTINCT_RANGE_ROWS": "291",
+     "AVG_RANGE_ROWS": 6.034364223480225
+    },
+    {
+     "RANGE_HI_KEY": 2076,
+     "RANGE_ROWS": 9882,
+     "EQ_ROWS": 16,
+     "DISTINCT_RANGE_ROWS": "1641",
+     "AVG_RANGE_ROWS": 6.021937847137451
+    },
+    {
+     "RANGE_HI_KEY": 2345,
+     "RANGE_ROWS": 1566,
+     "EQ_ROWS": 13,
+     "DISTINCT_RANGE_ROWS": "267",
+     "AVG_RANGE_ROWS": 5.865168571472168
+    },
+    {
+     "RANGE_HI_KEY": 3383,
+     "RANGE_ROWS": 6156,
+     "EQ_ROWS": 15,
+     "DISTINCT_RANGE_ROWS": "1033",
+     "AVG_RANGE_ROWS": 5.959341526031494
+    },
+    {
+     "RANGE_HI_KEY": 3494,
+     "RANGE_ROWS": 669,
+     "EQ_ROWS": 15,
+     "DISTINCT_RANGE_ROWS": "110",
+     "AVG_RANGE_ROWS": 6.081818103790283
+    },
+    {
+     "RANGE_HI_KEY": 4002,
+     "RANGE_ROWS": 3052,
+     "EQ_ROWS": 15,
+     "DISTINCT_RANGE_ROWS": "505",
+     "AVG_RANGE_ROWS": 6.043564319610596
+    },
+    {
+     "RANGE_HI_KEY": 4206,
+     "RANGE_ROWS": 1224,
+     "EQ_ROWS": 16,
+     "DISTINCT_RANGE_ROWS": "203",
+     "AVG_RANGE_ROWS": 6.029556751251221
+    },
+    {
+     "RANGE_HI_KEY": 5382,
+     "RANGE_ROWS": 6952,
+     "EQ_ROWS": 15,
+     "DISTINCT_RANGE_ROWS": "1173",
+     "AVG_RANGE_ROWS": 5.9266839027404785
+    },
+    {
+     "RANGE_HI_KEY": 5707,
+     "RANGE_ROWS": 1902,
+     "EQ_ROWS": 14,
+     "DISTINCT_RANGE_ROWS": "323",
+     "AVG_RANGE_ROWS": 5.888545036315918
+    },
+    {
+     "RANGE_HI_KEY": 5880,
+     "RANGE_ROWS": 995,
+     "EQ_ROWS": 14,
+     "DISTINCT_RANGE_ROWS": "171",
+     "AVG_RANGE_ROWS": 5.818713665008545
+    },
+    {
+     "RANGE_HI_KEY": 6520,
+     "RANGE_ROWS": 3705,
+     "EQ_ROWS": 14,
+     "DISTINCT_RANGE_ROWS": "638",
+     "AVG_RANGE_ROWS": 5.8072099685668945
+    },
+    {
+     "RANGE_HI_KEY": 6859,
+     "RANGE_ROWS": 2035,
+     "EQ_ROWS": 14,
+     "DISTINCT_RANGE_ROWS": "338",
+     "AVG_RANGE_ROWS": 6.020709991455078
+    },
+    {
+     "RANGE_HI_KEY": 7733,
+     "RANGE_ROWS": 5391,
+     "EQ_ROWS": 13,
+     "DISTINCT_RANGE_ROWS": "870",
+     "AVG_RANGE_ROWS": 6.19655179977417
+    },
+    {
+     "RANGE_HI_KEY": 8073,
+     "RANGE_ROWS": 1955,
+     "EQ_ROWS": 12,
+     "DISTINCT_RANGE_ROWS": "339",
+     "AVG_RANGE_ROWS": 5.766961574554443
+    },
+    {
+     "RANGE_HI_KEY": 8288,
+     "RANGE_ROWS": 1360,
+     "EQ_ROWS": 13,
+     "DISTINCT_RANGE_ROWS": "213",
+     "AVG_RANGE_ROWS": 6.384976387023926
+    },
+    {
+     "RANGE_HI_KEY": 8721,
+     "RANGE_ROWS": 2552,
+     "EQ_ROWS": 14,
+     "DISTINCT_RANGE_ROWS": "429",
+     "AVG_RANGE_ROWS": 5.948718070983887
+    },
+    {
+     "RANGE_HI_KEY": 8962,
+     "RANGE_ROWS": 1479,
+     "EQ_ROWS": 14,
+     "DISTINCT_RANGE_ROWS": "239",
+     "AVG_RANGE_ROWS": 6.188284397125244
+    },
+    {
+     "RANGE_HI_KEY": 9124,
+     "RANGE_ROWS": 907,
+     "EQ_ROWS": 14,
+     "DISTINCT_RANGE_ROWS": "161",
+     "AVG_RANGE_ROWS": 5.633540153503418
+    },
+    {
+     "RANGE_HI_KEY": 9574,
+     "RANGE_ROWS": 2799,
+     "EQ_ROWS": 12,
+     "DISTINCT_RANGE_ROWS": "448",
+     "AVG_RANGE_ROWS": 6.247767925262451
+    },
+    {
+     "RANGE_HI_KEY": 9821,
+     "RANGE_ROWS": 1356,
+     "EQ_ROWS": 13,
+     "DISTINCT_RANGE_ROWS": "243",
+     "AVG_RANGE_ROWS": 5.580246925354004
+    },
+    {
+     "RANGE_HI_KEY": 9956,
+     "RANGE_ROWS": 812,
+     "EQ_ROWS": 14,
+     "DISTINCT_RANGE_ROWS": "134",
+     "AVG_RANGE_ROWS": 6.059701442718506
+    },
+    {
+     "RANGE_HI_KEY": 10289,
+     "RANGE_ROWS": 1969,
+     "EQ_ROWS": 13,
+     "DISTINCT_RANGE_ROWS": "331",
+     "AVG_RANGE_ROWS": 5.9486403465271
+    },
+    {
+     "RANGE_HI_KEY": 10561,
+     "RANGE_ROWS": 1697,
+     "EQ_ROWS": 13,
+     "DISTINCT_RANGE_ROWS": "270",
+     "AVG_RANGE_ROWS": 6.28518533706665
+    },
+    {
+     "RANGE_HI_KEY": 11456,
+     "RANGE_ROWS": 5320,
+     "EQ_ROWS": 15,
+     "DISTINCT_RANGE_ROWS": "892",
+     "AVG_RANGE_ROWS": 5.964125633239746
+    },
+    {
+     "RANGE_HI_KEY": 11764,
+     "RANGE_ROWS": 1804,
+     "EQ_ROWS": 15,
+     "DISTINCT_RANGE_ROWS": "304",
+     "AVG_RANGE_ROWS": 5.934210300445557
+    },
+    {
+     "RANGE_HI_KEY": 14187,
+     "RANGE_ROWS": 14470,
+     "EQ_ROWS": 9,
+     "DISTINCT_RANGE_ROWS": "2417",
+     "AVG_RANGE_ROWS": 5.98676061630249
+    },
+    {
+     "RANGE_HI_KEY": 14349,
+     "RANGE_ROWS": 1018,
+     "EQ_ROWS": 14,
+     "DISTINCT_RANGE_ROWS": "160",
+     "AVG_RANGE_ROWS": 6.362500190734863
+    },
+    {
+     "RANGE_HI_KEY": 16346,
+     "RANGE_ROWS": 11873,
+     "EQ_ROWS": 15,
+     "DISTINCT_RANGE_ROWS": "1993",
+     "AVG_RANGE_ROWS": 5.957350730895996
+    },
+    {
+     "RANGE_HI_KEY": 19174,
+     "RANGE_ROWS": 17037,
+     "EQ_ROWS": 13,
+     "DISTINCT_RANGE_ROWS": "2817",
+     "AVG_RANGE_ROWS": 6.0479230880737305
+    },
+    {
+     "RANGE_HI_KEY": 19338,
+     "RANGE_ROWS": 922,
+     "EQ_ROWS": 15,
+     "DISTINCT_RANGE_ROWS": "162",
+     "AVG_RANGE_ROWS": 5.6913580894470215
+    },
+    {
+     "RANGE_HI_KEY": 23432,
+     "RANGE_ROWS": 24781,
+     "EQ_ROWS": 17,
+     "DISTINCT_RANGE_ROWS": "4085",
+     "AVG_RANGE_ROWS": 6.066340446472168
+    },
+    {
+     "RANGE_HI_KEY": 24539,
+     "RANGE_ROWS": 6710,
+     "EQ_ROWS": 9,
+     "DISTINCT_RANGE_ROWS": "1105",
+     "AVG_RANGE_ROWS": 6.0723981857299805
+    },
+    {
+     "RANGE_HI_KEY": 25980,
+     "RANGE_ROWS": 8498,
+     "EQ_ROWS": 17,
+     "DISTINCT_RANGE_ROWS": "1437",
+     "AVG_RANGE_ROWS": 5.9137091636657715
+    },
+    {
+     "RANGE_HI_KEY": 30408,
+     "RANGE_ROWS": 26232,
+     "EQ_ROWS": 10,
+     "DISTINCT_RANGE_ROWS": "4418",
+     "AVG_RANGE_ROWS": 5.937528133392334
+    },
+    {
+     "RANGE_HI_KEY": 30571,
+     "RANGE_ROWS": 1025,
+     "EQ_ROWS": 4,
+     "DISTINCT_RANGE_ROWS": "162",
+     "AVG_RANGE_ROWS": 6.327160358428955
+    },
+    {
+     "RANGE_HI_KEY": 30744,
+     "RANGE_ROWS": 1033,
+     "EQ_ROWS": 2,
+     "DISTINCT_RANGE_ROWS": "172",
+     "AVG_RANGE_ROWS": 6.005814075469971
+    },
+    {
+     "RANGE_HI_KEY": 30905,
+     "RANGE_ROWS": 1020,
+     "EQ_ROWS": 4,
+     "DISTINCT_RANGE_ROWS": "160",
+     "AVG_RANGE_ROWS": 6.375
+    },
+    {
+     "RANGE_HI_KEY": 31582,
+     "RANGE_ROWS": 4146,
+     "EQ_ROWS": 9,
+     "DISTINCT_RANGE_ROWS": "675",
+     "AVG_RANGE_ROWS": 6.1422224044799805
+    },
+    {
+     "RANGE_HI_KEY": 32875,
+     "RANGE_ROWS": 7653,
+     "EQ_ROWS": 11,
+     "DISTINCT_RANGE_ROWS": "1289",
+     "AVG_RANGE_ROWS": 5.937160491943359
+    },
+    {
+     "RANGE_HI_KEY": 35560,
+     "RANGE_ROWS": 16246,
+     "EQ_ROWS": 13,
+     "DISTINCT_RANGE_ROWS": "2678",
+     "AVG_RANGE_ROWS": 6.06646728515625
+    },
+    {
+     "RANGE_HI_KEY": 35919,
+     "RANGE_ROWS": 2042,
+     "EQ_ROWS": 6,
+     "DISTINCT_RANGE_ROWS": "357",
+     "AVG_RANGE_ROWS": 5.719887733459473
+    },
+    {
+     "RANGE_HI_KEY": 36897,
+     "RANGE_ROWS": 5831,
+     "EQ_ROWS": 13,
+     "DISTINCT_RANGE_ROWS": "973",
+     "AVG_RANGE_ROWS": 5.9928059577941895
+    },
+    {
+     "RANGE_HI_KEY": 37109,
+     "RANGE_ROWS": 1184,
+     "EQ_ROWS": 12,
+     "DISTINCT_RANGE_ROWS": "210",
+     "AVG_RANGE_ROWS": 5.638095378875732
+    },
+    {
+     "RANGE_HI_KEY": 37365,
+     "RANGE_ROWS": 1543,
+     "EQ_ROWS": 13,
+     "DISTINCT_RANGE_ROWS": "254",
+     "AVG_RANGE_ROWS": 6.074803352355957
+    },
+    {
+     "RANGE_HI_KEY": 37549,
+     "RANGE_ROWS": 1031,
+     "EQ_ROWS": 13,
+     "DISTINCT_RANGE_ROWS": "181",
+     "AVG_RANGE_ROWS": 5.696132659912109
+    },
+    {
+     "RANGE_HI_KEY": 38277,
+     "RANGE_ROWS": 4521,
+     "EQ_ROWS": 13,
+     "DISTINCT_RANGE_ROWS": "724",
+     "AVG_RANGE_ROWS": 6.244475364685059
+    },
+    {
+     "RANGE_HI_KEY": 38781,
+     "RANGE_ROWS": 3025,
+     "EQ_ROWS": 15,
+     "DISTINCT_RANGE_ROWS": "503",
+     "AVG_RANGE_ROWS": 6.013916492462158
+    },
+    {
+     "RANGE_HI_KEY": 38991,
+     "RANGE_ROWS": 1182,
+     "EQ_ROWS": 13,
+     "DISTINCT_RANGE_ROWS": "207",
+     "AVG_RANGE_ROWS": 5.710144996643066
+    },
+    {
+     "RANGE_HI_KEY": 39506,
+     "RANGE_ROWS": 3117,
+     "EQ_ROWS": 14,
+     "DISTINCT_RANGE_ROWS": "512",
+     "AVG_RANGE_ROWS": 6.087890625
+    },
+    {
+     "RANGE_HI_KEY": 40093,
+     "RANGE_ROWS": 3343,
+     "EQ_ROWS": 13,
+     "DISTINCT_RANGE_ROWS": "586",
+     "AVG_RANGE_ROWS": 5.70477819442749
+    },
+    {
+     "RANGE_HI_KEY": 40533,
+     "RANGE_ROWS": 2668,
+     "EQ_ROWS": 13,
+     "DISTINCT_RANGE_ROWS": "437",
+     "AVG_RANGE_ROWS": 6.1052632331848145
+    },
+    {
+     "RANGE_HI_KEY": 40886,
+     "RANGE_ROWS": 2040,
+     "EQ_ROWS": 13,
+     "DISTINCT_RANGE_ROWS": "352",
+     "AVG_RANGE_ROWS": 5.795454502105713
+    },
+    {
+     "RANGE_HI_KEY": 41423,
+     "RANGE_ROWS": 3272,
+     "EQ_ROWS": 18,
+     "DISTINCT_RANGE_ROWS": "536",
+     "AVG_RANGE_ROWS": 6.104477405548096
+    },
+    {
+     "RANGE_HI_KEY": 41619,
+     "RANGE_ROWS": 1185,
+     "EQ_ROWS": 19,
+     "DISTINCT_RANGE_ROWS": "193",
+     "AVG_RANGE_ROWS": 6.139896392822266
+    },
+    {
+     "RANGE_HI_KEY": 44447,
+     "RANGE_ROWS": 17099,
+     "EQ_ROWS": 14,
+     "DISTINCT_RANGE_ROWS": "2819",
+     "AVG_RANGE_ROWS": 6.06562614440918
+    },
+    {
+     "RANGE_HI_KEY": 45137,
+     "RANGE_ROWS": 4006,
+     "EQ_ROWS": 14,
+     "DISTINCT_RANGE_ROWS": "687",
+     "AVG_RANGE_ROWS": 5.831150054931641
+    },
+    {
+     "RANGE_HI_KEY": 46928,
+     "RANGE_ROWS": 10879,
+     "EQ_ROWS": 16,
+     "DISTINCT_RANGE_ROWS": "1783",
+     "AVG_RANGE_ROWS": 6.1015143394470215
+    },
+    {
+     "RANGE_HI_KEY": 49998,
+     "RANGE_ROWS": 18496,
+     "EQ_ROWS": 11,
+     "DISTINCT_RANGE_ROWS": "3059",
+     "AVG_RANGE_ROWS": 6.046420574188232
+    },
+    {
+     "RANGE_HI_KEY": 49999,
+     "RANGE_ROWS": 0,
+     "EQ_ROWS": 3,
+     "DISTINCT_RANGE_ROWS": "0",
+     "AVG_RANGE_ROWS": 1
+    },
+    {
+     "RANGE_HI_KEY": 50000,
+     "RANGE_ROWS": 0,
+     "EQ_ROWS": 7,
+     "DISTINCT_RANGE_ROWS": "0",
+     "AVG_RANGE_ROWS": 1
+    }
+   ],
+   "densidad": [
+    {
+     "All density": 0.000020053341359016486,
+     "Average Length": 4,
+     "Columns": "ClienteId"
+    },
+    {
+     "All density": 0.000002499999936844688,
+     "Average Length": 8,
+     "Columns": "ClienteId, PedidoId"
+    }
+   ],
+   "c1": {
+    "sql": "SELECT PedidoId, Fecha, Total FROM dbo.Pedidos WHERE ClienteId = 1",
+    "lecturas": 10544,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 61,
+    "cpu": 177,
+    "filas": 100000,
+    "filasEst": 100000,
+    "costo": 7.94884,
+    "dop": 4,
+    "ops": [
+     "Clustered Index Scan [PK_Pedidos]",
+     "Parallelism"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "c4242": {
+    "sql": "SELECT PedidoId, Fecha, Total FROM dbo.Pedidos WHERE ClienteId = 4242",
+    "lecturas": 19,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 0,
+    "cpu": 0,
+    "filas": 5,
+    "filasEst": 5.92668,
+    "costo": 0.0196432,
+    "dop": 1,
+    "ops": [
+     "Index Seek [IX_Pedidos_ClienteId]",
+     "Key Lookup [PK_Pedidos] ×5",
+     "Nested Loops"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "variable1": {
+    "sql": "DECLARE @c int = 1; SELECT PedidoId, Fecha, Total FROM dbo.Pedidos WHERE ClienteId = @c",
+    "lecturas": 300177,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 225,
+    "cpu": 225,
+    "filas": 100000,
+    "filasEst": 8.02134,
+    "costo": 0.0265276,
+    "dop": 1,
+    "ops": [
+     "Index Seek [IX_Pedidos_ClienteId]",
+     "Key Lookup [PK_Pedidos] ×100000",
+     "Nested Loops"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "variable4242": {
+    "sql": "DECLARE @c int = 4242; SELECT PedidoId, Fecha, Total FROM dbo.Pedidos WHERE ClienteId = @c",
+    "lecturas": 19,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 0,
+    "cpu": 0,
+    "filas": 5,
+    "filasEst": 8.02134,
+    "costo": 0.0265276,
+    "dop": 1,
+    "ops": [
+     "Index Seek [IX_Pedidos_ClienteId]",
+     "Key Lookup [PK_Pedidos] ×5",
+     "Nested Loops"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "variable1Recompile": {
+    "sql": "DECLARE @c int = 1; SELECT PedidoId, Fecha, Total FROM dbo.Pedidos WHERE ClienteId = @c OPTION (RECOMPILE)",
+    "lecturas": 10544,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 66,
+    "cpu": 151,
+    "filas": 100000,
+    "filasEst": 100000,
+    "costo": 7.94884,
+    "dop": 4,
+    "ops": [
+     "Clustered Index Scan [PK_Pedidos]",
+     "Parallelism"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   }
+  },
+  "escribir": {
+   "sinIndices": [
+    {
+     "lecturas": 15123,
+     "lob": 0,
+     "fisicas": 0,
+     "ms": 214,
+     "cpu": 214,
+     "filas": 100000,
+     "filasEst": 100000,
+     "costo": 37.9472,
+     "dop": 1,
+     "ops": [
+      "Clustered Index Seek [PK_Pedidos]",
+      "Clustered Index Insert [PK_PedidosCopia]"
+     ],
+     "avisos": [],
+     "indicesFaltantes": []
+    }
+   ],
+   "vaciar": "ok",
+   "conIndices": [
+    {
+     "lecturas": 234991,
+     "lob": 0,
+     "fisicas": 0,
+     "ms": 1806,
+     "cpu": 1782,
+     "filas": 100000,
+     "filasEst": 100000,
+     "costo": 85.0965,
+     "dop": 1,
+     "ops": [
+      "Clustered Index Seek [PK_Pedidos]",
+      "Clustered Index Insert [PK_PedidosCopia]",
+      "Table Spool",
+      "Sort",
+      "Index Insert [IX1]",
+      "Table Spool",
+      "Sort",
+      "Index Insert [IX2]",
+      "Table Spool",
+      "Sort",
+      "Index Insert [IX3]",
+      "Table Spool",
+      "Sort",
+      "Index Insert [IX4]",
+      "Table Spool",
+      "Sort",
+      "Index Insert [IX5]",
+      "Sequence"
+     ],
+     "avisos": [],
+     "indicesFaltantes": []
+    }
+   ],
+   "updateEstado": [
+    {
+     "lecturas": 254,
+     "lob": 0,
+     "fisicas": 0,
+     "ms": 123,
+     "cpu": 123,
+     "filas": 10000,
+     "filasEst": 9999,
+     "costo": 2.2741,
+     "dop": 1,
+     "ops": [
+      "Clustered Index Seek [PK_PedidosCopia]",
+      "Compute Scalar",
+      "Compute Scalar",
+      "Compute Scalar",
+      "Clustered Index Update [PK_PedidosCopia]"
+     ],
+     "avisos": [],
+     "indicesFaltantes": []
+    }
+   ],
+   "updateObs": [
+    {
+     "lecturas": 255,
+     "lob": 0,
+     "fisicas": 0,
+     "ms": 21,
+     "cpu": 21,
+     "filas": 10000,
+     "filasEst": 10000,
+     "costo": 1.90358,
+     "dop": 1,
+     "ops": [
+      "Clustered Index Update [PK_PedidosCopia]"
+     ],
+     "avisos": [],
+     "indicesFaltantes": []
+    }
+   ],
+   "tamanos": [
+    {
+     "indice": "PK_PedidosCopia",
+     "tipo": "CLUSTERED",
+     "paginas": "2511",
+     "filas": "100000",
+     "filtrado": false
+    },
+    {
+     "indice": "IX1",
+     "tipo": "NONCLUSTERED",
+     "paginas": "176",
+     "filas": "100000",
+     "filtrado": false
+    },
+    {
+     "indice": "IX2",
+     "tipo": "NONCLUSTERED",
+     "paginas": "200",
+     "filas": "100000",
+     "filtrado": false
+    },
+    {
+     "indice": "IX3",
+     "tipo": "NONCLUSTERED",
+     "paginas": "146",
+     "filas": "100000",
+     "filtrado": false
+    },
+    {
+     "indice": "IX4",
+     "tipo": "NONCLUSTERED",
+     "paginas": "237",
+     "filas": "100000",
+     "filtrado": false
+    },
+    {
+     "indice": "IX5",
+     "tipo": "NONCLUSTERED",
+     "paginas": "430",
+     "filas": "100000",
+     "filtrado": false
+    }
+   ]
+  },
+  "columnar": {
+   "agregadoFila": {
+    "sql": "SELECT pr.Categoria, COUNT_BIG(*) AS Items, SUM(i.Cantidad * i.PrecioUnitario) AS Facturado FROM dbo.Items i JOIN dbo.Productos pr ON pr.ProductoId = i.ProductoId GROUP BY pr.Categoria",
+    "lecturas": 5319,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 53,
+    "cpu": 195,
+    "filas": 6,
+    "filasEst": 6,
+    "costo": 4.85802,
+    "dop": 4,
+    "ops": [
+     "Clustered Index Scan [PK_Productos]",
+     "Index Scan [IX_Items_PedidoId]",
+     "Compute Scalar",
+     "Hash Match",
+     "Hash Match",
+     "Hash Match",
+     "Parallelism"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "crear": "ok",
+   "agregadoColumnar": {
+    "sql": "SELECT pr.Categoria, COUNT_BIG(*) AS Items, SUM(i.Cantidad * i.PrecioUnitario) AS Facturado FROM dbo.Items i JOIN dbo.Productos pr ON pr.ProductoId = i.ProductoId GROUP BY pr.Categoria",
+    "lecturas": 17,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 22,
+    "cpu": 22,
+    "filas": 6,
+    "filasEst": 6,
+    "costo": 0.843998,
+    "dop": 1,
+    "ops": [
+     "Clustered Index Scan [PK_Productos]",
+     "Index Scan [NCCI_Items]",
+     "Compute Scalar",
+     "Hash Match",
+     "Hash Match",
+     "Hash Match"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "puntualColumnar": {
+    "sql": "SELECT ItemId, Cantidad FROM dbo.Items WHERE PedidoId = 123456",
+    "lecturas": 3,
+    "lob": 0,
+    "fisicas": 0,
+    "ms": 0,
+    "cpu": 0,
+    "filas": 3,
+    "filasEst": 3,
+    "costo": 0.0032853,
+    "dop": 1,
+    "ops": [
+     "Index Seek [IX_Items_PedidoId]"
+    ],
+    "avisos": [],
+    "indicesFaltantes": []
+   },
+   "tamanos": [
+    {
+     "indice": "PK_Items",
+     "tipo": "CLUSTERED",
+     "paginas": "5662",
+     "filas": "1200000",
+     "filtrado": false
+    },
+    {
+     "indice": "IX_Items_PedidoId",
+     "tipo": "NONCLUSTERED",
+     "paginas": "5219",
+     "filas": "1200000",
+     "filtrado": false
+    },
+    {
+     "indice": "NCCI_Items",
+     "tipo": "NONCLUSTERED COLUMNSTORE",
+     "paginas": "1256",
+     "filas": "1200000",
+     "filtrado": false
+    }
+   ]
+  },
+  "uso": {
+   "usoPedidos": [
+    {
+     "indice": "PK_Pedidos",
+     "seeks": "12",
+     "scans": "70",
+     "lookups": "77",
+     "updates": "2"
+    },
+    {
+     "indice": "IX_Pedidos_ClienteId",
+     "seeks": "48",
+     "scans": "4",
+     "lookups": "0",
+     "updates": "0"
+    }
+   ],
+   "faltantes": [
+    {
+     "tabla": "[Tienda].[dbo].[Clientes]",
+     "igualdad": null,
+     "desigualdad": "[FechaAlta]",
+     "incluidas": "[Nombre]",
+     "veces": "1",
+     "impacto": 54,
+     "costo": 0.49
+    }
+   ]
+  }
+ },
+ "servidor": "Microsoft SQL Server 2022 (RTM-CU27-GDR) 16.0.4305.5, Developer Edition, Linux, 4 CPU, 15 GB",
+ "fecha": "2026-10-14"
+}
