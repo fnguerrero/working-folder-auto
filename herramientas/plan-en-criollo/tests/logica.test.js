@@ -173,6 +173,16 @@ test("timeout, trivial, estimado y procedimiento", () => {
   assert.equal(p.plan.dop, 4);
 });
 
+test("índice filtrado que no se usa por la parametrización (UnmatchedIndexes)", () => {
+  const s = analizar("indice-filtrado-parametro").conPlan[0];
+  const h = con(s, /índice filtrado que no se puede usar porque la consulta está parametrizada: dbo\.Pedidos \(IX_Pedidos_Pendientes\)/);
+  assert.equal(h.gravedad, "media");
+  assert.match(h.que, /lee la tabla entera/);
+  assert.match(h.hacer, /OPTION \(RECOMPILE\)/);
+  assert.deepEqual(s.plan.indicesNoUsados.map((o) => o.indice), ["IX_Pedidos_Pendientes"]);
+  assert.equal(s.nodos.find((n) => n.id === h.nodos[0]).fisico, "Clustered Index Scan");
+});
+
 test("update, ventana, like, agregado y spool2 no tiran y dan hallazgos coherentes", () => {
   const u = analizar("update").conPlan[0];
   assert.equal(u.tipo, "UPDATE");

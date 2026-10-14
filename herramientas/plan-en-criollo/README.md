@@ -23,7 +23,7 @@ lleva al operador en el árbol. Todo pasa en el navegador: el plan no se sube a 
   columnas y `CONVERT_IMPLICIT`; seeks con predicado residual; estimado vs. real con la causa probable
   (parámetros, variables de tabla, temporales, funciones, estadísticas); spills de sort y hash; concesión
   de memoria excesiva y espera por memoria; conversión implícita con el arreglo para Dapper, EF Core y
-  ADO.NET; join sin predicado; columnas sin estadísticas; parameter sniffing (valor compilado vs.
+  ADO.NET; join sin predicado; índice filtrado que no se usa por la parametrización (`UnmatchedIndexes`); columnas sin estadísticas; parameter sniffing (valor compilado vs.
   ejecutado); timeout del optimizador; Index Spool y Table Spool; sorts caros; bucles anidados con lado
   interno pesado; funciones escalares (con el tiempo de UDF cuando el plan lo trae); razón de no
   paralelismo traducida; esperas dominantes explicadas; compilación cara; plan trivial; parametrización
@@ -70,7 +70,7 @@ lleva al operador en el árbol. Todo pasa en el navegador: el plan no se sube a 
 
 ## Cómo se prueba
 
-Lógica pura, sin navegador. Usa 20 planes reales de SQL Server 2022 (carpeta `tests/planes/`) y XML
+Lógica pura, sin navegador. Usa 21 planes reales de SQL Server 2022 (carpeta `tests/planes/`) y XML
 armados a mano para lo que no se pudo reproducir (columnas sin estadísticas, Index Spool, CE 70,
 `StmtCond`, cursores, plan dentro de un evento extendido):
 
@@ -112,5 +112,5 @@ index.html        interfaz y el script de la página
 logica.js         parser XML, modelo del plan, diagnóstico, glosario; anda en el navegador y en Node
 ejemplos.js       los 12 planes reales de los botones de ejemplo
 scripts/          Get-PlanesLentos.ps1 (PowerShell: saca los planes más lentos de un servidor)
-tests/            logica.test.js (node --test), e2e.js (Playwright) y planes/*.sqlplan (20 planes reales)
+tests/            logica.test.js (node --test), e2e.js (Playwright) y planes/*.sqlplan (21 planes reales)
 ```

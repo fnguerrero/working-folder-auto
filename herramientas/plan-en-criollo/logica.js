@@ -480,7 +480,9 @@
     s.plan = {
       dop: q.DegreeOfParallelism !== undefined ? num(q.DegreeOfParallelism) : null, razonNoParalelo: q.NonParallelPlanReason || "", memoriaKB: q.MemoryGrant !== undefined ? num(q.MemoryGrant) : null,
       tamanoCacheKB: num(q.CachedPlanSize), compilacionMs: num(q.CompileTime), compilacionCpuMs: num(q.CompileCPU), compilacionKB: num(q.CompileMemory), memoria, tiempos, esperas, avisos: avisosPlan, parametros,
-      indicesFaltantes: leerIndicesFaltantes(qpEl), estadisticasUsadas: buscarTodos(hijo(qpEl, "OptimizerStatsUsage"), "StatisticsInfo").length,
+      indicesFaltantes: leerIndicesFaltantes(qpEl),
+      indicesNoUsados: buscarTodos(hijo(qpEl, "UnmatchedIndexes"), "Object").map((o) => leerObjeto(o)).filter((o) => o && o.indice),
+      estadisticasUsadas: buscarTodos(hijo(qpEl, "OptimizerStatsUsage"), "StatisticsInfo").length,
       hardware: (hijo(qpEl, "OptimizerHardwareDependentProperties") || { atributos: {} }).atributos,
     };
     const raizRel = hijo(qpEl, "RelOp");
@@ -744,6 +746,16 @@
     for (const n of nodos.filter((x) => x.avisos.some((a) => a.tipo === "NoJoinPredicate"))) {
       const ext = n.hijos[0], int = n.hijos[1];
       agregar("alta", "Join sin condición: producto cartesiano", `${nombreNodo(n)} combina cada fila de un lado con cada fila del otro${ext && int ? ` (${fmtNum(filasReales(ext) !== null ? filasReales(ext) : ext.filasEstTotales, 0)} × ${fmtNum(filasReales(int) !== null ? filasReales(int) : int.filasEstTotales, 0)})` : ""}. Si no es un CROSS JOIN a propósito, falta una condición de join (un ON, o un WHERE que une las tablas).`, "Revisá el FROM: una tabla listada con coma sin su condición en el WHERE, o un JOIN con un ON que compara una tabla consigo misma. Si es intencional (una tabla de números, un calendario), está bien.", { nodos: [n.id] });
+    }
+
+    // 8b. Índices filtrados que no se pudieron usar por la parametrización
+    if (p.indicesNoUsados.length || nodos.some((n) => n.avisos.some((a) => a.tipo === "UnmatchedIndexes"))) {
+      const nombres = p.indicesNoUsados.map((o) => `${o.nombre} (${o.indice})`);
+      const afectados = nodos.filter((n) => n.avisos.some((a) => a.tipo === "UnmatchedIndexes") || (esScan(n) && n.objeto && p.indicesNoUsados.some((o) => o.tabla === n.objeto.tabla)));
+      agregar(afectados.some((n) => esScan(n) && (n.real ? n.real.filasLeidas || n.real.filas : n.cardinalidadTabla || 0) >= 10000) ? "media" : "baja", `Hay un índice filtrado que no se puede usar porque la consulta está parametrizada${nombres.length ? `: ${nombres.join(", ")}` : ""}`,
+        `El plan se compila una vez y se reutiliza con cualquier valor del parámetro, pero el índice filtrado solo tiene las filas que cumplen su WHERE: un plan que lo use sería incorrecto para otros valores, así que el optimizador lo descarta (UnmatchedIndexes) y ${afectados.some(esScan) ? "lee la tabla entera" : "usa otro camino"}. Pasa siempre que la columna del filtro del índice llega como parámetro (Dapper, EF Core, sp_executesql, procedimientos).`,
+        "Escribí la condición del filtro del índice como literal en la consulta (en EF Core, la constante en el código y no en una variable; o una consulta aparte para ese caso), usá `OPTION (RECOMPILE)` para que compile con el valor real, o en un procedimiento separá con un IF. Si el índice filtrado no se usa nunca, borralo: solo cuesta.",
+        { nodos: afectados.map((n) => n.id) });
     }
 
     // 9. Columnas sin estadísticas
