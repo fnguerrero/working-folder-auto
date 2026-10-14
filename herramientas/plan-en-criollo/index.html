@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<title>Plan en criollo</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --card: #fff; --fg: #1d1d1f; --muted: #6b6b70; --line: #e4e2dc; --accent: #0f6e8c; --accent-fg: #fff;
+    --alta: #c0392b; --alta-bg: rgba(192, 57, 43, .09); --media: #b7791f; --media-bg: rgba(183, 121, 31, .10); --baja: #2b6cb0; --baja-bg: rgba(43, 108, 176, .08); --info: #6b6b70; --info-bg: rgba(107, 107, 112, .08);
+    --code-bg: #fbfaf7; --hl: rgba(15, 110, 140, .12);
+    --c-acceso: #2b6cb0; --c-join: #805ad5; --c-agregado: #2f855a; --c-orden: #b7791f; --c-paralelo: #0f6e8c; --c-spool: #c05621; --c-modificacion: #c53030; --c-otro: #6b6b70;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111114; --card: #1b1b20; --fg: #ececf1; --muted: #9a9aa3; --line: #2a2a31; --accent: #5cc3e4; --accent-fg: #0b1a20;
+      --alta: #ff7b6b; --alta-bg: rgba(255, 123, 107, .12); --media: #f0b454; --media-bg: rgba(240, 180, 84, .12); --baja: #7fb3ff; --baja-bg: rgba(127, 179, 255, .10); --info: #9a9aa3; --info-bg: rgba(154, 154, 163, .10);
+      --code-bg: #15151a; --hl: rgba(92, 195, 228, .18);
+      --c-acceso: #7fb3ff; --c-join: #b794f4; --c-agregado: #68d391; --c-orden: #f0b454; --c-paralelo: #5cc3e4; --c-spool: #f6ad55; --c-modificacion: #fc8181; --c-otro: #9a9aa3;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.45; }
+  header, main { max-width: 980px; margin: 0 auto; padding: 0 16px; }
+  header { padding-top: 18px; }
+  h1 { margin: 0; font-size: 1.5rem; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  a { color: var(--accent); }
+  main { display: grid; gap: 14px; padding-bottom: 32px; padding-top: 12px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+  .panel h2 { margin: 0 0 10px; font-size: 1rem; }
+  .panel h2 small { color: var(--muted); font-weight: 400; }
+  textarea { width: 100%; min-height: 120px; font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--code-bg); color: var(--fg); resize: vertical; }
+  textarea:focus-visible, button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); }
+  .zona { border: 2px dashed var(--line); border-radius: 12px; padding: 10px; transition: border-color .2s, background .2s; }
+  .zona.sobre { border-color: var(--accent); background: var(--hl); }
+  .fila { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+  .fila .crece { flex: 1 1 auto; }
+  select, button, .boton-archivo { font: inherit; font-size: .9rem; min-height: 40px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--fg); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  button:hover, select:hover, .boton-archivo:hover { border-color: var(--accent); }
+  button.primario { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); font-weight: 600; }
+  button.chico { min-height: 32px; padding: 3px 10px; font-size: .82rem; }
+  .boton-archivo input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .boton-archivo { position: relative; }
+  .ejemplos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .ejemplos button { border-radius: 999px; font-size: .85rem; min-height: 36px; }
+  .nota { font-size: .82rem; color: var(--muted); margin: 8px 0 0; }
+  .error { color: var(--alta); background: var(--alta-bg); border-radius: 8px; padding: 10px 12px; margin-top: 10px; font-size: .92rem; }
+  .oculto { display: none !important; }
+  .frase { font-size: 1.15rem; font-weight: 600; margin: 0 0 6px; letter-spacing: -.01em; }
+  .pesa { margin: 0 0 8px; color: var(--muted); font-size: .92rem; }
+  .veredicto { font-weight: 600; margin: 0 0 10px; }
+  .sentencias { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .sentencias button[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .hallazgo { border-left: 4px solid var(--info); background: var(--info-bg); border-radius: 0 10px 10px 0; padding: 10px 12px; margin: 8px 0; }
+  .hallazgo.alta { border-color: var(--alta); background: var(--alta-bg); }
+  .hallazgo.media { border-color: var(--media); background: var(--media-bg); }
+  .hallazgo.baja { border-color: var(--baja); background: var(--baja-bg); }
+  .hallazgo h3 { margin: 0; font-size: 1rem; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .chip { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 2px 7px; border-radius: 999px; color: #fff; background: var(--info); white-space: nowrap; }
+  .chip.alta { background: var(--alta); } .chip.media { background: var(--media); } .chip.baja { background: var(--baja); }
+  .hallazgo p { margin: 6px 0 0; font-size: .92rem; }
+  .hallazgo p b { font-weight: 600; }
+  .hallazgo code, .detalle code, .ref code { font: .88em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--bg); padding: 1px 5px; border-radius: 5px; }
+  .hallazgo .acciones, .acciones { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-items: center; }
+  .ver-op { font-size: .8rem; color: var(--accent); background: none; border: 1px solid var(--line); border-radius: 999px; min-height: 28px; padding: 2px 10px; }
+  pre { margin: 8px 0 0; padding: 10px 12px; background: var(--code-bg); border-radius: 8px; overflow: auto; font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; -webkit-overflow-scrolling: touch; white-space: pre-wrap; word-break: break-word; }
+  .arbol { list-style: none; margin: 0; padding: 0; font-size: .88rem; }
+  .arbol ul { list-style: none; margin: 0; padding-left: 14px; border-left: 1px dashed var(--line); margin-left: 9px; }
+  .nodo { display: flex; gap: 8px; align-items: baseline; padding: 4px 6px; border-radius: 8px; cursor: pointer; flex-wrap: wrap; }
+  .nodo:hover { background: var(--hl); }
+  .nodo.resaltado { background: var(--hl); outline: 2px solid var(--accent); }
+  .nodo.apagado { opacity: .55; }
+  .pct { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 44px; text-align: right; color: var(--muted); }
+  .pct.caliente { color: var(--alta); }
+  .pct.tibio { color: var(--media); }
+  .op { font-weight: 600; }
+  .op::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--c-otro); vertical-align: middle; }
+  .op.acceso::before { background: var(--c-acceso); } .op.join::before { background: var(--c-join); } .op.agregado::before { background: var(--c-agregado); } .op.orden::before { background: var(--c-orden); } .op.paralelo::before { background: var(--c-paralelo); } .op.spool::before { background: var(--c-spool); } .op.modificacion::before { background: var(--c-modificacion); }
+  .obj { color: var(--muted); }
+  .cifras { color: var(--muted); font-variant-numeric: tabular-nums; font-size: .84rem; }
+  .cifras b { color: var(--fg); font-weight: 600; }
+  .desvio { color: var(--alta); font-weight: 600; }
+  .aviso-op { color: var(--media); font-weight: 700; }
+  .detalle { display: none; margin: 2px 0 6px 50px; font-size: .84rem; background: var(--code-bg); border-radius: 8px; padding: 8px 10px; }
+  .detalle.abierto { display: block; }
+  .detalle dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 3px 10px; }
+  .detalle dt { color: var(--muted); }
+  .detalle dd { margin: 0; word-break: break-word; }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: .8rem; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .datos dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; font-size: .9rem; }
+  .datos dt { color: var(--muted); }
+  .datos dd { margin: 0; min-width: 0; word-break: break-word; }
+  .sql { font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; word-break: break-word; background: var(--code-bg); padding: 8px 10px; border-radius: 8px; margin: 0 0 10px; max-height: 160px; overflow: auto; }
+  .ref h3 { font-size: .95rem; margin: 14px 0 6px; }
+  .ref p, .ref li { font-size: .92rem; }
+  .ref ol, .ref ul { padding-left: 20px; }
+  details { border-top: 1px solid var(--line); padding: 6px 0; }
+  details summary { cursor: pointer; font-weight: 600; font-size: .92rem; }
+  details p { margin: 6px 0 0 0; font-size: .9rem; }
+  .glos-filtro { width: 100%; margin-bottom: 8px; }
+  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: .9rem; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 10; }
+  .toast.visible { opacity: 1; }
+  .arbol-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  @media (max-width: 600px) { .detalle { margin-left: 8px; } .pct { min-width: 38px; } .nodo { gap: 6px; } .datos dl { grid-template-columns: 1fr; } .datos dt { margin-top: 6px; } .arbol ul { padding-left: 6px; margin-left: 4px; } .arbol { font-size: .84rem; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Plan en criollo</h1>
+  <p>Pegá un plan de ejecución de SQL Server (el XML o el archivo <code>.sqlplan</code>) y te dice en castellano qué está pasando, dónde se va el tiempo y qué hacer. Todo queda en tu navegador. <a href="../../">Volver</a></p>
+</header>
+<main>
+  <section class="panel" aria-label="Plan">
+    <div class="zona" id="zona">
+      <textarea id="xml" spellcheck="false" aria-label="XML del plan de ejecución" placeholder="Pegá acá el XML del plan (empieza con <ShowPlanXML …>) o arrastrá un archivo .sqlplan"></textarea>
+      <div class="fila">
+        <button id="btn-analizar" type="button" class="primario">Analizar</button>
+        <label class="boton-archivo">Abrir .sqlplan<input id="archivo" type="file" accept=".sqlplan,.xml,text/xml,application/xml"></label>
+        <button id="btn-limpiar" type="button">Limpiar</button>
+        <span class="crece"></span>
+        <span class="nota" id="estado-archivo"></span>
+      </div>
+    </div>
+    <div class="ejemplos" id="ejemplos" aria-label="Ejemplos"></div>
+    <p class="nota">Los ejemplos son planes reales de SQL Server 2022 sobre una base de prueba. Un plan trae nombres de tablas, texto SQL y valores de parámetros: si lo compartís, revisá que no haya datos sensibles.</p>
+    <div class="error oculto" id="error" role="alert"></div>
+  </section>
+
+  <div id="resultado" class="oculto" style="display: grid; gap: 14px;">
+    <section class="panel" aria-label="Diagnóstico">
+      <div class="sentencias oculto" id="sentencias" role="tablist"></div>
+      <p class="frase" id="frase"></p>
+      <p class="pesa" id="pesa"></p>
+      <p class="veredicto" id="veredicto"></p>
+      <div id="hallazgos"></div>
+    </section>
+
+    <section class="panel" aria-label="El plan paso a paso">
+      <h2>El plan, operador por operador <small>(porcentaje del costo estimado · filas estimadas → reales · clic para el detalle)</small></h2>
+      <div class="acciones" style="margin: 0 0 8px;">
+        <button id="btn-expandir" type="button" class="chico">Abrir todos los detalles</button>
+        <button id="btn-copiar-arbol" type="button" class="chico">Copiar como texto</button>
+        <button id="btn-copiar-informe" type="button" class="chico">Copiar diagnóstico</button>
+      </div>
+      <div class="arbol-scroll"><ul class="arbol" id="arbol"></ul></div>
+    </section>
+
+    <section class="panel" aria-label="Lo que más pesa">
+      <h2>Lo que más pesa</h2>
+      <div class="scroll"><table><thead><tr><th>Operador</th><th>Sobre</th><th class="num">Costo</th><th class="num">Filas est.</th><th class="num">Filas reales</th><th class="num">Ejec.</th><th class="num">Lecturas</th></tr></thead><tbody id="pesados"></tbody></table></div>
+    </section>
+
+    <section class="panel datos" aria-label="Datos de la consulta">
+      <h2>Datos de la consulta</h2>
+      <pre class="sql" id="sql-texto"></pre>
+      <dl id="datos"></dl>
+      <div id="parametros"></div>
+      <div id="esperas"></div>
+    </section>
+  </div>
+
+  <article class="panel ref">
+    <h2>Cómo conseguir el plan</h2>
+    <ol>
+      <li><b>SSMS:</b> antes de ejecutar, <i>Query → Include Actual Execution Plan</i> (Ctrl+M). En la pestaña «Execution plan», clic derecho → <i>Save Execution Plan As…</i> y guardalo como <code>.sqlplan</code>. O clic derecho → <i>Show Execution Plan XML</i> y copiás todo.</li>
+      <li><b>Azure Data Studio:</b> botón «Enable Actual Plan» (Ctrl+M) y después guardar el plan desde la barra del resultado.</li>
+      <li><b>Desde código o sqlcmd:</b> <code>SET STATISTICS XML ON;</code> antes de la consulta: el plan vuelve como un resultado más, en una columna XML. Con <code>SET SHOWPLAN_XML ON</code> obtenés el estimado sin ejecutar (tiene que ir solo en su batch).</li>
+      <li><b>Lo que ya corrió:</b> Query Store (<code>sys.query_store_plan.query_plan</code>) o la caché (<code>sys.dm_exec_query_plan</code> con el <code>plan_handle</code> de <code>sys.dm_exec_query_stats</code>). Son planes estimados: sin filas reales.</li>
+    </ol>
+    <p>El plan <b>real</b> (actual) trae filas, lecturas y tiempos de verdad; el <b>estimado</b> solo lo que el optimizador creía. Para diagnosticar, siempre el real.</p>
+
+    <h2 style="margin-top: 18px;">Cómo leer un plan</h2>
+    <ul>
+      <li><b>Los datos fluyen de las hojas a la raíz.</b> Acá el árbol está al revés que en SSMS: la raíz (lo que devuelve filas al cliente) arriba, y cada operador abajo de quien lo consume. En SSMS se lee de derecha a izquierda.</li>
+      <li><b>El porcentaje de costo es una estimación</b>, no tiempo medido. Si las filas estimadas y las reales difieren mucho, los porcentajes mienten: miralo como una pista, no como un veredicto. Las lecturas y los tiempos por operador sí son reales.</li>
+      <li><b>Estimado vs. real</b> es lo más importante. Cuando el optimizador espera 6 filas y llegan 100.000, todas sus decisiones (join, memoria, orden) se tomaron para un mundo que no existe.</li>
+      <li><b>Un seek no siempre es bueno y un scan no siempre es malo.</b> Un scan de una tabla de 200 filas no importa; un seek que se ejecuta 100.000 veces, sí.</li>
+      <li><b>Grosor de las flechas</b> en SSMS = filas. Acá, mirá la columna de filas reales y las ejecuciones.</li>
+    </ul>
+
+    <h2 style="margin-top: 18px;">Glosario de operadores</h2>
+    <input class="glos-filtro" id="glos-filtro" type="search" placeholder="Filtrar (Hash, Sort, Spool…)" aria-label="Filtrar glosario" style="font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--code-bg); color: var(--fg);">
+    <div id="glosario"></div>
+  </article>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="logica.js"></script>
+<script src="ejemplos.js"></script>
+<script>
+(function () {
+  "use strict";
+  const L = window.PlanCriollo;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // `código` → <code>, **negrita** no se usa; «» se dejan.
+  const rico = (s) => esc(s).replace(/`([^`]+)`/g, "<code>$1</code>");
+  const CLAVE = "plan-en-criollo:ultimo";
+  let resultado = null, sentencia = null;
+
+  function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add("visible"); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove("visible"), 1800); }
+  async function copiar(texto, aviso) {
+    try { await navigator.clipboard.writeText(texto); toast(aviso || "Copiado"); }
+    catch (e) { const ta = document.createElement("textarea"); ta.value = texto; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); toast(aviso || "Copiado"); } catch (e2) { toast("No se pudo copiar"); } ta.remove(); }
+  }
+  function guardar(xml) { try { if (xml.length < 2000000) localStorage.setItem(CLAVE, xml); } catch (e) { /* sin localStorage */ } }
+  function recuperar() { try { return localStorage.getItem(CLAVE) || ""; } catch (e) { return ""; } }
+
+  /* ---------- Ejemplos ---------- */
+  const ejemplos = window.PlanCriolloEjemplos || [];
+  for (const ej of ejemplos) {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = ej.nombre; b.title = ej.descripcion; b.dataset.ejemplo = ej.slug;
+    b.addEventListener("click", () => { $("xml").value = ej.xml; $("estado-archivo").textContent = `Ejemplo: ${ej.descripcion}`; analizar(); });
+    $("ejemplos").appendChild(b);
+  }
+
+  /* ---------- Entrada ---------- */
+  $("btn-analizar").addEventListener("click", analizar);
+  $("btn-limpiar").addEventListener("click", () => { $("xml").value = ""; $("estado-archivo").textContent = ""; $("resultado").classList.add("oculto"); $("error").classList.add("oculto"); try { localStorage.removeItem(CLAVE); } catch (e) { /* nada */ } $("xml").focus(); });
+  $("archivo").addEventListener("change", (e) => { if (e.target.files[0]) leerArchivo(e.target.files[0]); });
+  const zona = $("zona");
+  ["dragenter", "dragover"].forEach((ev) => zona.addEventListener(ev, (e) => { e.preventDefault(); zona.classList.add("sobre"); }));
+  ["dragleave", "drop"].forEach((ev) => zona.addEventListener(ev, (e) => { e.preventDefault(); zona.classList.remove("sobre"); }));
+  zona.addEventListener("drop", (e) => { const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) leerArchivo(f); });
+  $("xml").addEventListener("paste", () => setTimeout(() => { if ($("xml").value.trim().length > 50) analizar(); }, 0));
+  $("xml").addEventListener("keydown", (e) => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") analizar(); });
+  function leerArchivo(f) {
+    const lector = new FileReader();
+    lector.onload = () => { $("xml").value = lector.result; $("estado-archivo").textContent = `${f.name} (${L.fmtKB(f.size / 1024)})`; analizar(); };
+    lector.onerror = () => mostrarError("No se pudo leer el archivo.");
+    lector.readAsText(f);
+  }
+  function mostrarError(msg) { $("error").textContent = msg; $("error").classList.remove("oculto"); $("resultado").classList.add("oculto"); }
+
+  function analizar() {
+    const xml = $("xml").value;
+    if (!xml.trim()) { mostrarError("Pegá el XML de un plan o abrí un archivo .sqlplan."); return; }
+    try {
+      resultado = L.analizar(xml);
+    } catch (e) { mostrarError(e.message); return; }
+    $("error").classList.add("oculto");
+    guardar(xml);
+    pintarSentencias();
+    elegirSentencia(0);
+    $("resultado").classList.remove("oculto");
+  }
+
+  /* ---------- Sentencias ---------- */
+  function pintarSentencias() {
+    const cont = $("sentencias"); cont.innerHTML = "";
+    if (resultado.conPlan.length < 2) { cont.classList.add("oculto"); return; }
+    cont.classList.remove("oculto");
+    resultado.conPlan.forEach((s, i) => {
+      const b = document.createElement("button"); b.type = "button"; b.setAttribute("role", "tab"); b.className = "chico";
+      const altas = s.hallazgos.filter((h) => h.gravedad === "alta").length;
+      b.textContent = `${i + 1}. ${s.tipo}${altas ? ` (${altas} ⚠)` : ""}`; b.title = L.recortar(s.texto, 160);
+      b.addEventListener("click", () => elegirSentencia(i));
+      cont.appendChild(b);
+    });
+  }
+  function elegirSentencia(i) {
+    sentencia = resultado.conPlan[i];
+    [...$("sentencias").children].forEach((b, j) => b.setAttribute("aria-selected", String(j === i)));
+    pintarDiagnostico(); pintarArbol(); pintarPesados(); pintarDatos();
+  }
+
+  /* ---------- Diagnóstico ---------- */
+  function pintarDiagnostico() {
+    const s = sentencia;
+    $("frase").textContent = (resultado.conPlan.length > 1 ? `Sentencia ${s.orden} de ${resultado.conPlan.length}: ` : "") + s.resumen.frase;
+    $("pesa").textContent = s.resumen.masPesa.trim();
+    $("veredicto").textContent = s.resumen.veredicto;
+    const cont = $("hallazgos"); cont.innerHTML = "";
+    if (!s.hallazgos.length) { cont.innerHTML = '<p class="nota">Ningún hallazgo. O el plan está bien, o el problema está en algo que el plan no muestra (bloqueos, red, cantidad de ejecuciones).</p>'; return; }
+    for (const h of s.hallazgos) {
+      const div = document.createElement("div"); div.className = `hallazgo ${h.gravedad}`;
+      const etiqueta = { alta: "Serio", media: "Mirar", baja: "Menor", info: "Dato" }[h.gravedad];
+      div.innerHTML = `<h3><span class="chip ${h.gravedad}">${etiqueta}</span>${esc(h.titulo)}</h3><p><b>Qué pasa:</b> ${rico(h.que)}</p><p><b>Qué hacer:</b> ${rico(h.hacer)}</p>`;
+      if (h.codigo) { const pre = document.createElement("pre"); pre.textContent = h.codigo; div.appendChild(pre); }
+      const acc = document.createElement("div"); acc.className = "acciones";
+      if (h.codigo) { const b = document.createElement("button"); b.type = "button"; b.className = "chico"; b.textContent = "Copiar SQL"; b.addEventListener("click", () => copiar(h.codigo, "SQL copiado")); acc.appendChild(b); }
+      for (const id of (h.nodos || []).slice(0, 4)) {
+        const n = s.nodos.find((x) => x.id === id); if (!n) continue;
+        const b = document.createElement("button"); b.type = "button"; b.className = "ver-op"; b.textContent = `Ver: ${n.nombreEs}${n.objeto ? ` (${n.objeto.tabla})` : ""}`;
+        b.addEventListener("click", () => resaltar(id)); acc.appendChild(b);
+      }
+      if (acc.children.length) div.appendChild(acc);
+      cont.appendChild(div);
+    }
+  }
+
+  /* ---------- Árbol ---------- */
+  function pintarArbol() {
+    const s = sentencia; const ul = $("arbol"); ul.innerHTML = "";
+    const costoMax = Math.max(...s.nodos.map((n) => n.porcentaje), 1);
+    const rec = (n, cont) => {
+      const li = document.createElement("li");
+      const div = document.createElement("div"); div.className = "nodo" + (n.noEjecutado ? " apagado" : ""); div.dataset.id = n.id; div.tabIndex = 0; div.setAttribute("role", "button"); div.setAttribute("aria-expanded", "false");
+      const desvio = n.real && Math.max(n.filasEstTotales, n.real.filas) >= 100 && Math.max(n.filasEstTotales, n.real.filas) / Math.max(Math.min(n.filasEstTotales, n.real.filas), 1) >= 10;
+      const ej = n.real ? n.real.ejecuciones : Math.round(n.ejecucionesEst);
+      const hilos = n.real ? n.real.hilos : 0;
+      const ejTexto = n.noEjecutado ? "no se ejecutó" : hilos > 1 && ej <= hilos ? `${hilos} hilos` : ej > 1 ? `${L.fmtNum(ej, 0)} ejec.` : "";
+      const filas = n.real ? `<b>${L.fmtNum(n.filasEstTotales, 0)}</b> est → <b class="${desvio ? "desvio" : ""}">${L.fmtNum(n.real.filas, 0)}</b> reales` : `<b>${L.fmtNum(n.filasEstTotales, 0)}</b> est`;
+      div.innerHTML = `<span class="pct ${n.porcentaje >= 40 ? "caliente" : n.porcentaje >= 15 ? "tibio" : ""}">${L.fmtNum(n.porcentaje, 0)} %</span>`
+        + `<span class="op ${n.clase}">${esc(n.nombreEs)}</span>${n.logicoEs ? `<span class="obj">${esc(n.logicoEs)}</span>` : ""}`
+        + (n.objeto ? `<span class="obj">${esc(n.objeto.nombreCompleto)}</span>` : "")
+        + `<span class="cifras">${filas}${ejTexto ? ` · ${ejTexto}` : ""}${n.real && n.real.lecturasLogicas ? ` · ${L.fmtNum(n.real.lecturasLogicas, 0)} lect.` : ""}${n.real && n.real.msTranscurridos !== null && n.real.msTranscurridos >= 1 ? ` · ${L.fmtMs(n.real.msTranscurridos)}` : ""}</span>`
+        + (n.avisos.length ? `<span class="aviso-op" title="${esc(n.avisos.map((a) => a.texto).join(" "))}">⚠</span>` : "");
+      const det = document.createElement("div"); det.className = "detalle"; det.innerHTML = detalleNodo(n);
+      div.addEventListener("click", () => { det.classList.toggle("abierto"); div.setAttribute("aria-expanded", String(det.classList.contains("abierto"))); });
+      div.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); div.click(); } });
+      li.appendChild(div); li.appendChild(det);
+      if (n.hijos.length) { const sub = document.createElement("ul"); for (const h of n.hijos) rec(h, sub); li.appendChild(sub); }
+      cont.appendChild(li);
+    };
+    if (s.raiz) rec(s.raiz, ul);
+    void costoMax;
+  }
+  function detalleNodo(n) {
+    const filas = [];
+    const f = (k, v) => { if (v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && !v.length)) filas.push(`<dt>${esc(k)}</dt><dd>${v}</dd>`); };
+    const desc = L.OPERADORES[n.fisico] || (n.fisico === "Hash Match" && /Aggregate/.test(n.logico) ? L.OPERADORES["Hash Match Aggregate"] : null);
+    if (desc) f("Qué hace", esc(desc[2]));
+    f("Operador", `${esc(n.fisico)}${n.logico && n.logico !== n.fisico ? ` / ${esc(n.logico)}` : ""} · nodo ${n.id}${n.modoEst ? ` · modo ${n.modoEst === "Batch" ? "lote (batch)" : "fila"}` : ""}${n.paralelo ? " · paralelo" : ""}`);
+    if (n.objeto) f("Objeto", esc(n.objeto.nombreCompleto) + (n.objeto.tipoIndice ? ` · índice ${esc(n.objeto.tipoIndice === "Clustered" ? "agrupado" : n.objeto.tipoIndice === "NonClustered" ? "no agrupado" : n.objeto.tipoIndice)}` : "") + (n.cardinalidadTabla !== null ? ` · ${L.fmtNum(n.cardinalidadTabla, 0)} filas en la tabla` : ""));
+    if (n.predicadoSeek.length) f("Busca por", esc(n.predicadoSeek.join("; ")));
+    if (n.predicado) f(n.fisico === "Filter" ? "Condición" : n.esLookup || /Seek/.test(n.fisico) ? "Filtra además" : /Scan/.test(n.fisico) ? "Filtra" : "Condición", `<code>${esc(n.predicado)}</code>`);
+    const d = n.detalle;
+    if (d.ordenPor) f("Ordena por", esc(d.ordenPor.join(", ")) + (d.distinct ? " (DISTINCT)" : "") + (d.topN ? ` · top ${d.topN}` : ""));
+    if (d.agrupaPor) f("Agrupa por", esc(d.agrupaPor.join(", ")));
+    if (d.clavesBuild) f("Claves hash", `build: ${esc(d.clavesBuild.join(", "))} · probe: ${esc((d.clavesProbe || []).join(", "))}`);
+    if (d.clavesExternas) f("Claves merge", `${esc(d.clavesExternas.join(", "))} = ${esc((d.clavesInternas || []).join(", "))}${d.muchosAMuchos ? " · muchos a muchos" : ""}`);
+    if (d.referenciasExternas) f("Referencias externas", esc(d.referenciasExternas.join(", ")));
+    if (d.top) f("Top", esc(d.top) + (d.conEmpates ? " WITH TIES" : "") + (d.porcentaje ? " %" : ""));
+    if (d.particion) f("Reparto", esc(d.particion) + (d.columnasParticion && d.columnasParticion.length ? ` por ${esc(d.columnasParticion.join(", "))}` : ""));
+    if (d.joinReal) f("Join elegido", d.joinReal === "HashMatch" ? "hash" : "bucles anidados");
+    if (d.umbralAdaptativo) f("Umbral adaptativo", `${L.fmtNum(d.umbralAdaptativo, 0)} filas`);
+    if (d.expresiones && d.expresiones.length) f("Calcula", d.expresiones.map((e) => `<code>${esc(L.recortar(e, 160))}</code>`).join("<br>"));
+    if (d.setea && d.setea.length) f("Asigna", d.setea.map((e) => `<code>${esc(L.recortar(e, 160))}</code>`).join("<br>"));
+    if (d.ordenado !== undefined) f("Lectura", (d.ordenado ? "ordenada" : "sin orden") + (d.direccion ? `, ${d.direccion}` : "") + (d.forzado ? " · forzada con hint" : ""));
+    f("Filas estimadas", `${L.fmtNum(n.filasEst)} por ejecución × ${L.fmtNum(n.ejecucionesEst, n.ejecucionesEst >= 10 ? 0 : 2)} = ${L.fmtNum(n.filasEstTotales, 0)}${n.filasLeidasEst !== null ? ` · a leer: ${L.fmtNum(n.filasLeidasEst, 0)}` : ""}${n.filasSinMetaEst !== null ? ` · sin meta de filas: ${L.fmtNum(n.filasSinMetaEst, 0)}` : ""}`);
+    if (n.real) {
+      const r = n.real;
+      f("Real", `${L.fmtNum(r.filas, 0)} filas${r.filasLeidas !== null ? `, ${L.fmtNum(r.filasLeidas, 0)} leídas` : ""} · ${L.fmtNum(r.ejecuciones, 0)} ejecuciones${r.hilos > 1 ? ` en ${r.hilos} hilos` : ""}${r.modo ? ` · modo ${r.modo === "Batch" ? "lote" : "fila"}` : ""}`);
+      if (r.lecturasLogicas !== null) f("Lecturas", `${L.fmtNum(r.lecturasLogicas, 0)} lógicas${r.lecturasFisicas ? `, ${L.fmtNum(r.lecturasFisicas, 0)} físicas` : ""}${r.lecturasAnticipadas ? `, ${L.fmtNum(r.lecturasAnticipadas, 0)} read-ahead` : ""}${r.lobLogicas ? `, ${L.fmtNum(r.lobLogicas, 0)} LOB` : ""} (${L.fmtKB((r.lecturasLogicas || 0) * 8)})`);
+      if (r.msTranscurridos !== null) f("Tiempo", `${L.fmtMs(r.msTranscurridos)} transcurridos, ${L.fmtMs(r.msCpu)} de CPU (acumulado con lo de abajo)`);
+      if (r.memoriaConcedidaKB) f("Memoria", `${L.fmtKB(r.memoriaConcedidaKB)} concedidos, ${L.fmtKB(r.memoriaUsadaKB)} usados`);
+    }
+    f("Costo", `${L.fmtCosto(n.costoPropio)} propio (${L.fmtNum(n.porcentaje, 0)} %) · ${L.fmtCosto(n.costoSubarbol)} con lo de abajo · E/S ${L.fmtCosto(n.ioEst)} · CPU ${L.fmtCosto(n.cpuEst)} · ${n.tamFila} bytes por fila`);
+    if (n.avisos.length) f("Avisos", n.avisos.map((a) => esc(a.texto)).join("<br>"));
+    if (n.salida.length) f("Devuelve", esc(n.salida.slice(0, 20).join(", ")) + (n.salida.length > 20 ? ` … (${n.salida.length} columnas)` : ""));
+    return `<dl>${filas.join("")}</dl>`;
+  }
+  function resaltar(id) {
+    document.querySelectorAll(".nodo.resaltado").forEach((d) => d.classList.remove("resaltado"));
+    const div = document.querySelector(`.nodo[data-id="${id}"]`); if (!div) return;
+    div.classList.add("resaltado");
+    const det = div.nextElementSibling; if (det && !det.classList.contains("abierto")) { det.classList.add("abierto"); div.setAttribute("aria-expanded", "true"); }
+    div.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  $("btn-expandir").addEventListener("click", () => {
+    const abrir = $("btn-expandir").textContent.startsWith("Abrir");
+    document.querySelectorAll("#arbol .detalle").forEach((d) => d.classList.toggle("abierto", abrir));
+    document.querySelectorAll("#arbol .nodo").forEach((d) => d.setAttribute("aria-expanded", String(abrir)));
+    $("btn-expandir").textContent = abrir ? "Cerrar todos los detalles" : "Abrir todos los detalles";
+  });
+  $("btn-copiar-arbol").addEventListener("click", () => copiar(L.arbolTexto(sentencia), "Árbol copiado"));
+  $("btn-copiar-informe").addEventListener("click", () => {
+    const s = sentencia;
+    const lineas = [`PLAN EN CRIOLLO · ${L.recortar(s.texto, 200)}`, "", s.resumen.frase + s.resumen.masPesa, s.resumen.veredicto, ""];
+    for (const h of s.hallazgos) { lineas.push(`[${h.gravedad.toUpperCase()}] ${h.titulo}`, `  Qué pasa: ${h.que}`, `  Qué hacer: ${h.hacer}`); if (h.codigo) lineas.push("  " + h.codigo.replace(/\n/g, "\n  ")); lineas.push(""); }
+    lineas.push("ÁRBOL", L.arbolTexto(s));
+    copiar(lineas.join("\n"), "Diagnóstico copiado");
+  });
+
+  /* ---------- Lo que más pesa ---------- */
+  function pintarPesados() {
+    const s = sentencia; const tb = $("pesados"); tb.innerHTML = "";
+    const lista = s.nodos.filter((n) => !n.noEjecutado).sort((a, b) => b.porcentaje - a.porcentaje || ((b.real ? b.real.lecturasLogicas : 0) - (a.real ? a.real.lecturasLogicas : 0))).slice(0, 6);
+    for (const n of lista) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td><a href="#" data-id="${n.id}">${esc(n.nombreEs)}</a></td><td class="obj">${n.objeto ? esc(n.objeto.nombreCompleto) : ""}</td><td class="num">${L.fmtNum(n.porcentaje, 0)} %</td><td class="num">${L.fmtNum(n.filasEstTotales, 0)}</td><td class="num">${n.real ? L.fmtNum(n.real.filas, 0) : "–"}</td><td class="num">${n.real ? L.fmtNum(n.real.ejecuciones, 0) : L.fmtNum(n.ejecucionesEst, 0)}</td><td class="num">${n.real && n.real.lecturasLogicas !== null ? L.fmtNum(n.real.lecturasLogicas, 0) : "–"}</td>`;
+      tr.querySelector("a").addEventListener("click", (e) => { e.preventDefault(); resaltar(n.id); });
+      tb.appendChild(tr);
+    }
+  }
+
+  /* ---------- Datos ---------- */
+  function pintarDatos() {
+    const s = sentencia, p = s.plan, dl = $("datos");
+    $("sql-texto").textContent = s.texto || "(sin texto)";
+    const items = [];
+    const f = (k, v) => { if (v !== undefined && v !== null && v !== "") items.push(`<dt>${esc(k)}</dt><dd>${v}</dd>`); };
+    f("Servidor", `${esc(resultado.versionServidor || "SQL Server")}${resultado.build ? ` (build ${esc(resultado.build)})` : ""} · plan ${s.esReal ? "real" : "estimado"}`);
+    f("Tipo", `${esc(s.tipo)}${s.nivelOptimizacion ? ` · optimización ${s.nivelOptimizacion === "TRIVIAL" ? "trivial" : "completa"}` : ""}${s.abortoTemprano ? ` · corte: ${s.abortoTemprano === "GoodEnoughPlanFound" ? "encontró un plan suficientemente bueno" : s.abortoTemprano === "TimeOut" ? "se acabó el tiempo" : esc(s.abortoTemprano)}` : ""}${s.versionCE !== null ? ` · estimador CE ${s.versionCE}` : ""}`);
+    f("Costo estimado", `${L.fmtCosto(s.costo)} · ${L.fmtNum(s.filasEst, 0)} filas estimadas${s.filasReales !== null ? ` · ${L.fmtNum(s.filasReales, 0)} reales` : ""}`);
+    if (p.dop !== null) f("Paralelismo", p.dop > 1 ? `${p.dop} hilos` : `serial${p.razonNoParalelo ? ` (${esc(L.RAZONES_NO_PARALELO[p.razonNoParalelo] || p.razonNoParalelo)})` : ""}`);
+    if (p.tiempos) f("Tiempo", `${L.fmtMs(p.tiempos.transcurridoMs)} transcurridos · ${L.fmtMs(p.tiempos.cpuMs)} de CPU${p.tiempos.udfCpuMs ? ` (${L.fmtMs(p.tiempos.udfCpuMs)} en funciones escalares)` : ""}`);
+    if (s.esReal) f("Lecturas", `${L.fmtPaginas(s.lecturasLogicas)} lógicas${s.lecturasFisicas ? ` · ${L.fmtNum(s.lecturasFisicas, 0)} del disco` : ""}`);
+    const m = p.memoria;
+    if (m.GrantedMemory !== undefined || p.memoriaKB !== null) f("Memoria", `${L.fmtKB(m.GrantedMemory !== undefined ? m.GrantedMemory : p.memoriaKB)} concedidos${m.MaxUsedMemory !== undefined ? ` · ${L.fmtKB(m.MaxUsedMemory)} usados` : ""}${m.RequestedMemory !== undefined ? ` · ${L.fmtKB(m.RequestedMemory)} pedidos` : ""}${m.GrantWaitTime ? ` · esperó ${m.GrantWaitTime} s` : ""}${m.IsMemoryGrantFeedbackAdjusted ? ` · feedback: ${esc(m.IsMemoryGrantFeedbackAdjusted)}` : ""}`);
+    f("Compilación", `${L.fmtMs(p.compilacionMs)} · ${L.fmtKB(p.compilacionKB)} · plan de ${L.fmtKB(p.tamanoCacheKB)} en caché${s.desdeCache ? " · venía de la caché" : ""}${p.estadisticasUsadas ? ` · ${p.estadisticasUsadas} estadísticas consultadas` : ""}`);
+    if (s.hashConsulta) f("Hashes", `consulta ${esc(s.hashConsulta)} · plan ${esc(s.hashPlan)}`);
+    dl.innerHTML = items.join("");
+    const par = $("parametros");
+    par.innerHTML = p.parametros.length ? `<h2 style="margin-top:14px">Parámetros</h2><div class="scroll"><table><thead><tr><th>Nombre</th><th>Tipo</th><th>Compilado con</th><th>Ejecutado con</th></tr></thead><tbody>${p.parametros.map((q) => `<tr><td class="mono">${esc(q.nombre)}</td><td>${esc(q.tipo)}</td><td>${esc(q.compilado === undefined ? "–" : q.compilado)}</td><td class="${q.ejecucion !== undefined && q.compilado !== undefined && q.ejecucion !== q.compilado ? "desvio" : ""}">${esc(q.ejecucion === undefined ? "–" : q.ejecucion)}</td></tr>`).join("")}</tbody></table></div>` : "";
+    const esp = $("esperas");
+    esp.innerHTML = p.esperas.length ? `<h2 style="margin-top:14px">Esperas durante la ejecución</h2><div class="scroll"><table><thead><tr><th>Tipo</th><th class="num">ms</th><th class="num">Veces</th><th>Qué significa</th></tr></thead><tbody>${p.esperas.slice(0, 10).map((e) => `<tr><td class="mono">${esc(e.tipo)}</td><td class="num">${L.fmtNum(e.ms, 0)}</td><td class="num">${L.fmtNum(e.veces, 0)}</td><td>${esc(e.significado)}</td></tr>`).join("")}</tbody></table></div>` : "";
+  }
+
+  /* ---------- Glosario ---------- */
+  const CLASES = { acceso: "acceso a datos", join: "join", agregado: "agregación y ventanas", orden: "orden", paralelo: "paralelismo", spool: "spool", modificacion: "modificación", otro: "otros" };
+  function pintarGlosario(filtro) {
+    const cont = $("glosario"); cont.innerHTML = "";
+    const f = (filtro || "").trim().toLowerCase();
+    for (const g of L.glosario()) {
+      if (f && !(g.ingles.toLowerCase().includes(f) || g.nombre.toLowerCase().includes(f) || g.descripcion.toLowerCase().includes(f))) continue;
+      const d = document.createElement("details");
+      d.innerHTML = `<summary><span class="op ${g.clase}">${esc(g.ingles)}</span> <span class="obj">· ${esc(g.nombre)} · ${esc(CLASES[g.clase] || g.clase)}</span></summary><p>${esc(g.descripcion)}</p>`;
+      cont.appendChild(d);
+    }
+    if (!cont.children.length) cont.innerHTML = '<p class="nota">Ningún operador coincide.</p>';
+  }
+  $("glos-filtro").addEventListener("input", (e) => pintarGlosario(e.target.value));
+  pintarGlosario("");
+
+  /* ---------- Arranque ---------- */
+  const previo = recuperar();
+  if (previo) { $("xml").value = previo; $("estado-archivo").textContent = "Último plan analizado (guardado en este navegador)"; analizar(); }
+})();
+</script>
+</body>
+</html>

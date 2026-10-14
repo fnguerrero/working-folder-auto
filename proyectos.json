@@ -88,5 +88,14 @@
     "estado": "terminado",
     "probar": "experimentos/guid-vs-identity/",
     "desde": "2026-10-13"
+  },
+  {
+    "slug": "plan-en-criollo",
+    "nombre": "Plan en criollo",
+    "categoria": "herramientas",
+    "descripcion": "Pegás un plan de ejecución de SQL Server (.sqlplan) y te dice en castellano qué pasa, dónde se va el tiempo y qué hacer: índices que faltan, lookups, conversiones implícitas, parameter sniffing, spills. Con 12 planes reales de ejemplo.",
+    "estado": "terminado",
+    "probar": "herramientas/plan-en-criollo/",
+    "desde": "2026-10-14"
   }
 ]
