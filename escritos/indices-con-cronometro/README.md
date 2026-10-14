@@ -7,7 +7,7 @@ sargabilidad (funciones, `CAST`, conversión implícita varchar/nvarchar, `LIKE`
 paginación por clave vs. `OFFSET`, índices filtrados y la trampa de los parámetros
 (`UnmatchedIndexes`), estadísticas con histograma y el efecto de literal/variable/parámetro
 (parameter sniffing), el costo de escribir con 0 y con 5 índices, columnstore, y las DMV de uso e
-índices faltantes. Cierra con una chuleta y qué cambia en el código .NET. Escrito para alguien que
+índices faltantes. Cierra con una conclusión, una chuleta y qué cambia en el código .NET. Escrito para alguien que
 programa en .NET y quiere entender qué pasa del lado del servidor.
 
 **Leer:** https://fnguerrero.github.io/working-folder-auto/escritos/indices-con-cronometro/

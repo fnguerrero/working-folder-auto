@@ -31,13 +31,13 @@ async function recorrido(navegador, url, viewport, movil) {
   pagina.on("pageerror", (e) => errores.push(String(e)));
   const paso = (n) => console.log(`  ✓ [${viewport.width}px] ${n}`);
   await pagina.goto(url);
-  assert.equal(await pagina.locator("main h2[id]").count(), 15);
-  assert.equal(await pagina.locator("#toc-lateral li").count(), 15);
-  assert.equal(await pagina.locator("#toc-movil li").count(), 15);
+  assert.equal(await pagina.locator("main h2[id]").count(), 16);
+  assert.equal(await pagina.locator("#toc-lateral li").count(), 16);
+  assert.equal(await pagina.locator("#toc-movil li").count(), 16);
   assert.ok((await pagina.evaluate(() => document.documentElement.scrollWidth)) <= viewport.width + 1, "sin scroll horizontal");
   const lateralVisible = await pagina.locator(".toc-lateral").isVisible();
   assert.equal(lateralVisible, !movil, "índice lateral solo en escritorio");
-  paso("carga, índice con 15 secciones, sin scroll horizontal");
+  paso("carga, índice con 16 secciones, sin scroll horizontal");
   if (movil) { await pagina.click("details.toc-movil summary"); assert.ok(await pagina.locator("#toc-movil").isVisible()); }
   await pagina.click(`${movil ? "#toc-movil" : "#toc-lateral"} a[data-id='sargable']`);
   await pagina.waitForFunction(() => location.hash === "#sargable");
