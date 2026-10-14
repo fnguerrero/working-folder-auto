@@ -38,6 +38,18 @@ lleva al operador en el árbol. Todo pasa en el navegador: el plan no se sube a 
   guarda el último plan en `localStorage`; glosario de 50 operadores con filtro; cómo conseguir el plan
   desde SSMS, Azure Data Studio, código, Query Store y la caché.
 - 12 ejemplos de un toque: son **planes reales**, generados contra SQL Server 2022.
+- **`scripts/Get-PlanesLentos.ps1`**: script PowerShell que saca de un SQL Server las consultas más
+  pesadas con su `.sqlplan`, un `resumen.csv` y un `resumen.html`, para traerlas acá. Tres modos: caché
+  de planes (`sys.dm_exec_query_stats`), Query Store (`-QueryStore`, con duración, CPU y lecturas
+  promedio reales) y una consulta puntual (`-Consulta "SELECT …"`, que la ejecuta con
+  `SET STATISTICS XML ON` y guarda el plan real). Autenticación de Windows o usuario SQL. No modifica
+  nada en el servidor y no ejecuta nada que no le pases vos.
+
+  ```powershell
+  .\Get-PlanesLentos.ps1 -Servidor ".\SQLEXPRESS" -Top 20 -OrdenarPor lecturas
+  .\Get-PlanesLentos.ps1 -Servidor srv -Base Ventas -QueryStore -MinimoEjecuciones 10
+  .\Get-PlanesLentos.ps1 -Servidor srv -Base Ventas -Consulta "SELECT … WHERE ClienteId = 1"
+  ```
 
 ## Decisiones
 
@@ -83,6 +95,11 @@ armadas para provocar cada problema: `SET STATISTICS XML ON` desde Node con el d
 guardó el plan que volvió. El script no está en el repo (tiene la contraseña del contenedor), pero la
 receta es esa.
 
+El script PowerShell se probó con PowerShell 7.4 en Linux contra el mismo contenedor (los tres modos,
+con usuario SQL) y los `.sqlplan` que genera se analizan en la página. Lo que **no se pudo probar** del
+script: Windows PowerShell 5.1 (se escribió sin sintaxis de 7, pero no se corrió), la autenticación
+integrada de Windows y `-Abrir`.
+
 Lo que **no se pudo probar**: planes de versiones viejas (2008/2012, esquema showplan anterior),
 columnstore, cursores reales, `ColumnsWithNoStatistics` y `Index Spool` reales (SQL Server 2022 no
 los produjo con las consultas probadas; están cubiertos con XML a mano), ni planes muy grandes
@@ -94,5 +111,6 @@ los produjo con las consultas probadas; están cubiertos con XML a mano), ni pla
 index.html        interfaz y el script de la página
 logica.js         parser XML, modelo del plan, diagnóstico, glosario; anda en el navegador y en Node
 ejemplos.js       los 12 planes reales de los botones de ejemplo
+scripts/          Get-PlanesLentos.ps1 (PowerShell: saca los planes más lentos de un servidor)
 tests/            logica.test.js (node --test), e2e.js (Playwright) y planes/*.sqlplan (20 planes reales)
 ```
