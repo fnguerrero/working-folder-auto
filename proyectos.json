@@ -106,5 +106,14 @@
     "estado": "terminado",
     "probar": "escritos/indices-con-cronometro/",
     "desde": "2026-10-14"
+  },
+  {
+    "slug": "pecera",
+    "nombre": "Pecera",
+    "categoria": "juegos",
+    "descripcion": "Peces que nadan solos y vienen a comer cuando tocás el agua, con un cangrejo, una tortuga y burbujas para reventar. Para Valentín: sin puntaje ni perder.",
+    "estado": "terminado",
+    "probar": "juegos/pecera/",
+    "desde": "2026-10-15"
   }
 ]

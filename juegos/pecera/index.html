@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b4f8a">
+<title>Pecera</title>
+<style>
+  :root { --tap: 48px; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #0b4f8a; color: #fff;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden;
+    -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+    touch-action: none; overscroll-behavior: none; }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: pointer; }
+  .barra { position: fixed; top: calc(8px + env(safe-area-inset-top)); left: calc(8px + env(safe-area-inset-left));
+    right: calc(8px + env(safe-area-inset-right)); display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; pointer-events: none; }
+  .barra h1 { margin: 0; font-size: 1.2rem; text-shadow: 0 2px 4px rgba(0,0,0,.35); letter-spacing: -.01em; }
+  .botones { display: flex; gap: 8px; pointer-events: auto; }
+  .botones button { min-height: var(--tap); min-width: var(--tap); border: 0; border-radius: 14px; padding: 0 14px;
+    font: 700 1rem/1 inherit; color: #123; background: rgba(255,255,255,.92); box-shadow: 0 3px 0 rgba(0,0,0,.25);
+    cursor: pointer; touch-action: manipulation; }
+  .botones button:focus-visible { outline: 3px solid #ffd166; outline-offset: 2px; }
+  .botones button[aria-pressed="true"] { background: #ffd166; }
+  .ayuda { position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+    padding: 8px 14px; border-radius: 999px; background: rgba(0,0,0,.35); font-size: .9rem; pointer-events: none;
+    white-space: nowrap; transition: opacity .6s; }
+  .ayuda.oculta { opacity: 0; }
+  @media (prefers-reduced-motion: reduce) { .ayuda { transition: none; } }
+</style>
+</head>
+<body>
+<canvas id="agua" aria-label="Pecera: tocá el agua para darles de comer a los peces" role="img"></canvas>
+<header class="barra">
+  <h1>🐠 Pecera</h1>
+  <div class="botones">
+    <button id="masPeces" type="button" aria-label="Un pez más">🐟 +1</button>
+    <button id="sonido" type="button" aria-pressed="true" aria-label="Sonido">🔊</button>
+  </div>
+</header>
+<div id="ayuda" class="ayuda">Tocá el agua para darles de comer</div>
+
+<script>
+(() => {
+  "use strict";
+  const canvas = document.getElementById("agua");
+  const ctx = canvas.getContext("2d");
+  const ayuda = document.getElementById("ayuda");
+  const btnMas = document.getElementById("masPeces");
+  const btnSonido = document.getElementById("sonido");
+  const reducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---------- Estado ----------
+  let W = 1, H = 1, dpr = 1, arena = 0, esc = 1; // esc: los peces se agrandan en pantallas grandes
+  const peces = [], comidas = [], burbujas = [], particulas = [], plantas = [], ondas = [];
+  const dedos = new Map(); // pointerId -> {x, y, t0, ultimoX, ultimoY}
+  let cangrejo = null;
+  let tortuga = null;
+  let ultimoT = 0, tiempo = 0;
+  let sonidoActivo = true;
+  let huboToque = false;
+  const MAX_PECES = 14;
+
+  const azar = (a, b) => a + Math.random() * (b - a);
+  const elegir = (xs) => xs[Math.floor(Math.random() * xs.length)];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  try { sonidoActivo = localStorage.getItem("pecera.sonido") !== "no"; } catch (e) { /* sin localStorage, da igual */ }
+  btnSonido.setAttribute("aria-pressed", String(sonidoActivo));
+  btnSonido.textContent = sonidoActivo ? "🔊" : "🔇";
+
+  // ---------- Sonido (WebAudio, sin archivos) ----------
+  let actx = null, master = null;
+  function audio() {
+    if (!sonidoActivo) return null;
+    if (!actx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      actx = new AC();
+      master = actx.createGain(); master.gain.value = 0.5; master.connect(actx.destination);
+    }
+    if (actx.state === "suspended") actx.resume();
+    return actx;
+  }
+  // "Blup": una burbuja que sube. Seno con barrido de frecuencia hacia arriba y un toquecito de ruido.
+  function sonBurbuja(tamano = 1) {
+    const a = audio(); if (!a) return;
+    const t = a.currentTime;
+    const f0 = 380 / Math.max(0.5, tamano) * azar(0.9, 1.1);
+    const o = a.createOscillator(); o.type = "sine";
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f0 * 2.4, t + 0.09);
+    const g = a.createGain(); g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.35, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.13);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.15);
+  }
+  // "Ñam": un pez comiendo. Dos notitas cortas con un poco de vibrato.
+  function sonComer() {
+    const a = audio(); if (!a) return;
+    const t = a.currentTime;
+    const notas = [azar(520, 640), azar(760, 900)];
+    notas.forEach((f, i) => {
+      const o = a.createOscillator(); o.type = "triangle"; o.frequency.value = f;
+      const g = a.createGain(); const t0 = t + i * 0.07;
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.25, t0 + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.08);
+      o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + 0.1);
+    });
+  }
+  // "Plic": el dedo entra al agua. Ruido filtrado muy corto.
+  function sonAgua() {
+    const a = audio(); if (!a) return;
+    const t = a.currentTime, n = Math.floor(a.sampleRate * 0.12);
+    const buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.5);
+    const src = a.createBufferSource(); src.buffer = buf;
+    const filtro = a.createBiquadFilter(); filtro.type = "bandpass"; filtro.frequency.value = azar(900, 1400); filtro.Q.value = 2;
+    const g = a.createGain(); g.gain.value = 0.35;
+    src.connect(filtro); filtro.connect(g); g.connect(master); src.start(t);
+  }
+  // "Clac": el cangrejo cierra la pinza.
+  function sonClac() {
+    const a = audio(); if (!a) return;
+    const t = a.currentTime, n = Math.floor(a.sampleRate * 0.05);
+    const buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 6);
+    const src = a.createBufferSource(); src.buffer = buf;
+    const filtro = a.createBiquadFilter(); filtro.type = "highpass"; filtro.frequency.value = 2500;
+    const g = a.createGain(); g.gain.value = 0.5;
+    src.connect(filtro); filtro.connect(g); g.connect(master); src.start(t);
+  }
+
+  // ---------- Peces ----------
+  const COLORES = [
+    ["#ff8c42", "#ffd166"], ["#ff5e78", "#ffc1cc"], ["#ffd23f", "#fff3b0"], ["#5ef2a6", "#c6ffe3"],
+    ["#8ecae6", "#e0f4ff"], ["#c77dff", "#f0d9ff"], ["#ff9f1c", "#ffffff"], ["#06d6a0", "#fff"],
+  ];
+  function crearPez(x, y) {
+    const [cuerpo, panza] = elegir(COLORES);
+    const tam = azar(0.8, 1.35);
+    return {
+      x: x ?? azar(W * 0.15, W * 0.85), y: y ?? azar(H * 0.18, H * 0.7), vx: azar(-1, 1) || 0.5, vy: 0,
+      ang: 0, tam, cuerpo, panza, rayas: Math.random() < 0.5, aleta: elegir(["#fff", panza]),
+      fase: Math.random() * Math.PI * 2, meta: null, objetivo: null, apuro: 0, ojoT: Math.random() * 5,
+      ojoCerrado: 0, boca: 0, giro: 0, felicidad: 0,
+    };
+  }
+  function mover(p, dt) {
+    const vel = 55 * (p.apuro > 0 ? 2.6 : 1) * (0.9 + p.tam * 0.25);
+    // Buscar comida cercana o un dedo que llame.
+    // Cada cuadro mira cuál es la comida más cercana que todavía está (otro pez pudo habérsela comido).
+    let mejor = null, dmin = Infinity;
+    for (const c of comidas) {
+      if (c.comida) {
+        const d = Math.hypot(c.x - p.x, c.y - p.y);
+        if (d < dmin && d < W * 0.6) { dmin = d; mejor = c; }
+      }
+    }
+    p.objetivo = mejor;
+    let tx, ty;
+    if (p.objetivo) {
+      tx = p.objetivo.x; ty = p.objetivo.y; p.apuro = 1;
+    } else {
+      // Dedo apoyado: los peces van a curiosear.
+      let dedo = null, dd = Infinity;
+      for (const d of dedos.values()) {
+        const dist = Math.hypot(d.x - p.x, d.y - p.y);
+        if (dist < dd) { dd = dist; dedo = d; }
+      }
+      if (dedo && dd < Math.max(W, H) * 0.55) {
+        // Se acercan pero sin pegarse: orbitan a unos centímetros del dedo.
+        const a = Math.atan2(p.y - dedo.y, p.x - dedo.x) + 0.8 * Math.sin(tiempo * 0.9 + p.fase);
+        tx = dedo.x + Math.cos(a) * 70 * p.tam; ty = dedo.y + Math.sin(a) * 50 * p.tam; p.apuro = 0.4;
+      } else {
+        if (!p.meta || Math.hypot(p.meta.x - p.x, p.meta.y - p.y) < 20 || Math.random() < dt * 0.15) {
+          p.meta = { x: azar(40, W - 40), y: azar(H * 0.14, Math.max(H * 0.2, arena - 30)) };
+        }
+        tx = p.meta.x; ty = p.meta.y; p.apuro = Math.max(0, p.apuro - dt * 0.5);
+      }
+    }
+    const dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy) || 1;
+    const quiereX = (dx / d) * vel, quiereY = (dy / d) * vel * 0.8;
+    const suav = 1 - Math.exp(-dt * (p.apuro > 0.5 ? 4 : 1.6));
+    p.vx += (quiereX - p.vx) * suav; p.vy += (quiereY - p.vy) * suav;
+    // Ondita de nado.
+    p.vy += Math.sin(tiempo * 2 + p.fase) * 8 * dt;
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    const borde = 28 * p.tam;
+    if (p.x < borde) { p.x = borde; p.vx = Math.abs(p.vx); }
+    if (p.x > W - borde) { p.x = W - borde; p.vx = -Math.abs(p.vx); }
+    if (p.y < H * 0.1) { p.y = H * 0.1; p.vy = Math.abs(p.vy); }
+    if (p.y > arena - 6) { p.y = arena - 6; p.vy = -Math.abs(p.vy) * 0.5; }
+    p.ang = Math.atan2(p.vy, Math.abs(p.vx)) * 0.5;
+    p.fase += dt * (3 + Math.abs(p.vx) / 40);
+    // Parpadeo cada tanto.
+    p.ojoT -= dt;
+    if (p.ojoT < 0) { p.ojoCerrado = 0.12; p.ojoT = azar(2, 6); }
+    if (p.ojoCerrado > 0) p.ojoCerrado -= dt;
+    if (p.boca > 0) p.boca -= dt;
+    if (p.giro > 0) p.giro -= dt;
+    if (p.felicidad > 0) p.felicidad -= dt;
+    // Comer.
+    if (p.objetivo && p.objetivo.comida && Math.hypot(p.objetivo.x - p.x, p.objetivo.y - p.y) < 16 * p.tam) {
+      p.objetivo.comida = false; p.objetivo = null; p.boca = 0.35; p.felicidad = 1.2; p.apuro = 0;
+      sonComer(); chispas(p.x, p.y, 8, "#fff");
+      burbujas.push(crearBurbuja(p.x, p.y - 8, azar(3, 6)));
+    }
+  }
+  function dibujarPez(p) {
+    const r = 18 * p.tam * esc, mira = p.vx < 0 ? -1 : 1;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    if (p.giro > 0) ctx.rotate(Math.sin((0.6 - p.giro) / 0.6 * Math.PI) * (mira > 0 ? 1 : -1) * 2 * Math.PI * (p.giro / 0.6));
+    ctx.scale(mira, 1); ctx.rotate(p.ang);
+    if (p.felicidad > 0) ctx.scale(1 + 0.06 * Math.sin(p.felicidad * 20), 1 - 0.06 * Math.sin(p.felicidad * 20));
+    const cola = Math.sin(p.fase * 2) * 0.35;
+    // Cola.
+    ctx.fillStyle = p.cuerpo;
+    ctx.beginPath(); ctx.moveTo(-r * 0.75, 0);
+    ctx.quadraticCurveTo(-r * 1.3, -r * 0.1 + cola * r, -r * 1.55, -r * 0.7 + cola * r * 0.6);
+    ctx.quadraticCurveTo(-r * 1.2, 0, -r * 1.55, r * 0.7 + cola * r * 0.6);
+    ctx.quadraticCurveTo(-r * 1.3, r * 0.1 + cola * r, -r * 0.75, 0); ctx.fill();
+    // Aleta de arriba.
+    ctx.beginPath(); ctx.moveTo(-r * 0.3, -r * 0.5); ctx.quadraticCurveTo(0, -r * 1.25, r * 0.4, -r * 0.55); ctx.fill();
+    // Cuerpo.
+    ctx.beginPath(); ctx.ellipse(0, 0, r, r * 0.62, 0, 0, Math.PI * 2); ctx.fill();
+    // Panza.
+    ctx.fillStyle = p.panza; ctx.globalAlpha = 0.75;
+    ctx.beginPath(); ctx.ellipse(r * 0.05, r * 0.2, r * 0.7, r * 0.3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    // Rayas.
+    if (p.rayas) {
+      ctx.save(); ctx.beginPath(); ctx.ellipse(0, 0, r, r * 0.62, 0, 0, Math.PI * 2); ctx.clip();
+      ctx.fillStyle = "rgba(255,255,255,.6)";
+      for (const sx of [-0.35, 0, 0.35]) { ctx.beginPath(); ctx.ellipse(r * sx, 0, r * 0.08, r * 0.7, 0, 0, Math.PI * 2); ctx.fill(); }
+      ctx.restore();
+    }
+    // Aleta del costado.
+    ctx.fillStyle = p.aleta; ctx.globalAlpha = 0.8;
+    const al = Math.sin(p.fase * 2 + 1) * 0.2;
+    ctx.beginPath(); ctx.moveTo(r * 0.05, r * 0.1); ctx.quadraticCurveTo(-r * 0.3, r * 0.5 + al * r, -r * 0.45, r * 0.75 + al * r);
+    ctx.quadraticCurveTo(-r * 0.05, r * 0.5, r * 0.05, r * 0.1); ctx.fill(); ctx.globalAlpha = 1;
+    // Ojo.
+    const ox = r * 0.55, oy = -r * 0.15;
+    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.ellipse(ox, oy, r * 0.2, p.ojoCerrado > 0 ? r * 0.03 : r * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+    if (p.ojoCerrado <= 0) {
+      ctx.fillStyle = "#102"; ctx.beginPath(); ctx.arc(ox + r * 0.05, oy, r * 0.1, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(ox + r * 0.09, oy - r * 0.05, r * 0.035, 0, Math.PI * 2); ctx.fill();
+    }
+    // Boca.
+    ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.lineWidth = Math.max(1, r * 0.06); ctx.lineCap = "round";
+    ctx.beginPath();
+    if (p.boca > 0) { ctx.ellipse(r * 0.92, r * 0.12, r * 0.09, r * 0.12 * Math.sin(p.boca / 0.35 * Math.PI), 0, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fill(); }
+    else { ctx.moveTo(r * 0.85, r * 0.12); ctx.quadraticCurveTo(r * 0.95, r * 0.2, r * 1.0, r * 0.08); ctx.stroke(); }
+    ctx.restore();
+  }
+
+  // ---------- Comida, burbujas, chispas, ondas ----------
+  function crearComida(x, y) { return { x, y, vy: 0, comida: true, tono: elegir(["#c8731f", "#8a5a2b", "#e0963c"]), r: azar(2.5, 4), vaiven: Math.random() * 6 }; }
+  function crearBurbuja(x, y, r) { return { x, y, r, vy: azar(20, 45) + r * 3, fase: Math.random() * 6, viva: true }; }
+  function chispas(x, y, n, color) {
+    if (reducido) n = Math.min(n, 3);
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, v = azar(30, 110);
+      particulas.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vida: azar(0.4, 0.8), color, r: azar(2, 4) });
+    }
+  }
+
+  // ---------- Cangrejo y tortuga ----------
+  function crearCangrejo() { return { x: W * 0.3, dir: 1, vel: 22, pata: 0, pinza: 0, susto: 0 }; }
+  function moverCangrejo(c, dt) {
+    if (c.susto > 0) { c.susto -= dt; c.x += c.dir * c.vel * 5 * dt; c.pata += dt * 25; }
+    else { c.x += c.dir * c.vel * dt; c.pata += dt * 8; if (Math.random() < dt * 0.1) c.dir *= -1; }
+    if (c.x < 40) { c.x = 40; c.dir = 1; } if (c.x > W - 40) { c.x = W - 40; c.dir = -1; }
+    if (c.pinza > 0) c.pinza -= dt;
+  }
+  function dibujarCangrejo(c) {
+    const y = arena + 2, s = 1;
+    ctx.save(); ctx.translate(c.x, y); ctx.scale(s, s);
+    ctx.strokeStyle = "#c1341f"; ctx.lineWidth = 3; ctx.lineCap = "round";
+    for (let i = 0; i < 3; i++) {
+      const m = Math.sin(c.pata + i) * 4;
+      ctx.beginPath(); ctx.moveTo(-10, -4); ctx.lineTo(-22 - i * 4, 2 + m); ctx.lineTo(-26 - i * 4, 8); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(10, -4); ctx.lineTo(22 + i * 4, 2 - m); ctx.lineTo(26 + i * 4, 8); ctx.stroke();
+    }
+    ctx.fillStyle = "#e8432a"; ctx.beginPath(); ctx.ellipse(0, -8, 20, 12, 0, 0, Math.PI * 2); ctx.fill();
+    // Pinzas: se abren y cierran cuando lo tocás.
+    const ab = c.pinza > 0 ? Math.abs(Math.sin(c.pinza * 25)) * 0.8 : 0.15;
+    for (const lado of [-1, 1]) {
+      ctx.save(); ctx.translate(lado * 20, -14); ctx.scale(lado, 1); ctx.rotate(-ab);
+      ctx.fillStyle = "#e8432a"; ctx.beginPath(); ctx.ellipse(6, 0, 8, 5, 0.4, 0, Math.PI * 2); ctx.fill();
+      ctx.rotate(ab * 2); ctx.beginPath(); ctx.ellipse(6, 1, 7, 4, -0.4, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+    // Ojos en tallito.
+    for (const lado of [-1, 1]) {
+      ctx.strokeStyle = "#c1341f"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(lado * 6, -16); ctx.lineTo(lado * 8, -24); ctx.stroke();
+      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(lado * 8, -25, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#102"; ctx.beginPath(); ctx.arc(lado * 8 + c.dir, -25, 2, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+  function crearTortuga() { const dir = Math.random() < 0.5 ? 1 : -1; return { x: dir > 0 ? -80 : W + 80, y: azar(H * 0.2, H * 0.45), dir, pata: 0 }; }
+  function dibujarTortuga(t) {
+    ctx.save(); ctx.translate(t.x, t.y); ctx.scale(t.dir, 1);
+    const m = Math.sin(t.pata) * 0.3;
+    ctx.fillStyle = "#4caf50";
+    for (const [px, py, a] of [[-18, 10, 0.6 + m], [14, 10, -0.6 - m], [-20, -8, -0.6 - m], [12, -8, 0.6 + m]]) {
+      ctx.save(); ctx.translate(px, py); ctx.rotate(a); ctx.beginPath(); ctx.ellipse(0, 0, 13, 6, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    }
+    ctx.beginPath(); ctx.arc(30, 0, 9, 0, Math.PI * 2); ctx.fill(); // cabeza
+    ctx.fillStyle = "#2e7d32"; ctx.beginPath(); ctx.ellipse(0, 0, 30, 18, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.lineWidth = 2;
+    for (const [hx, hy] of [[0, 0], [-14, -5], [14, -5], [-10, 8], [10, 8]]) {
+      ctx.beginPath(); for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; ctx.lineTo(hx + Math.cos(a) * 7, hy + Math.sin(a) * 6); } ctx.closePath(); ctx.stroke();
+    }
+    ctx.fillStyle = "#102"; ctx.beginPath(); ctx.arc(33, -3, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  // ---------- Escenario ----------
+  function armarPlantas() {
+    plantas.length = 0;
+    const n = Math.max(4, Math.round(W / 140));
+    for (let i = 0; i < n; i++) {
+      plantas.push({ x: (i + 0.5) * (W / n) + azar(-20, 20), alto: azar(H * 0.12, H * 0.3), fase: Math.random() * 6,
+        color: elegir(["#1b9e5a", "#27b36a", "#3ec47d", "#13885c"]), hojas: 3 + Math.floor(Math.random() * 3), ancho: azar(10, 18) });
+    }
+  }
+  function dibujarFondo() {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#39a9e6"); g.addColorStop(0.55, "#1472b8"); g.addColorStop(1, "#0a3f7a");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    // Rayos de luz.
+    ctx.save(); ctx.globalAlpha = 0.12; ctx.fillStyle = "#fff";
+    for (let i = 0; i < 5; i++) {
+      const x = (i + 0.5) * W / 5 + Math.sin(tiempo * 0.3 + i) * 30;
+      ctx.beginPath(); ctx.moveTo(x - 10, 0); ctx.lineTo(x + 10, 0); ctx.lineTo(x + 90, H * 0.8); ctx.lineTo(x - 50, H * 0.8); ctx.fill();
+    }
+    ctx.restore();
+    // Arena.
+    ctx.fillStyle = "#e9c88a"; ctx.beginPath(); ctx.moveTo(0, arena);
+    for (let x = 0; x <= W; x += 40) ctx.quadraticCurveTo(x + 20, arena - 8, x + 40, arena);
+    ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.fill();
+    ctx.fillStyle = "#d8b273";
+    for (let i = 0; i < 8; i++) { const x = (i * 97) % W, y = arena + 14 + (i * 31) % Math.max(1, H - arena - 20); ctx.beginPath(); ctx.ellipse(x, y, 9, 4, 0, 0, Math.PI * 2); ctx.fill(); }
+  }
+  function dibujarPlanta(pl) {
+    ctx.save(); ctx.translate(pl.x, arena + 4);
+    for (let h = 0; h < pl.hojas; h++) {
+      const des = (h - (pl.hojas - 1) / 2) * 0.35;
+      const mece = Math.sin(tiempo * 1.1 + pl.fase + h) * 0.18;
+      ctx.fillStyle = pl.color; ctx.globalAlpha = 0.9;
+      ctx.beginPath(); ctx.moveTo(-pl.ancho * 0.4, 0);
+      const alto = pl.alto * (0.75 + 0.25 * Math.cos(h));
+      ctx.quadraticCurveTo(des * 60 + mece * 80 - pl.ancho, -alto * 0.55, des * 90 + mece * 140, -alto);
+      ctx.quadraticCurveTo(des * 60 + mece * 80 + pl.ancho, -alto * 0.55, pl.ancho * 0.4, 0); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // ---------- Bucle ----------
+  function paso(dt) {
+    tiempo += dt;
+    for (const p of peces) mover(p, dt);
+    for (const c of comidas) {
+      c.vy = Math.min(c.vy + 30 * dt, 28); c.y += c.vy * dt; c.vaiven += dt * 3; c.x += Math.sin(c.vaiven) * 8 * dt;
+      if (c.y >= arena - 2) { c.y = arena - 2; c.vy = 0; }
+    }
+    for (let i = comidas.length - 1; i >= 0; i--) {
+      const c = comidas[i];
+      if (!c.comida) comidas.splice(i, 1);
+      else if (c.y >= arena - 2) { c.espera = (c.espera || 0) + dt; if (c.espera > 25) comidas.splice(i, 1); }
+    }
+    for (const b of burbujas) { b.y -= b.vy * dt; b.fase += dt * 3; b.x += Math.sin(b.fase) * 10 * dt; if (b.y < -10) b.viva = false; }
+    for (let i = burbujas.length - 1; i >= 0; i--) if (!burbujas[i].viva) burbujas.splice(i, 1);
+    if (Math.random() < dt * (reducido ? 0.4 : 1.2) && burbujas.length < 40) burbujas.push(crearBurbuja(W * 0.82 + azar(-6, 6), arena - 4, azar(2, 7)));
+    for (const pt of particulas) { pt.x += pt.vx * dt; pt.y += pt.vy * dt; pt.vy -= 40 * dt; pt.vida -= dt; }
+    for (let i = particulas.length - 1; i >= 0; i--) if (particulas[i].vida <= 0) particulas.splice(i, 1);
+    for (const o of ondas) o.t += dt;
+    for (let i = ondas.length - 1; i >= 0; i--) if (ondas[i].t > 0.9) ondas.splice(i, 1);
+    if (cangrejo) moverCangrejo(cangrejo, dt);
+    if (tortuga) {
+      tortuga.x += tortuga.dir * 26 * dt; tortuga.pata += dt * 4; tortuga.y += Math.sin(tiempo) * 6 * dt;
+      if ((tortuga.dir > 0 && tortuga.x > W + 90) || (tortuga.dir < 0 && tortuga.x < -90)) tortuga = null;
+    } else if (Math.random() < dt / 45) tortuga = crearTortuga();
+    // Dedo apoyado un rato: salen burbujitas.
+    for (const d of dedos.values()) {
+      if (Math.random() < dt * 6 && !reducido) burbujas.push(crearBurbuja(d.x + azar(-8, 8), d.y, azar(1.5, 4)));
+    }
+  }
+  function dibujar() {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    dibujarFondo();
+    for (const pl of plantas) dibujarPlanta(pl);
+    if (cangrejo) dibujarCangrejo(cangrejo);
+    if (tortuga) dibujarTortuga(tortuga);
+    for (const c of comidas) { ctx.fillStyle = c.tono; ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2); ctx.fill(); }
+    for (const p of peces) dibujarPez(p);
+    for (const b of burbujas) {
+      ctx.strokeStyle = "rgba(255,255,255,.75)"; ctx.lineWidth = 1.5; ctx.fillStyle = "rgba(255,255,255,.12)";
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,.7)"; ctx.beginPath(); ctx.arc(b.x - b.r * 0.35, b.y - b.r * 0.35, b.r * 0.22, 0, Math.PI * 2); ctx.fill();
+    }
+    for (const pt of particulas) { ctx.globalAlpha = clamp(pt.vida * 2, 0, 1); ctx.fillStyle = pt.color; ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2); ctx.fill(); }
+    ctx.globalAlpha = 1;
+    for (const o of ondas) {
+      const k = o.t / 0.9; ctx.strokeStyle = `rgba(255,255,255,${(1 - k) * 0.7})`; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(o.x, o.y, 6 + k * 50, 0, Math.PI * 2); ctx.stroke();
+    }
+    // Un halo bajo cada dedo.
+    for (const d of dedos.values()) {
+      ctx.fillStyle = "rgba(255,255,255,.15)"; ctx.beginPath(); ctx.arc(d.x, d.y, 26, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  let pausado = false;
+  function cuadro(t) {
+    if (!pausado) {
+      const dt = Math.min(0.05, (t - (ultimoT || t)) / 1000); ultimoT = t;
+      paso(dt); dibujar();
+    }
+    requestAnimationFrame(cuadro);
+  }
+
+  // ---------- Entrada ----------
+  function posicion(ev) { const r = canvas.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; }
+  function tocar(x, y) {
+    huboToque = true; ayuda.classList.add("oculta");
+    audio();
+    // ¿Tocó al cangrejo?
+    if (cangrejo && Math.abs(x - cangrejo.x) < 40 && Math.abs(y - (arena - 10)) < 36) {
+      cangrejo.pinza = 0.6; cangrejo.susto = 0.7; cangrejo.dir = x < cangrejo.x ? 1 : -1; sonClac(); chispas(cangrejo.x, arena - 10, 6, "#ffd166");
+      return;
+    }
+    // ¿Tocó un pez? Da una vuelta carnero.
+    for (const p of peces) {
+      if (Math.hypot(p.x - x, p.y - y) < 30 * p.tam * esc) { p.giro = 0.6; p.felicidad = 1; sonBurbuja(1.6); chispas(p.x, p.y, 10, p.cuerpo); burbujas.push(crearBurbuja(p.x, p.y - 10, 5)); return; }
+    }
+    // ¿Tocó una burbuja? Se revienta.
+    for (const b of burbujas) {
+      if (b.viva && Math.hypot(b.x - x, b.y - y) < b.r + 18) { b.viva = false; sonBurbuja(b.r / 4); chispas(b.x, b.y, 5, "#fff"); return; }
+    }
+    darComida(x, y);
+  }
+  function darComida(x, y) {
+    huboToque = true; ayuda.classList.add("oculta");
+    sonAgua();
+    ondas.push({ x, y, t: 0 });
+    const n = reducido ? 2 : 3 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < n; i++) comidas.push(crearComida(x + azar(-14, 14), Math.max(H * 0.08, y + azar(-10, 10))));
+    if (comidas.length > 60) comidas.splice(0, comidas.length - 60);
+  }
+  canvas.addEventListener("pointerdown", (ev) => {
+    ev.preventDefault();
+    try { canvas.setPointerCapture(ev.pointerId); } catch (e) { /* no pasa nada */ }
+    const { x, y } = posicion(ev);
+    dedos.set(ev.pointerId, { x, y, t0: performance.now() });
+    tocar(x, y);
+  });
+  canvas.addEventListener("pointermove", (ev) => {
+    const d = dedos.get(ev.pointerId); if (!d) return;
+    const { x, y } = posicion(ev); d.x = x; d.y = y;
+  });
+  const soltar = (ev) => { dedos.delete(ev.pointerId); };
+  canvas.addEventListener("pointerup", soltar);
+  canvas.addEventListener("pointercancel", soltar);
+  canvas.addEventListener("lostpointercapture", soltar);
+  window.addEventListener("keydown", (ev) => {
+    if (ev.target && ev.target.tagName === "BUTTON" && (ev.key === "Enter" || ev.key === " ")) return;
+    if (ev.key === " " || ev.key === "Enter") { ev.preventDefault(); audio(); darComida(azar(W * 0.2, W * 0.8), azar(H * 0.15, H * 0.4)); }
+    else if (ev.key === "+" || ev.key === "p" || ev.key === "P") agregarPez();
+    else if (ev.key === "m" || ev.key === "M") btnSonido.click();
+  });
+  function agregarPez() {
+    if (peces.length >= MAX_PECES) { peces.splice(0, peces.length - 5); }
+    const p = crearPez(W + 40, azar(H * 0.2, H * 0.5)); p.vx = -40;
+    peces.push(p); sonBurbuja(1.2);
+    btnMas.disabled = false;
+  }
+  btnMas.addEventListener("click", () => { audio(); agregarPez(); });
+  btnSonido.addEventListener("click", () => {
+    sonidoActivo = !sonidoActivo;
+    btnSonido.setAttribute("aria-pressed", String(sonidoActivo)); btnSonido.textContent = sonidoActivo ? "🔊" : "🔇";
+    try { localStorage.setItem("pecera.sonido", sonidoActivo ? "si" : "no"); } catch (e) { /* da igual */ }
+    if (sonidoActivo) { audio(); sonBurbuja(1); }
+  });
+  document.addEventListener("visibilitychange", () => {
+    pausado = document.hidden; ultimoT = 0;
+    if (pausado) dedos.clear();
+  });
+
+  // ---------- Tamaño ----------
+  function medir() {
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    arena = H * 0.86;
+    esc = clamp(Math.min(W, H) / 560, 1, 1.6);
+    armarPlantas();
+    for (const p of peces) { p.x = clamp(p.x, 30, W - 30); p.y = clamp(p.y, H * 0.12, arena - 10); p.meta = null; }
+    if (cangrejo) cangrejo.x = clamp(cangrejo.x, 40, W - 40);
+  }
+  window.addEventListener("resize", medir);
+
+  // ---------- Arranque ----------
+  medir();
+  const inicial = Math.max(5, Math.min(8, Math.round(W / 130)));
+  for (let i = 0; i < inicial; i++) peces.push(crearPez());
+  cangrejo = crearCangrejo();
+  requestAnimationFrame(cuadro);
+  setTimeout(() => { if (!huboToque) ayuda.classList.add("oculta"); }, 12000);
+
+  // Para las pruebas automáticas.
+  window.__pecera = { peces, comidas, burbujas, dedos, get cangrejo() { return cangrejo; }, get tortuga() { return tortuga; }, get arena() { return arena; }, get tiempo() { return tiempo; } };
+})();
+</script>
+</body>
+</html>

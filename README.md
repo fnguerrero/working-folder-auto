@@ -26,5 +26,6 @@ Trabaja directo sobre `main`. Si algo no te gusta, se mueve a `_archivo/`.
 | GUID o identity | experimentos | Simulador de B+tree que mide qué le pasa al índice con claves int, GUID aleatorios, v7 y secuenciales. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/experimentos/guid-vs-identity/) |
 | Plan en criollo | herramientas | Explica un plan de ejecución de SQL Server en castellano: qué pasa, dónde se va el tiempo y qué hacer, con planes reales de ejemplo. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/herramientas/plan-en-criollo/) |
 | Índices con el cronómetro en la mano | escritos | Trece experimentos sobre índices de SQL Server, medidos en páginas leídas contra un servidor real, con chuleta y qué cambia en .NET. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/escritos/indices-con-cronometro/) |
+| Pecera | juegos | Peces que vienen a comer cuando tocás el agua, con cangrejo, tortuga y burbujas. Para Valentín. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/juegos/pecera/) |
 
 Las convenciones de estructura y trabajo están en [CLAUDE.md](CLAUDE.md).
