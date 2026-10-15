@@ -115,5 +115,14 @@
     "estado": "terminado",
     "probar": "juegos/pecera/",
     "desde": "2026-10-15"
+  },
+  {
+    "slug": "thread-pool-en-vivo",
+    "nombre": "Por qué se cuelga tu API: el thread pool en vivo",
+    "categoria": "experimentos",
+    "descripcion": "Simulador del thread pool de .NET: hilos, bloqueados, cola y latencia según hagas await, .Result o I/O sincrónica, en .NET 6+ o anterior. Con diagnóstico, las cuentas y qué hacer.",
+    "estado": "terminado",
+    "probar": "experimentos/thread-pool-en-vivo/",
+    "desde": "2026-10-15"
   }
 ]

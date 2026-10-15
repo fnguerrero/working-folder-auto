@@ -27,5 +27,6 @@ Trabaja directo sobre `main`. Si algo no te gusta, se mueve a `_archivo/`.
 | Plan en criollo | herramientas | Explica un plan de ejecución de SQL Server en castellano: qué pasa, dónde se va el tiempo y qué hacer, con planes reales de ejemplo. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/herramientas/plan-en-criollo/) |
 | Índices con el cronómetro en la mano | escritos | Trece experimentos sobre índices de SQL Server, medidos en páginas leídas contra un servidor real, con chuleta y qué cambia en .NET. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/escritos/indices-con-cronometro/) |
 | Pecera | juegos | Peces que vienen a comer cuando tocás el agua, con cangrejo, tortuga y burbujas. Para Valentín. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/juegos/pecera/) |
+| El thread pool en vivo | experimentos | Simulador del thread pool de .NET: inanición por .Result o I/O sincrónica contra async, en .NET 6+ o anterior, con diagnóstico y qué hacer. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/experimentos/thread-pool-en-vivo/) |
 
 Las convenciones de estructura y trabajo están en [CLAUDE.md](CLAUDE.md).

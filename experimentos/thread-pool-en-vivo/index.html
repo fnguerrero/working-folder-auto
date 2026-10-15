@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<title>Por qué se cuelga tu API: el thread pool en vivo</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --card: #fff; --fg: #1d1d1f; --muted: #6b6b70; --line: #e4e2dc; --accent: #5b4fd6; --accent-fg: #fff;
+    --verde: #1e7e4f; --amarillo: #b7791f; --rojo: #c0392b; --grid: #ebe9e3; --code: #f0eee8;
+    --hilos: #5b4fd6; --bloq: #c0392b; --cpu: #1e7e4f; --cola: #b7791f; --libre: #d9d7d0; --p50: #1d4ed8; --p99: #c0392b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111114; --card: #1b1b20; --fg: #ececf1; --muted: #9a9aa3; --line: #2a2a31; --accent: #9d93ff; --accent-fg: #15131f;
+      --verde: #6fd39a; --amarillo: #f0b454; --rojo: #ff7b6b; --grid: #26262d; --code: #15151a;
+      --hilos: #9d93ff; --bloq: #ff7b6b; --cpu: #6fd39a; --cola: #f0b454; --libre: #3a3a44; --p50: #93c5fd; --p99: #ff7b6b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.45; }
+  header { padding: 18px 16px 6px; max-width: 1180px; margin: 0 auto; }
+  h1 { margin: 0; font-size: 1.5rem; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  a { color: var(--accent); }
+  main { max-width: 1180px; margin: 0 auto; padding: 10px 16px 32px; display: grid; gap: 14px; grid-template-columns: 340px 1fr; align-items: start; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+  .panel h2 { margin: 0 0 10px; font-size: 1rem; }
+  .presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .presets button, .acciones-ui button {
+    font: inherit; font-size: .85rem; min-height: 40px; padding: 6px 12px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--card); color: var(--fg); text-align: left;
+  }
+  .presets button:hover, .acciones-ui button:hover { border-color: var(--accent); }
+  .presets button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .preset-desc { font-size: .85rem; color: var(--muted); margin: 0 0 10px; min-height: 2.4em; }
+  .control { display: grid; grid-template-columns: 1fr 92px; gap: 4px 8px; align-items: center; margin: 10px 0; }
+  .control label { font-size: .85rem; color: var(--muted); grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 8px; }
+  .control label b { color: var(--fg); font-weight: 600; }
+  .control input[type="range"] { width: 100%; accent-color: var(--accent); min-height: 40px; margin: 0; }
+  .control input[type="number"], .control select {
+    font: inherit; font-size: .95rem; min-height: 40px; padding: 6px 8px; border-radius: 8px; width: 100%;
+    border: 1px solid var(--line); background: var(--card); color: var(--fg);
+  }
+  .control.ancho select, .control.ancho input { grid-column: 1 / -1; }
+  .oculto { display: none !important; }
+  .acciones-ui { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .derecha { display: grid; gap: 14px; min-width: 0; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(116px, 1fr)); gap: 8px; }
+  .tile { background: var(--bg); border-radius: 10px; padding: 10px 12px; }
+  .tile .v { font-size: 1.35rem; font-weight: 650; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+  .tile .k { font-size: .78rem; color: var(--muted); }
+  .tile .s { font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .zona-ok .tile.p99 .v { color: var(--verde); } .zona-degradado .tile.p99 .v { color: var(--amarillo); }
+  .zona-inanicion .tile.p99 .v, .zona-colapso .tile.p99 .v { color: var(--rojo); }
+  .diag h3 { margin: 12px 0 6px; font-size: 1.05rem; }
+  .zona-ok .diag h3 { color: var(--verde); } .zona-degradado .diag h3 { color: var(--amarillo); }
+  .zona-inanicion .diag h3, .zona-colapso .diag h3 { color: var(--rojo); }
+  .diag p, .diag li { margin: 6px 0; font-size: .93rem; }
+  .diag ul { padding-left: 20px; margin: 6px 0; }
+  .diag code, .texto code, .cuentas code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .88em; background: var(--code); padding: 1px 5px; border-radius: 5px; }
+  .grafico canvas { width: 100%; height: 220px; display: block; }
+  .grafico.gantt canvas { height: 260px; }
+  .leyenda { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .78rem; color: var(--muted); margin-top: 6px; }
+  .leyenda span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; background: var(--c); vertical-align: -1px; }
+  .cuentas table { border-collapse: collapse; width: 100%; font-size: .88rem; }
+  .cuentas td { padding: 5px 6px; border-top: 1px solid var(--line); vertical-align: top; }
+  .cuentas td:last-child { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .texto { grid-column: 1 / -1; }
+  .texto h2 { font-size: 1.2rem; margin: 18px 0 6px; }
+  .texto h2:first-child { margin-top: 0; }
+  .texto p, .texto li { font-size: .95rem; max-width: 76ch; }
+  .texto pre { background: var(--code); padding: 10px 12px; border-radius: 8px; overflow: auto; font-size: .82rem; line-height: 1.4; max-width: 100%; }
+  .texto pre code { background: none; padding: 0; font-size: inherit; }
+  .texto .dos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 860px) { .texto .dos { grid-template-columns: 1fr; } }
+  .texto .dos > div { min-width: 0; }
+  .texto .dos h4 { margin: 0 0 4px; font-size: .9rem; }
+  .texto p code, .texto li code, .diag code { overflow-wrap: anywhere; }
+  .malo h4 { color: var(--rojo); } .bueno h4 { color: var(--verde); }
+  .aviso { border-left: 4px solid var(--amarillo); padding: 6px 12px; background: var(--bg); border-radius: 0 8px 8px 0; }
+  .fuentes li { font-size: .88rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Por qué se cuelga tu API: el thread pool en vivo</h1>
+  <p>Un simulador del thread pool de .NET: cuántos hilos hay, cuántos están bloqueados esperando la base, cuánto se encola y cuánto tarda cada pedido, según hagas <code>await</code>, <code>.Result</code> o I/O sincrónica. Con las reglas de inyección de hilos del runtime y qué cambió en .NET 6.</p>
+</header>
+<main>
+  <section class="panel" aria-label="Escenario">
+    <h2>Escenario</h2>
+    <div class="presets" id="presets"></div>
+    <p class="preset-desc" id="presetDesc"></p>
+
+    <div class="control">
+      <label for="nucleos">Núcleos (= hilos mínimos del pool) <b id="nucleosV"></b></label>
+      <input id="nucleos" type="range" min="1" max="32" step="1" value="4">
+      <input id="nucleosN" type="number" min="1" max="64" step="1" value="4" aria-label="Núcleos">
+    </div>
+    <div class="control">
+      <label for="rps">Pedidos por segundo <b id="rpsV"></b></label>
+      <input id="rps" type="range" min="1" max="1000" step="1" value="200">
+      <input id="rpsN" type="number" min="1" max="20000" step="1" value="200" aria-label="Pedidos por segundo">
+    </div>
+    <div class="control">
+      <label for="ioMs">La I/O tarda (ms): base, HTTP, archivo <b id="ioMsV"></b></label>
+      <input id="ioMs" type="range" min="1" max="3000" step="1" value="100">
+      <input id="ioMsN" type="number" min="0" max="60000" step="1" value="100" aria-label="I/O en milisegundos">
+    </div>
+    <div class="control">
+      <label for="cpuMs">CPU por pedido antes de la I/O (ms) <b id="cpuMsV"></b></label>
+      <input id="cpuMs" type="range" min="0" max="50" step="0.5" value="2">
+      <input id="cpuMsN" type="number" min="0" max="5000" step="0.5" value="2" aria-label="CPU antes de la I/O">
+    </div>
+    <div class="control">
+      <label for="cpuDespuesMs">CPU después de la I/O (ms) <b id="cpuDespuesMsV"></b></label>
+      <input id="cpuDespuesMs" type="range" min="0" max="50" step="0.5" value="1">
+      <input id="cpuDespuesMsN" type="number" min="0" max="5000" step="0.5" value="1" aria-label="CPU después de la I/O">
+    </div>
+    <div class="control ancho">
+      <label for="modoIo">Cómo se espera la I/O</label>
+      <select id="modoIo">
+        <option value="async">await (async de punta a punta)</option>
+        <option value="result">.Result / .Wait() sobre una Task</option>
+        <option value="sync">I/O sincrónica, lock o Thread.Sleep</option>
+      </select>
+    </div>
+    <div class="control ancho">
+      <label for="runtime">Runtime</label>
+      <select id="runtime">
+        <option value="net6">.NET 6, 7, 8, 9… (detecta bloqueos en Task.Wait)</option>
+        <option value="clasico">.NET Core 3.1 / .NET 5 / .NET Framework</option>
+      </select>
+    </div>
+    <div class="control">
+      <label for="minHilos">ThreadPool.SetMinThreads (0 = default, igual a núcleos) <b id="minHilosV"></b></label>
+      <input id="minHilos" type="range" min="0" max="256" step="1" value="0">
+      <input id="minHilosN" type="number" min="0" max="32767" step="1" value="0" aria-label="Hilos mínimos">
+    </div>
+    <div class="control ancho">
+      <label for="patron">Tráfico</label>
+      <select id="patron">
+        <option value="constante">Constante</option>
+        <option value="rafaga">Constante más una ráfaga a los 2 s</option>
+      </select>
+    </div>
+    <div class="control" id="ctlRafaga">
+      <label for="rafaga">Pedidos en la ráfaga <b id="rafagaV"></b></label>
+      <input id="rafaga" type="range" min="10" max="2000" step="10" value="300">
+      <input id="rafagaN" type="number" min="1" max="100000" step="1" value="300" aria-label="Pedidos en la ráfaga">
+    </div>
+    <div class="control">
+      <label for="duracionS">Segundos simulados <b id="duracionSV"></b></label>
+      <input id="duracionS" type="range" min="5" max="90" step="5" value="30">
+      <input id="duracionSN" type="number" min="1" max="300" step="1" value="30" aria-label="Segundos simulados">
+    </div>
+    <div class="acciones-ui">
+      <button type="button" id="otraTirada">Otra tirada</button>
+      <button type="button" id="copiarLink">Copiar link</button>
+    </div>
+  </section>
+
+  <div class="derecha">
+    <section class="panel" id="resultados" aria-label="Resultados">
+      <h2>Qué pasó <span id="tardo" style="color: var(--muted); font-weight: 400; font-size: .8rem;"></span></h2>
+      <div class="tiles">
+        <div class="tile p50"><div class="v" id="tP50">–</div><div class="k">p50</div><div class="s" id="tIdeal"></div></div>
+        <div class="tile p99"><div class="v" id="tP99">–</div><div class="k">p99</div><div class="s" id="tMax"></div></div>
+        <div class="tile"><div class="v" id="tHilos">–</div><div class="k">hilos como máximo</div><div class="s" id="tBloq"></div></div>
+        <div class="tile"><div class="v" id="tCola">–</div><div class="k">pico de la cola</div><div class="s" id="tRec"></div></div>
+        <div class="tile"><div class="v" id="tCpu">–</div><div class="k">CPU promedio</div><div class="s" id="tCompl"></div></div>
+      </div>
+      <div class="diag" id="diag"></div>
+    </section>
+
+    <section class="panel grafico" aria-label="Hilos y cola en el tiempo">
+      <h2>Hilos del pool y cola de trabajo</h2>
+      <canvas id="gHilos"></canvas>
+      <div class="leyenda"><span style="--c: var(--hilos)">hilos del pool</span><span style="--c: var(--bloq)">bloqueados</span><span style="--c: var(--cpu)">en CPU</span><span style="--c: var(--cola)">pedidos en cola (eje derecho)</span></div>
+    </section>
+    <section class="panel grafico" aria-label="Latencia en el tiempo">
+      <h2>Latencia de los pedidos que terminan en cada momento</h2>
+      <canvas id="gLat"></canvas>
+      <div class="leyenda"><span style="--c: var(--p50)">p50</span><span style="--c: var(--p99)">p99</span><span style="--c: var(--libre)">mínimo posible (CPU + I/O)</span></div>
+    </section>
+    <section class="panel grafico gantt" aria-label="Qué hace cada hilo">
+      <h2>Qué hace cada hilo (una fila por hilo)</h2>
+      <canvas id="gGantt"></canvas>
+      <div class="leyenda"><span style="--c: var(--cpu)">corriendo código</span><span style="--c: var(--bloq)">bloqueado esperando la I/O</span><span style="--c: var(--libre)">libre</span></div>
+    </section>
+    <section class="panel cuentas" aria-label="Cuentas de servilleta">
+      <h2>Las cuentas de servilleta</h2>
+      <table id="cuentas"></table>
+    </section>
+  </div>
+
+  <article class="panel texto">
+    <h2>Qué es el thread pool y por qué tu API depende de él</h2>
+    <p>En ASP.NET Core cada pedido HTTP termina siendo un <em>work item</em> del <code>ThreadPool</code>: Kestrel lo recibe en sus hilos de I/O y lo encola, y un hilo del pool lo toma, corre tu middleware, tu controller y tu código. Lo mismo pasa con cada continuación después de un <code>await</code>, con cada callback de <code>Task.Run</code>, con los timers y con los consumidores de colas. Si el pool no tiene un hilo libre, el pedido espera en esa cola <strong>antes de empezar a ejecutarse</strong>: no está en ningún log tuyo, no está en la base, está esperando un hilo.</p>
+    <p>El pool arranca con pocos hilos: el mínimo es <code>Environment.ProcessorCount</code> (4 en una máquina de 4 núcleos, 2 en un pod con 2 vCPU). Hasta ese mínimo crea hilos sin pensarlo apenas hay trabajo. De ahí para arriba se pone conservador, y con razón: para código que usa CPU, más hilos que núcleos es puro cambio de contexto. Dos mecanismos deciden si agregar más:</p>
+    <ul>
+      <li><strong>Hill climbing</strong>: un controlador que mueve la cantidad de hilos de a poco y mide si el throughput (work items completados por segundo) mejora. Necesita señal: si nada termina, no aprende nada.</li>
+      <li><strong>El gate thread</strong>: un hilo de vigilancia que se despierta cada <strong>500 ms</strong>. Si ve que hay trabajo encolado y todos los hilos están ocupados sin que se haya completado nada hace rato, fuerza <strong>un hilo más</strong>. Uno. Cada medio segundo.</li>
+    </ul>
+    <p>Ahí está el problema: si tus pedidos tienen el hilo <em>tomado pero sin hacer nada</em> (esperando a la base con <code>.Result</code>, o con una consulta sincrónica), el pool solo puede crecer a razón de dos hilos por segundo. Si necesitás 21 hilos a la vez y arrancaste con 4, son más de 8 segundos durante los cuales la cola crece sin frenar. Eso es la <strong>inanición del thread pool</strong> (<em>thread pool starvation</em>): la API no está caída, la CPU está casi en cero, la base está tranquila, y los pedidos tardan segundos o dan timeout.</p>
+
+    <h2>Las tres formas de esperar la I/O</h2>
+    <div class="dos">
+      <div class="malo"><h4>Bloqueando el hilo (así se cuelga)</h4>
+<pre><code>// .Result / .Wait() / GetAwaiter().GetResult()
+var cliente = _db.Clientes
+    .FirstOrDefaultAsync(c => c.Id == id).Result;
+
+// I/O sincrónica: el hilo queda esperando igual
+var cliente = _db.Clientes.FirstOrDefault(c => c.Id == id);
+var json = _http.GetStringAsync(url).GetAwaiter().GetResult();
+Thread.Sleep(100);
+lock (_cache) { /* algo lento acá adentro */ }
+
+// La peor: parece async pero bloquea
+return Task.Run(() => Procesar()).Result;</code></pre></div>
+      <div class="bueno"><h4>Soltando el hilo (async de punta a punta)</h4>
+<pre><code>public async Task&lt;ActionResult&lt;Cliente&gt;&gt; Get(int id)
+{
+    var cliente = await _db.Clientes
+        .FirstOrDefaultAsync(c => c.Id == id);
+    var extra = await _http.GetStringAsync(url);
+    await Task.Delay(100);
+    await _semaforo.WaitAsync();
+    return cliente is null ? NotFound() : cliente;
+}
+
+// Mientras la base trabaja, el hilo volvió al pool
+// y atiende otros pedidos. Cuando la respuesta llega,
+// la continuación se encola como un work item nuevo.</code></pre></div>
+    </div>
+    <p>En el simulador, <strong>await</strong> es «el hilo se libera durante la I/O y la continuación vuelve a la cola»; <strong>.Result</strong> es «el hilo queda bloqueado en <code>Task.Wait</code>, y el pool lo sabe si es .NET 6 o más nuevo»; <strong>I/O sincrónica</strong> es «el hilo queda bloqueado y el pool no tiene idea» (una consulta sin <code>Async</code>, un <code>lock</code>, un <code>Thread.Sleep</code>, un <code>ManualResetEvent</code>, un socket sincrónico).</p>
+
+    <h2>Qué cambió en .NET 6</h2>
+    <p>Desde .NET 6 el pool está escrito en C# (el <code>PortableThreadPool</code>) y tiene un mecanismo nuevo: cuando un hilo del pool entra a <code>Task.Wait</code> (y por lo tanto a <code>.Result</code> y a <code>GetAwaiter().GetResult()</code>) sobre una tarea que todavía no terminó, le avisa al pool. El pool sube su meta de hilos a «mínimo + hilos bloqueados» y crea los que faltan casi sin demora: los primeros <code>1,25 × núcleos</code> de inmediato, y el resto de a <code>0,25 × núcleos</code> con pausas que crecen de 25 a 250 ms. Por eso el escenario «Lo mismo en .NET 8» se recupera en un segundo y medio en vez de 17.</p>
+    <div class="aviso">
+      <p><strong>No es una solución, es un airbag.</strong> Sirve solo para <code>Task.Wait</code>: un <code>lock</code>, una consulta sincrónica de ADO.NET, un <code>HttpWebRequest</code> viejo o un <code>Thread.Sleep</code> no avisan a nadie, y ahí .NET 8 se comporta como .NET Core 3.1 (probá «I/O sincrónica en .NET 8»). Y el precio son hilos: 40 hilos para hacer el trabajo que 4 hacen con <code>await</code>, cada uno con su stack (1 MB reservado por defecto) y su cambio de contexto. Con una base más lenta o más tráfico, la cantidad de hilos crece hasta donde haga falta, y en un pod con poca memoria eso también duele.</p>
+    </div>
+
+    <h2>Cómo saber si te está pasando en producción</h2>
+    <ul>
+      <li><strong>La forma de la latencia.</strong> No es una subida proporcional al tráfico: es una rampa que crece durante segundos y después baja de golpe cuando el pool «alcanzó». CPU baja, base tranquila, timeouts del lado del cliente. Después de un deploy o un pico, no en régimen.</li>
+      <li><strong>Contadores.</strong> <code>dotnet-counters monitor --process-id &lt;pid&gt; System.Runtime</code> y mirá <code>threadpool-thread-count</code> (sube de a uno cada 500 ms) y <code>threadpool-queue-length</code> (debería ser casi siempre 0). Desde código, <code>ThreadPool.ThreadCount</code> y <code>ThreadPool.PendingWorkItemCount</code> se pueden exponer como métricas; en .NET 9 también están en <code>System.Runtime</code> por <code>Meter</code> para OpenTelemetry.</li>
+      <li><strong>Stacks.</strong> <code>dotnet-stack report --process-id &lt;pid&gt;</code> o un dump con <code>dotnet-dump</code> y <code>clrstack -all</code>: si ves 30 hilos del pool parados en <code>Monitor.Wait</code>, <code>Task.Wait</code>, <code>ManualResetEventSlim.Wait</code> o en un <code>SqlCommand.ExecuteReader</code> sin Async, ya está.</li>
+      <li><strong>Eventos.</strong> El runtime emite <code>ThreadPoolWorkerThreadAdjustment</code> (razón: <em>Starvation</em>) y los eventos de <em>ThreadPoolWorkerThreadStart</em>; se ven con <code>dotnet-trace</code> o PerfView. Hay una guía oficial paso a paso, está en las fuentes.</li>
+    </ul>
+
+    <h2>Qué hacer</h2>
+    <ul>
+      <li><strong>Async de punta a punta.</strong> Es la única solución de verdad. Cada <code>.Result</code>, <code>.Wait()</code> y <code>GetAwaiter().GetResult()</code> en el camino de un pedido es una bomba de tiempo; cada método sincrónico de I/O (<code>ToList()</code> en vez de <code>ToListAsync()</code>, <code>ExecuteReader</code> en vez de <code>ExecuteReaderAsync</code>, <code>File.ReadAllText</code>) también. Un analizador ayuda: <code>Microsoft.VisualStudio.Threading.Analyzers</code> (VSTHRD002) marca los bloqueos.</li>
+      <li><strong>Si hoy no podés cambiar el código</strong>, <code>ThreadPool.SetMinThreads(n, n)</code> al arrancar (o <code>"System.Threading.ThreadPool.MinThreads": n</code> en <code>runtimeconfig.json</code>) con un <code>n</code> bastante más alto que los hilos que necesitás en pico. Compra tiempo. No arregla, y hace que la próxima vez explote con más tráfico y menos aviso.</li>
+      <li><strong>Limitá la concurrencia hacia lo que es lento</strong> con <code>SemaphoreSlim.WaitAsync</code> o con el pool de conexiones: si la base soporta 50 consultas a la vez, 300 pedidos simultáneos no la van a apurar, y con async la espera al menos no gasta hilos.</li>
+      <li><strong>No disfraces lo sincrónico.</strong> <code>Task.Run(() => algoSincrónico()).Result</code> bloquea dos hilos en vez de uno. <code>async void</code> no existe para esto.</li>
+      <li><strong>ASP.NET Framework (el viejo)</strong> tiene un problema peor: <code>.Result</code> en un controller con <code>SynchronizationContext</code> es un deadlock directo, no una lentitud. Ahí <code>ConfigureAwait(false)</code> en las librerías evita el deadlock, pero no evita el hilo bloqueado. En ASP.NET Core no hay <code>SynchronizationContext</code> y <code>ConfigureAwait(false)</code> no cambia nada de esto.</li>
+    </ul>
+
+    <h2>Qué es y qué no es este modelo</h2>
+    <p>Es una simulación con un reloj de 1 ms que reproduce las reglas documentadas del pool: hilos mínimos iguales a los núcleos (creados sin demora), un gate thread que cada 500 ms agrega un hilo si hay cola y todos están ocupados, hilos de más que se retiran después de 20 s sin trabajo, CPU repartida entre los hilos que la quieren (si hay más hilos corriendo que núcleos, cada uno avanza más lento) y, en .NET 6+, la inyección por bloqueo con las constantes de <code>PortableThreadPool.Blocking.cs</code> (1,25 y 0,25 × núcleos, pasos de 25 ms con tope de 250 ms). Las llegadas son Poisson y la I/O varía ±20 %.</p>
+    <p><strong>No modela</strong> el hill climbing (que en la práctica suma algún hilo más cuando hay progreso parcial, y también los saca), ni la presión de memoria que frena la inyección por bloqueo, ni el ajuste del gate thread por uso de CPU, ni el costo real de los cambios de contexto, ni las colas locales por hilo, ni la variación del tiempo de CPU. Los números son del modelo; las formas de las curvas y los órdenes de magnitud son los que vas a ver en un servidor real. Si querés el dato duro de tu runtime, el mismo escenario se reproduce en diez líneas: un endpoint con <code>Thread.Sleep(100)</code> o <code>.Result</code>, 200 pedidos/s con <code>bombardier</code> o <code>k6</code>, y <code>dotnet-counters</code> al lado.</p>
+
+    <h2>Fuentes</h2>
+    <ul class="fuentes">
+      <li>Microsoft Learn, <a href="https://learn.microsoft.com/es-es/dotnet/standard/threading/the-managed-thread-pool">The managed thread pool</a>: mínimos, máximos, cómo y cuándo el pool agrega hilos.</li>
+      <li>Microsoft Learn, <a href="https://learn.microsoft.com/es-es/dotnet/core/diagnostics/debug-threadpool-starvation">Debug ThreadPool starvation</a>: el tutorial oficial, con <code>dotnet-counters</code> y <code>dotnet-stack</code>.</li>
+      <li>Microsoft Learn, <a href="https://learn.microsoft.com/es-es/dotnet/core/runtime-config/threading">Runtime configuration options for threading</a>: <code>System.Threading.ThreadPool.MinThreads</code> y compañía.</li>
+      <li>dotnet/runtime, <a href="https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/Threading/PortableThreadPool.GateThread.cs">PortableThreadPool.GateThread.cs</a> (los 500 ms y la detección de inanición) y <a href="https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/Threading/PortableThreadPool.Blocking.cs">PortableThreadPool.Blocking.cs</a> (la inyección por bloqueo de .NET 6 y sus constantes).</li>
+      <li>Stephen Toub, <a href="https://devblogs.microsoft.com/dotnet/performance-improvements-in-net-6/">Performance Improvements in .NET 6</a>, sección «Threading»: el pool portable y el manejo de bloqueos.</li>
+      <li>Hellerstein, Morrison y Eilebrecht, <a href="https://www.microsoft.com/en-us/research/publication/optimizing-concurrency-levels-in-the-net-threadpool-a-case-study-of-controller-design-and-implementation/">Optimizing Concurrency Levels in the .NET ThreadPool</a>: el paper del hill climbing.</li>
+      <li>David Fowler, <a href="https://github.com/davidfowl/AspNetCoreDiagnosticScenarios/blob/master/AsyncGuidance.md">ASP.NET Core Diagnostic Scenarios: Async Guidance</a>: la lista de lo que no hay que hacer, con ejemplos.</li>
+      <li>Stephen Cleary, <a href="https://blog.stephencleary.com/2012/07/dont-block-on-async-code.html">Don't Block on Async Code</a>: el deadlock de ASP.NET Framework y por qué <code>ConfigureAwait(false)</code> no es la solución.</li>
+    </ul>
+  </article>
+</main>
+
+<script src="logica.js"></script>
+<script>
+(() => {
+  "use strict";
+  const S = window.ThreadPoolSim;
+  const $ = (id) => document.getElementById(id);
+  const f = (x, d = 0) => Number(x).toLocaleString("es-AR", { maximumFractionDigits: d, minimumFractionDigits: 0 });
+  const ms = (x) => (x >= 10000 ? `${f(x / 1000, 1)} s` : `${f(x)} ms`);
+  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+  // ---------- Controles ----------
+  const NUMERICOS = ["nucleos", "rps", "ioMs", "cpuMs", "cpuDespuesMs", "minHilos", "rafaga", "duracionS"];
+  const SELECTS = ["modoIo", "runtime", "patron"];
+  let semilla = 1, presetActivo = null, ultimo = null;
+
+  function leer() {
+    const o = { semilla };
+    for (const k of NUMERICOS) o[k] = Number($(k + "N").value);
+    for (const k of SELECTS) o[k] = $(k).value;
+    return o;
+  }
+  function mostrarValores() {
+    for (const k of NUMERICOS) $(k + "V").textContent = k === "minHilos" && Number($(k + "N").value) === 0 ? `0 (= ${$("nucleosN").value})` : f($(k + "N").value, 1);
+    $("ctlRafaga").classList.toggle("oculto", $("patron").value !== "rafaga");
+  }
+  function escribir(v) {
+    for (const k of NUMERICOS) if (v[k] !== undefined) { $(k + "N").value = v[k]; $(k).value = v[k]; }
+    for (const k of SELECTS) if (v[k] !== undefined) $(k).value = v[k];
+    mostrarValores();
+  }
+  for (const k of NUMERICOS) {
+    $(k).addEventListener("input", () => { $(k + "N").value = $(k).value; cambio(); });
+    $(k + "N").addEventListener("input", () => { $(k).value = $(k + "N").value; cambio(); });
+  }
+  for (const k of SELECTS) $(k).addEventListener("change", cambio);
+  function cambio() { marcarPreset(null); mostrarValores(); programar(); }
+
+  let pendiente = 0;
+  function programar() { cancelAnimationFrame(pendiente); pendiente = requestAnimationFrame(correr); }
+
+  // ---------- Presets ----------
+  const presets = $("presets");
+  for (const [id, p] of Object.entries(S.PRESETS)) {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = p.nombre; b.dataset.preset = id; b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", () => { escribir(p.valores); marcarPreset(id); programar(); });
+    presets.appendChild(b);
+  }
+  function marcarPreset(id) {
+    presetActivo = id;
+    for (const b of presets.querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.preset === id));
+    $("presetDesc").textContent = id ? S.PRESETS[id].descripcion : "Escenario a medida.";
+  }
+  $("otraTirada").addEventListener("click", () => { semilla = (semilla % 100000) + 1; programar(); });
+  $("copiarLink").addEventListener("click", async () => {
+    const o = leer(); const q = new URLSearchParams();
+    for (const k of [...NUMERICOS, ...SELECTS]) q.set(k, o[k]);
+    q.set("semilla", semilla);
+    const url = `${location.origin}${location.pathname}?${q}`;
+    try { await navigator.clipboard.writeText(url); $("copiarLink").textContent = "Copiado"; }
+    catch (e) { history.replaceState(null, "", `?${q}`); $("copiarLink").textContent = "Está en la barra de direcciones"; }
+    setTimeout(() => { $("copiarLink").textContent = "Copiar link"; }, 1800);
+  });
+
+  // ---------- Correr ----------
+  function correr() {
+    const o = leer();
+    const t0 = performance.now();
+    const r = S.simular(o);
+    const d = S.diagnosticar(r);
+    ultimo = { r, d };
+    $("tardo").textContent = `(simulado en ${f(performance.now() - t0)} ms)`;
+    const ideal = o.cpuMs + o.ioMs + o.cpuDespuesMs;
+    $("tP50").textContent = ms(r.p50); $("tIdeal").textContent = `mínimo posible: ${f(ideal)} ms`;
+    $("tP99").textContent = ms(r.p99); $("tMax").textContent = `máximo: ${ms(r.max)}`;
+    $("tHilos").textContent = f(r.hilosMax); $("tBloq").textContent = `${f(r.bloqueadosMax)} bloqueados a la vez · mín. ${f(r.minHilos)}`;
+    $("tCola").textContent = f(r.colaMax);
+    $("tRec").textContent = r.recuperacion.pico < 10 ? "sin cola que valga" : r.recuperacion.ok ? `vuelve a cero a los ${f(r.recuperacion.t, 1)} s` : "no vuelve a cero";
+    $("tCpu").textContent = `${f(r.cpuPromedio * 100)} %`; $("tCompl").textContent = `${f(r.completados)} de ${f(r.llegados)} terminados`;
+    $("resultados").className = `panel zona-${d.zona}`;
+    const diag = $("diag"); diag.innerHTML = "";
+    const h3 = document.createElement("h3"); h3.textContent = d.titulo; diag.appendChild(h3);
+    const p = document.createElement("p"); p.innerHTML = conCodigo(d.resumen); diag.appendChild(p);
+    const ul = document.createElement("ul");
+    for (const x of d.puntos) { const li = document.createElement("li"); li.innerHTML = conCodigo(x); ul.appendChild(li); }
+    diag.appendChild(ul);
+    const h4 = document.createElement("p"); h4.innerHTML = "<strong>Qué hacer</strong>"; diag.appendChild(h4);
+    const ul2 = document.createElement("ul");
+    for (const x of d.acciones) { const li = document.createElement("li"); li.innerHTML = conCodigo(x); ul2.appendChild(li); }
+    diag.appendChild(ul2);
+    cuentas(d.cuentas, o);
+    dibujarHilos(r); dibujarLatencia(r, ideal); dibujarGantt(r);
+  }
+  function escapar(s) { return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+  function conCodigo(s) { return escapar(s).replace(/`([^`]+)`/g, "<code>$1</code>"); }
+
+  function cuentas(c, o) {
+    const filas = [
+      ["Hilos mínimos del pool", `${f(c.minHilos)}`],
+      ["Un hilo queda tomado por pedido (bloqueando)", `${f(o.cpuMs)} + ${f(o.ioMs)} + ${f(o.cpuDespuesMs)} = ${f(c.porPedidoBloqueando)} ms`],
+      ["Pedidos/s que atiende un hilo bloqueando", `${f(c.capacidadPorHilo, 1)}`],
+      ["Hilos necesarios para la carga (Little: λ·W)", `${f(o.rps)} × ${f(c.porPedidoBloqueando / 1000, 3)} s = ${f(c.hilosNecesarios)}`],
+      ["Capacidad con los hilos mínimos, bloqueando", `${f(c.capacidadInicial)} pedidos/s`],
+      ["Hilos que faltan y cuánto tarda el gate thread", `${f(c.faltan)} hilos → ${f(c.segundosHastaAlcanzar, 1)} s`],
+      ["Pedidos que se acumulan mientras tanto (modelo)", `≈ ${f(c.colaAcumulada)}`],
+      ["Tope por CPU con async (núcleos × 1000 / CPU por pedido)", `${f(c.capacidadCpu)} pedidos/s`],
+      ["Uso de CPU con async", `${f(c.utilizacionCpuAsync * 100)} %`],
+    ];
+    const t = $("cuentas"); t.innerHTML = "";
+    for (const [k, v] of filas) { const tr = document.createElement("tr"); const a = document.createElement("td"); a.textContent = k; const b = document.createElement("td"); b.textContent = v; tr.append(a, b); t.appendChild(tr); }
+  }
+
+  // ---------- Gráficos ----------
+  function lienzo(id) {
+    const c = $(id), dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = c.clientWidth || 600, h = c.clientHeight || 220;
+    c.width = Math.round(w * dpr); c.height = Math.round(h * dpr);
+    const ctx = c.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    ctx.font = "11px system-ui, sans-serif";
+    return { ctx, w, h };
+  }
+  function ejes(ctx, w, h, m, xMax, yMax, yMaxDer, unidadY, unidadDer) {
+    ctx.strokeStyle = css("--grid"); ctx.fillStyle = css("--muted"); ctx.lineWidth = 1;
+    const pasos = 4;
+    for (let i = 0; i <= pasos; i++) {
+      const y = m.t + (h - m.t - m.b) * (1 - i / pasos);
+      ctx.beginPath(); ctx.moveTo(m.l, y); ctx.lineTo(w - m.r, y); ctx.stroke();
+      ctx.textAlign = "right"; ctx.fillText(f(yMax * i / pasos, yMax < 10 ? 1 : 0) + unidadY, m.l - 4, y + 4);
+      if (yMaxDer) { ctx.textAlign = "left"; ctx.fillText(f(yMaxDer * i / pasos) + unidadDer, w - m.r + 4, y + 4); }
+    }
+    ctx.textAlign = "center";
+    const pasoX = xMax <= 10 ? 1 : xMax <= 30 ? 5 : 10;
+    for (let x = 0; x <= xMax + 1e-9; x += pasoX) {
+      const px = m.l + (w - m.l - m.r) * x / xMax;
+      ctx.fillText(`${f(x)} s`, px, h - m.b + 14);
+    }
+  }
+  function linea(ctx, puntos, color, ancho = 2) {
+    ctx.strokeStyle = color; ctx.lineWidth = ancho; ctx.beginPath();
+    puntos.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
+  }
+  function dibujarHilos(r) {
+    const { ctx, w, h } = lienzo("gHilos");
+    const m = { l: 38, r: 44, t: 10, b: 22 };
+    const xMax = r.opciones.duracionS;
+    const yMax = Math.max(8, Math.ceil(r.hilosMax * 1.1 / 4) * 4);
+    const yDer = Math.max(10, Math.ceil(r.colaMax * 1.1 / 10) * 10);
+    ejes(ctx, w, h, m, xMax, yMax, yDer, "", "");
+    const X = (t) => m.l + (w - m.l - m.r) * t / xMax;
+    const Y = (v) => m.t + (h - m.t - m.b) * (1 - v / yMax);
+    const YD = (v) => m.t + (h - m.t - m.b) * (1 - v / yDer);
+    // Cola como área.
+    ctx.fillStyle = css("--cola"); ctx.globalAlpha = 0.25; ctx.beginPath(); ctx.moveTo(X(0), YD(0));
+    for (const s of r.muestras) ctx.lineTo(X(s.t), YD(s.cola));
+    ctx.lineTo(X(r.muestras.length ? r.muestras[r.muestras.length - 1].t : 0), YD(0)); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+    linea(ctx, r.muestras.map((s) => [X(s.t), YD(s.cola)]), css("--cola"), 1.5);
+    linea(ctx, r.muestras.map((s) => [X(s.t), Y(s.enCpu)]), css("--cpu"), 1.5);
+    linea(ctx, r.muestras.map((s) => [X(s.t), Y(s.bloqueados)]), css("--bloq"), 2);
+    linea(ctx, r.muestras.map((s) => [X(s.t), Y(s.hilos)]), css("--hilos"), 2.5);
+  }
+  function dibujarLatencia(r, ideal) {
+    const { ctx, w, h } = lienzo("gLat");
+    const m = { l: 52, r: 10, t: 10, b: 22 };
+    const xMax = r.opciones.duracionS;
+    const top = Math.max(ideal * 2, r.p99 * 1.15, ...r.muestras.map((s) => s.p99));
+    const enSeg = top >= 5000;
+    const yMax = enSeg ? Math.ceil(top / 1000) : top < 100 ? Math.ceil(top / 10) * 10 : Math.ceil(top / 100) * 100;
+    ejes(ctx, w, h, m, xMax, yMax, 0, enSeg ? " s" : " ms", "");
+    const X = (t) => m.l + (w - m.l - m.r) * t / xMax;
+    const Y = (v) => m.t + (h - m.t - m.b) * (1 - (enSeg ? v / 1000 : v) / yMax);
+    ctx.setLineDash([4, 4]); linea(ctx, [[X(0), Y(ideal)], [X(xMax), Y(ideal)]], css("--libre"), 1.5); ctx.setLineDash([]);
+    const con = r.muestras.filter((s) => s.completados > 0);
+    linea(ctx, con.map((s) => [X(s.t), Y(s.p99)]), css("--p99"), 2);
+    linea(ctx, con.map((s) => [X(s.t), Y(s.p50)]), css("--p50"), 2);
+  }
+  function dibujarGantt(r) {
+    const { ctx, w, h } = lienzo("gGantt");
+    const m = { l: 30, r: 6, t: 6, b: 20 };
+    const filas = Math.max(1, Math.min(r.hilosMax, 512));
+    const alto = (h - m.t - m.b) / filas;
+    const xMax = r.opciones.duracionS, n = r.gantt.length;
+    const X = (i) => m.l + (w - m.l - m.r) * i / n;
+    const colores = { [S.LIBRE]: css("--libre"), [S.CPU]: css("--cpu"), [S.BLOQUEADO]: css("--bloq") };
+    for (let fila = 0; fila < filas; fila++) {
+      const y = m.t + fila * alto;
+      let desde = 0, estado = 0;
+      for (let i = 0; i <= n; i++) {
+        const e = i < n && fila < r.gantt[i].length ? r.gantt[i][fila] : 0;
+        if (e !== estado) {
+          if (estado) { ctx.fillStyle = colores[estado]; ctx.fillRect(X(desde), y, Math.max(0.5, X(i) - X(desde)), Math.max(1, alto - (alto > 3 ? 1 : 0))); }
+          desde = i; estado = e;
+        }
+      }
+    }
+    ctx.fillStyle = css("--muted"); ctx.textAlign = "right";
+    const etiquetas = filas <= 12 ? [...Array(filas).keys()] : [0, Math.floor(filas / 2), filas - 1];
+    for (const i of etiquetas) ctx.fillText(`#${i + 1}`, m.l - 4, m.t + i * alto + Math.min(alto, 12) / 2 + 3);
+    ctx.textAlign = "center";
+    const pasoX = xMax <= 10 ? 1 : xMax <= 30 ? 5 : 10;
+    for (let x = 0; x <= xMax + 1e-9; x += pasoX) ctx.fillText(`${f(x)} s`, m.l + (w - m.l - m.r) * x / xMax, h - 4);
+  }
+
+  // ---------- Arranque ----------
+  const q = new URLSearchParams(location.search);
+  if ([...q.keys()].length) {
+    const v = {};
+    for (const k of NUMERICOS) if (q.has(k)) v[k] = Number(q.get(k));
+    for (const k of SELECTS) if (q.has(k)) v[k] = q.get(k);
+    if (q.has("semilla")) semilla = Number(q.get("semilla")) || 1;
+    escribir(v); marcarPreset(null);
+  } else {
+    escribir(S.PRESETS.clasico.valores); marcarPreset("clasico");
+  }
+  correr();
+  let redibujo = 0;
+  window.addEventListener("resize", () => { clearTimeout(redibujo); redibujo = setTimeout(() => { if (ultimo) { dibujarHilos(ultimo.r); dibujarLatencia(ultimo.r, ultimo.r.opciones.cpuMs + ultimo.r.opciones.ioMs + ultimo.r.opciones.cpuDespuesMs); dibujarGantt(ultimo.r); } }, 120); });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => programar());
+  window.__sim = () => ultimo;
+})();
+</script>
+</body>
+</html>
