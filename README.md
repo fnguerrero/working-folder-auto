@@ -28,5 +28,6 @@ Trabaja directo sobre `main`. Si algo no te gusta, se mueve a `_archivo/`.
 | Índices con el cronómetro en la mano | escritos | Trece experimentos sobre índices de SQL Server, medidos en páginas leídas contra un servidor real, con chuleta y qué cambia en .NET. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/escritos/indices-con-cronometro/) |
 | Pecera | juegos | Peces que vienen a comer cuando tocás el agua, con cangrejo, tortuga y burbujas. Para Valentín. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/juegos/pecera/) |
 | El thread pool en vivo | experimentos | Simulador del thread pool de .NET: inanición por .Result o I/O sincrónica contra async, en .NET 6+ o anterior, con diagnóstico y qué hacer. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/experimentos/thread-pool-en-vivo/) |
+| Connection string en criollo | herramientas | Explica una cadena de conexión de SQL Server, PostgreSQL, MySQL o Redis: cada clave, qué es peligroso y dónde guardarla. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/herramientas/connection-string-en-criollo/) |
 
 Las convenciones de estructura y trabajo están en [CLAUDE.md](CLAUDE.md).

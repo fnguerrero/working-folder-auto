@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<title>Connection string en criollo</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --card: #fff; --fg: #1d1d1f; --muted: #6b6b70; --line: #e4e2dc; --accent: #5b4fd6; --accent-fg: #fff;
+    --peligro: #c0392b; --ojo: #b7791f; --dato: #1d4ed8; --code: #f0eee8; --ok: #1e7e4f;
+    --peligro-bg: rgba(192, 57, 43, .08); --ojo-bg: rgba(183, 121, 31, .08); --dato-bg: rgba(29, 78, 216, .07);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111114; --card: #1b1b20; --fg: #ececf1; --muted: #9a9aa3; --line: #2a2a31; --accent: #9d93ff; --accent-fg: #15131f;
+      --peligro: #ff7b6b; --ojo: #f0b454; --dato: #93c5fd; --code: #15151a; --ok: #6fd39a;
+      --peligro-bg: rgba(255, 123, 107, .10); --ojo-bg: rgba(240, 180, 84, .10); --dato-bg: rgba(147, 197, 253, .10);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.45; }
+  header { padding: 18px 16px 6px; max-width: 1100px; margin: 0 auto; }
+  h1 { margin: 0; font-size: 1.5rem; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  a { color: var(--accent); }
+  main { max-width: 1100px; margin: 0 auto; padding: 10px 16px 32px; display: grid; gap: 14px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+  .panel h2 { margin: 0 0 10px; font-size: 1rem; }
+  textarea { width: 100%; min-height: 96px; font: .92rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; padding: 10px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--fg); resize: vertical; }
+  textarea:focus-visible { outline: 2px solid var(--accent); }
+  .fila { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+  .fila label { font-size: .85rem; color: var(--muted); }
+  select, button, .ejemplos button { font: inherit; font-size: .85rem; min-height: 40px; padding: 6px 12px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+  select { border-radius: 8px; }
+  button:hover { border-color: var(--accent); }
+  button[aria-pressed="true"], button.primario { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .ejemplos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .privado { font-size: .82rem; color: var(--muted); margin: 8px 0 0; }
+  .resumen { font-size: 1.05rem; margin: 0 0 10px; }
+  .resumen b { color: var(--accent); }
+  .avisos { display: grid; gap: 8px; }
+  .aviso { border-left: 4px solid var(--c); background: var(--b); border-radius: 0 8px 8px 0; padding: 8px 12px; }
+  .aviso.peligro { --c: var(--peligro); --b: var(--peligro-bg); } .aviso.ojo { --c: var(--ojo); --b: var(--ojo-bg); } .aviso.dato { --c: var(--dato); --b: var(--dato-bg); }
+  .aviso h3 { margin: 0; font-size: .95rem; color: var(--c); }
+  .aviso h3 span { font-weight: 500; font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; margin-right: 6px; }
+  .aviso p { margin: 4px 0 0; font-size: .9rem; }
+  .todo-bien { color: var(--ok); font-weight: 600; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .88em; background: var(--code); padding: 1px 5px; border-radius: 5px; overflow-wrap: anywhere; }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  th, td { text-align: left; padding: 7px 8px; border-top: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: .8rem; }
+  tr.cat td { background: var(--bg); font-weight: 600; font-size: .85rem; border-top: 0; padding-top: 10px; }
+  td.valor { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .85rem; overflow-wrap: anywhere; max-width: 260px; }
+  @media (min-width: 700px) { td.valor { min-width: 130px; } td.clave { min-width: 110px; } }
+  td.desc { color: var(--muted); font-size: .85rem; }
+  td.desc .def { display: block; margin-top: 2px; font-size: .8rem; }
+  tr.desconocida td.clave { color: var(--ojo); }
+  tr.secreta td.valor { color: var(--peligro); }
+  @media (max-width: 700px) { th:nth-child(3), td:nth-child(3) { display: none; } td.desc .def { display: block; } }
+  .errores { color: var(--ojo); font-size: .88rem; margin: 8px 0 0; }
+  pre { background: var(--code); padding: 10px 12px; border-radius: 8px; overflow: auto; font-size: .82rem; line-height: 1.4; margin: 6px 0 0; position: relative; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .bloque { margin-top: 10px; }
+  .bloque h3 { margin: 0; font-size: .9rem; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .bloque h3 button { min-height: 32px; padding: 2px 10px; font-size: .78rem; }
+  .bloque p { margin: 4px 0 0; font-size: .85rem; color: var(--muted); }
+  .oculto { display: none !important; }
+  .texto p, .texto li { font-size: .95rem; max-width: 76ch; }
+  .texto h2 { font-size: 1.15rem; margin: 16px 0 6px; }
+  .texto h2:first-child { margin-top: 0; }
+  .texto ul { padding-left: 20px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Connection string en criollo</h1>
+  <p>Pegás una cadena de conexión de SQL Server, PostgreSQL, MySQL o Redis y te dice en castellano qué significa cada clave, cuál es su valor por defecto, qué es peligroso y dónde conviene guardarla.</p>
+</header>
+<main>
+  <section class="panel" aria-label="Cadena de conexión">
+    <h2>La cadena</h2>
+    <textarea id="entrada" spellcheck="false" autocomplete="off" placeholder="Server=srv-sql01,1433;Initial Catalog=Ventas;User ID=app;Password=…;Encrypt=True"></textarea>
+    <div class="fila">
+      <label for="proveedor">Proveedor</label>
+      <select id="proveedor">
+        <option value="">Detectar solo</option>
+        <option value="sqlserver">SQL Server (Microsoft.Data.SqlClient)</option>
+        <option value="postgres">PostgreSQL (Npgsql)</option>
+        <option value="mysql">MySQL / MariaDB (MySqlConnector)</option>
+        <option value="redis">Redis (StackExchange.Redis)</option>
+      </select>
+      <label><input type="checkbox" id="mostrarSecretos"> Mostrar contraseñas</label>
+      <button type="button" id="limpiar">Limpiar</button>
+    </div>
+    <div class="ejemplos" id="ejemplos" aria-label="Ejemplos"></div>
+    <p class="privado">Todo se procesa en tu navegador: no hay red, no se guarda nada, no hay «copiar link». Podés abrirlo sin conexión.</p>
+  </section>
+
+  <section class="panel oculto" id="salida" aria-label="Explicación">
+    <h2>Qué dice <span id="detectado" style="font-weight: 400; color: var(--muted); font-size: .85rem;"></span></h2>
+    <p class="resumen" id="resumen"></p>
+    <div class="avisos" id="avisos"></div>
+    <p class="errores" id="errores"></p>
+    <table id="tabla" aria-label="Claves">
+      <thead><tr><th>Clave</th><th>Tu valor</th><th>Default</th><th>Qué es</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section class="panel oculto" id="formatos" aria-label="Formatos y dónde guardarla">
+    <h2>La misma cadena, prolija, y dónde guardarla</h2>
+    <div class="bloque"><h3>Normalizada (nombres canónicos, contraseña tapada) <button type="button" data-copiar="normalizada">Copiar</button></h3><pre id="normalizada"></pre></div>
+    <div class="bloque oculto" id="bloqueUri"><h3>Como URI <button type="button" data-copiar="uri">Copiar</button></h3><pre id="uri"></pre><p id="uriNota"></p></div>
+    <div class="bloque"><h3>appsettings.json (sin la contraseña) <button type="button" data-copiar="appsettings">Copiar</button></h3><pre id="appsettings"></pre></div>
+    <div class="bloque"><h3>En desarrollo: user-secrets (fuera del repo) <button type="button" data-copiar="userSecrets">Copiar</button></h3><pre id="userSecrets"></pre></div>
+    <div class="bloque"><h3>En producción: variable de entorno <button type="button" data-copiar="entorno">Copiar</button></h3><pre id="entorno"></pre></div>
+    <div class="bloque"><h3>En el código <button type="button" data-copiar="csharp">Copiar</button></h3><pre id="csharp"></pre></div>
+  </section>
+
+  <article class="panel texto">
+    <h2>Lo que conviene saber</h2>
+    <ul>
+      <li><strong>La contraseña nunca va al repo.</strong> En dev, <code>dotnet user-secrets</code> la guarda en tu perfil de usuario y la configuración la lee como si estuviera en appsettings. En prod, una variable de entorno <code>ConnectionStrings__Nombre</code> (dos guiones bajos = separador de secciones), el secreto del orquestador o un vault. Si ya la commiteaste, cambiarla: el historial de git no se limpia solo.</li>
+      <li><strong>Cifrar y validar son dos cosas.</strong> <code>Encrypt=True</code> (SQL Server), <code>SSL Mode=Require</code> (Npgsql) o <code>SslMode=Required</code> (MySQL) cifran el tráfico, pero sin validar el certificado del servidor cualquiera en el medio puede hacerse pasar por él. <code>TrustServerCertificate=True</code> es exactamente eso: aceptar sin mirar. En dev contra localhost vale; en producción, certificado válido (o la CA interna instalada en el cliente) y validación.</li>
+      <li><strong>El cambio de Microsoft.Data.SqlClient 4.0.</strong> Desde esa versión <code>Encrypt</code> es <code>True</code> por defecto, y con un SQL Server con certificado autofirmado (el de Docker, el de Express) la conexión falla con «The certificate chain was issued by an authority that is not trusted». La salida fácil es <code>TrustServerCertificate=True</code>; la correcta en prod es un certificado válido. <code>Encrypt=Optional</code> (5.0+) vuelve al comportamiento viejo.</li>
+      <li><strong>Los timeouts son dos.</strong> <code>Connect Timeout</code> / <code>Timeout</code> es cuánto esperás para <em>conseguir</em> una conexión (abrirla, o que el pool te dé una). <code>Command Timeout</code> es cuánto puede tardar una consulta. Subir el primero no arregla consultas lentas; poner el segundo en 0 deja hilos colgados para siempre.</li>
+      <li><strong>El pool es por cadena exacta y por proceso.</strong> Dos cadenas que difieren en un espacio son dos pools. <code>Max Pool Size=100</code> con 5 instancias de la app son hasta 500 conexiones contra la base: compará con <code>max_connections</code> (Postgres: 100 por defecto; MySQL: 151) o con lo que aguanta el SQL Server. Si el pool se llena, <code>Open()</code> espera hasta el timeout de conexión y falla con «timeout... obtaining a connection from the pool»: casi siempre es una conexión que no se cierra (un <code>using</code> que falta) o consultas lentas, no un pool chico.</li>
+      <li><strong>Application Name.</strong> Es gratis y cuando haya un bloqueo o una conexión colgada vas a saber de qué servicio vino (<code>sys.dm_exec_sessions</code>, <code>pg_stat_activity</code>).</li>
+      <li><strong>Superusuarios no.</strong> <code>sa</code>, <code>postgres</code>, <code>root</code> y <code>allowAdmin=true</code> convierten cualquier bug o inyección en el control total del servidor. Un usuario por app con lo mínimo que necesita.</li>
+    </ul>
+    <h2>Qué es y qué no es</h2>
+    <p>Las claves y defaults están sacados de la documentación de Microsoft.Data.SqlClient, Npgsql, MySqlConnector y StackExchange.Redis (links abajo) a la fecha de hoy; los defaults cambian entre versiones y donde eso importa el texto lo dice. Las claves que no reconoce las marca en amarillo: puede ser de otro proveedor (System.Data.SqlClient, MySql.Data de Oracle, un driver ODBC) o un error de tipeo. No valida valores imposibles ni prueba la conexión: para eso está tu app.</p>
+    <h2>Fuentes</h2>
+    <ul>
+      <li><a href="https://learn.microsoft.com/es-es/dotnet/api/microsoft.data.sqlclient.sqlconnection.connectionstring">SqlConnection.ConnectionString</a> (Microsoft.Data.SqlClient): todas las claves y defaults, y <a href="https://learn.microsoft.com/es-es/sql/connect/ado-net/connection-string-syntax">la sintaxis de las cadenas</a>.</li>
+      <li><a href="https://learn.microsoft.com/es-es/sql/connect/ado-net/introduction-microsoft-data-sqlclient-namespace">Novedades de Microsoft.Data.SqlClient</a>: el cambio de <code>Encrypt</code> en 4.0 y los valores <code>Strict</code>/<code>Mandatory</code>/<code>Optional</code> de 5.0.</li>
+      <li><a href="https://www.npgsql.org/doc/connection-string-parameters.html">Npgsql: Connection String Parameters</a> y <a href="https://www.npgsql.org/doc/security.html">Security and Encryption</a>.</li>
+      <li><a href="https://mysqlconnector.net/connection-options/">MySqlConnector: Connection Options</a>.</li>
+      <li><a href="https://stackexchange.github.io/StackExchange.Redis/Configuration">StackExchange.Redis: Configuration</a>.</li>
+      <li><a href="https://learn.microsoft.com/es-es/aspnet/core/security/app-secrets">Safe storage of app secrets in development in ASP.NET Core</a> (user-secrets) y <a href="https://learn.microsoft.com/es-es/aspnet/core/fundamentals/configuration/">Configuration in ASP.NET Core</a> (variables de entorno y <code>__</code>).</li>
+      <li><a href="https://learn.microsoft.com/es-es/dotnet/framework/data/adonet/connection-string-builders">DbConnectionStringBuilder</a>: las reglas de comillas y de claves repetidas.</li>
+    </ul>
+  </article>
+</main>
+
+<script src="logica.js"></script>
+<script>
+(() => {
+  "use strict";
+  const C = window.ConnStr;
+  const $ = (id) => document.getElementById(id);
+  const entrada = $("entrada"), proveedor = $("proveedor"), mostrar = $("mostrarSecretos");
+  let ultimo = null;
+
+  const EJEMPLOS = [
+    ["SQL Server de producción con todo mal", C.EJEMPLOS.sqlserver],
+    ["SQL Server local en Docker", C.EJEMPLOS.sqlserverDev],
+    ["PostgreSQL con Npgsql", C.EJEMPLOS.postgres],
+    ["PostgreSQL como URI", C.EJEMPLOS.postgresUri],
+    ["MySQL", C.EJEMPLOS.mysql],
+    ["Redis en Azure", C.EJEMPLOS.redis],
+  ];
+  for (const [nombre, cadena] of EJEMPLOS) {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = nombre;
+    b.addEventListener("click", () => { entrada.value = cadena; proveedor.value = ""; analizar(); });
+    $("ejemplos").appendChild(b);
+  }
+
+  function escapar(s) { return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+  function conCodigo(s) { return escapar(s).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>"); }
+  const tapar = (k) => (C.esSecreta(k) && !mostrar.checked ? "•".repeat(Math.min(12, Math.max(6, k.valor.length))) : k.valor);
+
+  function analizar() {
+    const texto = entrada.value;
+    const a = C.analizar(texto, proveedor.value || undefined);
+    ultimo = a;
+    const hay = texto.trim().length > 0;
+    $("salida").classList.toggle("oculto", !hay);
+    $("formatos").classList.toggle("oculto", !hay || !a.proveedor);
+    if (!hay) return;
+    if (!a.proveedor) {
+      $("detectado").textContent = "";
+      $("resumen").textContent = "No reconozco el formato. Si es de SQL Server, PostgreSQL, MySQL o Redis, elegí el proveedor arriba.";
+      $("avisos").innerHTML = ""; $("errores").textContent = a.errores.join(" ");
+      $("tabla").querySelector("tbody").innerHTML = "";
+      return;
+    }
+    $("detectado").textContent = (proveedor.value ? "" : "detectado: ") + C.PROVEEDORES[a.proveedor].nombre;
+    $("resumen").textContent = C.resumir(a);
+    const avisos = C.avisar(a);
+    const cont = $("avisos"); cont.innerHTML = "";
+    if (!avisos.some((w) => w.nivel !== "dato")) { const p = document.createElement("p"); p.className = "todo-bien"; p.textContent = "Nada peligroso a la vista."; cont.appendChild(p); }
+    for (const w of avisos) {
+      const d = document.createElement("div"); d.className = `aviso ${w.nivel}`;
+      d.innerHTML = `<h3><span>${w.nivel === "peligro" ? "Peligro" : w.nivel === "ojo" ? "Ojo" : "Dato"}</span>${conCodigo(w.titulo)}</h3><p>${conCodigo(w.detalle)}</p>`;
+      cont.appendChild(d);
+    }
+    $("errores").textContent = a.errores.join(" ");
+    // Tabla por categoría.
+    const tb = $("tabla").querySelector("tbody"); tb.innerHTML = "";
+    const orden = Object.keys(C.CATEGORIAS);
+    const grupos = new Map();
+    for (const k of a.claves) { const cat = k.def ? k.def.cat : "desconocida"; if (!grupos.has(cat)) grupos.set(cat, []); grupos.get(cat).push(k); }
+    for (const cat of [...orden, "desconocida"]) {
+      const ks = grupos.get(cat); if (!ks) continue;
+      const trc = document.createElement("tr"); trc.className = "cat"; const tdc = document.createElement("td"); tdc.colSpan = 4; tdc.textContent = C.CATEGORIAS[cat] || "No la conozco"; trc.appendChild(tdc); tb.appendChild(trc);
+      for (const k of ks) {
+        const tr = document.createElement("tr"); if (!k.def) tr.className = "desconocida"; if (C.esSecreta(k)) tr.classList.add("secreta");
+        const td1 = document.createElement("td"); td1.className = "clave"; td1.innerHTML = `<code>${escapar(k.def ? k.def.nombre : k.clave)}</code>` + (k.def && k.def.nombre.toLowerCase() !== k.clave.toLowerCase() && k.clave !== "(endpoints)" ? `<br><small style="color: var(--muted)">escrito «${escapar(k.clave)}»</small>` : "");
+        const td2 = document.createElement("td"); td2.className = "valor"; td2.textContent = tapar(k);
+        const td3 = document.createElement("td"); td3.className = "desc"; td3.textContent = k.def ? (k.def.def || "—") : "";
+        const td4 = document.createElement("td"); td4.className = "desc"; td4.innerHTML = k.def ? conCodigo(k.def.que) : "No está en la lista de claves del proveedor. ¿Es de otro, o está mal escrita?";
+        tr.append(td1, td2, td3, td4); tb.appendChild(tr);
+      }
+    }
+    // Formatos.
+    $("normalizada").textContent = C.reconstruir(a, { ocultar: !mostrar.checked });
+    const u = C.aUri(a);
+    $("bloqueUri").classList.toggle("oculto", !u);
+    if (u) { $("uri").textContent = mostrar.checked ? u.uri : u.uri.replace(/:([^:@\/]*)@/, ":<SECRETO>@"); $("uriNota").textContent = u.sinEquivalente.length ? `Sin equivalente en la URI (son del driver .NET, no de libpq): ${u.sinEquivalente.join(", ")}.` : ""; }
+    const s = C.snippets(a, "Default");
+    $("appsettings").textContent = s.appsettings;
+    $("userSecrets").textContent = mostrar.checked ? s.userSecrets : s.userSecrets.replace(/(Password=|password=)([^;,"]*)/gi, "$1<SECRETO>").replace(/:\/\/([^:@\/]*):([^@\/]*)@/, "://$1:<SECRETO>@");
+    $("entorno").textContent = mostrar.checked ? s.entorno : s.entorno.replace(/(Password=|password=)([^;,'"]*)/gi, "$1<SECRETO>").replace(/:\/\/([^:@\/]*):([^@\/]*)@/, "://$1:<SECRETO>@");
+    $("csharp").textContent = s.csharp;
+    window.__ultimo = { a, avisos, u, s };
+  }
+  let t = 0;
+  entrada.addEventListener("input", () => { clearTimeout(t); t = setTimeout(analizar, 120); });
+  proveedor.addEventListener("change", analizar);
+  mostrar.addEventListener("change", analizar);
+  $("limpiar").addEventListener("click", () => { entrada.value = ""; proveedor.value = ""; analizar(); entrada.focus(); });
+  for (const b of document.querySelectorAll("[data-copiar]")) {
+    b.addEventListener("click", async () => {
+      const id = b.dataset.copiar; let texto = $(id).textContent;
+      // Copiar siempre la versión real (con la contraseña) de user-secrets y entorno: es para pegar en la terminal.
+      if (window.__ultimo && (id === "userSecrets" || id === "entorno")) texto = window.__ultimo.s[id];
+      try { await navigator.clipboard.writeText(texto); b.textContent = "Copiado"; } catch (e) { b.textContent = "No se pudo"; }
+      setTimeout(() => { b.textContent = "Copiar"; }, 1500);
+    });
+  }
+  analizar();
+})();
+</script>
+</body>
+</html>

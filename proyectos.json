@@ -124,5 +124,14 @@
     "estado": "terminado",
     "probar": "experimentos/thread-pool-en-vivo/",
     "desde": "2026-10-15"
+  },
+  {
+    "slug": "connection-string-en-criollo",
+    "nombre": "Connection string en criollo",
+    "categoria": "herramientas",
+    "descripcion": "Pegás una cadena de conexión de SQL Server, PostgreSQL, MySQL o Redis y te dice qué significa cada clave, qué es peligroso y dónde guardarla. Nada sale del navegador.",
+    "estado": "terminado",
+    "probar": "herramientas/connection-string-en-criollo/",
+    "desde": "2026-10-15"
   }
 ]
