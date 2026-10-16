@@ -34,6 +34,11 @@
     variacionIo: 0.2,    // ± fracción uniforme sobre ioMs
     modoIo: "result",    // "async" (await), "result" (.Result / .Wait() sobre una Task), "sync" (I/O sincrónica, lock, Thread.Sleep)
     runtime: "net6",     // "net6" (.NET 6 o más nuevo, detecta bloqueos en Task.Wait) o "clasico" (.NET Core ≤ 5, .NET Framework)
+    finalizacionPorPool: true, // con .Result: la finalización de la I/O (timer, socket) es un work item más, que va al final de la cola.
+                               // Es lo que pasa con Task.Delay siempre, con sockets en Linux y en .NET 7+ en Windows. false = la corre
+                               // un hilo de I/O aparte (IOCP en Windows antes de .NET 7) y el hilo bloqueado despierta solo.
+    inyeccionMs: 500,    // sin aviso de bloqueo, cada cuánto el pool agrega un hilo si hay cola y nadie libre. 500 = el gate thread
+                         // documentado; medido contra .NET 8 real con I/O sincrónica dio ~1.800 (el hill climbing es más lento).
     duracionS: 30,
     semilla: 1,
     muestreoMs: 100,     // cada cuánto se guarda una muestra para los gráficos
@@ -58,6 +63,8 @@
     const maxHilos = Math.max(minHilos, o.maxHilos);
     const bloqueaHilo = o.modoIo !== "async";
     const detectaBloqueo = o.runtime === "net6" && o.modoIo === "result";
+    const finPorPool = o.modoIo === "result" && o.finalizacionPorPool !== false;
+    const gateMs = Math.max(1, Math.round(o.inyeccionMs > 0 ? o.inyeccionMs : GATE_MS));
     const sinDemora = Math.ceil(o.nucleos * BLOQUEO_SIN_DEMORA_FACTOR);
     const porPaso = Math.max(1, Math.floor(o.nucleos * BLOQUEO_POR_PASO_FACTOR));
     const duracionMs = Math.round(o.duracionS * 1000);
@@ -87,11 +94,20 @@
     const ioDe = () => o.ioMs * (1 + (rng() * 2 - 1) * o.variacionIo);
     const despachar = (t) => {
       for (const h of hilos) {
-        if (h.estado !== LIBRE || cola.length === 0) continue;
-        const item = cola.shift();
-        h.estado = CPU; h.pedido = item.pedido; h.fase = item.fase;
-        h.restante = item.fase === "inicio" ? o.cpuMs : o.cpuDespuesMs;
-        if (item.fase === "inicio" && item.pedido.inicio === undefined) item.pedido.inicio = t;
+        if (h.estado !== LIBRE) continue;
+        while (cola.length > 0) {
+          const item = cola.shift();
+          if (item.fase === "finalizacion") {
+            // La finalización de la I/O de otro hilo: despierta al que estaba bloqueado en .Result. Cuesta nada y
+            // este hilo sigue buscando trabajo.
+            const b = item.hilo; b.estado = CPU; b.fase = "continuacion"; b.restante = o.cpuDespuesMs;
+            continue;
+          }
+          h.estado = CPU; h.pedido = item.pedido; h.fase = item.fase;
+          h.restante = item.fase === "inicio" ? o.cpuMs : o.cpuDespuesMs;
+          if (item.fase === "inicio" && item.pedido.inicio === undefined) item.pedido.inicio = t;
+          break;
+        }
       }
     };
 
@@ -121,8 +137,12 @@
             }
           }
         } else if (h.estado === BLOQUEADO) {
+          if (h.fase === "esperaFinalizacion") { bloqueados++; continue; } // la I/O terminó, pero nadie corrió todavía su finalización
           h.restante -= 1;
-          if (h.restante <= 1e-9) { h.estado = CPU; h.fase = "continuacion"; h.restante = o.cpuDespuesMs; }
+          if (h.restante <= 1e-9) {
+            if (finPorPool) { h.fase = "esperaFinalizacion"; cola.push({ fase: "finalizacion", hilo: h }); if (cola.length > colaMax) colaMax = cola.length; bloqueados++; }
+            else { h.estado = CPU; h.fase = "continuacion"; h.restante = o.cpuDespuesMs; }
+          }
           else bloqueados++;
         }
       }
@@ -137,7 +157,7 @@
       // 4. Hilos: hasta el mínimo se crean sin demora cuando hay trabajo.
       while (cola.length > 0 && hilos.length < minHilos) { crearHilo(t); despachar(t); }
       // Gate thread (cada 500 ms): hay cola y todos los hilos están ocupados → un hilo más. Es la inanición "clásica".
-      if (t > 0 && t % GATE_MS === 0 && cola.length > 0 && hilos.length < maxHilos) { crearHilo(t); despachar(t); }
+      if (t > 0 && t % gateMs === 0 && cola.length > 0 && hilos.length < maxHilos) { crearHilo(t); despachar(t); }
       // .NET 6+: cuando un hilo se bloquea en Task.Wait el pool lo sabe y sube la meta a mínimo + bloqueados.
       if (detectaBloqueo) {
         const meta = Math.min(maxHilos, minHilos + bloqueados);
@@ -179,7 +199,8 @@
     }
 
     const ordenadas = latencias.slice().sort((a, b) => a - b);
-    const enVuelo = cola.length + ioPendientes.length + hilos.reduce((n, h) => n + (h.pedido ? 1 : 0), 0);
+    // Un ítem de finalización no es un pedido: el pedido ya está contado en el hilo que lo espera.
+    const enVuelo = cola.filter((i) => i.fase !== "finalizacion").length + ioPendientes.length + hilos.reduce((n, h) => n + (h.pedido ? 1 : 0), 0);
     return {
       opciones: o, minHilos, muestras, gantt, latencias: ordenadas,
       llegados, completados, enVuelo, colaMax, hilosMax, bloqueadosMax, hilosFinal: hilos.length,
@@ -217,10 +238,11 @@
     const hilosNecesarios = Math.ceil(o.rps / capacidadPorHilo);           // Little: concurrencia = λ·W
     const capacidadInicial = Math.min(capacidadCpu, minHilos * capacidadPorHilo);
     const faltan = Math.max(0, hilosNecesarios - minHilos);
-    const segundosHastaAlcanzar = faltan * GATE_MS / 1000;                 // a un hilo cada 500 ms
+    const gateMs = o.inyeccionMs > 0 ? o.inyeccionMs : GATE_MS;
+    const segundosHastaAlcanzar = faltan * gateMs / 1000;                  // a un hilo cada inyeccionMs (500 por defecto)
     // Mientras se inyectan hilos, la capacidad crece linealmente: lo que se acumula es la integral de (λ − capacidad).
     let colaAcumulada = 0;
-    for (let k = 0; k < faltan; k++) colaAcumulada += Math.max(0, o.rps - (minHilos + k) * capacidadPorHilo) * GATE_MS / 1000;
+    for (let k = 0; k < faltan; k++) colaAcumulada += Math.max(0, o.rps - (minHilos + k) * capacidadPorHilo) * gateMs / 1000;
     return {
       minHilos, cpuTotal, porPedidoBloqueando, capacidadPorHilo, capacidadCpu, hilosNecesarios, capacidadInicial, faltan,
       segundosHastaAlcanzar, colaAcumulada: Math.round(colaAcumulada),
@@ -255,6 +277,13 @@
         else acciones.push("Nada que arreglar acá. Si en producción igual ves inanición, buscá el bloqueo escondido: un `.Result`, un `lock` largo, I/O sincrónica en una librería, un `Task.Run` que espera.");
       }
       puntos.push(`Hilos usados: ${f(r.hilosMax)} como máximo (el mínimo del pool es ${f(c.minHilos)}). Ninguno bloqueado.`);
+    } else if (o.modoIo === "result" && o.finalizacionPorPool !== false && r.completados < r.llegados * 0.6 && r.colaFinal > Math.max(20, o.rps)) {
+      zona = "colapso"; titulo = "Sync over async: las finalizaciones se encolan detrás de los pedidos y el pool se clava";
+      resumen = `Cada \`.Result\` deja un hilo bloqueado esperando una Task que solo termina cuando un hilo del pool corra su finalización (el timer, la respuesta del socket). Esa finalización es un work item más y va al FINAL de la cola, detrás de los pedidos que siguen llegando. Los hilos nuevos toman pedidos y se bloquean también. Terminaron ${f(r.completados)} de ${f(r.llegados)} pedidos${o.runtime === "net6" ? ` aunque el pool llegó a ${f(r.hilosMax)} hilos por la detección de bloqueos de .NET 6+` : ""}; cola al final: ${f(r.colaFinal)}.`;
+      puntos.push("Esto es lo que se midió contra un .NET 8 real (ver «Contrastado contra un .NET 8 de verdad», abajo): con `Task.Delay(100).Wait()` o `HttpClient...Result` a 100 pedidos/s en 2 núcleos, la API no contesta ningún pedido hasta que para el tráfico.");
+      puntos.push(`La detección de bloqueos de .NET 6+ no alcanza: agrega hilos (acá ${f(r.hilosMax)}), pero cada hilo nuevo toma el siguiente pedido de la cola y se bloquea igual. Solo zafa si en algún momento un hilo libre llega a una finalización antes que a un pedido, y con carga sostenida eso no pasa.`);
+      acciones.push("Async de punta a punta. No hay parche de hilos que arregle esto: `SetMinThreads` solo corre el umbral, y un `lock` o I/O sincrónica de verdad (modo «I/O sincrónica») al menos termina solo cuando la I/O termina.");
+      acciones.push("Si no podés tocar el código ya, desacoplá la finalización del pool: un `Task.Run` NO sirve (va a la misma cola); limitar la concurrencia con `SemaphoreSlim` antes del `.Result` sí ayuda, porque siempre quedan hilos libres para correr finalizaciones.");
     } else {
       const rapido = o.modoIo === "result" && o.runtime === "net6";
       puntos.push(`Cada pedido tiene tomado un hilo ${f(c.porPedidoBloqueando)} ms (${f(o.cpuMs)} de CPU + ${f(o.ioMs)} bloqueado esperando la I/O + ${f(o.cpuDespuesMs)} de CPU). Un hilo atiende como mucho ${f(c.capacidadPorHilo, 1)} pedidos/s.`);
@@ -297,22 +326,22 @@
 
   // ---------- Escenarios ----------
   const PRESETS = {
-    clasico: { nombre: "El clásico: .Result en .NET Core 3.1", descripcion: "4 núcleos, 200 pedidos/s, la base tarda 100 ms y el controller hace .Result.",
-      valores: { nucleos: 4, rps: 200, cpuMs: 2, ioMs: 100, cpuDespuesMs: 1, modoIo: "result", runtime: "clasico", patron: "constante", minHilos: 0, duracionS: 30 } },
-    net8: { nombre: "Lo mismo en .NET 8", descripcion: "Idéntico, pero el runtime detecta el bloqueo en Task.Wait e inyecta hilos rápido.",
-      valores: { nucleos: 4, rps: 200, cpuMs: 2, ioMs: 100, cpuDespuesMs: 1, modoIo: "result", runtime: "net6", patron: "constante", minHilos: 0, duracionS: 30 } },
+    clasico: { nombre: "El clásico: .Result en .NET Framework", descripcion: "4 núcleos, 200 pedidos/s, la base tarda 100 ms y el controller hace .Result. Windows antes de .NET 7: la finalización de la I/O la corre un hilo de IOCP aparte, así que lo único que falta son hilos, y el pool los agrega de a uno.",
+      valores: { nucleos: 4, rps: 200, cpuMs: 2, ioMs: 100, cpuDespuesMs: 1, modoIo: "result", runtime: "clasico", patron: "constante", minHilos: 0, duracionS: 30, finalizacionPorPool: false, inyeccionMs: 500 } },
+    net8: { nombre: "Lo mismo en .NET 8 (medido)", descripcion: "Idéntico, en .NET 8: el runtime detecta el bloqueo e inyecta hilos, pero las finalizaciones de la I/O son work items que van al final de la cola, detrás de los pedidos. Medido contra un .NET 8 real: no contesta nada. Desmarcá «la finalización pasa por la cola del pool» para ver el modelo optimista.",
+      valores: { nucleos: 4, rps: 200, cpuMs: 2, ioMs: 100, cpuDespuesMs: 1, modoIo: "result", runtime: "net6", patron: "constante", minHilos: 0, duracionS: 30, finalizacionPorPool: true, inyeccionMs: 500 } },
     async: { nombre: "Async de punta a punta", descripcion: "Mismo tráfico con await: el hilo se libera mientras espera la base.",
-      valores: { nucleos: 4, rps: 200, cpuMs: 2, ioMs: 100, cpuDespuesMs: 1, modoIo: "async", runtime: "net6", patron: "constante", minHilos: 0, duracionS: 30 } },
-    sync: { nombre: "I/O sincrónica en .NET 8", descripcion: "ToList() sin Async, un lock largo o un Thread.Sleep: .NET 8 tampoco lo ve.",
-      valores: { nucleos: 4, rps: 200, cpuMs: 2, ioMs: 100, cpuDespuesMs: 1, modoIo: "sync", runtime: "net6", patron: "constante", minHilos: 0, duracionS: 30 } },
+      valores: { nucleos: 4, rps: 200, cpuMs: 2, ioMs: 100, cpuDespuesMs: 1, modoIo: "async", runtime: "net6", patron: "constante", minHilos: 0, duracionS: 30, finalizacionPorPool: true, inyeccionMs: 500 } },
+    sync: { nombre: "I/O sincrónica en .NET 8", descripcion: "ToList() sin Async, un lock largo o un Thread.Sleep: .NET 8 tampoco lo ve, y agrega hilos despacio.",
+      valores: { nucleos: 4, rps: 200, cpuMs: 2, ioMs: 100, cpuDespuesMs: 1, modoIo: "sync", runtime: "net6", patron: "constante", minHilos: 0, duracionS: 30, finalizacionPorPool: true, inyeccionMs: 500 } },
     minthreads: { nombre: "Parche: SetMinThreads(64)", descripcion: "El .Result clásico con el pool arrancando en 64 hilos.",
-      valores: { nucleos: 4, rps: 200, cpuMs: 2, ioMs: 100, cpuDespuesMs: 1, modoIo: "result", runtime: "clasico", patron: "constante", minHilos: 64, duracionS: 30 } },
-    pod: { nombre: "En tu PC anda, en el pod de 2 vCPU explota", descripcion: "I/O sincrónica con 100 pedidos/s: con 16 núcleos zafa, con 2 se cae. Cambiá los núcleos y mirá.",
-      valores: { nucleos: 2, rps: 100, cpuMs: 2, ioMs: 100, cpuDespuesMs: 1, modoIo: "sync", runtime: "net6", patron: "constante", minHilos: 0, duracionS: 30 } },
+      valores: { nucleos: 4, rps: 200, cpuMs: 2, ioMs: 100, cpuDespuesMs: 1, modoIo: "result", runtime: "clasico", patron: "constante", minHilos: 64, duracionS: 30, finalizacionPorPool: false, inyeccionMs: 500 } },
+    pod: { nombre: "En tu PC anda, en el pod de 2 vCPU explota (medido)", descripcion: "I/O sincrónica con 100 pedidos/s en 2 núcleos, con el ritmo de inyección medido en .NET 8 (un hilo cada ~1,8 s): p99 de 7 s y la cola no vuelve a cero en 30 s. Subí los núcleos a 16 y mirá.",
+      valores: { nucleos: 2, rps: 100, cpuMs: 2, ioMs: 100, cpuDespuesMs: 1, modoIo: "sync", runtime: "net6", patron: "constante", minHilos: 0, duracionS: 30, finalizacionPorPool: true, inyeccionMs: 1800 } },
     pico: { nombre: "Pico de tráfico bloqueando", descripcion: "30 pedidos/s que zafan con 4 hilos, hasta que a los 2 s entran 300 de golpe.",
-      valores: { nucleos: 4, rps: 30, cpuMs: 2, ioMs: 100, cpuDespuesMs: 1, modoIo: "sync", runtime: "net6", patron: "rafaga", rafaga: 300, minHilos: 0, duracionS: 30 } },
+      valores: { nucleos: 4, rps: 30, cpuMs: 2, ioMs: 100, cpuDespuesMs: 1, modoIo: "sync", runtime: "net6", patron: "rafaga", rafaga: 300, minHilos: 0, duracionS: 30, finalizacionPorPool: true, inyeccionMs: 500 } },
     lenta: { nombre: "La base se puso lenta", descripcion: "Async, pero la consulta pasó de 100 ms a 2 s: el pool ni se inmuta, el que sufre es el usuario.",
-      valores: { nucleos: 4, rps: 200, cpuMs: 2, ioMs: 2000, cpuDespuesMs: 1, modoIo: "async", runtime: "net6", patron: "constante", minHilos: 0, duracionS: 30 } },
+      valores: { nucleos: 4, rps: 200, cpuMs: 2, ioMs: 2000, cpuDespuesMs: 1, modoIo: "async", runtime: "net6", patron: "constante", minHilos: 0, duracionS: 30, finalizacionPorPool: true, inyeccionMs: 500 } },
   };
 
   const API = { crearRng, simular, cuentas, diagnosticar, PRESETS, DEFAULTS, LIBRE, CPU, BLOQUEADO, percentilOrdenado, tiempoRecuperacion };

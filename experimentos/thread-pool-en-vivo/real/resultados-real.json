@@ -1,0 +1,2853 @@
+{
+ "entorno": {
+  "runtime": ".NET 8.0.32",
+  "so": "Debian GNU/Linux 12 (bookworm)",
+  "nucleos": 2
+ },
+ "nota": "Cada escenario corre 30 s (largo: 90) en un contenedor Docker con 2 vCPU (cpuset) sobre la imagen mcr.microsoft.com/dotnet/sdk:8.0. El generador de pedidos (llegadas Poisson, semilla 1) y el muestreador corren en hilos propios, fuera del pool. Cada pedido quema 2 ms de CPU, espera 100 ms de I/O de la forma indicada y quema 1 ms más. Muestras cada 100 ms: hilos del pool (ThreadPool.ThreadCount), cola (PendingWorkItemCount), pedidos en curso, terminados en la ventana y p50/p99 de esos. Los escenarios http-* pegan a un servidor Node en la misma máquina que tarda 100 ms en responder.",
+ "escenarios": {
+  "pod": {
+   "nombre": "I/O sincrónica (Thread.Sleep 100 ms), 100 pedidos/s",
+   "comando": "modo=sync rps=100 dur=30",
+   "real": {
+    "llegados": 3005,
+    "completados": 2732,
+    "p50": 5990,
+    "p99": 7174.4,
+    "max": 7212.6,
+    "hilosMax": 18,
+    "colaMax": 730,
+    "activosMax": 18,
+    "recuperacion": null,
+    "porSegundo": [
+     {
+      "t": 1,
+      "hilos": 3,
+      "cola": 69,
+      "activos": 3,
+      "terminados": 3
+     },
+     {
+      "t": 2,
+      "hilos": 3,
+      "cola": 144,
+      "activos": 2,
+      "terminados": 2
+     },
+     {
+      "t": 3,
+      "hilos": 3,
+      "cola": 241,
+      "activos": 3,
+      "terminados": 3
+     },
+     {
+      "t": 4,
+      "hilos": 3,
+      "cola": 315,
+      "activos": 2,
+      "terminados": 2
+     },
+     {
+      "t": 5,
+      "hilos": 4,
+      "cola": 367,
+      "activos": 4,
+      "terminados": 4
+     },
+     {
+      "t": 6,
+      "hilos": 5,
+      "cola": 428,
+      "activos": 5,
+      "terminados": 4
+     },
+     {
+      "t": 7,
+      "hilos": 6,
+      "cola": 470,
+      "activos": 6,
+      "terminados": 6
+     },
+     {
+      "t": 8,
+      "hilos": 6,
+      "cola": 491,
+      "activos": 5,
+      "terminados": 5
+     },
+     {
+      "t": 9,
+      "hilos": 7,
+      "cola": 550,
+      "activos": 7,
+      "terminados": 6
+     },
+     {
+      "t": 10,
+      "hilos": 7,
+      "cola": 568,
+      "activos": 7,
+      "terminados": 7
+     },
+     {
+      "t": 11,
+      "hilos": 7,
+      "cola": 614,
+      "activos": 7,
+      "terminados": 7
+     },
+     {
+      "t": 12,
+      "hilos": 8,
+      "cola": 653,
+      "activos": 8,
+      "terminados": 7
+     },
+     {
+      "t": 13,
+      "hilos": 8,
+      "cola": 671,
+      "activos": 8,
+      "terminados": 8
+     },
+     {
+      "t": 14,
+      "hilos": 9,
+      "cola": 688,
+      "activos": 9,
+      "terminados": 9
+     },
+     {
+      "t": 15,
+      "hilos": 10,
+      "cola": 706,
+      "activos": 10,
+      "terminados": 10
+     },
+     {
+      "t": 16,
+      "hilos": 10,
+      "cola": 718,
+      "activos": 9,
+      "terminados": 9
+     },
+     {
+      "t": 17,
+      "hilos": 10,
+      "cola": 709,
+      "activos": 10,
+      "terminados": 10
+     },
+     {
+      "t": 18,
+      "hilos": 11,
+      "cola": 715,
+      "activos": 11,
+      "terminados": 10
+     },
+     {
+      "t": 19,
+      "hilos": 13,
+      "cola": 726,
+      "activos": 13,
+      "terminados": 11
+     },
+     {
+      "t": 20,
+      "hilos": 13,
+      "cola": 682,
+      "activos": 13,
+      "terminados": 13
+     },
+     {
+      "t": 21,
+      "hilos": 13,
+      "cola": 640,
+      "activos": 12,
+      "terminados": 12
+     },
+     {
+      "t": 22,
+      "hilos": 14,
+      "cola": 601,
+      "activos": 14,
+      "terminados": 14
+     },
+     {
+      "t": 23,
+      "hilos": 14,
+      "cola": 572,
+      "activos": 13,
+      "terminados": 13
+     },
+     {
+      "t": 24,
+      "hilos": 14,
+      "cola": 545,
+      "activos": 13,
+      "terminados": 12
+     },
+     {
+      "t": 25,
+      "hilos": 15,
+      "cola": 506,
+      "activos": 15,
+      "terminados": 14
+     },
+     {
+      "t": 26,
+      "hilos": 15,
+      "cola": 461,
+      "activos": 14,
+      "terminados": 14
+     },
+     {
+      "t": 27,
+      "hilos": 17,
+      "cola": 414,
+      "activos": 17,
+      "terminados": 16
+     },
+     {
+      "t": 28,
+      "hilos": 17,
+      "cola": 354,
+      "activos": 17,
+      "terminados": 17
+     },
+     {
+      "t": 29,
+      "hilos": 17,
+      "cola": 306,
+      "activos": 16,
+      "terminados": 16
+     }
+    ]
+   },
+   "modelo": {
+    "opciones": {
+     "nucleos": 2,
+     "ioMs": 100,
+     "cpuMs": 2,
+     "cpuDespuesMs": 1,
+     "duracionS": 30,
+     "runtime": "net6",
+     "inyeccionMs": 1800,
+     "semilla": 1,
+     "modoIo": "sync",
+     "rps": 100
+    },
+    "llegados": 3000,
+    "completados": 2836,
+    "p50": 5766,
+    "p99": 6984,
+    "max": 7037,
+    "hilosMax": 18,
+    "colaMax": 716,
+    "recuperacion": null
+   }
+  },
+  "result": {
+   "nombre": ".Result sobre Task.Delay(100), 100 pedidos/s",
+   "comando": "modo=result rps=100 dur=30",
+   "real": {
+    "llegados": 3005,
+    "completados": 286,
+    "p50": 11260.3,
+    "p99": 27093.4,
+    "max": 28549.6,
+    "hilosMax": 129,
+    "colaMax": 2706,
+    "activosMax": 130,
+    "recuperacion": null,
+    "porSegundo": [
+     {
+      "t": 1,
+      "hilos": 15,
+      "cola": 71,
+      "activos": 15,
+      "terminados": 2
+     },
+     {
+      "t": 2,
+      "hilos": 20,
+      "cola": 155,
+      "activos": 20,
+      "terminados": 2
+     },
+     {
+      "t": 3,
+      "hilos": 24,
+      "cola": 269,
+      "activos": 24,
+      "terminados": 0
+     },
+     {
+      "t": 4,
+      "hilos": 28,
+      "cola": 353,
+      "activos": 28,
+      "terminados": 2
+     },
+     {
+      "t": 5,
+      "hilos": 32,
+      "cola": 436,
+      "activos": 32,
+      "terminados": 2
+     },
+     {
+      "t": 6,
+      "hilos": 36,
+      "cola": 526,
+      "activos": 36,
+      "terminados": 2
+     },
+     {
+      "t": 7,
+      "hilos": 40,
+      "cola": 613,
+      "activos": 40,
+      "terminados": 3
+     },
+     {
+      "t": 8,
+      "hilos": 44,
+      "cola": 683,
+      "activos": 44,
+      "terminados": 2
+     },
+     {
+      "t": 9,
+      "hilos": 47,
+      "cola": 777,
+      "activos": 47,
+      "terminados": 0
+     },
+     {
+      "t": 10,
+      "hilos": 51,
+      "cola": 864,
+      "activos": 51,
+      "terminados": 0
+     },
+     {
+      "t": 11,
+      "hilos": 55,
+      "cola": 971,
+      "activos": 55,
+      "terminados": 0
+     },
+     {
+      "t": 12,
+      "hilos": 59,
+      "cola": 1072,
+      "activos": 59,
+      "terminados": 0
+     },
+     {
+      "t": 13,
+      "hilos": 63,
+      "cola": 1161,
+      "activos": 63,
+      "terminados": 0
+     },
+     {
+      "t": 14,
+      "hilos": 67,
+      "cola": 1251,
+      "activos": 67,
+      "terminados": 0
+     },
+     {
+      "t": 15,
+      "hilos": 71,
+      "cola": 1349,
+      "activos": 71,
+      "terminados": 0
+     },
+     {
+      "t": 16,
+      "hilos": 75,
+      "cola": 1439,
+      "activos": 75,
+      "terminados": 2
+     },
+     {
+      "t": 17,
+      "hilos": 79,
+      "cola": 1519,
+      "activos": 79,
+      "terminados": 2
+     },
+     {
+      "t": 18,
+      "hilos": 83,
+      "cola": 1619,
+      "activos": 83,
+      "terminados": 2
+     },
+     {
+      "t": 19,
+      "hilos": 87,
+      "cola": 1728,
+      "activos": 87,
+      "terminados": 2
+     },
+     {
+      "t": 20,
+      "hilos": 91,
+      "cola": 1806,
+      "activos": 91,
+      "terminados": 2
+     },
+     {
+      "t": 21,
+      "hilos": 95,
+      "cola": 1871,
+      "activos": 95,
+      "terminados": 2
+     },
+     {
+      "t": 22,
+      "hilos": 98,
+      "cola": 1952,
+      "activos": 98,
+      "terminados": 0
+     },
+     {
+      "t": 23,
+      "hilos": 102,
+      "cola": 2054,
+      "activos": 102,
+      "terminados": 0
+     },
+     {
+      "t": 24,
+      "hilos": 106,
+      "cola": 2143,
+      "activos": 106,
+      "terminados": 0
+     },
+     {
+      "t": 25,
+      "hilos": 110,
+      "cola": 2234,
+      "activos": 110,
+      "terminados": 0
+     },
+     {
+      "t": 26,
+      "hilos": 114,
+      "cola": 2324,
+      "activos": 114,
+      "terminados": 0
+     },
+     {
+      "t": 27,
+      "hilos": 118,
+      "cola": 2415,
+      "activos": 118,
+      "terminados": 0
+     },
+     {
+      "t": 28,
+      "hilos": 122,
+      "cola": 2502,
+      "activos": 122,
+      "terminados": 1
+     },
+     {
+      "t": 29,
+      "hilos": 126,
+      "cola": 2602,
+      "activos": 126,
+      "terminados": 2
+     }
+    ]
+   },
+   "modelo": {
+    "opciones": {
+     "nucleos": 2,
+     "ioMs": 100,
+     "cpuMs": 2,
+     "cpuDespuesMs": 1,
+     "duracionS": 30,
+     "runtime": "net6",
+     "inyeccionMs": 1800,
+     "semilla": 1,
+     "modoIo": "result",
+     "rps": 100
+    },
+    "llegados": 3053,
+    "completados": 35,
+    "p50": 12021,
+    "p99": 28647,
+    "max": 28647,
+    "hilosMax": 215,
+    "colaMax": 3018,
+    "recuperacion": null
+   }
+  },
+  "result50": {
+   "nombre": ".Result sobre Task.Delay(100), 50 pedidos/s",
+   "comando": "modo=result rps=50 dur=30",
+   "real": {
+    "llegados": 1506,
+    "completados": 432,
+    "p50": 4165.9,
+    "p99": 22294.7,
+    "max": 24473.1,
+    "hilosMax": 123,
+    "colaMax": 1070,
+    "activosMax": 123,
+    "recuperacion": null,
+    "porSegundo": [
+     {
+      "t": 1,
+      "hilos": 9,
+      "cola": 0,
+      "activos": 1,
+      "terminados": 6
+     },
+     {
+      "t": 2,
+      "hilos": 12,
+      "cola": 0,
+      "activos": 5,
+      "terminados": 11
+     },
+     {
+      "t": 3,
+      "hilos": 17,
+      "cola": 26,
+      "activos": 17,
+      "terminados": 1
+     },
+     {
+      "t": 4,
+      "hilos": 21,
+      "cola": 53,
+      "activos": 21,
+      "terminados": 0
+     },
+     {
+      "t": 5,
+      "hilos": 25,
+      "cola": 84,
+      "activos": 25,
+      "terminados": 0
+     },
+     {
+      "t": 6,
+      "hilos": 29,
+      "cola": 140,
+      "activos": 29,
+      "terminados": 0
+     },
+     {
+      "t": 7,
+      "hilos": 33,
+      "cola": 186,
+      "activos": 33,
+      "terminados": 0
+     },
+     {
+      "t": 8,
+      "hilos": 37,
+      "cola": 198,
+      "activos": 37,
+      "terminados": 2
+     },
+     {
+      "t": 9,
+      "hilos": 41,
+      "cola": 238,
+      "activos": 41,
+      "terminados": 2
+     },
+     {
+      "t": 10,
+      "hilos": 45,
+      "cola": 273,
+      "activos": 45,
+      "terminados": 2
+     },
+     {
+      "t": 11,
+      "hilos": 49,
+      "cola": 312,
+      "activos": 49,
+      "terminados": 2
+     },
+     {
+      "t": 12,
+      "hilos": 52,
+      "cola": 358,
+      "activos": 52,
+      "terminados": 0
+     },
+     {
+      "t": 13,
+      "hilos": 56,
+      "cola": 404,
+      "activos": 56,
+      "terminados": 0
+     },
+     {
+      "t": 14,
+      "hilos": 60,
+      "cola": 435,
+      "activos": 60,
+      "terminados": 0
+     },
+     {
+      "t": 15,
+      "hilos": 64,
+      "cola": 459,
+      "activos": 64,
+      "terminados": 0
+     },
+     {
+      "t": 16,
+      "hilos": 68,
+      "cola": 492,
+      "activos": 68,
+      "terminados": 0
+     },
+     {
+      "t": 17,
+      "hilos": 72,
+      "cola": 550,
+      "activos": 72,
+      "terminados": 0
+     },
+     {
+      "t": 18,
+      "hilos": 76,
+      "cola": 589,
+      "activos": 76,
+      "terminados": 0
+     },
+     {
+      "t": 19,
+      "hilos": 80,
+      "cola": 628,
+      "activos": 80,
+      "terminados": 3
+     },
+     {
+      "t": 20,
+      "hilos": 84,
+      "cola": 656,
+      "activos": 84,
+      "terminados": 2
+     },
+     {
+      "t": 21,
+      "hilos": 87,
+      "cola": 661,
+      "activos": 87,
+      "terminados": 0
+     },
+     {
+      "t": 22,
+      "hilos": 91,
+      "cola": 735,
+      "activos": 91,
+      "terminados": 0
+     },
+     {
+      "t": 23,
+      "hilos": 95,
+      "cola": 775,
+      "activos": 95,
+      "terminados": 0
+     },
+     {
+      "t": 24,
+      "hilos": 99,
+      "cola": 826,
+      "activos": 99,
+      "terminados": 0
+     },
+     {
+      "t": 25,
+      "hilos": 103,
+      "cola": 866,
+      "activos": 103,
+      "terminados": 0
+     },
+     {
+      "t": 26,
+      "hilos": 107,
+      "cola": 906,
+      "activos": 107,
+      "terminados": 0
+     },
+     {
+      "t": 27,
+      "hilos": 111,
+      "cola": 948,
+      "activos": 111,
+      "terminados": 0
+     },
+     {
+      "t": 28,
+      "hilos": 115,
+      "cola": 987,
+      "activos": 115,
+      "terminados": 0
+     },
+     {
+      "t": 29,
+      "hilos": 119,
+      "cola": 1034,
+      "activos": 119,
+      "terminados": 0
+     }
+    ]
+   },
+   "modelo": {
+    "opciones": {
+     "nucleos": 2,
+     "ioMs": 100,
+     "cpuMs": 2,
+     "cpuDespuesMs": 1,
+     "duracionS": 30,
+     "runtime": "net6",
+     "inyeccionMs": 1800,
+     "semilla": 1,
+     "modoIo": "result",
+     "rps": 50
+    },
+    "llegados": 1502,
+    "completados": 1499,
+    "p50": 105,
+    "p99": 124,
+    "max": 155,
+    "hilosMax": 15,
+    "colaMax": 9,
+    "recuperacion": 0
+   }
+  },
+  "http-result": {
+   "nombre": ".Result sobre HttpClient (servidor que tarda 100 ms), 100 pedidos/s",
+   "comando": "modo=http-result rps=100 dur=30",
+   "real": {
+    "llegados": 3005,
+    "completados": 0,
+    "p50": 0,
+    "p99": 0,
+    "max": 0,
+    "hilosMax": 132,
+    "colaMax": 2990,
+    "activosMax": 132,
+    "recuperacion": null,
+    "porSegundo": [
+     {
+      "t": 1,
+      "hilos": 15,
+      "cola": 94,
+      "activos": 15,
+      "terminados": 0
+     },
+     {
+      "t": 2,
+      "hilos": 20,
+      "cola": 194,
+      "activos": 20,
+      "terminados": 0
+     },
+     {
+      "t": 3,
+      "hilos": 24,
+      "cola": 316,
+      "activos": 24,
+      "terminados": 0
+     },
+     {
+      "t": 4,
+      "hilos": 28,
+      "cola": 413,
+      "activos": 28,
+      "terminados": 0
+     },
+     {
+      "t": 5,
+      "hilos": 32,
+      "cola": 505,
+      "activos": 32,
+      "terminados": 0
+     },
+     {
+      "t": 6,
+      "hilos": 36,
+      "cola": 603,
+      "activos": 36,
+      "terminados": 0
+     },
+     {
+      "t": 7,
+      "hilos": 40,
+      "cola": 701,
+      "activos": 40,
+      "terminados": 0
+     },
+     {
+      "t": 8,
+      "hilos": 44,
+      "cola": 778,
+      "activos": 44,
+      "terminados": 0
+     },
+     {
+      "t": 9,
+      "hilos": 48,
+      "cola": 890,
+      "activos": 48,
+      "terminados": 0
+     },
+     {
+      "t": 10,
+      "hilos": 52,
+      "cola": 978,
+      "activos": 52,
+      "terminados": 0
+     },
+     {
+      "t": 11,
+      "hilos": 56,
+      "cola": 1094,
+      "activos": 56,
+      "terminados": 0
+     },
+     {
+      "t": 12,
+      "hilos": 60,
+      "cola": 1204,
+      "activos": 60,
+      "terminados": 0
+     },
+     {
+      "t": 13,
+      "hilos": 64,
+      "cola": 1301,
+      "activos": 64,
+      "terminados": 0
+     },
+     {
+      "t": 14,
+      "hilos": 68,
+      "cola": 1400,
+      "activos": 68,
+      "terminados": 0
+     },
+     {
+      "t": 15,
+      "hilos": 72,
+      "cola": 1506,
+      "activos": 72,
+      "terminados": 0
+     },
+     {
+      "t": 16,
+      "hilos": 76,
+      "cola": 1607,
+      "activos": 76,
+      "terminados": 0
+     },
+     {
+      "t": 17,
+      "hilos": 80,
+      "cola": 1695,
+      "activos": 80,
+      "terminados": 0
+     },
+     {
+      "t": 18,
+      "hilos": 84,
+      "cola": 1803,
+      "activos": 84,
+      "terminados": 0
+     },
+     {
+      "t": 19,
+      "hilos": 88,
+      "cola": 1923,
+      "activos": 88,
+      "terminados": 0
+     },
+     {
+      "t": 20,
+      "hilos": 92,
+      "cola": 2009,
+      "activos": 92,
+      "terminados": 0
+     },
+     {
+      "t": 21,
+      "hilos": 96,
+      "cola": 2082,
+      "activos": 96,
+      "terminados": 0
+     },
+     {
+      "t": 22,
+      "hilos": 100,
+      "cola": 2168,
+      "activos": 100,
+      "terminados": 0
+     },
+     {
+      "t": 23,
+      "hilos": 104,
+      "cola": 2276,
+      "activos": 104,
+      "terminados": 0
+     },
+     {
+      "t": 24,
+      "hilos": 108,
+      "cola": 2376,
+      "activos": 108,
+      "terminados": 0
+     },
+     {
+      "t": 25,
+      "hilos": 112,
+      "cola": 2475,
+      "activos": 112,
+      "terminados": 0
+     },
+     {
+      "t": 26,
+      "hilos": 116,
+      "cola": 2574,
+      "activos": 116,
+      "terminados": 0
+     },
+     {
+      "t": 27,
+      "hilos": 120,
+      "cola": 2673,
+      "activos": 120,
+      "terminados": 0
+     },
+     {
+      "t": 28,
+      "hilos": 124,
+      "cola": 2776,
+      "activos": 124,
+      "terminados": 0
+     },
+     {
+      "t": 29,
+      "hilos": 128,
+      "cola": 2882,
+      "activos": 128,
+      "terminados": 0
+     }
+    ]
+   },
+   "modelo": {
+    "opciones": {
+     "nucleos": 2,
+     "ioMs": 100,
+     "cpuMs": 2,
+     "cpuDespuesMs": 1,
+     "duracionS": 30,
+     "runtime": "net6",
+     "inyeccionMs": 1800,
+     "semilla": 1,
+     "modoIo": "result",
+     "rps": 100
+    },
+    "llegados": 3053,
+    "completados": 35,
+    "p50": 12021,
+    "p99": 28647,
+    "max": 28647,
+    "hilosMax": 215,
+    "colaMax": 3018,
+    "recuperacion": null
+   }
+  },
+  "http-sync": {
+   "nombre": "HttpClient.Send sincrónico, 100 pedidos/s",
+   "comando": "modo=http-sync rps=100 dur=30",
+   "real": {
+    "llegados": 3005,
+    "completados": 0,
+    "p50": 0,
+    "p99": 0,
+    "max": 0,
+    "hilosMax": 132,
+    "colaMax": 2991,
+    "activosMax": 132,
+    "recuperacion": null,
+    "porSegundo": [
+     {
+      "t": 1,
+      "hilos": 15,
+      "cola": 94,
+      "activos": 15,
+      "terminados": 0
+     },
+     {
+      "t": 2,
+      "hilos": 20,
+      "cola": 194,
+      "activos": 20,
+      "terminados": 0
+     },
+     {
+      "t": 3,
+      "hilos": 24,
+      "cola": 316,
+      "activos": 24,
+      "terminados": 0
+     },
+     {
+      "t": 4,
+      "hilos": 28,
+      "cola": 413,
+      "activos": 28,
+      "terminados": 0
+     },
+     {
+      "t": 5,
+      "hilos": 32,
+      "cola": 505,
+      "activos": 32,
+      "terminados": 0
+     },
+     {
+      "t": 6,
+      "hilos": 36,
+      "cola": 603,
+      "activos": 36,
+      "terminados": 0
+     },
+     {
+      "t": 7,
+      "hilos": 40,
+      "cola": 701,
+      "activos": 40,
+      "terminados": 0
+     },
+     {
+      "t": 8,
+      "hilos": 44,
+      "cola": 778,
+      "activos": 44,
+      "terminados": 0
+     },
+     {
+      "t": 9,
+      "hilos": 48,
+      "cola": 890,
+      "activos": 48,
+      "terminados": 0
+     },
+     {
+      "t": 10,
+      "hilos": 52,
+      "cola": 978,
+      "activos": 52,
+      "terminados": 0
+     },
+     {
+      "t": 11,
+      "hilos": 56,
+      "cola": 1094,
+      "activos": 56,
+      "terminados": 0
+     },
+     {
+      "t": 12,
+      "hilos": 60,
+      "cola": 1204,
+      "activos": 60,
+      "terminados": 0
+     },
+     {
+      "t": 13,
+      "hilos": 64,
+      "cola": 1301,
+      "activos": 64,
+      "terminados": 0
+     },
+     {
+      "t": 14,
+      "hilos": 68,
+      "cola": 1400,
+      "activos": 68,
+      "terminados": 0
+     },
+     {
+      "t": 15,
+      "hilos": 72,
+      "cola": 1506,
+      "activos": 72,
+      "terminados": 0
+     },
+     {
+      "t": 16,
+      "hilos": 76,
+      "cola": 1607,
+      "activos": 76,
+      "terminados": 0
+     },
+     {
+      "t": 17,
+      "hilos": 80,
+      "cola": 1695,
+      "activos": 80,
+      "terminados": 0
+     },
+     {
+      "t": 18,
+      "hilos": 84,
+      "cola": 1804,
+      "activos": 84,
+      "terminados": 0
+     },
+     {
+      "t": 19,
+      "hilos": 88,
+      "cola": 1923,
+      "activos": 88,
+      "terminados": 0
+     },
+     {
+      "t": 20,
+      "hilos": 92,
+      "cola": 2009,
+      "activos": 92,
+      "terminados": 0
+     },
+     {
+      "t": 21,
+      "hilos": 96,
+      "cola": 2082,
+      "activos": 96,
+      "terminados": 0
+     },
+     {
+      "t": 22,
+      "hilos": 100,
+      "cola": 2168,
+      "activos": 100,
+      "terminados": 0
+     },
+     {
+      "t": 23,
+      "hilos": 104,
+      "cola": 2276,
+      "activos": 104,
+      "terminados": 0
+     },
+     {
+      "t": 24,
+      "hilos": 108,
+      "cola": 2376,
+      "activos": 108,
+      "terminados": 0
+     },
+     {
+      "t": 25,
+      "hilos": 112,
+      "cola": 2475,
+      "activos": 112,
+      "terminados": 0
+     },
+     {
+      "t": 26,
+      "hilos": 116,
+      "cola": 2574,
+      "activos": 116,
+      "terminados": 0
+     },
+     {
+      "t": 27,
+      "hilos": 120,
+      "cola": 2673,
+      "activos": 120,
+      "terminados": 0
+     },
+     {
+      "t": 28,
+      "hilos": 124,
+      "cola": 2776,
+      "activos": 124,
+      "terminados": 0
+     },
+     {
+      "t": 29,
+      "hilos": 128,
+      "cola": 2882,
+      "activos": 128,
+      "terminados": 0
+     }
+    ]
+   },
+   "modelo": {
+    "opciones": {
+     "nucleos": 2,
+     "ioMs": 100,
+     "cpuMs": 2,
+     "cpuDespuesMs": 1,
+     "duracionS": 30,
+     "runtime": "net6",
+     "inyeccionMs": 1800,
+     "semilla": 1,
+     "modoIo": "result",
+     "rps": 100
+    },
+    "llegados": 3053,
+    "completados": 35,
+    "p50": 12021,
+    "p99": 28647,
+    "max": 28647,
+    "hilosMax": 215,
+    "colaMax": 3018,
+    "recuperacion": null
+   }
+  },
+  "http-async": {
+   "nombre": "await HttpClient, 100 pedidos/s",
+   "comando": "modo=http-async rps=100 dur=30",
+   "real": {
+    "llegados": 3005,
+    "completados": 2998,
+    "p50": 104.1,
+    "p99": 112,
+    "max": 170.2,
+    "hilosMax": 5,
+    "colaMax": 2,
+    "activosMax": 23,
+    "recuperacion": 0,
+    "porSegundo": [
+     {
+      "t": 1,
+      "hilos": 3,
+      "cola": 1,
+      "activos": 13,
+      "terminados": 9
+     },
+     {
+      "t": 2,
+      "hilos": 5,
+      "cola": 0,
+      "activos": 10,
+      "terminados": 9
+     },
+     {
+      "t": 3,
+      "hilos": 5,
+      "cola": 0,
+      "activos": 10,
+      "terminados": 7
+     },
+     {
+      "t": 4,
+      "hilos": 5,
+      "cola": 0,
+      "activos": 11,
+      "terminados": 7
+     },
+     {
+      "t": 5,
+      "hilos": 5,
+      "cola": 1,
+      "activos": 9,
+      "terminados": 8
+     },
+     {
+      "t": 6,
+      "hilos": 5,
+      "cola": 0,
+      "activos": 7,
+      "terminados": 14
+     },
+     {
+      "t": 7,
+      "hilos": 5,
+      "cola": 1,
+      "activos": 14,
+      "terminados": 11
+     },
+     {
+      "t": 8,
+      "hilos": 5,
+      "cola": 0,
+      "activos": 9,
+      "terminados": 10
+     },
+     {
+      "t": 9,
+      "hilos": 5,
+      "cola": 0,
+      "activos": 7,
+      "terminados": 13
+     },
+     {
+      "t": 10,
+      "hilos": 5,
+      "cola": 0,
+      "activos": 9,
+      "terminados": 8
+     },
+     {
+      "t": 11,
+      "hilos": 5,
+      "cola": 0,
+      "activos": 10,
+      "terminados": 11
+     },
+     {
+      "t": 12,
+      "hilos": 5,
+      "cola": 0,
+      "activos": 11,
+      "terminados": 10
+     },
+     {
+      "t": 13,
+      "hilos": 5,
+      "cola": 0,
+      "activos": 9,
+      "terminados": 9
+     },
+     {
+      "t": 14,
+      "hilos": 5,
+      "cola": 0,
+      "activos": 10,
+      "terminados": 6
+     },
+     {
+      "t": 15,
+      "hilos": 5,
+      "cola": 0,
+      "activos": 10,
+      "terminados": 10
+     },
+     {
+      "t": 16,
+      "hilos": 5,
+      "cola": 0,
+      "activos": 9,
+      "terminados": 14
+     },
+     {
+      "t": 17,
+      "hilos": 5,
+      "cola": 0,
+      "activos": 14,
+      "terminados": 4
+     },
+     {
+      "t": 18,
+      "hilos": 5,
+      "cola": 1,
+      "activos": 18,
+      "terminados": 11
+     },
+     {
+      "t": 19,
+      "hilos": 5,
+      "cola": 0,
+      "activos": 9,
+      "terminados": 12
+     },
+     {
+      "t": 20,
+      "hilos": 5,
+      "cola": 0,
+      "activos": 3,
+      "terminados": 9
+     },
+     {
+      "t": 21,
+      "hilos": 5,
+      "cola": 0,
+      "activos": 7,
+      "terminados": 4
+     },
+     {
+      "t": 22,
+      "hilos": 4,
+      "cola": 1,
+      "activos": 13,
+      "terminados": 8
+     },
+     {
+      "t": 23,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 6,
+      "terminados": 7
+     },
+     {
+      "t": 24,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 10,
+      "terminados": 8
+     },
+     {
+      "t": 25,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 14,
+      "terminados": 9
+     },
+     {
+      "t": 26,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 6,
+      "terminados": 12
+     },
+     {
+      "t": 27,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 7,
+      "terminados": 6
+     },
+     {
+      "t": 28,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 15,
+      "terminados": 14
+     },
+     {
+      "t": 29,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 11,
+      "terminados": 6
+     }
+    ]
+   },
+   "modelo": {
+    "opciones": {
+     "nucleos": 2,
+     "ioMs": 100,
+     "cpuMs": 2,
+     "cpuDespuesMs": 1,
+     "duracionS": 30,
+     "runtime": "net6",
+     "inyeccionMs": 1800,
+     "semilla": 1,
+     "modoIo": "async",
+     "rps": 100
+    },
+    "llegados": 3010,
+    "completados": 3000,
+    "p50": 104,
+    "p99": 123,
+    "max": 125,
+    "hilosMax": 2,
+    "colaMax": 4,
+    "recuperacion": 0
+   }
+  },
+  "async": {
+   "nombre": "await Task.Delay(100), 100 pedidos/s",
+   "comando": "modo=async rps=100 dur=30",
+   "real": {
+    "llegados": 3005,
+    "completados": 2998,
+    "p50": 103.6,
+    "p99": 109.5,
+    "max": 120.9,
+    "hilosMax": 4,
+    "colaMax": 2,
+    "activosMax": 23,
+    "recuperacion": 0,
+    "porSegundo": [
+     {
+      "t": 1,
+      "hilos": 3,
+      "cola": 0,
+      "activos": 13,
+      "terminados": 8
+     },
+     {
+      "t": 2,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 10,
+      "terminados": 9
+     },
+     {
+      "t": 3,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 10,
+      "terminados": 7
+     },
+     {
+      "t": 4,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 11,
+      "terminados": 7
+     },
+     {
+      "t": 5,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 8,
+      "terminados": 8
+     },
+     {
+      "t": 6,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 7,
+      "terminados": 14
+     },
+     {
+      "t": 7,
+      "hilos": 4,
+      "cola": 1,
+      "activos": 14,
+      "terminados": 11
+     },
+     {
+      "t": 8,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 9,
+      "terminados": 10
+     },
+     {
+      "t": 9,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 7,
+      "terminados": 13
+     },
+     {
+      "t": 10,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 9,
+      "terminados": 8
+     },
+     {
+      "t": 11,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 10,
+      "terminados": 11
+     },
+     {
+      "t": 12,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 11,
+      "terminados": 10
+     },
+     {
+      "t": 13,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 8,
+      "terminados": 10
+     },
+     {
+      "t": 14,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 10,
+      "terminados": 6
+     },
+     {
+      "t": 15,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 10,
+      "terminados": 10
+     },
+     {
+      "t": 16,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 9,
+      "terminados": 13
+     },
+     {
+      "t": 17,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 14,
+      "terminados": 4
+     },
+     {
+      "t": 18,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 18,
+      "terminados": 11
+     },
+     {
+      "t": 19,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 9,
+      "terminados": 12
+     },
+     {
+      "t": 20,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 3,
+      "terminados": 9
+     },
+     {
+      "t": 21,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 7,
+      "terminados": 4
+     },
+     {
+      "t": 22,
+      "hilos": 4,
+      "cola": 1,
+      "activos": 12,
+      "terminados": 9
+     },
+     {
+      "t": 23,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 6,
+      "terminados": 7
+     },
+     {
+      "t": 24,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 10,
+      "terminados": 8
+     },
+     {
+      "t": 25,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 14,
+      "terminados": 8
+     },
+     {
+      "t": 26,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 6,
+      "terminados": 12
+     },
+     {
+      "t": 27,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 7,
+      "terminados": 6
+     },
+     {
+      "t": 28,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 13,
+      "terminados": 13
+     },
+     {
+      "t": 29,
+      "hilos": 4,
+      "cola": 0,
+      "activos": 11,
+      "terminados": 6
+     }
+    ]
+   },
+   "modelo": {
+    "opciones": {
+     "nucleos": 2,
+     "ioMs": 100,
+     "cpuMs": 2,
+     "cpuDespuesMs": 1,
+     "duracionS": 30,
+     "runtime": "net6",
+     "inyeccionMs": 1800,
+     "semilla": 1,
+     "modoIo": "async",
+     "rps": 100
+    },
+    "llegados": 3010,
+    "completados": 3000,
+    "p50": 104,
+    "p99": 123,
+    "max": 125,
+    "hilosMax": 2,
+    "colaMax": 4,
+    "recuperacion": 0
+   }
+  },
+  "minthreads": {
+   "nombre": "I/O sincrónica con SetMinThreads(32), 100 pedidos/s",
+   "comando": "modo=sync rps=100 dur=30 min=32",
+   "real": {
+    "llegados": 3005,
+    "completados": 2998,
+    "p50": 103.2,
+    "p99": 106.7,
+    "max": 110.3,
+    "hilosMax": 24,
+    "colaMax": 2,
+    "activosMax": 23,
+    "recuperacion": 0,
+    "porSegundo": [
+     {
+      "t": 1,
+      "hilos": 17,
+      "cola": 1,
+      "activos": 11,
+      "terminados": 11
+     },
+     {
+      "t": 2,
+      "hilos": 20,
+      "cola": 0,
+      "activos": 10,
+      "terminados": 9
+     },
+     {
+      "t": 3,
+      "hilos": 22,
+      "cola": 0,
+      "activos": 10,
+      "terminados": 7
+     },
+     {
+      "t": 4,
+      "hilos": 22,
+      "cola": 0,
+      "activos": 11,
+      "terminados": 7
+     },
+     {
+      "t": 5,
+      "hilos": 22,
+      "cola": 0,
+      "activos": 8,
+      "terminados": 9
+     },
+     {
+      "t": 6,
+      "hilos": 22,
+      "cola": 0,
+      "activos": 7,
+      "terminados": 14
+     },
+     {
+      "t": 7,
+      "hilos": 22,
+      "cola": 2,
+      "activos": 13,
+      "terminados": 11
+     },
+     {
+      "t": 8,
+      "hilos": 22,
+      "cola": 0,
+      "activos": 9,
+      "terminados": 10
+     },
+     {
+      "t": 9,
+      "hilos": 22,
+      "cola": 0,
+      "activos": 7,
+      "terminados": 13
+     },
+     {
+      "t": 10,
+      "hilos": 22,
+      "cola": 0,
+      "activos": 9,
+      "terminados": 8
+     },
+     {
+      "t": 11,
+      "hilos": 22,
+      "cola": 0,
+      "activos": 10,
+      "terminados": 11
+     },
+     {
+      "t": 12,
+      "hilos": 22,
+      "cola": 0,
+      "activos": 11,
+      "terminados": 10
+     },
+     {
+      "t": 13,
+      "hilos": 22,
+      "cola": 0,
+      "activos": 9,
+      "terminados": 8
+     },
+     {
+      "t": 14,
+      "hilos": 22,
+      "cola": 0,
+      "activos": 10,
+      "terminados": 6
+     },
+     {
+      "t": 15,
+      "hilos": 22,
+      "cola": 0,
+      "activos": 10,
+      "terminados": 10
+     },
+     {
+      "t": 16,
+      "hilos": 22,
+      "cola": 0,
+      "activos": 9,
+      "terminados": 13
+     },
+     {
+      "t": 17,
+      "hilos": 22,
+      "cola": 0,
+      "activos": 14,
+      "terminados": 4
+     },
+     {
+      "t": 18,
+      "hilos": 22,
+      "cola": 1,
+      "activos": 18,
+      "terminados": 11
+     },
+     {
+      "t": 19,
+      "hilos": 24,
+      "cola": 0,
+      "activos": 9,
+      "terminados": 12
+     },
+     {
+      "t": 20,
+      "hilos": 24,
+      "cola": 0,
+      "activos": 3,
+      "terminados": 9
+     },
+     {
+      "t": 21,
+      "hilos": 24,
+      "cola": 0,
+      "activos": 7,
+      "terminados": 4
+     },
+     {
+      "t": 22,
+      "hilos": 24,
+      "cola": 0,
+      "activos": 13,
+      "terminados": 10
+     },
+     {
+      "t": 23,
+      "hilos": 24,
+      "cola": 0,
+      "activos": 6,
+      "terminados": 7
+     },
+     {
+      "t": 24,
+      "hilos": 24,
+      "cola": 0,
+      "activos": 10,
+      "terminados": 8
+     },
+     {
+      "t": 25,
+      "hilos": 24,
+      "cola": 0,
+      "activos": 14,
+      "terminados": 8
+     },
+     {
+      "t": 26,
+      "hilos": 24,
+      "cola": 0,
+      "activos": 6,
+      "terminados": 12
+     },
+     {
+      "t": 27,
+      "hilos": 24,
+      "cola": 0,
+      "activos": 7,
+      "terminados": 6
+     },
+     {
+      "t": 28,
+      "hilos": 24,
+      "cola": 0,
+      "activos": 13,
+      "terminados": 13
+     },
+     {
+      "t": 29,
+      "hilos": 24,
+      "cola": 0,
+      "activos": 11,
+      "terminados": 6
+     }
+    ]
+   },
+   "modelo": {
+    "opciones": {
+     "nucleos": 2,
+     "ioMs": 100,
+     "cpuMs": 2,
+     "cpuDespuesMs": 1,
+     "duracionS": 30,
+     "runtime": "net6",
+     "inyeccionMs": 1800,
+     "semilla": 1,
+     "modoIo": "sync",
+     "rps": 100,
+     "minHilos": 32
+    },
+    "llegados": 3021,
+    "completados": 3016,
+    "p50": 105,
+    "p99": 124,
+    "max": 126,
+    "hilosMax": 24,
+    "colaMax": 3,
+    "recuperacion": 0
+   }
+  },
+  "pico": {
+   "nombre": "I/O sincrónica, 15 pedidos/s más 150 de golpe a los 2 s",
+   "comando": "modo=sync rps=15 dur=30 rafaga=150",
+   "real": {
+    "llegados": 612,
+    "completados": 611,
+    "p50": 103.4,
+    "p99": 5271.3,
+    "max": 5378.2,
+    "hilosMax": 8,
+    "colaMax": 148,
+    "activosMax": 7,
+    "recuperacion": 9.7,
+    "porSegundo": [
+     {
+      "t": 1,
+      "hilos": 3,
+      "cola": 0,
+      "activos": 1,
+      "terminados": 0
+     },
+     {
+      "t": 2,
+      "hilos": 3,
+      "cola": 1,
+      "activos": 1,
+      "terminados": 1
+     },
+     {
+      "t": 3,
+      "hilos": 3,
+      "cola": 139,
+      "activos": 2,
+      "terminados": 2
+     },
+     {
+      "t": 4,
+      "hilos": 3,
+      "cola": 125,
+      "activos": 2,
+      "terminados": 3
+     },
+     {
+      "t": 5,
+      "hilos": 4,
+      "cola": 114,
+      "activos": 4,
+      "terminados": 1
+     },
+     {
+      "t": 6,
+      "hilos": 4,
+      "cola": 90,
+      "activos": 4,
+      "terminados": 4
+     },
+     {
+      "t": 7,
+      "hilos": 4,
+      "cola": 84,
+      "activos": 4,
+      "terminados": 4
+     },
+     {
+      "t": 8,
+      "hilos": 5,
+      "cola": 53,
+      "activos": 3,
+      "terminados": 4
+     },
+     {
+      "t": 9,
+      "hilos": 6,
+      "cola": 39,
+      "activos": 6,
+      "terminados": 3
+     },
+     {
+      "t": 10,
+      "hilos": 6,
+      "cola": 0,
+      "activos": 3,
+      "terminados": 4
+     },
+     {
+      "t": 11,
+      "hilos": 6,
+      "cola": 0,
+      "activos": 1,
+      "terminados": 0
+     },
+     {
+      "t": 12,
+      "hilos": 6,
+      "cola": 0,
+      "activos": 2,
+      "terminados": 0
+     },
+     {
+      "t": 13,
+      "hilos": 6,
+      "cola": 0,
+      "activos": 1,
+      "terminados": 2
+     },
+     {
+      "t": 14,
+      "hilos": 6,
+      "cola": 0,
+      "activos": 5,
+      "terminados": 0
+     },
+     {
+      "t": 15,
+      "hilos": 7,
+      "cola": 0,
+      "activos": 1,
+      "terminados": 2
+     },
+     {
+      "t": 16,
+      "hilos": 7,
+      "cola": 0,
+      "activos": 3,
+      "terminados": 1
+     },
+     {
+      "t": 17,
+      "hilos": 7,
+      "cola": 0,
+      "activos": 1,
+      "terminados": 2
+     },
+     {
+      "t": 18,
+      "hilos": 8,
+      "cola": 0,
+      "activos": 2,
+      "terminados": 2
+     },
+     {
+      "t": 19,
+      "hilos": 8,
+      "cola": 0,
+      "activos": 1,
+      "terminados": 1
+     },
+     {
+      "t": 20,
+      "hilos": 8,
+      "cola": 0,
+      "activos": 0,
+      "terminados": 3
+     },
+     {
+      "t": 21,
+      "hilos": 8,
+      "cola": 0,
+      "activos": 2,
+      "terminados": 2
+     },
+     {
+      "t": 22,
+      "hilos": 8,
+      "cola": 0,
+      "activos": 5,
+      "terminados": 3
+     },
+     {
+      "t": 23,
+      "hilos": 8,
+      "cola": 0,
+      "activos": 4,
+      "terminados": 2
+     },
+     {
+      "t": 24,
+      "hilos": 8,
+      "cola": 0,
+      "activos": 1,
+      "terminados": 0
+     },
+     {
+      "t": 25,
+      "hilos": 8,
+      "cola": 0,
+      "activos": 2,
+      "terminados": 2
+     },
+     {
+      "t": 26,
+      "hilos": 8,
+      "cola": 0,
+      "activos": 4,
+      "terminados": 0
+     },
+     {
+      "t": 27,
+      "hilos": 8,
+      "cola": 0,
+      "activos": 1,
+      "terminados": 0
+     },
+     {
+      "t": 28,
+      "hilos": 8,
+      "cola": 0,
+      "activos": 1,
+      "terminados": 3
+     },
+     {
+      "t": 29,
+      "hilos": 8,
+      "cola": 0,
+      "activos": 3,
+      "terminados": 1
+     }
+    ]
+   },
+   "modelo": {
+    "opciones": {
+     "nucleos": 2,
+     "ioMs": 100,
+     "cpuMs": 2,
+     "cpuDespuesMs": 1,
+     "duracionS": 30,
+     "runtime": "net6",
+     "inyeccionMs": 1800,
+     "semilla": 1,
+     "modoIo": "sync",
+     "rps": 15,
+     "patron": "rafaga",
+     "rafaga": 150
+    },
+    "llegados": 571,
+    "completados": 570,
+    "p50": 122,
+    "p99": 5023,
+    "max": 5146,
+    "hilosMax": 6,
+    "colaMax": 150,
+    "recuperacion": 9.1
+   }
+  },
+  "largo": {
+   "nombre": "I/O sincrónica, 50 pedidos/s durante 90 s",
+   "comando": "modo=sync rps=50 dur=90",
+   "real": {
+    "llegados": 4537,
+    "completados": 4536,
+    "p50": 103.2,
+    "p99": 2863.1,
+    "max": 3043.1,
+    "hilosMax": 14,
+    "colaMax": 156,
+    "activosMax": 13,
+    "recuperacion": 13.3,
+    "porSegundo": [
+     {
+      "t": 1,
+      "hilos": 3,
+      "cola": 17,
+      "activos": 3,
+      "terminados": 3
+     },
+     {
+      "t": 2,
+      "hilos": 3,
+      "cola": 44,
+      "activos": 2,
+      "terminados": 2
+     },
+     {
+      "t": 3,
+      "hilos": 3,
+      "cola": 70,
+      "activos": 3,
+      "terminados": 3
+     },
+     {
+      "t": 4,
+      "hilos": 3,
+      "cola": 96,
+      "activos": 2,
+      "terminados": 2
+     },
+     {
+      "t": 5,
+      "hilos": 4,
+      "cola": 119,
+      "activos": 4,
+      "terminados": 4
+     },
+     {
+      "t": 6,
+      "hilos": 4,
+      "cola": 148,
+      "activos": 4,
+      "terminados": 4
+     },
+     {
+      "t": 7,
+      "hilos": 6,
+      "cola": 155,
+      "activos": 6,
+      "terminados": 5
+     },
+     {
+      "t": 8,
+      "hilos": 6,
+      "cola": 142,
+      "activos": 5,
+      "terminados": 5
+     },
+     {
+      "t": 9,
+      "hilos": 7,
+      "cola": 134,
+      "activos": 7,
+      "terminados": 7
+     },
+     {
+      "t": 10,
+      "hilos": 7,
+      "cola": 107,
+      "activos": 7,
+      "terminados": 7
+     },
+     {
+      "t": 11,
+      "hilos": 8,
+      "cola": 81,
+      "activos": 8,
+      "terminados": 8
+     },
+     {
+      "t": 12,
+      "hilos": 9,
+      "cola": 48,
+      "activos": 9,
+      "terminados": 8
+     },
+     {
+      "t": 13,
+      "hilos": 9,
+      "cola": 19,
+      "activos": 8,
+      "terminados": 8
+     },
+     {
+      "t": 14,
+      "hilos": 10,
+      "cola": 0,
+      "activos": 6,
+      "terminados": 8
+     },
+     {
+      "t": 15,
+      "hilos": 10,
+      "cola": 0,
+      "activos": 4,
+      "terminados": 4
+     },
+     {
+      "t": 16,
+      "hilos": 10,
+      "cola": 0,
+      "activos": 5,
+      "terminados": 4
+     },
+     {
+      "t": 17,
+      "hilos": 10,
+      "cola": 0,
+      "activos": 8,
+      "terminados": 3
+     },
+     {
+      "t": 18,
+      "hilos": 10,
+      "cola": 0,
+      "activos": 5,
+      "terminados": 2
+     },
+     {
+      "t": 19,
+      "hilos": 10,
+      "cola": 0,
+      "activos": 6,
+      "terminados": 5
+     },
+     {
+      "t": 20,
+      "hilos": 10,
+      "cola": 0,
+      "activos": 4,
+      "terminados": 5
+     },
+     {
+      "t": 21,
+      "hilos": 11,
+      "cola": 0,
+      "activos": 3,
+      "terminados": 6
+     },
+     {
+      "t": 22,
+      "hilos": 11,
+      "cola": 0,
+      "activos": 4,
+      "terminados": 6
+     },
+     {
+      "t": 23,
+      "hilos": 11,
+      "cola": 0,
+      "activos": 4,
+      "terminados": 2
+     },
+     {
+      "t": 24,
+      "hilos": 12,
+      "cola": 0,
+      "activos": 5,
+      "terminados": 6
+     },
+     {
+      "t": 25,
+      "hilos": 12,
+      "cola": 0,
+      "activos": 6,
+      "terminados": 2
+     },
+     {
+      "t": 26,
+      "hilos": 12,
+      "cola": 0,
+      "activos": 5,
+      "terminados": 3
+     },
+     {
+      "t": 27,
+      "hilos": 12,
+      "cola": 0,
+      "activos": 6,
+      "terminados": 3
+     },
+     {
+      "t": 28,
+      "hilos": 12,
+      "cola": 0,
+      "activos": 2,
+      "terminados": 8
+     },
+     {
+      "t": 29,
+      "hilos": 12,
+      "cola": 0,
+      "activos": 4,
+      "terminados": 2
+     },
+     {
+      "t": 30,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 3,
+      "terminados": 7
+     },
+     {
+      "t": 31,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 3,
+      "terminados": 2
+     },
+     {
+      "t": 32,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 4,
+      "terminados": 5
+     },
+     {
+      "t": 33,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 5,
+      "terminados": 1
+     },
+     {
+      "t": 34,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 9,
+      "terminados": 5
+     },
+     {
+      "t": 35,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 6,
+      "terminados": 7
+     },
+     {
+      "t": 36,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 10,
+      "terminados": 9
+     },
+     {
+      "t": 37,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 6,
+      "terminados": 6
+     },
+     {
+      "t": 38,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 5,
+      "terminados": 4
+     },
+     {
+      "t": 39,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 5,
+      "terminados": 7
+     },
+     {
+      "t": 40,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 0,
+      "terminados": 3
+     },
+     {
+      "t": 41,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 5,
+      "terminados": 7
+     },
+     {
+      "t": 42,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 3,
+      "terminados": 4
+     },
+     {
+      "t": 43,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 5,
+      "terminados": 2
+     },
+     {
+      "t": 44,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 6,
+      "terminados": 6
+     },
+     {
+      "t": 45,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 10,
+      "terminados": 5
+     },
+     {
+      "t": 46,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 3,
+      "terminados": 3
+     },
+     {
+      "t": 47,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 3,
+      "terminados": 7
+     },
+     {
+      "t": 48,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 7,
+      "terminados": 3
+     },
+     {
+      "t": 49,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 4,
+      "terminados": 9
+     },
+     {
+      "t": 50,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 7,
+      "terminados": 7
+     },
+     {
+      "t": 51,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 7,
+      "terminados": 5
+     },
+     {
+      "t": 52,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 3,
+      "terminados": 3
+     },
+     {
+      "t": 53,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 3,
+      "terminados": 9
+     },
+     {
+      "t": 54,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 3,
+      "terminados": 4
+     },
+     {
+      "t": 55,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 3,
+      "terminados": 7
+     },
+     {
+      "t": 56,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 9,
+      "terminados": 4
+     },
+     {
+      "t": 57,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 7,
+      "terminados": 2
+     },
+     {
+      "t": 58,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 3,
+      "terminados": 8
+     },
+     {
+      "t": 59,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 5,
+      "terminados": 7
+     },
+     {
+      "t": 60,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 6,
+      "terminados": 9
+     },
+     {
+      "t": 61,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 5,
+      "terminados": 8
+     },
+     {
+      "t": 62,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 8,
+      "terminados": 6
+     },
+     {
+      "t": 63,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 1,
+      "terminados": 6
+     },
+     {
+      "t": 64,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 9,
+      "terminados": 3
+     },
+     {
+      "t": 65,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 8,
+      "terminados": 5
+     },
+     {
+      "t": 66,
+      "hilos": 14,
+      "cola": 0,
+      "activos": 2,
+      "terminados": 5
+     },
+     {
+      "t": 67,
+      "hilos": 14,
+      "cola": 0,
+      "activos": 5,
+      "terminados": 4
+     },
+     {
+      "t": 68,
+      "hilos": 14,
+      "cola": 0,
+      "activos": 4,
+      "terminados": 5
+     },
+     {
+      "t": 69,
+      "hilos": 14,
+      "cola": 0,
+      "activos": 5,
+      "terminados": 6
+     },
+     {
+      "t": 70,
+      "hilos": 14,
+      "cola": 0,
+      "activos": 7,
+      "terminados": 10
+     },
+     {
+      "t": 71,
+      "hilos": 14,
+      "cola": 0,
+      "activos": 9,
+      "terminados": 5
+     },
+     {
+      "t": 72,
+      "hilos": 14,
+      "cola": 0,
+      "activos": 6,
+      "terminados": 7
+     },
+     {
+      "t": 73,
+      "hilos": 14,
+      "cola": 0,
+      "activos": 8,
+      "terminados": 3
+     },
+     {
+      "t": 74,
+      "hilos": 14,
+      "cola": 0,
+      "activos": 9,
+      "terminados": 4
+     },
+     {
+      "t": 75,
+      "hilos": 14,
+      "cola": 0,
+      "activos": 4,
+      "terminados": 7
+     },
+     {
+      "t": 76,
+      "hilos": 14,
+      "cola": 0,
+      "activos": 5,
+      "terminados": 6
+     },
+     {
+      "t": 77,
+      "hilos": 14,
+      "cola": 0,
+      "activos": 1,
+      "terminados": 7
+     },
+     {
+      "t": 78,
+      "hilos": 14,
+      "cola": 0,
+      "activos": 5,
+      "terminados": 5
+     },
+     {
+      "t": 79,
+      "hilos": 14,
+      "cola": 0,
+      "activos": 6,
+      "terminados": 7
+     },
+     {
+      "t": 80,
+      "hilos": 14,
+      "cola": 0,
+      "activos": 2,
+      "terminados": 6
+     },
+     {
+      "t": 81,
+      "hilos": 14,
+      "cola": 0,
+      "activos": 9,
+      "terminados": 6
+     },
+     {
+      "t": 82,
+      "hilos": 14,
+      "cola": 0,
+      "activos": 3,
+      "terminados": 3
+     },
+     {
+      "t": 83,
+      "hilos": 14,
+      "cola": 0,
+      "activos": 6,
+      "terminados": 9
+     },
+     {
+      "t": 84,
+      "hilos": 14,
+      "cola": 0,
+      "activos": 8,
+      "terminados": 4
+     },
+     {
+      "t": 85,
+      "hilos": 14,
+      "cola": 0,
+      "activos": 3,
+      "terminados": 3
+     },
+     {
+      "t": 86,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 6,
+      "terminados": 7
+     },
+     {
+      "t": 87,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 4,
+      "terminados": 4
+     },
+     {
+      "t": 88,
+      "hilos": 13,
+      "cola": 1,
+      "activos": 11,
+      "terminados": 5
+     },
+     {
+      "t": 89,
+      "hilos": 13,
+      "cola": 0,
+      "activos": 8,
+      "terminados": 0
+     }
+    ]
+   },
+   "modelo": {
+    "opciones": {
+     "nucleos": 2,
+     "ioMs": 100,
+     "cpuMs": 2,
+     "cpuDespuesMs": 1,
+     "duracionS": 90,
+     "runtime": "net6",
+     "inyeccionMs": 1800,
+     "semilla": 1,
+     "modoIo": "sync",
+     "rps": 50
+    },
+    "llegados": 4593,
+    "completados": 4588,
+    "p50": 109,
+    "p99": 2672,
+    "max": 2760,
+    "hilosMax": 10,
+    "colaMax": 150,
+    "recuperacion": 14.2
+   }
+  }
+ }
+}

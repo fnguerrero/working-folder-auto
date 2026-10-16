@@ -43,8 +43,8 @@ test("async: los hilos se quedan en el mínimo y la latencia es casi la I/O", ()
   assert.equal(L.diagnosticar(r).zona, "ok");
 });
 
-test("clásico (.Result antes de .NET 6): inanición, un hilo cada 500 ms, y después se recupera", () => {
-  const r = L.simular({ ...base, modoIo: "result", runtime: "clasico", duracionS: 30 });
+test("clásico (.Result en .NET Framework, finalización por IOCP): inanición, un hilo cada 500 ms, y después se recupera", () => {
+  const r = L.simular({ ...base, modoIo: "result", runtime: "clasico", duracionS: 30, finalizacionPorPool: false });
   const c = L.cuentas(base);
   // La inyección va a un hilo cada 500 ms: la muestra del segundo 1 se toma justo antes del gate de 1,0 s
   // (4 + 1 hilos) y la del segundo 5, antes del gate de 5,0 s (4 + 9 hilos).
@@ -69,9 +69,33 @@ test("I/O sincrónica: .NET 6+ no la detecta y pasa lo mismo que en el clásico"
   assert.equal(L.diagnosticar(a).zona, "inanicion");
 });
 
-test(".NET 6+ con .Result: la detección de bloqueo inyecta rápido y el p99 baja de segundos a milisegundos", () => {
-  const lento = L.simular({ ...base, modoIo: "result", runtime: "clasico" });
-  const rapido = L.simular({ ...base, modoIo: "result", runtime: "net6" });
+test("ritmo de inyección: con inyeccionMs = 1800 el pool crece más despacio y las cuentas lo reflejan", () => {
+  const rapido = L.simular({ ...base, modoIo: "sync", duracionS: 20 });
+  const lento = L.simular({ ...base, modoIo: "sync", duracionS: 20, inyeccionMs: 1800 });
+  const en = (r, s) => r.muestras.find((m) => Math.abs(m.t - s) < 1e-9).hilos;
+  assert.equal(en(rapido, 10), 23, "500 ms: a 10 s hay 4 + 19 hilos");
+  assert.equal(en(lento, 10), 9, "1800 ms: a 10 s hay 4 + 5 hilos");
+  assert.ok(lento.p99 > rapido.p99 * 1.5, `peor p99 (${lento.p99} vs ${rapido.p99})`);
+  assert.equal(L.cuentas({ ...base, inyeccionMs: 1800 }).segundosHastaAlcanzar, 17 * 1.8);
+});
+
+test(".NET 6+ con .Result y finalización por la cola del pool (lo medido): se clava aunque inyecte hilos", () => {
+  const r = L.simular({ ...base, modoIo: "result", runtime: "net6", duracionS: 30 });
+  assert.ok(r.completados < r.llegados * 0.05, `casi nada termina (${r.completados} de ${r.llegados})`);
+  assert.ok(r.hilosMax > 100, `inyectó hilos igual (${r.hilosMax})`);
+  assert.ok(r.colaFinal > 1000, `la cola no para de crecer (${r.colaFinal})`);
+  assert.equal(r.llegados, r.completados + r.enVuelo);
+  const d = L.diagnosticar(r);
+  assert.equal(d.zona, "colapso");
+  assert.match(d.titulo, /Sync over async/);
+  // Con poca carga los hilos libres llegan a las finalizaciones y funciona: el umbral es lo que lo hace traicionero.
+  const poca = L.simular({ ...base, nucleos: 2, rps: 30, modoIo: "result", runtime: "net6" });
+  assert.ok(poca.completados > poca.llegados * 0.95, `con 30 pedidos/s anda (${poca.completados} de ${poca.llegados})`);
+});
+
+test(".NET 6+ con .Result sin finalización por el pool (modelo optimista): inyecta rápido y el p99 baja a milisegundos", () => {
+  const lento = L.simular({ ...base, modoIo: "result", runtime: "clasico", finalizacionPorPool: false });
+  const rapido = L.simular({ ...base, modoIo: "result", runtime: "net6", finalizacionPorPool: false });
   assert.ok(rapido.p99 < 400, `p99 chico (${rapido.p99})`);
   assert.ok(rapido.p99 * 5 < lento.p99, "mucho mejor que el clásico");
   assert.ok(rapido.hilosMax >= 21, `usa muchos hilos (${rapido.hilosMax})`);
@@ -82,7 +106,7 @@ test(".NET 6+ con .Result: la detección de bloqueo inyecta rápido y el p99 baj
 });
 
 test("SetMinThreads alto: el parche funciona", () => {
-  const r = L.simular({ ...base, modoIo: "result", runtime: "clasico", minHilos: 64 });
+  const r = L.simular({ ...base, modoIo: "result", runtime: "clasico", minHilos: 64, finalizacionPorPool: false });
   assert.ok(r.p99 < 150, `p99 (${r.p99})`);
   assert.equal(L.diagnosticar(r).zona, "ok");
 });
@@ -113,7 +137,7 @@ test("conservación: llegados = terminados + en vuelo", () => {
 });
 
 test("gantt: una fila cada 10 ms con el estado de cada hilo", () => {
-  const r = L.simular({ ...base, modoIo: "result", runtime: "clasico", duracionS: 2, gantt: true });
+  const r = L.simular({ ...base, modoIo: "result", runtime: "clasico", duracionS: 2, gantt: true, finalizacionPorPool: false });
   assert.equal(r.gantt.length, 200);
   assert.ok(r.gantt[150].length >= 7, "a 1,5 s hay al menos 7 hilos (4 + uno cada 500 ms)");
   assert.ok(Array.from(r.gantt[150]).every((e) => e === L.LIBRE || e === L.CPU || e === L.BLOQUEADO));

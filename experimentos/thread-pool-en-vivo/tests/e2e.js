@@ -63,19 +63,41 @@ async function probar(browser, url, viewport, capturaEn) {
   assert.equal(e1.zona, "ok"); assert.ok(e1.p99 < 150 && e1.hilosMax === 4, `async: p99 ${e1.p99}, hilos ${e1.hilosMax}`);
   assert.match(await page.textContent("#diag"), /punta a punta/);
 
-  // .NET 8 con .Result: muchos hilos, p99 bajo.
+  // .NET 8 con .Result (lo medido): inyecta muchos hilos y se clava igual.
   await page.click("button[data-preset=net8]");
+  assert.ok(await page.isVisible("#ctlFinalizacion"), "con .Result aparece la casilla de la finalización");
   const e2 = await estado();
-  assert.ok(e2.hilosMax >= 21 && e2.p99 < 400, `net8: hilos ${e2.hilosMax}, p99 ${e2.p99}`);
-  assert.match(e2.titulo, /NET 6\+/);
+  assert.equal(e2.zona, "colapso", `net8 colapsa (${e2.zona})`);
+  assert.ok(e2.hilosMax >= 100 && e2.p99 > 10000, `net8: hilos ${e2.hilosMax}, p99 ${e2.p99}`);
+  assert.match(e2.titulo, /Sync over async/);
+  assert.match(await page.textContent("#diag"), /final de la cola/i);
+
+  // Sin finalización por el pool (modelo optimista): muchos hilos y p99 bajo.
+  await page.uncheck("#finalizacionPorPool");
+  await esperar(100);
+  assert.equal(await page.getAttribute("button[data-preset=net8]", "aria-pressed"), "false", "el preset se desmarca");
+  const e2b = await estado();
+  assert.ok(e2b.hilosMax >= 21 && e2b.p99 < 400, `optimista: hilos ${e2b.hilosMax}, p99 ${e2b.p99}`);
+  assert.match(e2b.titulo, /NET 6\+/);
 
   // Cambiar un control a mano desmarca el preset y recalcula.
+  await page.click("button[data-preset=net8]");
+  await page.uncheck("#finalizacionPorPool");
   await page.fill("#ioMsN", "2000"); await page.dispatchEvent("#ioMsN", "input");
   await esperar(100);
   assert.equal(await page.getAttribute("button[data-preset=net8]", "aria-pressed"), "false", "el preset se desmarca");
   assert.equal(await page.textContent("#presetDesc"), "Escenario a medida.");
   const e3 = await estado();
-  assert.ok(e3.hilosMax > e2.hilosMax, `con la base más lenta hacen falta más hilos (${e3.hilosMax} > ${e2.hilosMax})`);
+  assert.ok(e3.hilosMax > e2b.hilosMax, `con la base más lenta hacen falta más hilos (${e3.hilosMax} > ${e2b.hilosMax})`);
+
+  // El ritmo de inyección medido: el pod de 2 vCPU con un hilo cada 1.800 ms no se recupera.
+  await page.click("button[data-preset=pod]");
+  assert.equal(await page.inputValue("#inyeccionMsN"), "1800");
+  assert.ok(!(await page.isVisible("#ctlFinalizacion")), "con I/O sincrónica la casilla se esconde");
+  const e3b = await estado();
+  assert.ok(e3b.p99 > 5000 && e3b.hilosMax <= 20, `pod medido: p99 ${e3b.p99}, hilos ${e3b.hilosMax}`);
+  assert.match(await page.textContent("#tRec"), /no vuelve/);
+  assert.ok((await page.locator("table.real tr").count()) >= 11, "la tabla real vs modelo está");
 
   // Tráfico con ráfaga muestra el control; el pico bloqueando se traba.
   await page.click("button[data-preset=pico]");

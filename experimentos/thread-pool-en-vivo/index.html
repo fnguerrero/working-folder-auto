@@ -47,6 +47,15 @@
   }
   .control.ancho select, .control.ancho input { grid-column: 1 / -1; }
   .oculto { display: none !important; }
+  .control label.check { display: block; cursor: pointer; }
+  .control label.check input { margin-right: 6px; vertical-align: -1px; }
+  .control .pista { display: block; font-size: .75rem; opacity: .75; font-weight: 400; }
+  .control label:has(.pista) { flex-wrap: wrap; }
+  table.real { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  table.real th, table.real td { padding: 6px 8px; border-bottom: 1px solid var(--grid); text-align: left; vertical-align: top; }
+  table.real th { color: var(--muted); font-weight: 600; font-size: .75rem; text-transform: uppercase; letter-spacing: .03em; }
+  table.real td.n { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .scroll-x { overflow-x: auto; margin: 0 0 1em; }
   .acciones-ui { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
   .derecha { display: grid; gap: 14px; min-width: 0; }
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(116px, 1fr)); gap: 8px; }
@@ -136,6 +145,14 @@
         <option value="clasico">.NET Core 3.1 / .NET 5 / .NET Framework</option>
       </select>
     </div>
+    <div class="control ancho" id="ctlFinalizacion">
+      <label class="check"><input id="finalizacionPorPool" type="checkbox" checked> La finalización de la I/O pasa por la cola del pool (timers, sockets en Linux, Windows desde .NET 7). <span class="pista">Desmarcado: la corre un hilo de I/O aparte (IOCP en Windows antes de .NET 7).</span></label>
+    </div>
+    <div class="control">
+      <label for="inyeccionMs">Sin aviso de bloqueo, el pool agrega un hilo cada (ms) <b id="inyeccionMsV"></b> <span class="pista">500 = gate thread documentado · ~1.800 medido en .NET 8</span></label>
+      <input id="inyeccionMs" type="range" min="100" max="3000" step="100" value="500">
+      <input id="inyeccionMsN" type="number" min="1" max="60000" step="1" value="500" aria-label="Milisegundos entre hilos inyectados">
+    </div>
     <div class="control">
       <label for="minHilos">ThreadPool.SetMinThreads (0 = default, igual a núcleos) <b id="minHilosV"></b></label>
       <input id="minHilos" type="range" min="0" max="256" step="1" value="0">
@@ -204,9 +221,9 @@
     <p>El pool arranca con pocos hilos: el mínimo es <code>Environment.ProcessorCount</code> (4 en una máquina de 4 núcleos, 2 en un pod con 2 vCPU). Hasta ese mínimo crea hilos sin pensarlo apenas hay trabajo. De ahí para arriba se pone conservador, y con razón: para código que usa CPU, más hilos que núcleos es puro cambio de contexto. Dos mecanismos deciden si agregar más:</p>
     <ul>
       <li><strong>Hill climbing</strong>: un controlador que mueve la cantidad de hilos de a poco y mide si el throughput (work items completados por segundo) mejora. Necesita señal: si nada termina, no aprende nada.</li>
-      <li><strong>El gate thread</strong>: un hilo de vigilancia que se despierta cada <strong>500 ms</strong>. Si ve que hay trabajo encolado y todos los hilos están ocupados sin que se haya completado nada hace rato, fuerza <strong>un hilo más</strong>. Uno. Cada medio segundo.</li>
+      <li><strong>El gate thread</strong>: un hilo de vigilancia que se despierta cada <strong>500 ms</strong>. Si ve que hay trabajo encolado y <em>ningún hilo sacó nada de la cola en los últimos 500 ms</em>, fuerza <strong>un hilo más</strong>. Uno. Y ese «ningún hilo sacó nada» es más exigente de lo que parece: si tus hilos se bloquean 100 ms y vuelven a la cola, siempre hay alguno sacando algo, el gate no se entera y queda todo en manos del hill climbing, que es más lento todavía (medido en .NET 8: un hilo cada 1,5 a 2 s).</li>
     </ul>
-    <p>Ahí está el problema: si tus pedidos tienen el hilo <em>tomado pero sin hacer nada</em> (esperando a la base con <code>.Result</code>, o con una consulta sincrónica), el pool solo puede crecer a razón de dos hilos por segundo. Si necesitás 21 hilos a la vez y arrancaste con 4, son más de 8 segundos durante los cuales la cola crece sin frenar. Eso es la <strong>inanición del thread pool</strong> (<em>thread pool starvation</em>): la API no está caída, la CPU está casi en cero, la base está tranquila, y los pedidos tardan segundos o dan timeout.</p>
+    <p>Ahí está el problema: si tus pedidos tienen el hilo <em>tomado pero sin hacer nada</em> (esperando a la base con <code>.Result</code>, o con una consulta sincrónica), el pool crece a razón de un hilo cada medio segundo en el mejor caso, y cada 1,5 a 2 segundos en el caso medido. Si necesitás 21 hilos a la vez y arrancaste con 4, son entre 8 y 30 segundos durante los cuales la cola crece sin frenar. Eso es la <strong>inanición del thread pool</strong> (<em>thread pool starvation</em>): la API no está caída, la CPU está casi en cero, la base está tranquila, y los pedidos tardan segundos o dan timeout.</p>
 
     <h2>Las tres formas de esperar la I/O</h2>
     <div class="dos">
@@ -240,16 +257,22 @@ return Task.Run(() => Procesar()).Result;</code></pre></div>
     </div>
     <p>En el simulador, <strong>await</strong> es «el hilo se libera durante la I/O y la continuación vuelve a la cola»; <strong>.Result</strong> es «el hilo queda bloqueado en <code>Task.Wait</code>, y el pool lo sabe si es .NET 6 o más nuevo»; <strong>I/O sincrónica</strong> es «el hilo queda bloqueado y el pool no tiene idea» (una consulta sin <code>Async</code>, un <code>lock</code>, un <code>Thread.Sleep</code>, un <code>ManualResetEvent</code>, un socket sincrónico).</p>
 
-    <h2>Qué cambió en .NET 6</h2>
-    <p>Desde .NET 6 el pool está escrito en C# (el <code>PortableThreadPool</code>) y tiene un mecanismo nuevo: cuando un hilo del pool entra a <code>Task.Wait</code> (y por lo tanto a <code>.Result</code> y a <code>GetAwaiter().GetResult()</code>) sobre una tarea que todavía no terminó, le avisa al pool. El pool sube su meta de hilos a «mínimo + hilos bloqueados» y crea los que faltan casi sin demora: los primeros <code>1,25 × núcleos</code> de inmediato, y el resto de a <code>0,25 × núcleos</code> con pausas que crecen de 25 a 250 ms. Por eso el escenario «Lo mismo en .NET 8» se recupera en un segundo y medio en vez de 17.</p>
+    <h2>Qué cambió en .NET 6, y por qué no alcanza</h2>
+    <p>Desde .NET 6 el pool está escrito en C# (el <code>PortableThreadPool</code>) y tiene un mecanismo nuevo: cuando un hilo del pool entra a <code>Task.Wait</code> (y por lo tanto a <code>.Result</code> y a <code>GetAwaiter().GetResult()</code>) sobre una tarea que todavía no terminó, le avisa al pool. El pool sube su meta de hilos a «mínimo + hilos bloqueados» y crea los que faltan casi sin demora: los primeros <code>1,25 × núcleos</code> de inmediato, y el resto de a <code>0,25 × núcleos</code> con pausas que crecen de 25 a 250 ms. En un pod de 2 vCPU eso da unos 4 hilos por segundo, y se ve clarito en la medición.</p>
+    <p>La primera versión de este simulador decía que eso salvaba al escenario «Lo mismo en .NET 8»: más hilos, p99 de milisegundos. <strong>Medido contra un .NET 8 de verdad, no es así.</strong> Con <code>Task.Delay(100).Wait()</code> a 100 pedidos/s en 2 núcleos, el pool llegó a 129 hilos y contestó 286 pedidos de 3.005 en 30 segundos. Con <code>HttpClient…Result</code> contra un servidor que tarda 100 ms, 132 hilos y <strong>cero</strong> pedidos contestados. El motivo no es la cantidad de hilos sino <em>quién corre la finalización</em>:</p>
+    <ul>
+      <li>Cuando la I/O termina (el timer vence, llega la respuesta por el socket), alguien tiene que correr el código que completa la <code>Task</code> y despierta al hilo bloqueado. En .NET Core ese alguien es <strong>otro work item del mismo pool</strong>: los timers los dispara un work item, y los sockets, en Linux desde siempre y en Windows desde .NET 7, también.</li>
+      <li>Ese work item entra <strong>al final de la cola</strong>, detrás de todos los pedidos que llegaron mientras tanto. Y cada hilo libre (incluidos los que la detección de bloqueos acaba de crear) toma lo primero de la cola: un pedido, que lo bloquea también. Las finalizaciones nunca llegan al frente mientras siga entrando tráfico.</li>
+      <li>El resultado es un pool que crece sin parar y no termina nada: no es lentitud, es un <strong>bloqueo colectivo</strong> que se destraba solo cuando el tráfico para. Es exactamente la API que «se quedó colgada y la reiniciamos».</li>
+    </ul>
     <div class="aviso">
-      <p><strong>No es una solución, es un airbag.</strong> Sirve solo para <code>Task.Wait</code>: un <code>lock</code>, una consulta sincrónica de ADO.NET, un <code>HttpWebRequest</code> viejo o un <code>Thread.Sleep</code> no avisan a nadie, y ahí .NET 8 se comporta como .NET Core 3.1 (probá «I/O sincrónica en .NET 8»). Y el precio son hilos: 40 hilos para hacer el trabajo que 4 hacen con <code>await</code>, cada uno con su stack (1 MB reservado por defecto) y su cambio de contexto. Con una base más lenta o más tráfico, la cantidad de hilos crece hasta donde haga falta, y en un pod con poca memoria eso también duele.</p>
+      <p><strong>Lo traicionero es el umbral.</strong> Con poca carga anda: siempre hay algún hilo libre que llega a una finalización antes que al siguiente pedido, y la detección de bloqueos pone hilos de sobra. En la medición, a 50 pedidos/s aguantó dos segundos y se clavó; en el modelo el punto de quiebre está cerca de 70. Por eso en la PC del desarrollador funciona y en producción, un martes a las 11, no. La I/O sincrónica de verdad (<code>Thread.Sleep</code>, una consulta sin <code>Async</code>, un <code>lock</code>) no tiene este problema: el hilo despierta solo cuando termina la I/O, así que degrada despacio (segundos de latencia) en vez de clavarse. Y en .NET Framework sobre Windows las finalizaciones de sockets las corren los hilos de IOCP, aparte: ahí <code>.Result</code> sobre I/O real degrada en vez de clavarse (es el preset «El clásico»), aunque <code>Task.Delay</code> se clava igual porque los timers pasan por el pool.</p>
     </div>
 
     <h2>Cómo saber si te está pasando en producción</h2>
     <ul>
       <li><strong>La forma de la latencia.</strong> No es una subida proporcional al tráfico: es una rampa que crece durante segundos y después baja de golpe cuando el pool «alcanzó». CPU baja, base tranquila, timeouts del lado del cliente. Después de un deploy o un pico, no en régimen.</li>
-      <li><strong>Contadores.</strong> <code>dotnet-counters monitor --process-id &lt;pid&gt; System.Runtime</code> y mirá <code>threadpool-thread-count</code> (sube de a uno cada 500 ms) y <code>threadpool-queue-length</code> (debería ser casi siempre 0). Desde código, <code>ThreadPool.ThreadCount</code> y <code>ThreadPool.PendingWorkItemCount</code> se pueden exponer como métricas; en .NET 9 también están en <code>System.Runtime</code> por <code>Meter</code> para OpenTelemetry.</li>
+      <li><strong>Contadores.</strong> <code>dotnet-counters monitor --process-id &lt;pid&gt; System.Runtime</code> y mirá <code>threadpool-thread-count</code> (sube despacio, de a uno cada 1 o 2 s con I/O sincrónica, o 4 por segundo si es <code>Task.Wait</code> en .NET 6+) y <code>threadpool-queue-length</code> (debería ser casi siempre 0; si crece sin que nada termine, es la cola de finalizaciones detrás de los pedidos). Desde código, <code>ThreadPool.ThreadCount</code> y <code>ThreadPool.PendingWorkItemCount</code> se pueden exponer como métricas; en .NET 9 también están en <code>System.Runtime</code> por <code>Meter</code> para OpenTelemetry.</li>
       <li><strong>Stacks.</strong> <code>dotnet-stack report --process-id &lt;pid&gt;</code> o un dump con <code>dotnet-dump</code> y <code>clrstack -all</code>: si ves 30 hilos del pool parados en <code>Monitor.Wait</code>, <code>Task.Wait</code>, <code>ManualResetEventSlim.Wait</code> o en un <code>SqlCommand.ExecuteReader</code> sin Async, ya está.</li>
       <li><strong>Eventos.</strong> El runtime emite <code>ThreadPoolWorkerThreadAdjustment</code> (razón: <em>Starvation</em>) y los eventos de <em>ThreadPoolWorkerThreadStart</em>; se ven con <code>dotnet-trace</code> o PerfView. Hay una guía oficial paso a paso, está en las fuentes.</li>
     </ul>
@@ -263,9 +286,28 @@ return Task.Run(() => Procesar()).Result;</code></pre></div>
       <li><strong>ASP.NET Framework (el viejo)</strong> tiene un problema peor: <code>.Result</code> en un controller con <code>SynchronizationContext</code> es un deadlock directo, no una lentitud. Ahí <code>ConfigureAwait(false)</code> en las librerías evita el deadlock, pero no evita el hilo bloqueado. En ASP.NET Core no hay <code>SynchronizationContext</code> y <code>ConfigureAwait(false)</code> no cambia nada de esto.</li>
     </ul>
 
+    <h2 id="real">Contrastado contra un .NET 8 de verdad</h2>
+    <p>El modelo se escribió primero y se midió después. Para medirlo: una consola .NET 8 (<a href="real/Program.cs"><code>real/Program.cs</code></a>) que genera pedidos con llegadas Poisson desde un hilo propio, los encola en el <code>ThreadPool</code> y en cada uno quema 2 ms de CPU, espera 100 ms de I/O de una de las formas (<code>await Task.Delay</code>, <code>Task.Delay(…).Wait()</code>, <code>Thread.Sleep</code>, y las tres variantes con un <code>HttpClient</code> contra un servidor que tarda 100 ms) y quema 1 ms más. Un hilo aparte anota cada 100 ms <code>ThreadPool.ThreadCount</code>, <code>PendingWorkItemCount</code> y las latencias. Corrió en un contenedor Docker con 2 vCPU (<code>cpuset</code>), .NET 8.0.32, 30 s por escenario. Todo está en <a href="real/resultados-real.json"><code>real/resultados-real.json</code></a>; la columna «Modelo» es este simulador con los mismos parámetros y el ritmo de inyección medido (un hilo cada 1.800 ms).</p>
+    <div class="scroll-x"><table class="real">
+      <tr><th>Escenario (2 núcleos, I/O de 100 ms)</th><th>Terminados</th><th>p99</th><th>Hilos</th><th>Cola máx.</th><th>Se recuperó</th><th>Modelo</th></tr>
+<tr><td>I/O sincrónica (Thread.Sleep 100 ms), 100 pedidos/s</td><td class="n">2.732 de 3.005</td><td class="n">7,2 s</td><td class="n">18</td><td class="n">730</td><td class="n">no</td><td class="n">2.836 de 3.000 · p99 7,0 s · 18 hilos · cola 716 · no</td></tr>
+<tr><td>I/O sincrónica, 50 pedidos/s durante 90 s</td><td class="n">4.536 de 4.537</td><td class="n">2,9 s</td><td class="n">14</td><td class="n">156</td><td class="n">13,3 s</td><td class="n">4.588 de 4.593 · p99 2,7 s · 10 hilos · cola 150 · 14,2 s</td></tr>
+<tr><td>I/O sincrónica, 15 pedidos/s más 150 de golpe a los 2 s</td><td class="n">611 de 612</td><td class="n">5,3 s</td><td class="n">8</td><td class="n">148</td><td class="n">9,7 s</td><td class="n">570 de 571 · p99 5,0 s · 6 hilos · cola 150 · 9,1 s</td></tr>
+<tr><td>I/O sincrónica con SetMinThreads(32), 100 pedidos/s</td><td class="n">2.998 de 3.005</td><td class="n">107 ms</td><td class="n">24</td><td class="n">2</td><td class="n">sin cola</td><td class="n">3.016 de 3.021 · p99 124 ms · 24 hilos · cola 3 · sin cola</td></tr>
+<tr><td>await Task.Delay(100), 100 pedidos/s</td><td class="n">2.998 de 3.005</td><td class="n">110 ms</td><td class="n">4</td><td class="n">2</td><td class="n">sin cola</td><td class="n">3.000 de 3.010 · p99 123 ms · 2 hilos · cola 4 · sin cola</td></tr>
+<tr><td>await HttpClient, 100 pedidos/s</td><td class="n">2.998 de 3.005</td><td class="n">112 ms</td><td class="n">5</td><td class="n">2</td><td class="n">sin cola</td><td class="n">3.000 de 3.010 · p99 123 ms · 2 hilos · cola 4 · sin cola</td></tr>
+<tr><td>.Result sobre Task.Delay(100), 50 pedidos/s</td><td class="n">432 de 1.506</td><td class="n">22,3 s</td><td class="n">123</td><td class="n">1.070</td><td class="n">no</td><td class="n">1.499 de 1.502 · p99 124 ms · 15 hilos · cola 9 · sin cola</td></tr>
+<tr><td>.Result sobre Task.Delay(100), 100 pedidos/s</td><td class="n">286 de 3.005</td><td class="n">27,1 s</td><td class="n">129</td><td class="n">2.706</td><td class="n">no</td><td class="n">35 de 3.053 · p99 28,6 s · 215 hilos · cola 3.018 · no</td></tr>
+<tr><td>.Result sobre HttpClient (servidor que tarda 100 ms), 100 pedidos/s</td><td class="n">0 de 3.005</td><td class="n">nada contestó</td><td class="n">132</td><td class="n">2.990</td><td class="n">no</td><td class="n">35 de 3.053 · p99 28,6 s · 215 hilos · cola 3.018 · no</td></tr>
+<tr><td>HttpClient.Send sincrónico, 100 pedidos/s</td><td class="n">0 de 3.005</td><td class="n">nada contestó</td><td class="n">132</td><td class="n">2.991</td><td class="n">no</td><td class="n">35 de 3.053 · p99 28,6 s · 215 hilos · cola 3.018 · no</td></tr>
+    </table></div>
+    <p><strong>Lo que el modelo tenía bien:</strong> async anda con los hilos mínimos y p99 pegado a la I/O; <code>SetMinThreads</code> esquiva el problema; con I/O sincrónica la inanición tiene la forma de rampa que se ve en el gráfico y la cola pico de la ráfaga es la que dice la cuenta (150). Con el ritmo de inyección ajustado a lo medido, los tres escenarios de I/O sincrónica dan números casi iguales a los reales (p99 de 7 s contra 7,2 s; 5 s contra 5,3 s; 2,7 s contra 2,9 s).</p>
+    <p><strong>Lo que tenía mal, y se corrigió esta noche:</strong> el ritmo de inyección sin aviso de bloqueo no es un hilo cada 500 ms sino uno cada 1,5 a 2 s (ahora es un control, con 500 como default documentado y 1.800 en el preset medido). Y lo grande: <code>.Result</code> en .NET 6+ no «se salva con hilos», se clava, porque las finalizaciones de la I/O son work items que van al final de la cola. El modelo ahora lo reproduce (la casilla «la finalización pasa por la cola del pool»), con un umbral algo más optimista que el real: a 50 pedidos/s el .NET real se clavó a los 2 s y el modelo aguanta; a 70 ya se clava en las dos.</p>
+    <p><strong>Lo que sigue sin modelar:</strong> el hill climbing en sí (se reemplaza por el ritmo fijo), que los timers disparen la primera finalización en el mismo work item (por eso el .NET real terminó 286 pedidos con <code>Task.Delay</code> y ninguno con HTTP), el costo de los cambios de contexto con 130 hilos y el jitter de la máquina.</p>
+
     <h2>Qué es y qué no es este modelo</h2>
-    <p>Es una simulación con un reloj de 1 ms que reproduce las reglas documentadas del pool: hilos mínimos iguales a los núcleos (creados sin demora), un gate thread que cada 500 ms agrega un hilo si hay cola y todos están ocupados, hilos de más que se retiran después de 20 s sin trabajo, CPU repartida entre los hilos que la quieren (si hay más hilos corriendo que núcleos, cada uno avanza más lento) y, en .NET 6+, la inyección por bloqueo con las constantes de <code>PortableThreadPool.Blocking.cs</code> (1,25 y 0,25 × núcleos, pasos de 25 ms con tope de 250 ms). Las llegadas son Poisson y la I/O varía ±20 %.</p>
-    <p><strong>No modela</strong> el hill climbing (que en la práctica suma algún hilo más cuando hay progreso parcial, y también los saca), ni la presión de memoria que frena la inyección por bloqueo, ni el ajuste del gate thread por uso de CPU, ni el costo real de los cambios de contexto, ni las colas locales por hilo, ni la variación del tiempo de CPU. Los números son del modelo; las formas de las curvas y los órdenes de magnitud son los que vas a ver en un servidor real. Si querés el dato duro de tu runtime, el mismo escenario se reproduce en diez líneas: un endpoint con <code>Thread.Sleep(100)</code> o <code>.Result</code>, 200 pedidos/s con <code>bombardier</code> o <code>k6</code>, y <code>dotnet-counters</code> al lado.</p>
+    <p>Es una simulación con un reloj de 1 ms que reproduce las reglas documentadas del pool: hilos mínimos iguales a los núcleos (creados sin demora), un hilo más cada <em>n</em> ms cuando hay cola y todos están ocupados (500 ms es el gate thread documentado; 1.800 es lo medido), hilos de más que se retiran después de 20 s sin trabajo, CPU repartida entre los hilos que la quieren, y en .NET 6+ la inyección por bloqueo con las constantes de <code>PortableThreadPool.Blocking.cs</code> (1,25 y 0,25 × núcleos, pasos de 25 ms con tope de 250 ms). Con <code>.Result</code>, la finalización de la I/O es un work item que va al final de la cola FIFO y que algún hilo libre tiene que correr para despertar al bloqueado (se puede apagar para ver el modelo optimista). Las llegadas son Poisson y la I/O varía ±20 %.</p>
+    <p><strong>No modela</strong> el hill climbing (que en la práctica suma algún hilo cuando hay progreso parcial, y también los saca), la presión de memoria que frena la inyección por bloqueo, el costo real de los cambios de contexto, las colas locales por hilo ni la variación del tiempo de CPU. Los números son del modelo; en la sección anterior está cuánto se parecen a los de un .NET 8 real, y el código para medirlo en tu máquina (<code>dotnet run -c Release -- modo=result rps=100</code> en <code>real/</code>).</p>
 
     <h2>Fuentes</h2>
     <ul class="fuentes">
@@ -273,6 +315,7 @@ return Task.Run(() => Procesar()).Result;</code></pre></div>
       <li>Microsoft Learn, <a href="https://learn.microsoft.com/es-es/dotnet/core/diagnostics/debug-threadpool-starvation">Debug ThreadPool starvation</a>: el tutorial oficial, con <code>dotnet-counters</code> y <code>dotnet-stack</code>.</li>
       <li>Microsoft Learn, <a href="https://learn.microsoft.com/es-es/dotnet/core/runtime-config/threading">Runtime configuration options for threading</a>: <code>System.Threading.ThreadPool.MinThreads</code> y compañía.</li>
       <li>dotnet/runtime, <a href="https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/Threading/PortableThreadPool.GateThread.cs">PortableThreadPool.GateThread.cs</a> (los 500 ms y la detección de inanición) y <a href="https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/Threading/PortableThreadPool.Blocking.cs">PortableThreadPool.Blocking.cs</a> (la inyección por bloqueo de .NET 6 y sus constantes).</li>
+      <li>dotnet/runtime, <a href="https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/Threading/TimerQueue.cs">TimerQueue.cs</a> (<code>FireNextTimers</code> corre como work item del pool: dispara el primer timer vencido en el mismo hilo y encola los demás) y <a href="https://github.com/dotnet/runtime/blob/main/src/libraries/System.Net.Sockets/src/System/Net/Sockets/SocketAsyncEngine.Unix.cs">SocketAsyncEngine.Unix.cs</a> (las finalizaciones de sockets en Linux se encolan al pool).</li>
       <li>Stephen Toub, <a href="https://devblogs.microsoft.com/dotnet/performance-improvements-in-net-6/">Performance Improvements in .NET 6</a>, sección «Threading»: el pool portable y el manejo de bloqueos.</li>
       <li>Hellerstein, Morrison y Eilebrecht, <a href="https://www.microsoft.com/en-us/research/publication/optimizing-concurrency-levels-in-the-net-threadpool-a-case-study-of-controller-design-and-implementation/">Optimizing Concurrency Levels in the .NET ThreadPool</a>: el paper del hill climbing.</li>
       <li>David Fowler, <a href="https://github.com/davidfowl/AspNetCoreDiagnosticScenarios/blob/master/AsyncGuidance.md">ASP.NET Core Diagnostic Scenarios: Async Guidance</a>: la lista de lo que no hay que hacer, con ejemplos.</li>
@@ -292,30 +335,34 @@ return Task.Run(() => Procesar()).Result;</code></pre></div>
   const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
   // ---------- Controles ----------
-  const NUMERICOS = ["nucleos", "rps", "ioMs", "cpuMs", "cpuDespuesMs", "minHilos", "rafaga", "duracionS"];
+  const NUMERICOS = ["nucleos", "rps", "ioMs", "cpuMs", "cpuDespuesMs", "minHilos", "rafaga", "duracionS", "inyeccionMs"];
   const SELECTS = ["modoIo", "runtime", "patron"];
+  const CHECKS = ["finalizacionPorPool"];
   let semilla = 1, presetActivo = null, ultimo = null;
 
   function leer() {
     const o = { semilla };
     for (const k of NUMERICOS) o[k] = Number($(k + "N").value);
     for (const k of SELECTS) o[k] = $(k).value;
+    for (const k of CHECKS) o[k] = $(k).checked;
     return o;
   }
   function mostrarValores() {
     for (const k of NUMERICOS) $(k + "V").textContent = k === "minHilos" && Number($(k + "N").value) === 0 ? `0 (= ${$("nucleosN").value})` : f($(k + "N").value, 1);
     $("ctlRafaga").classList.toggle("oculto", $("patron").value !== "rafaga");
+    $("ctlFinalizacion").classList.toggle("oculto", $("modoIo").value !== "result");
   }
   function escribir(v) {
     for (const k of NUMERICOS) if (v[k] !== undefined) { $(k + "N").value = v[k]; $(k).value = v[k]; }
     for (const k of SELECTS) if (v[k] !== undefined) $(k).value = v[k];
+    for (const k of CHECKS) if (v[k] !== undefined) $(k).checked = v[k] === true || v[k] === "true";
     mostrarValores();
   }
   for (const k of NUMERICOS) {
     $(k).addEventListener("input", () => { $(k + "N").value = $(k).value; cambio(); });
     $(k + "N").addEventListener("input", () => { $(k).value = $(k + "N").value; cambio(); });
   }
-  for (const k of SELECTS) $(k).addEventListener("change", cambio);
+  for (const k of [...SELECTS, ...CHECKS]) $(k).addEventListener("change", cambio);
   function cambio() { marcarPreset(null); mostrarValores(); programar(); }
 
   let pendiente = 0;
@@ -336,7 +383,7 @@ return Task.Run(() => Procesar()).Result;</code></pre></div>
   $("otraTirada").addEventListener("click", () => { semilla = (semilla % 100000) + 1; programar(); });
   $("copiarLink").addEventListener("click", async () => {
     const o = leer(); const q = new URLSearchParams();
-    for (const k of [...NUMERICOS, ...SELECTS]) q.set(k, o[k]);
+    for (const k of [...NUMERICOS, ...SELECTS, ...CHECKS]) q.set(k, o[k]);
     q.set("semilla", semilla);
     const url = `${location.origin}${location.pathname}?${q}`;
     try { await navigator.clipboard.writeText(url); $("copiarLink").textContent = "Copiado"; }
@@ -489,6 +536,7 @@ return Task.Run(() => Procesar()).Result;</code></pre></div>
     const v = {};
     for (const k of NUMERICOS) if (q.has(k)) v[k] = Number(q.get(k));
     for (const k of SELECTS) if (q.has(k)) v[k] = q.get(k);
+    for (const k of CHECKS) if (q.has(k)) v[k] = q.get(k) === "true";
     if (q.has("semilla")) semilla = Number(q.get("semilla")) || 1;
     escribir(v); marcarPreset(null);
   } else {
