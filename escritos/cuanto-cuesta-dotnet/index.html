@@ -1,0 +1,740 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="129 microbenchmarks de .NET 8 medidos con BenchmarkDotNet sobre las discusiones de todos los días: strings, LINQ, excepciones, async, JSON, regex, reflexión, logging, lock. Con el código, los números y qué hacer con ellos.">
+<title>Cuánto cuesta cada cosa en .NET 8</title>
+<style>
+  :root {
+    --bg: #fbfaf7; --fg: #23201c; --suave: #6b655c; --linea: #e4e0d8; --panel: #f1eee7;
+    --acento: #6b3fa0; --bien: #2e7d32; --mal: #a4373a; --ojo: #b26a00;
+    --codigo-bg: #1e2430; --codigo-fg: #e6e9ef; --ancho: 76ch; --toc: 280px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #15171c; --fg: #e8e6e1; --suave: #a19c93; --linea: #2c3038; --panel: #1d2026;
+      --acento: #c4a3f0; --bien: #7bd389; --mal: #ff8a8d; --ojo: #ffbf5e; --codigo-bg: #0f1218; --codigo-fg: #e6e9ef; }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.6 Georgia, "Times New Roman", "Noto Serif", serif; }
+  a { color: var(--acento); }
+  code, pre, kbd { font-family: ui-monospace, "Cascadia Code", Consolas, "SF Mono", Menlo, monospace; }
+  code { font-size: .88em; background: var(--panel); padding: .1em .35em; border-radius: 5px; overflow-wrap: anywhere; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  h1, h2, h3, h4 { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.2; letter-spacing: -.01em; }
+  h1 { font-size: clamp(1.9rem, 5vw, 2.8rem); margin: .2em 0 .3em; }
+  h2 { font-size: 1.65rem; margin: 2.2em 0 .6em; padding-top: .6em; border-top: 1px solid var(--linea); }
+  h2 small { display: block; color: var(--suave); font-size: .55em; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .3em; }
+  h3 { font-size: 1.2rem; margin: 1.8em 0 .4em; }
+  p, ul, ol { margin: 0 0 1em; }
+  li { margin-bottom: .3em; }
+  .bajada { font-size: 1.15rem; color: var(--suave); font-family: system-ui, sans-serif; }
+  .meta { color: var(--suave); font-size: .9rem; font-family: system-ui, sans-serif; }
+  .marco { display: grid; grid-template-columns: 1fr; gap: 0 40px; max-width: 1200px; margin: 0 auto; padding: 24px 16px 80px; }
+  main { min-width: 0; max-width: 980px; }
+  main p, main ul, main ol, main h1, main h2, main h3, .ojo, .llevo, .bajada { max-width: var(--ancho); }
+  nav.toc { font-family: system-ui, sans-serif; font-size: .92rem; }
+  nav.toc ol { list-style: none; padding: 0; margin: 0; }
+  nav.toc li { margin: 0; }
+  nav.toc a { display: block; padding: 5px 10px; color: var(--suave); text-decoration: none; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--fg); }
+  nav.toc a.activo { color: var(--acento); border-left-color: var(--acento); }
+  nav.toc .num { display: inline-block; width: 2.2ch; color: var(--suave); opacity: .7; }
+  details.toc-movil { border: 1px solid var(--linea); border-radius: 12px; padding: 10px 14px; margin: 0 0 24px; background: var(--panel); }
+  details.toc-movil summary { cursor: pointer; font-weight: 700; font-family: system-ui, sans-serif; }
+  .toc-lateral { display: none; }
+  @media (min-width: 960px) {
+    .marco { grid-template-columns: var(--toc) minmax(0, 1fr); }
+    .toc-lateral { display: block; position: sticky; top: 16px; align-self: start; max-height: calc(100vh - 32px); overflow: auto; padding-right: 6px; }
+    details.toc-movil { display: none; }
+  }
+  pre { position: relative; margin: 0 0 1em; padding: 14px 16px; border-radius: 12px; background: var(--codigo-bg); color: var(--codigo-fg); font-size: .84rem; line-height: 1.5; overflow: auto; tab-size: 4; max-width: 100%; }
+  pre .copiar { position: absolute; top: 6px; right: 6px; font: 600 .72rem system-ui, sans-serif; background: rgba(255,255,255,.12); color: var(--codigo-fg); border: 0; border-radius: 6px; padding: 4px 8px; cursor: pointer; }
+  pre .copiar:hover { background: rgba(255,255,255,.22); }
+  .tabla { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 0 1.2em; border: 1px solid var(--linea); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; font: .9rem/1.4 system-ui, sans-serif; min-width: 560px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--linea); vertical-align: top; }
+  th { background: var(--panel); color: var(--suave); font-weight: 600; font-size: .8rem; letter-spacing: .03em; text-transform: uppercase; }
+  tr:last-child td { border-bottom: 0; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td code { font-size: .82em; }
+  td.bien { color: var(--bien); font-weight: 600; } td.mal { color: var(--mal); font-weight: 600; } td.ojo { color: var(--ojo); font-weight: 600; }
+  td .barra { display: inline-block; height: .6em; max-width: 110px; background: var(--acento); border-radius: 3px; vertical-align: middle; margin-right: 8px; opacity: .55; }
+  .base { font: 600 .68rem system-ui, sans-serif; color: var(--suave); border: 1px solid var(--linea); border-radius: 999px; padding: 1px 6px; margin-left: 4px; vertical-align: middle; }
+  .bien { color: var(--bien); font-weight: 700; } .mal { color: var(--mal); font-weight: 700; }
+  .ojo { border-left: 4px solid var(--ojo); background: var(--panel); padding: 10px 14px; border-radius: 0 10px 10px 0; margin: 0 0 1.2em; font-size: .97em; }
+  .ojo b:first-child { font-family: system-ui, sans-serif; }
+  .llevo { border: 1px solid var(--linea); border-radius: 12px; padding: 12px 16px; margin: 1.2em 0; background: var(--panel); }
+  .llevo h4 { margin: 0 0 .4em; font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; color: var(--suave); }
+  .llevo ul { margin: 0; padding-left: 20px; }
+  .llevo li { margin-bottom: .25em; }
+  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 999px; font: .9rem system-ui, sans-serif; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .toast.visible { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="marco">
+<nav class="toc toc-lateral" aria-label="Índice"><ol id="toc-lateral"></ol></nav>
+<main>
+<p class="meta"><a href="../../">← Volver a la vitrina</a></p>
+<h1>Cuánto cuesta cada cosa en .NET 8</h1>
+<p class="bajada">129 microbenchmarks sobre las discusiones de todos los días en un equipo .NET (¿StringBuilder o concatenar? ¿LINQ o bucle? ¿cuánto cuesta una excepción, un async de más, una regex, el logging que no se ve?), medidos con BenchmarkDotNet y no de oído. Con el código de cada uno, el número, y qué hacer con eso.</p>
+<p class="meta">.NET 8.0.32 · BenchmarkDotNet 0.14 · Linux x64, contenedor con 2 vCPU · Release, TieredPGO, workstation GC · todos los números salen de <a href="resultados.json">resultados.json</a>, generado por el proyecto de <a href="benchmarks/">benchmarks/</a>. Las tablas se generan desde el JSON, no se tipean.</p>
+
+<details class="toc-movil"><summary>Índice</summary><nav class="toc"><ol id="toc-movil"></ol></nav></details>
+
+<h2 id="intro"><small>Antes de empezar</small>Cómo leer estos números (y cómo no)</h2>
+<p>Cada vez que en una revisión de código alguien dice «eso es lento» o «eso asigna memoria», vale la pena preguntar: ¿cuánto? Casi nunca hay un número en la mesa. Este escrito es ese número, para las discusiones más frecuentes, medido en un .NET 8 real con <a href="https://benchmarkdotnet.org/">BenchmarkDotNet</a>, la herramienta que usa el propio equipo de .NET.</p>
+<p>Cómo se midió: cada benchmark es un método con <code>[Benchmark]</code> en un proyecto Release. BenchmarkDotNet lo corre miles de veces por iteración, descuenta el costo del bucle, hace 3 iteraciones de calentamiento (así el JIT ya hizo su trabajo, incluido el tiered PGO) y 5 de medición, e informa la <b>media por operación</b> y, con <code>MemoryDiagnoser</code>, los <b>bytes asignados por operación</b> en el heap. Cada capítulo tiene un benchmark <span class="base">base</span> y los demás se comparan contra él.</p>
+<h3>Las tres reglas para no sacar conclusiones equivocadas</h3>
+<ol>
+<li><b>Los valores absolutos son de esta máquina</b>: un contenedor con 2 vCPU en una nube compartida. En tu notebook van a ser otros, probablemente más bajos. Lo que viaja de una máquina a otra es la <b>relación</b> entre variantes (3× más lento, 10× menos memoria), no el nanosegundo.</li>
+<li><b>Un nanosegundo es un nanosegundo.</b> Si algo tarda 60 ns en vez de 330 ns es 5× más lento, cierto, y también es cierto que en un endpoint que tarda 20 ms y lo llama una vez, da exactamente igual. Mirá la escala: ns es despreciable salvo en un bucle caliente; µs empieza a pesar si se repite por fila o por pedido; ms ya se ve en el p99. Las tablas tienen la unidad al lado del número a propósito.</li>
+<li><b>La memoria importa tanto como el tiempo, o más.</b> Lo que se asigna, el GC lo tiene que recolectar. En una API con miles de pedidos por segundo, 10 KB de basura por pedido son decenas de MB por segundo de trabajo para el GC, pausas de Gen0 y, si sobrevive algo, Gen1 y Gen2. Un benchmark con «0 B» no genera trabajo para el GC; uno con 2 KB sí. Muchas de las mejoras que siguen son de memoria más que de tiempo.</li>
+</ol>
+<div class="ojo"><b>Qué no es esto.</b> No es «hacé siempre lo rápido». Casi todo lo que aparece como lento es perfectamente legible y correcto, y en el 95 % del código da igual. El valor de los números es saber <em>dónde</em> está el otro 5 %: el bucle que procesa 100.000 filas, el middleware que corre en cada pedido, el serializador, el logging. Ahí, y solo ahí, elegir la variante barata se nota.</div>
+
+<h2 id="cadenas"><small>Capítulo 1</small>Armar texto: concatenar, StringBuilder, interpolar</h2>
+<p>La discusión más vieja de todas. Veinte pedazos de texto para unir con comas, y una línea de log típica con cuatro valores.</p>
+<pre><code>// Veinte partes
+[Benchmark(Baseline = true)] public string ConcatEnBucle() { var s = ""; foreach (var p in _partes) s += p + ","; return s; }
+[Benchmark] public string StringBuilder_() { var sb = new StringBuilder(); foreach (var p in _partes) { sb.Append(p); sb.Append(','); } return sb.ToString(); }
+[Benchmark] public string StringJoin() => string.Join(",", _partes) + ",";
+
+// Cuatro valores (int, string, decimal, DateTime)
+[Benchmark] public string Interpolacion() => $"Pedido {_id} de {_nombre}: {_total} el {_fecha:yyyy-MM-dd}";
+[Benchmark] public string StringFormat() => string.Format("Pedido {0} de {1}: {2} el {3:yyyy-MM-dd}", _id, _nombre, _total, _fecha);
+[Benchmark] public string ConcatOperador() => "Pedido " + _id + " de " + _nombre + ": " + _total + " el " + _fecha.ToString("yyyy-MM-dd");</code></pre>
+<!-- tabla:Cadenas -->
+<div class="tabla"><table data-clase="Cadenas">
+<tr><th>Variante</th><th class="n">Media por operación</th><th class="n">Contra la base</th><th class="n">Memoria por operación</th></tr>
+<tr><td><code>ConcatEnBucle</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:100%"></span>467,2 ns</td><td class="n ">1,00×</td><td class="n">3,50 KB</td></tr>
+<tr><td><code>StringBuilder_</code></td><td class="n"><span class="barra" style="width:69%"></span>323,9 ns</td><td class="n bien">1,44× más rápido</td><td class="n">1,17 KB</td></tr>
+<tr><td><code>StringJoin</code></td><td class="n"><span class="barra" style="width:36%"></span>168,7 ns</td><td class="n bien">2,8× más rápido</td><td class="n">648 B</td></tr>
+<tr><td><code>Interpolacion</code></td><td class="n"><span class="barra" style="width:24%"></span>110,9 ns</td><td class="n bien">4,2× más rápido</td><td class="n">112 B</td></tr>
+<tr><td><code>StringFormat</code></td><td class="n"><span class="barra" style="width:46%"></span>216,8 ns</td><td class="n bien">2,2× más rápido</td><td class="n">248 B</td></tr>
+<tr><td><code>ConcatOperador</code></td><td class="n"><span class="barra" style="width:45%"></span>211,9 ns</td><td class="n bien">2,2× más rápido</td><td class="n">320 B</td></tr>
+</table></div>
+<!-- /tabla -->
+<p>Concatenar con <code>+=</code> en un bucle crea una cadena nueva en cada vuelta (veinte cadenas intermedias que van a la basura: 3,5 KB para 20 partes). <code>StringBuilder</code> asigna menos pero no es gratis: su buffer interno también crece y se copia. El ganador es el que menos gente usa: <code>string.Join</code> calcula el largo total primero y escribe una sola vez. Lo mismo vale para <code>string.Concat(IEnumerable)</code>.</p>
+<p>Para armar una línea con pocos valores, <b>la interpolación gana por mucho</b> y no es casualidad: desde C# 10 <code>$"..."</code> se compila a un <code>DefaultInterpolatedStringHandler</code> que formatea cada valor directo en un buffer alquilado, sin crear las cadenas intermedias que sí crea <code>string.Format</code> (que además tiene que parsear la plantilla cada vez) ni el <code>+</code> (que llama a <code>ToString()</code> de cada valor y después concatena). Mitad de tiempo, menos de la mitad de memoria.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Para unir una colección: <code>string.Join</code>. Para unas pocas piezas conocidas: interpolación. <code>StringBuilder</code> para cuando armás texto de a poco y no sabés cuántas piezas son.</li>
+<li><code>string.Format</code> no tiene ya ninguna ventaja sobre <code>$""</code>, salvo que la plantilla venga de un recurso.</li>
+<li>El <code>+=</code> en un bucle es lo único que de verdad hay que evitar, y por la memoria más que por el tiempo.</li>
+</ul></div>
+
+<h2 id="comparar"><small>Capítulo 2</small>Comparar texto: cultura, ordinal y el ToLower() de más</h2>
+<p>Esto no es solo rendimiento, es corrección: <code>"i".ToUpper()</code> en turco no es <code>"I"</code>, y <code>StartsWith</code> sin especificar comparación usa la cultura actual, que en algunos casos ignora caracteres. Pero acá medimos cuánto cuesta cada forma de preguntar «¿son iguales?» y «¿empieza con?» sobre 1.000 nombres de archivo.</p>
+<pre><code>[Benchmark(Baseline = true)] public bool EqualsOrdinalIgnoreCase() => string.Equals(_a, _b, StringComparison.OrdinalIgnoreCase);
+[Benchmark] public bool ToLowerEquals() => _a.ToLower() == _b.ToLower();
+[Benchmark] public bool ToUpperInvariantEquals() => _a.ToUpperInvariant() == _b.ToUpperInvariant();
+[Benchmark] public bool EqualsCulturaIgnoreCase() => string.Equals(_a, _b, StringComparison.CurrentCultureIgnoreCase);
+
+// Sobre 1.000 nombres de archivo
+[Benchmark] public int StartsWithDefault() { ... if (s.StartsWith("Archivo_00")) n++; ... }           // cultura actual
+[Benchmark] public int StartsWithOrdinal() { ... if (s.StartsWith("Archivo_00", StringComparison.Ordinal)) n++; ... }
+[Benchmark] public int EndsWithDefault() { ... if (s.EndsWith(".pdf")) n++; ... }
+[Benchmark] public int EndsWithOrdinal() { ... if (s.EndsWith(".pdf", StringComparison.Ordinal)) n++; ... }
+[Benchmark] public int ContainsToLower() { ... if (s.ToLower().Contains("informe")) n++; ... }
+[Benchmark] public int ContainsOrdinalIgnoreCase() { ... if (s.Contains("informe", StringComparison.OrdinalIgnoreCase)) n++; ... }</code></pre>
+<!-- tabla:Comparaciones -->
+<div class="tabla"><table data-clase="Comparaciones">
+<tr><th>Variante</th><th class="n">Media por operación</th><th class="n">Contra la base</th><th class="n">Memoria por operación</th></tr>
+<tr><td><code>EqualsOrdinalIgnoreCase</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:2%"></span>60,7 ns</td><td class="n ">1,00×</td><td class="n">0 B</td></tr>
+<tr><td><code>ToLowerEquals</code></td><td class="n"><span class="barra" style="width:2%"></span>329,6 ns</td><td class="n mal">5,4× más lento</td><td class="n">208 B</td></tr>
+<tr><td><code>ToUpperInvariantEquals</code></td><td class="n"><span class="barra" style="width:2%"></span>267,1 ns</td><td class="n mal">4,4× más lento</td><td class="n">208 B</td></tr>
+<tr><td><code>EqualsCulturaIgnoreCase</code></td><td class="n"><span class="barra" style="width:2%"></span>258,0 ns</td><td class="n mal">4,3× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>StartsWithDefault</code></td><td class="n"><span class="barra" style="width:51%"></span>17,7 µs</td><td class="n mal">292× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>StartsWithOrdinal</code></td><td class="n"><span class="barra" style="width:4%"></span>1,52 µs</td><td class="n mal">25× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>EndsWithDefault</code></td><td class="n"><span class="barra" style="width:34%"></span>11,9 µs</td><td class="n mal">196× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>EndsWithOrdinal</code></td><td class="n"><span class="barra" style="width:4%"></span>1,41 µs</td><td class="n mal">23× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>ContainsToLower</code></td><td class="n"><span class="barra" style="width:100%"></span>35,0 µs</td><td class="n mal">576× más lento</td><td class="n">70,3 KB</td></tr>
+<tr><td><code>ContainsOrdinalIgnoreCase</code></td><td class="n"><span class="barra" style="width:28%"></span>9,89 µs</td><td class="n mal">163× más lento</td><td class="n">0 B</td></tr>
+</table></div>
+<!-- /tabla -->
+<p>El patrón <code>a.ToLower() == b.ToLower()</code> crea dos cadenas nuevas para tirarlas enseguida y encima pasa por las reglas de la cultura actual: 5× más lento y 200 B de basura por comparación. <code>StringComparison.OrdinalIgnoreCase</code> compara carácter por carácter sin asignar nada y es lo que querés para identificadores, nombres de archivo, claves, headers, cualquier cosa que no sea texto para mostrarle a una persona.</p>
+<p>La trampa grande es <code>StartsWith("...")</code> y <code>EndsWith("...")</code> <b>sin segundo parámetro</b>: esas dos sobrecargas usan la cultura actual (a diferencia de <code>Contains</code>, <code>IndexOf(char)</code> y <code>Equals</code>, que son ordinales). Pasan por ICU y son entre 8 y 12 veces más lentas, además de dar resultados raros con guiones, apóstrofos o caracteres de control. El analizador <code>CA1310</code> avisa justamente de esto.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Nunca <code>ToLower()</code>/<code>ToUpper()</code> para comparar. <code>StringComparison.OrdinalIgnoreCase</code>.</li>
+<li><code>StartsWith</code> y <code>EndsWith</code> siempre con <code>StringComparison.Ordinal</code> (o el <code>char</code> directo: <code>s.EndsWith('/')</code>). Activá <code>CA1310</code>.</li>
+<li>La comparación por cultura es para ordenar y comparar texto que ve el usuario. Nada más.</li>
+</ul></div>
+<h2 id="parsear"><small>Capítulo 3</small>Partir texto: Split, Substring y Span</h2>
+<p>Una línea de un archivo plano con siete campos separados por punto y coma, de la que hay que sacar tres números. Después, lo mismo mil veces (un archivo chico de mil líneas).</p>
+<pre><code>// "4821;2026-10-16;1234.50;ARS;Nicolás;aprobado;3"
+[Benchmark(Baseline = true)] public decimal SplitYParse()
+{
+    var c = _linea.Split(';');
+    return int.Parse(c[0]) + decimal.Parse(c[2], CultureInfo.InvariantCulture) + int.Parse(c[6]);
+}
+[Benchmark] public decimal SpanYParse()
+{
+    ReadOnlySpan&lt;char&gt; s = _linea;
+    int p1 = s.IndexOf(';'); int id = int.Parse(s[..p1]);
+    s = s[(p1 + 1)..]; s = s[(s.IndexOf(';') + 1)..];
+    int p3 = s.IndexOf(';'); decimal total = decimal.Parse(s[..p3], CultureInfo.InvariantCulture);
+    int cant = int.Parse(s[(s.LastIndexOf(';') + 1)..]);
+    return id + total + cant;
+}
+[Benchmark] public decimal SplitMil() { ... _csv.Split('\n') ... linea.Split(';') ... }   // 1.000 líneas
+[Benchmark] public decimal SpanMil()  { ... IndexOf('\n') y slices, sin asignar ... }
+[Benchmark] public int Substring_()  { ... _linea.Substring(5, 10).Length ... }           // 100 veces
+[Benchmark] public int AsSpanSlice() { ... _linea.AsSpan(5, 10).Length ... }</code></pre>
+<!-- tabla:Parseo -->
+<div class="tabla"><table data-clase="Parseo">
+<tr><th>Variante</th><th class="n">Media por operación</th><th class="n">Contra la base</th><th class="n">Memoria por operación</th></tr>
+<tr><td><code>SplitYParse</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:2%"></span>228,9 ns</td><td class="n ">1,00×</td><td class="n">336 B</td></tr>
+<tr><td><code>SpanYParse</code></td><td class="n"><span class="barra" style="width:2%"></span>106,4 ns</td><td class="n bien">2,2× más rápido</td><td class="n">0 B</td></tr>
+<tr><td><code>SplitMil</code></td><td class="n"><span class="barra" style="width:100%"></span>237,1 µs</td><td class="n mal">1.036× más lento</td><td class="n">459,8 KB</td></tr>
+<tr><td><code>SpanMil</code></td><td class="n"><span class="barra" style="width:42%"></span>100,3 µs</td><td class="n mal">438× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>Substring_</code></td><td class="n"><span class="barra" style="width:2%"></span>678,6 ns</td><td class="n ojo">3,0× más lento</td><td class="n">4,69 KB</td></tr>
+<tr><td><code>AsSpanSlice</code></td><td class="n"><span class="barra" style="width:2%"></span>58,5 ns</td><td class="n bien">3,9× más rápido</td><td class="n">0 B</td></tr>
+</table></div>
+<!-- /tabla -->
+<p><code>Split</code> crea un array y una cadena nueva por cada campo, aunque solo uses tres: 336 B por línea, 470 KB por el archivo de mil. La versión con <code>ReadOnlySpan&lt;char&gt;</code> no asigna <b>nada</b> (todas las APIs de parseo aceptan spans desde .NET Core 2.1: <code>int.Parse</code>, <code>decimal.Parse</code>, <code>DateTime.ParseExact</code>, <code>Guid.Parse</code>) y tarda menos de la mitad. <code>Substring</code> es lo mismo en chico: 48 B por llamada contra cero.</p>
+<p>El código con spans es más feo, no hay vuelta: eso es lo que se paga. Vale la pena en el parser de un formato (CSV, un log, un protocolo), en el middleware que lee headers, en lo que corre por cada fila. No vale la pena en el handler que parte una cadena una vez. Si te quedás con <code>Split</code>, al menos <code>Split(';', 3)</code> para no cortar lo que no vas a usar, o <code>StringSplitOptions.TrimEntries</code> en vez de un <code>Trim()</code> por campo.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>En un parser, <code>AsSpan()</code>, <code>IndexOf</code> y los <code>Parse(ReadOnlySpan&lt;char&gt;)</code>: 0 B. En el resto del código, <code>Split</code> está perfecto.</li>
+<li><code>Substring</code> crea una cadena; <code>AsSpan(inicio, largo)</code> no. Si lo que sigue acepta span, usá span.</li>
+<li>.NET 8 tiene <code>MemoryExtensions.Split(span, Span&lt;Range&gt;, separador)</code> para partir sin asignar; .NET 9 agrega el enumerador de <code>Split</code> sobre spans.</li>
+</ul></div>
+<h2 id="colecciones"><small>Capítulo 4</small>Listas y LINQ: cuánto cuesta la comodidad</h2>
+<p>Mil enteros y mil pedidos (un <code>record</code> con id, cliente, total y estado). Las preguntas de siempre: ¿la capacidad inicial de la lista importa?, ¿<code>foreach</code> o <code>for</code>?, ¿LINQ o bucle?, ¿<code>Any()</code> o <code>Count > 0</code>?</p>
+<pre><code>[Benchmark(Baseline = true)] public List&lt;int&gt; ListSinCapacidad() { var l = new List&lt;int&gt;(); for (int i = 0; i &lt; 1000; i++) l.Add(i); return l; }
+[Benchmark] public List&lt;int&gt; ListConCapacidad() { var l = new List&lt;int&gt;(1000); for (int i = 0; i &lt; 1000; i++) l.Add(i); return l; }
+
+[Benchmark] public long ForSobreArray() { long s = 0; for (int i = 0; i &lt; _numeros.Length; i++) s += _numeros[i]; return s; }
+[Benchmark] public long ForeachSobreList() { long s = 0; foreach (var n in _lista) s += n; return s; }
+[Benchmark] public long LinqSum() => _lista.Sum(n => (long)n);
+[Benchmark] public long ForeachSobreIEnumerable() { long s = 0; IEnumerable&lt;int&gt; e = _lista; foreach (var n in e) s += n; return s; }
+
+[Benchmark] public decimal LinqWhereSelectSum() => _pedidos.Where(p => p.Estado == "aprobado").Select(p => p.Total).Sum();
+[Benchmark] public decimal BucleWhereSelectSum() { decimal s = 0; foreach (var p in _pedidos) if (p.Estado == "aprobado") s += p.Total; return s; }
+[Benchmark] public List&lt;decimal&gt; LinqWhereSelectToList() => _pedidos.Where(p => p.Estado == "aprobado").Select(p => p.Total).ToList();
+
+[Benchmark] public bool AnySobreList() => _pedidos.Any();
+[Benchmark] public bool CountMayorQueCero() => _pedidos.Count > 0;
+[Benchmark] public int LinqCount() => _pedidos.Count(p => p.Estado == "aprobado");
+[Benchmark] public Pedido OrderByFirst() => _pedidos.OrderBy(p => p.Total).First();
+[Benchmark] public Pedido MinBy_() => _pedidos.MinBy(p => p.Total)!;</code></pre>
+<!-- tabla:Colecciones -->
+<div class="tabla"><table data-clase="Colecciones">
+<tr><th>Variante</th><th class="n">Media por operación</th><th class="n">Contra la base</th><th class="n">Memoria por operación</th></tr>
+<tr><td><code>ListSinCapacidad</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:27%"></span>2,27 µs</td><td class="n ">1,00×</td><td class="n">8,23 KB</td></tr>
+<tr><td><code>ListConCapacidad</code></td><td class="n"><span class="barra" style="width:16%"></span>1,34 µs</td><td class="n bien">1,70× más rápido</td><td class="n">3,96 KB</td></tr>
+<tr><td><code>ForSobreArray</code></td><td class="n"><span class="barra" style="width:6%"></span>507,8 ns</td><td class="n bien">4,5× más rápido</td><td class="n">0 B</td></tr>
+<tr><td><code>ForeachSobreList</code></td><td class="n"><span class="barra" style="width:6%"></span>541,9 ns</td><td class="n bien">4,2× más rápido</td><td class="n">0 B</td></tr>
+<tr><td><code>LinqSum</code></td><td class="n"><span class="barra" style="width:13%"></span>1,12 µs</td><td class="n bien">2,0× más rápido</td><td class="n">40 B</td></tr>
+<tr><td><code>ForeachSobreIEnumerable</code></td><td class="n"><span class="barra" style="width:14%"></span>1,18 µs</td><td class="n bien">1,93× más rápido</td><td class="n">40 B</td></tr>
+<tr><td><code>LinqWhereSelectSum</code></td><td class="n"><span class="barra" style="width:81%"></span>6,83 µs</td><td class="n mal">3,0× más lento</td><td class="n">160 B</td></tr>
+<tr><td><code>BucleWhereSelectSum</code></td><td class="n"><span class="barra" style="width:32%"></span>2,70 µs</td><td class="n ojo">1,2× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>LinqWhereSelectToList</code></td><td class="n"><span class="barra" style="width:49%"></span>4,12 µs</td><td class="n ojo">1,8× más lento</td><td class="n">16,3 KB</td></tr>
+<tr><td><code>AnySobreList</code></td><td class="n"><span class="barra" style="width:2%"></span>5,51 ns</td><td class="n bien">500× más rápido</td><td class="n">0 B</td></tr>
+<tr><td><code>CountMayorQueCero</code></td><td class="n"><span class="barra" style="width:2%"></span>0,084 ns</td><td class="n bien">∞× más rápido</td><td class="n">0 B</td></tr>
+<tr><td><code>LinqCount</code></td><td class="n"><span class="barra" style="width:86%"></span>7,25 µs</td><td class="n mal">3,2× más lento</td><td class="n">40 B</td></tr>
+<tr><td><code>OrderByFirst</code></td><td class="n"><span class="barra" style="width:100%"></span>8,48 µs</td><td class="n mal">3,7× más lento</td><td class="n">152 B</td></tr>
+<tr><td><code>MinBy_</code></td><td class="n"><span class="barra" style="width:82%"></span>6,92 µs</td><td class="n mal">3,0× más lento</td><td class="n">40 B</td></tr>
+</table></div>
+<!-- /tabla -->
+<p><b>La capacidad inicial</b> ahorra un 40 % del tiempo y la mitad de la memoria: sin ella, la lista arranca con 4 lugares y se duplica ocho veces hasta llegar a 1.024, copiando cada vez y dejando los arrays viejos para el GC. Si sabés cuántos elementos vienen (el <code>Count</code> de otra colección, el total de una página), pasalo.</p>
+<p><b><code>for</code> sobre un array y <code>foreach</code> sobre una <code>List&lt;T&gt;</code> cuestan lo mismo</b>: el compilador conoce el enumerador de <code>List&lt;T&gt;</code> (es una <code>struct</code>) y no asigna nada. La misma lista vista como <code>IEnumerable&lt;int&gt;</code> ya cuesta el doble y asigna el enumerador en el heap (40 B), porque pasa por la interfaz. <code>Sum</code> de LINQ está en ese segundo grupo: no es «LINQ es lento», es que la interfaz esconde el tipo concreto.</p>
+<p><b>LINQ contra el bucle</b> en una consulta real (filtrar por estado y sumar): el bucle tarda 2,5 veces menos, pero mirá la escala: la diferencia son 4 µs por cada mil pedidos. En un endpoint que hace esto una vez, nada. En uno que lo hace por cada fila de una grilla de 10.000 filas, 40 ms. Lo que sí es gratis es elegir bien el operador: <code>MinBy</code> hace una pasada y no asigna casi nada; <code>OrderBy(...).First()</code> ordena los mil para quedarse con uno.</p>
+<p><b><code>Any()</code> contra <code>Count > 0</code></b>: sobre una <code>List&lt;T&gt;</code> las dos son despreciables (<code>Any()</code> tiene atajo para <code>ICollection</code>), así que elegí la que se lea mejor. La regla de verdad es otra: nunca <code>Count()</code> con paréntesis sobre un <code>IEnumerable</code> que no sea una colección, porque lo recorre entero.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li><code>new List&lt;T&gt;(capacidad)</code> cuando la sabés. Es la optimización más barata que existe.</li>
+<li>LINQ es 2 o 3× más lento que el bucle equivalente y asigna un poco. Está bien en casi todos lados; pasalo a bucle solo donde el perfilador lo marque.</li>
+<li>Para «el menor» o «el mayor», <code>MinBy</code>/<code>MaxBy</code> (.NET 6+), no <code>OrderBy().First()</code>.</li>
+<li>Evitá exponer <code>IEnumerable&lt;T&gt;</code> en el camino caliente: la interfaz te cuesta el enumerador en el heap y el despacho virtual.</li>
+</ul></div>
+
+<h2 id="buscar"><small>Capítulo 5</small>Buscar por clave: la lista no es un índice</h2>
+<p>Mil pedidos en una lista, y hay que buscar cien por id. Lo que uno escribe sin pensar es <code>lista.FirstOrDefault(p => p.Id == id)</code> adentro de un bucle.</p>
+<pre><code>[Benchmark(Baseline = true)] public int ListFind100() { ... _lista.Find(p => p.Id == k) ... }
+[Benchmark] public int ListFirstOrDefault100() { ... _lista.FirstOrDefault(p => p.Id == k) ... }
+[Benchmark] public int Dictionary100() { ... _dic.TryGetValue(k, out _) ... }                 // diccionario armado una vez
+[Benchmark] public int ToDictionaryYBuscar100() { var d = _lista.ToDictionary(p => p.Id); ... d.TryGetValue(k, out _) ... }
+[Benchmark] public int JoinLinq100() => _claves.Join(_lista, k => k, p => p.Id, (k, p) => p).Count();</code></pre>
+<!-- tabla:Busquedas -->
+<div class="tabla"><table data-clase="Busquedas">
+<tr><th>Variante</th><th class="n">Media por operación</th><th class="n">Contra la base</th><th class="n">Memoria por operación</th></tr>
+<tr><td><code>ListFind100</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:20%"></span>70,2 µs</td><td class="n ">1,00×</td><td class="n">8,59 KB</td></tr>
+<tr><td><code>ListFirstOrDefault100</code></td><td class="n"><span class="barra" style="width:100%"></span>349,2 µs</td><td class="n mal">5,0× más lento</td><td class="n">12,5 KB</td></tr>
+<tr><td><code>Dictionary100</code></td><td class="n"><span class="barra" style="width:2%"></span>331,8 ns</td><td class="n bien">200× más rápido</td><td class="n">0 B</td></tr>
+<tr><td><code>ToDictionaryYBuscar100</code></td><td class="n"><span class="barra" style="width:4%"></span>13,4 µs</td><td class="n bien">5,2× más rápido</td><td class="n">30,3 KB</td></tr>
+<tr><td><code>JoinLinq100</code></td><td class="n"><span class="barra" style="width:14%"></span>49,4 µs</td><td class="n bien">1,42× más rápido</td><td class="n">102,3 KB</td></tr>
+</table></div>
+<!-- /tabla -->
+<p>Cien búsquedas lineales sobre mil elementos son hasta 100.000 comparaciones: es el clásico O(n·m) que no se nota con datos de prueba y explota en producción. El diccionario ya armado es <b>200 veces más rápido</b>. Y la parte que más sorprende: <b>armar el diccionario adentro del método</b>, usarlo cien veces y tirarlo, igual es 5× más rápido que buscar con <code>Find</code>, aun pagando 31 KB de memoria. El punto de equilibrio está muy bajo: con más de 10 o 20 búsquedas sobre la misma lista, ya conviene indexarla.</p>
+<p>Dos detalles. <code>List&lt;T&gt;.Find</code> (el método de la lista) es 5× más rápido que <code>FirstOrDefault</code> (el de LINQ) con el mismo predicado, porque recorre el array interno directo en vez de pasar por el enumerador y la interfaz. Y el <code>Join</code> de LINQ hace por adentro exactamente lo que hace <code>ToDictionary</code> (una tabla hash), así que es la forma declarativa de la misma idea; con 100 KB de memoria, eso sí.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Un <code>FirstOrDefault</code> adentro de un bucle es un diccionario que falta. <code>ToDictionary</code> o <code>ToLookup</code> antes del bucle, siempre.</li>
+<li>Sobre una <code>List&lt;T&gt;</code>, <code>Find</code>/<code>FindIndex</code>/<code>Exists</code> le ganan a <code>FirstOrDefault</code>/<code>Any</code> con predicado.</li>
+<li>Para cruzar dos colecciones, <code>Join</code> o <code>GroupJoin</code>: es legible y ya es O(n+m).</li>
+</ul></div>
+
+<h2 id="claves"><small>Capítulo 6</small>Un struct como clave de diccionario</h2>
+<p>Una clave compuesta (dos enteros) para un <code>Dictionary</code>. Hay cuatro formas de escribirla y una es una trampa.</p>
+<pre><code>public struct ClaveSinEquatable { public int A; public int B; }          // la trampa
+public struct ClaveConEquatable : IEquatable&lt;ClaveConEquatable&gt; { ... Equals(ClaveConEquatable o) ... GetHashCode() => HashCode.Combine(A, B); }
+public readonly record struct ClaveRecord(int A, int B);                // el compilador genera todo
+// y la tupla (int, int)
+
+[Benchmark(Baseline = true)] public int StructSinEquatable() { ... _sin[new ClaveSinEquatable { A = i, B = i * 2 }] ... }  // 1.000 búsquedas
+[Benchmark] public int StructConEquatable() { ... _con[new ClaveConEquatable { A = i, B = i * 2 }] ... }
+[Benchmark] public int RecordStruct() { ... _rec[new ClaveRecord(i, i * 2)] ... }
+[Benchmark] public int TuplaValor() { ... _tupla[(i, i * 2)] ... }</code></pre>
+<!-- tabla:ClavesStruct -->
+<div class="tabla"><table data-clase="ClavesStruct">
+<tr><th>Variante</th><th class="n">Media por operación</th><th class="n">Contra la base</th><th class="n">Memoria por operación</th></tr>
+<tr><td><code>StructSinEquatable</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:100%"></span>68,4 µs</td><td class="n ">1,00×</td><td class="n">70,3 KB</td></tr>
+<tr><td><code>StructConEquatable</code></td><td class="n"><span class="barra" style="width:35%"></span>24,2 µs</td><td class="n bien">2,8× más rápido</td><td class="n">0 B</td></tr>
+<tr><td><code>RecordStruct</code></td><td class="n"><span class="barra" style="width:24%"></span>16,6 µs</td><td class="n bien">4,1× más rápido</td><td class="n">0 B</td></tr>
+<tr><td><code>TuplaValor</code></td><td class="n"><span class="barra" style="width:36%"></span>24,8 µs</td><td class="n bien">2,8× más rápido</td><td class="n">0 B</td></tr>
+</table></div>
+<!-- /tabla -->
+<p>Un <code>struct</code> sin <code>Equals</code> ni <code>GetHashCode</code> propios hereda los de <code>ValueType</code>, que usan reflexión para comparar campo por campo y <b>boxean</b> la clave en cada llamada: 72 B de basura por búsqueda y 3 a 4× el tiempo. Implementar <code>IEquatable&lt;T&gt;</code> lo arregla; <code>record struct</code> lo hace solo, y encima le ganó a la implementación a mano porque el compilador genera un <code>GetHashCode</code> con <code>EqualityComparer&lt;int&gt;.Default</code> que el JIT reduce a una suma de enteros. La tupla <code>(int, int)</code> está bien también: implementa <code>IEquatable</code>.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Una clave compuesta es un <code>readonly record struct</code>. Una línea, sin trampas, la más rápida.</li>
+<li>Si tenés un <code>struct</code> a mano como clave o en un <code>HashSet</code>, implementá <code>IEquatable&lt;T&gt;</code> y <code>GetHashCode</code>. El analizador <code>CA1815</code> lo pide.</li>
+</ul></div>
+
+<h2 id="asignaciones"><small>Capítulo 7</small>Boxing, struct contra class, lambdas y params</h2>
+<p>Cosas que asignan memoria sin que se vea en el código.</p>
+<pre><code>[Benchmark(Baseline = true)] public long ListGenerica() { var l = new List&lt;int&gt;(1000); ... }
+[Benchmark] public long ArrayListBoxing() { var l = new ArrayList(1000); ... }                   // cada int se boxea
+[Benchmark] public string ConcatBoxeaInt() { var n = 42; return string.Concat("n=", n); }         // n se boxea a object
+[Benchmark] public string ConcatSinBoxeo() { var n = 42; return string.Concat("n=", n.ToString()); }
+
+[Benchmark] public double MilStructs() { var a = new PuntoStruct[1000]; ... }                    // un array, 16 KB
+[Benchmark] public double MilClases() { var a = new PuntoClass[1000]; ... }                      // 1.001 objetos
+
+[Benchmark] public int LambdaSinCaptura() { ... Aplicar(i, static x => x * 2) ... }
+[Benchmark] public int LambdaConCaptura() { ... int factor = 2; ... Aplicar(i, x => x * factor) ... }
+
+[Benchmark] public int ParamsArray() { ... Suma(i, 1, 2) ... }        // static int Suma(params int[] xs)
+[Benchmark] public int SobrecargaFija() { ... Suma3(i, 1, 2) ... }    // static int Suma3(int a, int b, int c)</code></pre>
+<!-- tabla:Asignaciones -->
+<div class="tabla"><table data-clase="Asignaciones">
+<tr><th>Variante</th><th class="n">Media por operación</th><th class="n">Contra la base</th><th class="n">Memoria por operación</th></tr>
+<tr><td><code>ListGenerica</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:16%"></span>1,91 µs</td><td class="n ">1,00×</td><td class="n">3,96 KB</td></tr>
+<tr><td><code>ArrayListBoxing</code></td><td class="n"><span class="barra" style="width:100%"></span>12,1 µs</td><td class="n mal">6,3× más lento</td><td class="n">31,4 KB</td></tr>
+<tr><td><code>ConcatBoxeaInt</code></td><td class="n"><span class="barra" style="width:2%"></span>23,7 ns</td><td class="n bien">83,3× más rápido</td><td class="n">56 B</td></tr>
+<tr><td><code>ConcatSinBoxeo</code></td><td class="n"><span class="barra" style="width:2%"></span>17,9 ns</td><td class="n bien">111× más rápido</td><td class="n">32 B</td></tr>
+<tr><td><code>MilStructs</code></td><td class="n"><span class="barra" style="width:20%"></span>2,46 µs</td><td class="n ojo">1,3× más lento</td><td class="n">15,6 KB</td></tr>
+<tr><td><code>MilClases</code></td><td class="n"><span class="barra" style="width:68%"></span>8,22 µs</td><td class="n mal">4,3× más lento</td><td class="n">39,1 KB</td></tr>
+<tr><td><code>LambdaSinCaptura</code></td><td class="n"><span class="barra" style="width:2%"></span>89,4 ns</td><td class="n bien">21,3× más rápido</td><td class="n">0 B</td></tr>
+<tr><td><code>LambdaConCaptura</code></td><td class="n"><span class="barra" style="width:2%"></span>98,6 ns</td><td class="n bien">19,2× más rápido</td><td class="n">96 B</td></tr>
+<tr><td><code>ParamsArray</code></td><td class="n"><span class="barra" style="width:7%"></span>876,4 ns</td><td class="n bien">2,2× más rápido</td><td class="n">3,91 KB</td></tr>
+<tr><td><code>SobrecargaFija</code></td><td class="n"><span class="barra" style="width:2%"></span>45,2 ns</td><td class="n bien">41,7× más rápido</td><td class="n">0 B</td></tr>
+</table></div>
+<!-- /tabla -->
+<p><b>Boxing</b> es convertir un tipo por valor en un objeto del heap. <code>ArrayList</code> lo hace con cada <code>int</code> (24 B por elemento, 32 KB en total y 6× el tiempo); hoy nadie usa <code>ArrayList</code>, pero el mismo boxing aparece en <code>string.Concat("n=", n)</code>, en <code>string.Format</code> con enteros, en <code>object</code> como parámetro, en un <code>struct</code> pasado a una interfaz. Se ve en la columna de memoria, no en el código.</p>
+<p><b>Mil structs en un array</b> son una sola asignación contigua de 16 KB; <b>mil clases</b> son 1.001 objetos dispersos, 40 KB y 3× el tiempo, y después el GC tiene que visitar cada uno. Para datos chicos e inmutables que viven en colecciones grandes (puntos, rangos, montos con moneda), <code>readonly record struct</code>.</p>
+<p><b>Una lambda que captura una variable</b> local asigna un objeto de clausura cada vez que se ejecuta el método (96 B acá); una que no captura (<code>static x => ...</code>) se cachea una sola vez y no asigna nunca. La diferencia de tiempo es chica (10 %); la de memoria es de 0 a 96 B por llamada. Y <b><code>params</code></b> asigna un array por llamada aunque pases dos valores: 20× más lento que una sobrecarga con parámetros fijos. Por eso el framework tiene <code>string.Concat(a, b)</code>, <code>(a, b, c)</code> y recién después <code>params</code>; C# 13 agrega <code>params ReadOnlySpan&lt;T&gt;</code> que no asigna.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Mirá la columna de memoria: donde dice más de 0 B en algo que no debería asignar, hay boxing o una clausura.</li>
+<li>Lambdas <code>static</code> en el camino caliente; si captura algo, que capture poco y sepas que asigna.</li>
+<li>Sobrecargas con 1, 2 y 3 parámetros antes del <code>params</code>, en las APIs que se llaman mucho.</li>
+</ul></div>
+<h2 id="excepciones"><small>Capítulo 8</small>Excepciones: cuánto cuesta un throw</h2>
+<p>Cien cadenas para convertir a entero, con el 10 % inválidas (lo normal: un parámetro mal formado cada tanto) y con el 100 % inválidas (el caso «uso la excepción para validar»). Y una sola excepción, lanzada y atrapada.</p>
+<pre><code>[Benchmark(Baseline = true)] public int TryParse10PorCiento() { ... if (int.TryParse(e, out var n)) s += n; ... }
+[Benchmark] public int ParseConCatch10PorCiento() { ... try { s += int.Parse(e); } catch (FormatException) { } ... }
+[Benchmark] public int TryParseTodasMalas() { ... }
+[Benchmark] public int ParseConCatchTodasMalas() { ... }
+[Benchmark] public int UnThrowCatch() { try { throw new InvalidOperationException("no"); } catch (InvalidOperationException) { return 1; } }
+[Benchmark] public int UnThrowCatchProfundo() => Nivel(20);   // el throw/catch está 20 llamadas más abajo</code></pre>
+<!-- tabla:Excepciones -->
+<div class="tabla"><table data-clase="Excepciones">
+<tr><th>Variante</th><th class="n">Media por operación</th><th class="n">Contra la base</th><th class="n">Memoria por operación</th></tr>
+<tr><td><code>TryParse10PorCiento</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:2%"></span>632,5 ns</td><td class="n ">1,00×</td><td class="n">0 B</td></tr>
+<tr><td><code>ParseConCatch10PorCiento</code></td><td class="n"><span class="barra" style="width:11%"></span>85,5 µs</td><td class="n mal">135× más lento</td><td class="n">4,92 KB</td></tr>
+<tr><td><code>TryParseTodasMalas</code></td><td class="n"><span class="barra" style="width:2%"></span>519,8 ns</td><td class="n bien">1,22× más rápido</td><td class="n">0 B</td></tr>
+<tr><td><code>ParseConCatchTodasMalas</code></td><td class="n"><span class="barra" style="width:100%"></span>803,0 µs</td><td class="n mal">1.270× más lento</td><td class="n">49,2 KB</td></tr>
+<tr><td><code>UnThrowCatch</code></td><td class="n"><span class="barra" style="width:2%"></span>6,70 µs</td><td class="n mal">11× más lento</td><td class="n">224 B</td></tr>
+<tr><td><code>UnThrowCatchProfundo</code></td><td class="n"><span class="barra" style="width:2%"></span>6,57 µs</td><td class="n mal">10× más lento</td><td class="n">224 B</td></tr>
+</table></div>
+<!-- /tabla -->
+<p>Un <code>throw</code> con su <code>catch</code> cuesta <b>entre 6 y 8 µs</b>: unas mil veces más que el <code>if</code> que lo evita. En el camino normal (10 % de entradas inválidas) usar <code>Parse</code> con <code>catch</code> en vez de <code>TryParse</code> es 135× más lento, y con todas inválidas más de 1.000×. La memoria de la tabla es la del objeto excepción y su stack trace: 224 B en el caso simple, 500 B por entrada inválida en el parseo. Que el <code>throw</code> esté a 20 llamadas de profundidad no cambió nada acá porque el <code>catch</code> está en el mismo método; lo que encarece es la distancia entre el <code>throw</code> y el <code>catch</code> (cada frame que hay que desarmar) y, mucho más, capturar el stack trace como texto (<code>ex.ToString()</code> o un logger que lo serializa).</p>
+<p>¿Importa? Una excepción cada tanto, no: 7 µs en un pedido de 20 ms es nada. Importa cuando se vuelve <b>control de flujo</b>: validar con <code>Parse</code>, buscar con <code>First</code> y atrapar <code>InvalidOperationException</code>, abrir archivos a ver si existen, un <code>catch</code> por fila en una importación. Ahí la API que procesaba 10.000 filas por segundo pasa a procesar 1.000, y el perfilador muestra la CPU en <code>RaiseException</code> y en armar stack traces. El contador <code>exception-count</code> de <code>dotnet-counters</code> es la forma de verlo en producción: si es de cientos por segundo en régimen normal, hay un <code>catch</code> trabajando de <code>if</code>.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li><code>TryParse</code>, <code>TryGetValue</code>, <code>FirstOrDefault</code>, <code>File.Exists</code>: para todo lo que puede fallar «normalmente», la variante que devuelve <code>bool</code> o <code>null</code>.</li>
+<li>Las excepciones son para lo excepcional, y ahí da igual lo que cuesten. .NET 9 las hizo 2 a 4× más baratas; sigue siendo mil veces un <code>if</code>.</li>
+<li>Mirá <code>exception-count</code> en producción. Cero en régimen es el objetivo.</li>
+</ul></div>
+<h2 id="enums"><small>Capítulo 9</small>Enums: ToString, Parse y IsDefined</h2>
+<p>Cien estados de pedido para convertir a texto (para un JSON, un log, una grilla) y cien textos para convertir a enum.</p>
+<pre><code>public enum EstadoPedido { Pendiente, Aprobado, Enviado, Entregado, Cancelado }
+
+[Benchmark(Baseline = true)] public int EnumToString() { ... e.ToString() ... }
+[Benchmark] public int SwitchANombre() { ... Nombre(e) ... }           // switch expression con los cinco nombres
+[Benchmark] public int DiccionarioCache() { ... _cache[e] ... }        // Dictionary&lt;EstadoPedido, string&gt; armado una vez
+[Benchmark] public int EnumParse() { ... Enum.Parse&lt;EstadoPedido&gt;(s) ... }
+[Benchmark] public int DiccionarioParse() { ... _cacheParse[s] ... }
+[Benchmark] public int EnumIsDefined() { ... Enum.IsDefined(e) ... }</code></pre>
+<!-- tabla:Enums -->
+<div class="tabla"><table data-clase="Enums">
+<tr><th>Variante</th><th class="n">Media por operación</th><th class="n">Contra la base</th><th class="n">Memoria por operación</th></tr>
+<tr><td><code>EnumToString</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:71%"></span>1,37 µs</td><td class="n ">1,00×</td><td class="n">2,34 KB</td></tr>
+<tr><td><code>SwitchANombre</code></td><td class="n"><span class="barra" style="width:16%"></span>314,6 ns</td><td class="n bien">4,3× más rápido</td><td class="n">0 B</td></tr>
+<tr><td><code>DiccionarioCache</code></td><td class="n"><span class="barra" style="width:12%"></span>226,0 ns</td><td class="n bien">6,0× más rápido</td><td class="n">0 B</td></tr>
+<tr><td><code>EnumParse</code></td><td class="n"><span class="barra" style="width:100%"></span>1,92 µs</td><td class="n ojo">1,4× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>DiccionarioParse</code></td><td class="n"><span class="barra" style="width:62%"></span>1,19 µs</td><td class="n bien">1,14× más rápido</td><td class="n">0 B</td></tr>
+<tr><td><code>EnumIsDefined</code></td><td class="n"><span class="barra" style="width:8%"></span>156,0 ns</td><td class="n bien">8,8× más rápido</td><td class="n">0 B</td></tr>
+</table></div>
+<!-- /tabla -->
+<p><code>Enum.ToString()</code> mejoró muchísimo en .NET 8 (antes rondaba los 100 ns; hoy, 14 ns) pero <b>sigue asignando una cadena nueva cada vez</b>: 24 B por llamada. Un <code>switch</code> devuelve el literal que ya está en memoria, 4× más rápido y sin asignar; el diccionario, 6× más rápido. <code>Enum.Parse</code> está en 19 ns y no asigna; un diccionario de nombres lo mejora un 40 %, que no es nada. <code>IsDefined</code> es barato (1,6 ns).</p>
+<p>La trampa clásica de rendimiento con enums era <code>HasFlag</code>, que boxeaba; desde .NET Core 2.1 el JIT lo convierte en una operación de bits y no asigna, así que ya no hay que evitarlo. Y si el enum va a un JSON, <code>JsonStringEnumConverter</code> cachea los nombres: no hace falta hacer nada.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Un enum a texto en un camino caliente: <code>switch</code> con los nombres, o un diccionario. <code>ToString()</code> asigna.</li>
+<li><code>Enum.Parse</code> y <code>TryParse</code> genéricos están bien. <code>HasFlag</code> también.</li>
+</ul></div>
+<h2 id="regex"><small>Capítulo 10</small>Regex: interpretada, compilada, generada, o ninguna</h2>
+<p>Validar cien direcciones de correo (un cuarto inválidas) con la misma expresión regular construida de cinco maneras, y a mano sin regex.</p>
+<pre><code>private const string Patron = @"^(?&lt;usuario&gt;[\w.+-]+)@(?&lt;dominio&gt;[\w-]+(\.[\w-]+)+)$";
+private static readonly Regex _interpretada = new(Patron);
+private static readonly Regex _compilada = new(Patron, RegexOptions.Compiled);
+[GeneratedRegex(Patron)] private static partial Regex Generada();            // source generator (.NET 7+)
+
+[Benchmark(Baseline = true)] public int Interpretada() { ... _interpretada.IsMatch(m) ... }
+[Benchmark] public int Compilada() { ... _compilada.IsMatch(m) ... }
+[Benchmark] public int Generada_() { ... Generada().IsMatch(m) ... }
+[Benchmark] public int RegexNuevaCadaVez() { ... new Regex(Patron).IsMatch(m) ... }     // el error típico
+[Benchmark] public int RegexEstatica() { ... Regex.IsMatch(m, Patron) ... }            // usa el caché interno
+[Benchmark] public int AManoSinRegex() { ... IndexOf('@'), IndexOf('.') ... }</code></pre>
+<!-- tabla:Regexes -->
+<div class="tabla"><table data-clase="Regexes">
+<tr><th>Variante</th><th class="n">Media por operación</th><th class="n">Contra la base</th><th class="n">Memoria por operación</th></tr>
+<tr><td><code>Interpretada</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:4%"></span>18,7 µs</td><td class="n ">1,00×</td><td class="n">0 B</td></tr>
+<tr><td><code>Compilada</code></td><td class="n"><span class="barra" style="width:2%"></span>7,70 µs</td><td class="n bien">2,4× más rápido</td><td class="n">0 B</td></tr>
+<tr><td><code>Generada_</code></td><td class="n"><span class="barra" style="width:2%"></span>6,86 µs</td><td class="n bien">2,7× más rápido</td><td class="n">0 B</td></tr>
+<tr><td><code>RegexNuevaCadaVez</code></td><td class="n"><span class="barra" style="width:100%"></span>415,5 µs</td><td class="n mal">22× más lento</td><td class="n">607,4 KB</td></tr>
+<tr><td><code>RegexEstatica</code></td><td class="n"><span class="barra" style="width:5%"></span>19,9 µs</td><td class="n ojo">1,1× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>AManoSinRegex</code></td><td class="n"><span class="barra" style="width:2%"></span>926,8 ns</td><td class="n bien">20,0× más rápido</td><td class="n">0 B</td></tr>
+</table></div>
+<!-- /tabla -->
+<p>Tres cosas. La primera y más importante: <b>construir la <code>Regex</code> en cada llamada</b> es 22× más lento que tener una estática y tira 6 KB de basura por llamada (el parseo del patrón y el árbol). Es el error más común con regex y el más fácil de arreglar: <code>static readonly</code>. La variante estática <code>Regex.IsMatch(texto, patrón)</code> zafa porque el runtime cachea los últimos 15 patrones, pero depende de que no haya más de 15 distintos en toda la aplicación.</p>
+<p>La segunda: <code>RegexOptions.Compiled</code> rinde 2,4× sobre la interpretada y el <b>source generator</b> (<code>[GeneratedRegex]</code>) 2,7×, con la ventaja de que el código generado se ve, se depura y no cuesta nada al arrancar (la compilada genera IL en tiempo de ejecución, y eso en una API son decenas de ms por regex en el primer uso). Si el patrón es constante, el generador es la opción sin contras.</p>
+<p>La tercera: para un chequeo simple, <b>dos <code>IndexOf</code> son 20× más rápidos que cualquier regex</b>. No es un argumento contra las regex (la versión a mano valida menos cosas), es para recordar que una regex es un intérprete de un lenguaje, y que si lo que querés saber es «¿tiene una arroba y un punto después?», no hace falta uno.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Nunca <code>new Regex(...)</code> adentro de un método que se llama más de una vez. <code>static readonly</code> o <code>[GeneratedRegex]</code>.</li>
+<li>Patrón constante: <code>[GeneratedRegex]</code>. Patrón que viene de configuración: <code>RegexOptions.Compiled</code> si se usa mucho, y siempre con <code>matchTimeout</code> si viene del usuario.</li>
+<li>Para «empieza con», «contiene», «termina con» y «es un número», los métodos de <code>string</code> son más claros y 20× más rápidos.</li>
+</ul></div>
+<h2 id="json"><small>Capítulo 11</small>JSON: System.Text.Json, Newtonsoft y el source generator</h2>
+<p>Un pedido con cinco ítems (el DTO típico de una API: 7 propiedades y una lista de 4 propiedades), serializado y deserializado con las dos bibliotecas que conviven en cualquier solución .NET.</p>
+<pre><code>[Benchmark(Baseline = true)] public string StjSerializar() => JsonSerializer.Serialize(_pedido);
+[Benchmark] public string StjSerializarOpcionesNuevas() => JsonSerializer.Serialize(_pedido, new JsonSerializerOptions { WriteIndented = false });
+[Benchmark] public string StjSerializarSourceGen() => JsonSerializer.Serialize(_pedido, PedidoContexto.Default.PedidoDto);
+[Benchmark] public string NewtonsoftSerializar() => JsonConvert.SerializeObject(_pedido);
+[Benchmark] public PedidoDto StjDeserializar() => JsonSerializer.Deserialize&lt;PedidoDto&gt;(_json)!;
+[Benchmark] public PedidoDto StjDeserializarSourceGen() => JsonSerializer.Deserialize(_json, PedidoContexto.Default.PedidoDto)!;
+[Benchmark] public PedidoDto NewtonsoftDeserializar() => JsonConvert.DeserializeObject&lt;PedidoDto&gt;(_json)!;
+[Benchmark] public byte[] StjSerializarBytes() => JsonSerializer.SerializeToUtf8Bytes(_pedido, _opcionesCache);
+
+[JsonSerializable(typeof(PedidoDto))] public partial class PedidoContexto : JsonSerializerContext { }</code></pre>
+<!-- tabla:Json -->
+<div class="tabla"><table data-clase="Json">
+<tr><th>Variante</th><th class="n">Media por operación</th><th class="n">Contra la base</th><th class="n">Memoria por operación</th></tr>
+<tr><td><code>StjSerializar</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:32%"></span>1,83 µs</td><td class="n ">1,00×</td><td class="n">1,38 KB</td></tr>
+<tr><td><code>StjSerializarOpcionesNuevas</code></td><td class="n"><span class="barra" style="width:41%"></span>2,34 µs</td><td class="n ojo">1,3× más lento</td><td class="n">1,56 KB</td></tr>
+<tr><td><code>StjSerializarSourceGen</code></td><td class="n"><span class="barra" style="width:22%"></span>1,25 µs</td><td class="n bien">1,46× más rápido</td><td class="n">1,08 KB</td></tr>
+<tr><td><code>NewtonsoftSerializar</code></td><td class="n"><span class="barra" style="width:56%"></span>3,22 µs</td><td class="n ojo">1,8× más lento</td><td class="n">4,97 KB</td></tr>
+<tr><td><code>StjDeserializar</code></td><td class="n"><span class="barra" style="width:55%"></span>3,18 µs</td><td class="n ojo">1,7× más lento</td><td class="n">1,32 KB</td></tr>
+<tr><td><code>StjDeserializarSourceGen</code></td><td class="n"><span class="barra" style="width:52%"></span>2,99 µs</td><td class="n ojo">1,6× más lento</td><td class="n">1,32 KB</td></tr>
+<tr><td><code>NewtonsoftDeserializar</code></td><td class="n"><span class="barra" style="width:100%"></span>5,74 µs</td><td class="n mal">3,1× más lento</td><td class="n">5,80 KB</td></tr>
+<tr><td><code>StjSerializarBytes</code></td><td class="n"><span class="barra" style="width:31%"></span>1,75 µs</td><td class="n ">igual</td><td class="n">880 B</td></tr>
+</table></div>
+<!-- /tabla -->
+<p><b>System.Text.Json es 1,8× más rápido que Newtonsoft para serializar y 1,8× para deserializar, y asigna entre 3,5 y 4,4 veces menos</b> (1,4 KB contra 5 KB por pedido). Para una API que serializa miles de respuestas por segundo esa diferencia de memoria es la que se ve en el GC. El <b>source generator</b> (<code>JsonSerializerContext</code>) le saca otro 30 % a la serialización y 20 % de memoria porque el código de cada propiedad ya está escrito en tiempo de compilación en vez de resolverse por reflexión y metadatos; para deserializar la ganancia es chica, porque el trabajo está en parsear el texto. Y <code>SerializeToUtf8Bytes</code> ahorra la conversión a <code>string</code> y la mitad de los bytes: es lo que hace ASP.NET Core por adentro cuando devolvés un objeto.</p>
+<p>Lo de <code>new JsonSerializerOptions</code> en cada llamada merece una nota. Hasta .NET 6 era el error más caro que se podía cometer con STJ: cada instancia nueva reconstruía los metadatos de todos los tipos (decenas de µs y KB por llamada). Desde .NET 7 el runtime reconoce opciones equivalentes y comparte el caché, y por eso acá «solo» cuesta 28 % más. Sigue siendo gratis evitarlo: una instancia <code>static readonly</code>, o las de ASP.NET Core (<code>JsonSerializerDefaults.Web</code>).</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Para código nuevo, System.Text.Json. Si todavía tenés Newtonsoft, el costo es 2× en tiempo y 4× en memoria por objeto, no 10×: migrá cuando puedas, no de apuro (hay una sugerencia pendiente para una guía de migración).</li>
+<li>Las <code>JsonSerializerOptions</code> se crean una vez. Siempre.</li>
+<li>El source generator vale la pena en DTOs que se serializan mucho, en AOT y en el arranque; no cambia la deserialización.</li>
+</ul></div>
+<h2 id="reflexion"><small>Capítulo 12</small>Reflexión, expresiones compiladas, dynamic y llamadas virtuales</h2>
+<p>Leer una propiedad cien veces, de todas las formas en que lo hace una biblioteca genérica (un mapper, un validador, un ORM). Y abajo, cuánto cuesta que una llamada sea virtual, por interfaz o por delegado.</p>
+<pre><code>[Benchmark(Baseline = true)] public decimal Directo() { ... _p.Total ... }
+[Benchmark] public decimal GetValueReflexion() { ... (decimal)_prop.GetValue(_p)! ... }                    // PropertyInfo cacheado
+[Benchmark] public decimal GetPropertyCadaVez() { ... typeof(PedidoDto).GetProperty("Total")!.GetValue(_p)! ... }
+[Benchmark] public decimal ExpresionCompilada() { ... _compilado(_p) ... }   // Expression.Lambda(...).Compile(), una vez
+[Benchmark] public decimal CreateDelegate() { ... _delegado(_p) ... }        // Delegate.CreateDelegate sobre el getter, una vez
+[Benchmark] public decimal DynamicCast() { ... dynamic d = _p; ... d.Total ... }</code></pre>
+<!-- tabla:Reflexion -->
+<div class="tabla"><table data-clase="Reflexion">
+<tr><th>Variante</th><th class="n">Media por operación</th><th class="n">Contra la base</th><th class="n">Memoria por operación</th></tr>
+<tr><td><code>Directo</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:9%"></span>359,2 ns</td><td class="n ">1,00×</td><td class="n">0 B</td></tr>
+<tr><td><code>GetValueReflexion</code></td><td class="n"><span class="barra" style="width:55%"></span>2,29 µs</td><td class="n mal">6,4× más lento</td><td class="n">3,13 KB</td></tr>
+<tr><td><code>GetPropertyCadaVez</code></td><td class="n"><span class="barra" style="width:100%"></span>4,18 µs</td><td class="n mal">12× más lento</td><td class="n">3,13 KB</td></tr>
+<tr><td><code>ExpresionCompilada</code></td><td class="n"><span class="barra" style="width:26%"></span>1,07 µs</td><td class="n ojo">3,0× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>CreateDelegate</code></td><td class="n"><span class="barra" style="width:26%"></span>1,10 µs</td><td class="n mal">3,1× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>DynamicCast</code></td><td class="n"><span class="barra" style="width:91%"></span>3,79 µs</td><td class="n mal">11× más lento</td><td class="n">6,25 KB</td></tr>
+</table></div>
+<!-- /tabla -->
+<p>La reflexión «cruda» (<code>PropertyInfo.GetValue</code>) cuesta unos 20 ns por lectura y <b>boxea el resultado</b> (32 B por cada <code>decimal</code>); si encima buscás la propiedad por nombre cada vez, el doble. La solución de las bibliotecas serias es la misma desde hace quince años: resolver una vez por tipo y <b>compilar un delegado</b> (con <code>Expression.Compile()</code> o con <code>Delegate.CreateDelegate</code> sobre el getter), que después cuesta lo mismo que una llamada virtual y no asigna. <code>dynamic</code> es reflexión con un caché de sitios de llamada: anda, pero asigna el doble y es 10× el acceso directo.</p>
+<pre><code>public interface ICalc { int Calc(int x); }
+public class CalcBase { public virtual int Calc(int x) => x + 1; public int CalcNoVirtual(int x) => x + 1; }
+public sealed class CalcSellada : CalcBase, ICalc { public override int Calc(int x) => x + 2; }
+
+[Benchmark(Baseline = true)] public int NoVirtual() { ... _base.CalcNoVirtual(i) ... }   // 1.000 llamadas
+[Benchmark] public int Virtual()  { ... _comoBase.Calc(i) ... }      // CalcBase apuntando a una subclase
+[Benchmark] public int Sellada()  { ... _sellada.Calc(i) ... }       // el tipo es sealed: el JIT la hace directa
+[Benchmark] public int Interfaz() { ... _interfaz.Calc(i) ... }
+[Benchmark] public int Delegado() { ... _func(i) ... }</code></pre>
+<!-- tabla:Llamadas -->
+<div class="tabla"><table data-clase="Llamadas">
+<tr><th>Variante</th><th class="n">Media por operación</th><th class="n">Contra la base</th><th class="n">Memoria por operación</th></tr>
+<tr><td><code>NoVirtual</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:81%"></span>368,8 ns</td><td class="n ">1,00×</td><td class="n">0 B</td></tr>
+<tr><td><code>Virtual</code></td><td class="n"><span class="barra" style="width:98%"></span>449,4 ns</td><td class="n ojo">1,2× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>Sellada</code></td><td class="n"><span class="barra" style="width:85%"></span>387,5 ns</td><td class="n ojo">1,1× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>Interfaz</code></td><td class="n"><span class="barra" style="width:96%"></span>439,3 ns</td><td class="n ojo">1,2× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>Delegado</code></td><td class="n"><span class="barra" style="width:100%"></span>457,3 ns</td><td class="n ojo">1,2× más lento</td><td class="n">0 B</td></tr>
+</table></div>
+<!-- /tabla -->
+<p>Una llamada virtual, por interfaz o por delegado cuesta <b>una fracción de nanosegundo</b> más que una directa (acá, 0,07 a 0,09 ns por llamada sobre 0,37). Con PGO dinámico (activado por defecto desde .NET 8) el JIT además adivina el tipo concreto en los sitios de llamada calientes y la vuelve directa. Marcar la clase como <code>sealed</code> le ahorra el trabajo y la deja casi en el costo de la no virtual: es una buena costumbre (y un analizador, <code>CA1852</code>), pero no esperes verlo en un perfil. Esta tabla está para cerrar la discusión de «las interfaces son lentas»: no lo son.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Reflexión: resolver una vez, compilar un delegado, cachear por tipo. Nunca <code>GetProperty</code> por nombre en el camino caliente. Y donde se pueda, source generators en vez de reflexión.</li>
+<li>Virtual, interfaz, delegado: gratis a todos los efectos prácticos. <code>sealed</code> por defecto en las clases que no están para heredar.</li>
+</ul></div>
+<h2 id="async"><small>Capítulo 13</small>Lo que cuesta un async de más (y uno de menos)</h2>
+<p>Cien lecturas de un diccionario en memoria, escritas de todas las formas en que se ven en un repositorio real: sincrónica, devolviendo <code>Task.FromResult</code>, con un método <code>async</code> que nunca espera, con <code>ValueTask</code>, con <code>Task.Yield</code>, con <code>Task.Run</code>, y la peor: con <code>.Result</code>.</p>
+<pre><code>private int Sync(int k) => _cache[k];
+private Task&lt;int&gt; TaskFromResult(int k) => Task.FromResult(_cache[k]);
+private async Task&lt;int&gt; AsyncSinAwait(int k) => _cache[k];                      // async sin await adentro
+private async Task&lt;int&gt; AsyncConAwaitCompletado(int k) => await TaskFromResult(k);
+private ValueTask&lt;int&gt; ValueTaskSync(int k) => new(_cache[k]);
+private async ValueTask&lt;int&gt; ValueTaskAsync(int k) => await ValueTaskSync(k);
+private async Task&lt;int&gt; AsyncConYield(int k) { await Task.Yield(); return _cache[k]; }
+
+[Benchmark(Baseline = true)] public int Sincronico() { ... Sync(i) ... }                       // 100 veces cada uno
+[Benchmark] public async Task&lt;int&gt; TaskFromResult_() { ... await TaskFromResult(i) ... }
+[Benchmark] public async Task&lt;int&gt; AsyncQueCompletaSincronico() { ... await AsyncSinAwait(i) ... }
+[Benchmark] public async Task&lt;int&gt; AsyncConAwaitYaCompletado() { ... await AsyncConAwaitCompletado(i) ... }
+[Benchmark] public async ValueTask&lt;int&gt; ValueTaskSincronica() { ... await ValueTaskSync(i) ... }
+[Benchmark] public async ValueTask&lt;int&gt; ValueTaskAsincronica() { ... await ValueTaskAsync(i) ... }
+[Benchmark] public async Task&lt;int&gt; TaskYield100() { ... await AsyncConYield(i) ... }             // 100 saltos al thread pool
+[Benchmark] public async Task&lt;int&gt; TaskRun100() { ... await Task.Run(() => _cache[i]) ... }
+[Benchmark] public int ResultBloqueante100() { ... Task.Run(() => _cache[i]).Result ... }
+[Benchmark] public async Task&lt;int&gt; WhenAll100() { ... Task.WhenAll(100 × Task.Run) ... }</code></pre>
+<!-- tabla:Asincronia -->
+<div class="tabla"><table data-clase="Asincronia">
+<tr><th>Variante</th><th class="n">Media por operación</th><th class="n">Contra la base</th><th class="n">Memoria por operación</th></tr>
+<tr><td><code>Sincronico</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:2%"></span>321,4 ns</td><td class="n ">1,00×</td><td class="n">0 B</td></tr>
+<tr><td><code>TaskFromResult_</code></td><td class="n"><span class="barra" style="width:2%"></span>1,78 µs</td><td class="n mal">5,5× más lento</td><td class="n">6,75 KB</td></tr>
+<tr><td><code>AsyncQueCompletaSincronico</code></td><td class="n"><span class="barra" style="width:2%"></span>2,47 µs</td><td class="n mal">7,7× más lento</td><td class="n">6,75 KB</td></tr>
+<tr><td><code>AsyncConAwaitYaCompletado</code></td><td class="n"><span class="barra" style="width:3%"></span>4,12 µs</td><td class="n mal">13× más lento</td><td class="n">13,4 KB</td></tr>
+<tr><td><code>ValueTaskSincronica</code></td><td class="n"><span class="barra" style="width:2%"></span>469,6 ns</td><td class="n ojo">1,5× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>ValueTaskAsincronica</code></td><td class="n"><span class="barra" style="width:2%"></span>1,29 µs</td><td class="n mal">4,0× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>TaskYield100</code></td><td class="n"><span class="barra" style="width:30%"></span>43,3 µs</td><td class="n mal">135× más lento</td><td class="n">10,3 KB</td></tr>
+<tr><td><code>TaskRun100</code></td><td class="n"><span class="barra" style="width:22%"></span>32,2 µs</td><td class="n mal">100× más lento</td><td class="n">7,26 KB</td></tr>
+<tr><td><code>ResultBloqueante100</code></td><td class="n"><span class="barra" style="width:100%"></span>146,1 µs</td><td class="n mal">455× más lento</td><td class="n">7,14 KB</td></tr>
+<tr><td><code>WhenAll100</code></td><td class="n"><span class="barra" style="width:16%"></span>22,8 µs</td><td class="n mal">71× más lento</td><td class="n">18,6 KB</td></tr>
+</table></div>
+<!-- /tabla -->
+<p>Un método <code>async</code> cuyo resultado ya está disponible (el caché que casi siempre acierta, el valor que a veces hay que ir a buscar) cuesta <b>unos 20 ns y 70 B por llamada</b>: el objeto <code>Task&lt;int&gt;</code>. Si además hace <code>await</code> sobre otra Task ya completada, casi se duplica. No es mucho, pero es un objeto por llamada en el heap, y en un método que se llama un millón de veces por segundo son 70 MB/s de basura. Para eso existe <code>ValueTask&lt;T&gt;</code>: cuando el resultado está, no asigna nada; cuando no está, se comporta como una Task. Es la elección correcta para «casi siempre sincrónico» y la equivocada para «casi siempre asincrónico» (ahí asigna igual y encima tiene reglas de uso más estrictas: se espera una sola vez).</p>
+<p>La escala cambia cuando el código <b>salta de hilo</b>: <code>Task.Yield</code> o <code>Task.Run</code> para algo trivial cuestan 300 a 400 ns por operación, porque cada uno encola un work item en el thread pool y espera que otro hilo lo tome. Y <b><code>.Result</code> sobre un <code>Task.Run</code></b> es 4× peor que esperarlo con <code>await</code>, aun en un benchmark que no sufre inanición: el hilo que llama se duerme y se despierta por cada uno. En una API, además, es el camino directo a la inanición del thread pool (hay un simulador de eso en <a href="../../experimentos/thread-pool-en-vivo/">El thread pool en vivo</a>).</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>No hagas <code>async</code> lo que no espera nada: devolvé el valor, o <code>Task.FromResult</code>, o mejor <code>ValueTask</code> si la firma tiene que ser asincrónica.</li>
+<li><code>ValueTask&lt;T&gt;</code> para métodos que casi siempre completan sincrónicamente (cachés, buffers). <code>Task&lt;T&gt;</code> para todo lo demás.</li>
+<li><code>Task.Run</code> es para trabajo de CPU largo, no para «hacerlo asincrónico». Y nunca con <code>.Result</code> atrás.</li>
+</ul></div>
+<h2 id="concurrencia"><small>Capítulo 14</small>Compartir estado entre hilos: lock, Interlocked y ConcurrentDictionary</h2>
+<p>Mil incrementos de un contador y mil lecturas-o-inserciones en un diccionario compartido, sin contención (un solo hilo) y con cuatro hilos peleándose por el mismo contador en dos núcleos.</p>
+<pre><code>[Benchmark(Baseline = true)] public int SumaSinSincronizar() { ... _contador++ ... }
+[Benchmark] public int LockIncrement() { ... lock (_candado) _contador++; ... }
+[Benchmark] public int InterlockedIncrement() { ... Interlocked.Increment(ref _contador); ... }
+[Benchmark] public int DictionaryConLock() { ... lock (_candado) { if (!_dic.TryGetValue(k, out var v)) { ... } } ... }
+[Benchmark] public int ConcurrentDictionaryGetOrAdd() { ... _cdic.GetOrAdd(k, i) ... }
+[Benchmark] public int ConcurrentDictionaryGetOrAddConLambda() { ... _cdic.GetOrAdd(k, k => k * 2) ... }
+[Benchmark] public int LockContencion4Hilos() { Parallel.For(0, 4, ... lock (_candado) total++ ... ) }         // 250 cada uno
+[Benchmark] public int InterlockedContencion4Hilos() { Parallel.For(0, 4, ... Interlocked.Increment(ref total) ... ) }</code></pre>
+<!-- tabla:Concurrencia -->
+<div class="tabla"><table data-clase="Concurrencia">
+<tr><th>Variante</th><th class="n">Media por operación</th><th class="n">Contra la base</th><th class="n">Memoria por operación</th></tr>
+<tr><td><code>SumaSinSincronizar</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:2%"></span>403,0 ns</td><td class="n ">1,00×</td><td class="n">0 B</td></tr>
+<tr><td><code>LockIncrement</code></td><td class="n"><span class="barra" style="width:26%"></span>21,2 µs</td><td class="n mal">53× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>InterlockedIncrement</code></td><td class="n"><span class="barra" style="width:7%"></span>5,51 µs</td><td class="n mal">14× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>DictionaryConLock</code></td><td class="n"><span class="barra" style="width:23%"></span>19,4 µs</td><td class="n mal">48× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>ConcurrentDictionaryGetOrAdd</code></td><td class="n"><span class="barra" style="width:5%"></span>4,19 µs</td><td class="n mal">10× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>ConcurrentDictionaryGetOrAddConLambda</code></td><td class="n"><span class="barra" style="width:5%"></span>4,31 µs</td><td class="n mal">11× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>LockContencion4Hilos</code></td><td class="n"><span class="barra" style="width:100%"></span>83,0 µs</td><td class="n mal">206× más lento</td><td class="n">1,91 KB</td></tr>
+<tr><td><code>InterlockedContencion4Hilos</code></td><td class="n"><span class="barra" style="width:22%"></span>17,9 µs</td><td class="n mal">44× más lento</td><td class="n">1,91 KB</td></tr>
+</table></div>
+<!-- /tabla -->
+<p>Sin nadie compitiendo, un <code>lock</code> cuesta <b>unos 20 ns</b> (entrar y salir del monitor) e <code>Interlocked.Increment</code> unos 5 (una instrucción atómica). Con cuatro hilos sobre el mismo contador, el <code>lock</code> se va a 83 ns por incremento y el atómico a 18: la contención multiplica todo por 4, pero el atómico sigue 4,6× adelante. El <code>ConcurrentDictionary</code> para lecturas que casi siempre aciertan cuesta 4 ns, contra 19 del <code>Dictionary</code> con <code>lock</code>: sus lecturas no toman ningún candado. Y la versión con <code>GetOrAdd(k, k => ...)</code> no asignó nada acá porque la lambda no captura; si captura, asigna la clausura en cada llamada aunque la clave ya exista (la trampa conocida), y para eso está la sobrecarga con argumento de estado.</p>
+<p>Lo que no muestra la tabla y es lo más importante: el costo de un <code>lock</code> no es el <code>lock</code>, es <b>lo que hay adentro</b>. Veinte nanosegundos de entrada y salida no importan; una consulta a la base o un <code>HttpClient</code> adentro del <code>lock</code> frena a todos los demás hilos, y en una API eso es la inanición del thread pool (<a href="../../experimentos/thread-pool-en-vivo/">El thread pool en vivo</a>).</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Un contador o una bandera: <code>Interlocked</code>. Una estructura: <code>lock</code> corto, o la colección concurrente si las lecturas dominan.</li>
+<li><code>ConcurrentDictionary.GetOrAdd</code> con lambda que captura asigna siempre; usá la sobrecarga con <code>factoryArgument</code> o <code>TryGetValue</code> primero.</li>
+<li>Nunca I/O adentro de un <code>lock</code>. Para eso, <code>SemaphoreSlim.WaitAsync</code>.</li>
+</ul></div>
+<h2 id="logging"><small>Capítulo 15</small>Logging: lo que se paga aunque no se vea</h2>
+<p>Un logger de <code>Microsoft.Extensions.Logging</code> con nivel mínimo <code>Information</code>, como en producción. Se mide un mensaje <code>Debug</code> (que <b>no</b> se va a escribir) y uno <code>Information</code> (que sí), escritos de las formas habituales.</p>
+<pre><code>// Debug: el nivel está apagado, el mensaje no sale.
+[Benchmark(Baseline = true)] public void DebugInterpolado() => _logger.LogDebug($"Pedido {_id} del cliente {_cliente} por {_total}");
+[Benchmark] public void DebugPlantilla() => _logger.LogDebug("Pedido {Id} del cliente {ClienteId} por {Total}", _id, _cliente, _total);
+[Benchmark] public void DebugConIsEnabled() { if (_logger.IsEnabled(LogLevel.Debug)) _logger.LogDebug("Pedido {Id} ...", _id, _cliente, _total); }
+[Benchmark] public void DebugLoggerMessageDefine() => _define(_logger, _id, _cliente, _total, null);   // LoggerMessage.Define, una vez
+[Benchmark] public void DebugSourceGenerator() => _logger.PedidoProcesado(_id, _cliente, _total);       // [LoggerMessage]
+
+// Information: el nivel está prendido, el mensaje se formatea y se entrega al proveedor.
+[Benchmark] public void InfoInterpolado() => _logger.LogInformation($"Pedido {_id} del cliente {_cliente} por {_total}");
+[Benchmark] public void InfoPlantilla() => _logger.LogInformation("Pedido {Id} del cliente {ClienteId} por {Total}", _id, _cliente, _total);
+[Benchmark] public void InfoSourceGenerator() => _logger.PedidoProcesadoInfo(_id, _cliente, _total);
+
+[LoggerMessage(EventId = 1, Level = LogLevel.Debug, Message = "Pedido {Id} del cliente {ClienteId} por {Total}")]
+public static partial void PedidoProcesado(this ILogger logger, int id, int clienteId, decimal total);</code></pre>
+<!-- tabla:Logging -->
+<div class="tabla"><table data-clase="Logging">
+<tr><th>Variante</th><th class="n">Media por operación</th><th class="n">Contra la base</th><th class="n">Memoria por operación</th></tr>
+<tr><td><code>DebugInterpolado</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:39%"></span>94,3 ns</td><td class="n ">1,00×</td><td class="n">96 B</td></tr>
+<tr><td><code>DebugPlantilla</code></td><td class="n"><span class="barra" style="width:28%"></span>67,5 ns</td><td class="n bien">1,40× más rápido</td><td class="n">128 B</td></tr>
+<tr><td><code>DebugConIsEnabled</code></td><td class="n"><span class="barra" style="width:2%"></span>1,65 ns</td><td class="n bien">55,6× más rápido</td><td class="n">0 B</td></tr>
+<tr><td><code>DebugLoggerMessageDefine</code></td><td class="n"><span class="barra" style="width:2%"></span>3,04 ns</td><td class="n bien">31,3× más rápido</td><td class="n">0 B</td></tr>
+<tr><td><code>DebugSourceGenerator</code></td><td class="n"><span class="barra" style="width:2%"></span>3,38 ns</td><td class="n bien">27,8× más rápido</td><td class="n">0 B</td></tr>
+<tr><td><code>InfoInterpolado</code></td><td class="n"><span class="barra" style="width:44%"></span>106,7 ns</td><td class="n ojo">1,1× más lento</td><td class="n">96 B</td></tr>
+<tr><td><code>InfoPlantilla</code></td><td class="n"><span class="barra" style="width:100%"></span>241,2 ns</td><td class="n ojo">2,6× más lento</td><td class="n">224 B</td></tr>
+<tr><td><code>InfoSourceGenerator</code></td><td class="n"><span class="barra" style="width:51%"></span>124,1 ns</td><td class="n ojo">1,3× más lento</td><td class="n">96 B</td></tr>
+</table></div>
+<!-- /tabla -->
+<p>Un <code>LogDebug</code> que no va a salir <b>igual cuesta</b> si lo escribís con interpolación: la cadena se arma antes de llamar al método (94 ns y 96 B para nada). Con la plantilla y los argumentos tampoco es gratis: los tres valores se boxean en un <code>object[]</code> (128 B) antes de que el logger decida que no le interesa. Las tres formas que no cuestan nada cuando el nivel está apagado son <code>IsEnabled</code> antes, <code>LoggerMessage.Define</code> y el <b>source generator</b> <code>[LoggerMessage]</code>: 2 a 3 ns, 0 B. Un servicio con cientos de <code>LogDebug</code> y <code>LogTrace</code> por pedido paga esto en cada pedido, en producción, para no escribir nada.</p>
+<p>Cuando el mensaje sí sale, la plantilla estructurada es la más cara de las tres (241 ns, 224 B): además de formatear el texto arma el objeto con los pares nombre/valor, que es justamente lo que un sink estructurado (Seq, Elastic, OpenTelemetry) necesita. La interpolada parece más barata, pero pierde la estructura: en el sink queda texto y chau. El source generator da las dos cosas: estructura y 96 B. Ojo que acá el proveedor descarta todo; con un sink real (consola, archivo, red) el costo del mensaje que sale lo domina el sink, no el formateo.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Nunca interpolación en un log: pierde la estructura y se paga aunque esté apagado. El analizador <code>CA2254</code> lo marca.</li>
+<li>Para los logs frecuentes (por pedido, por fila): <code>[LoggerMessage]</code>. Para el resto, la plantilla está bien.</li>
+<li>Un <code>IsEnabled</code> antes de armar algo caro para loguear (un JSON, un <code>ToString</code> grande) es la forma de no pagarlo.</li>
+</ul></div>
+<h2 id="fechas"><small>Capítulo 16</small>Fechas, GUID y lo que cuesta pedir la hora</h2>
+<p>Cosas chicas que aparecen en todos lados: leer el reloj, formatear una fecha, parsearla, generar un GUID.</p>
+<pre><code>[Benchmark(Baseline = true)] public DateTime UtcNow() => DateTime.UtcNow;
+[Benchmark] public DateTime Now() => DateTime.Now;
+[Benchmark] public DateTimeOffset OffsetNow() => DateTimeOffset.Now;
+[Benchmark] public long StopwatchTimestamp() => Stopwatch.GetTimestamp();
+[Benchmark] public string ToStringFormato() => _f.ToString("yyyy-MM-dd HH:mm:ss");
+[Benchmark] public string ToStringO() => _f.ToString("O");
+[Benchmark] public int TryFormat() { _f.TryFormat(_buffer, out var n, "yyyy-MM-dd HH:mm:ss"); return n; }
+[Benchmark] public DateTime ParseExact() => DateTime.ParseExact("2026-10-16 03:00:00", "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+[Benchmark] public DateTime Parse() => DateTime.Parse("2026-10-16 03:00:00", CultureInfo.InvariantCulture);
+[Benchmark] public Guid NewGuid() => Guid.NewGuid();
+[Benchmark] public string GuidToString() => Guid.Empty.ToString();</code></pre>
+<!-- tabla:Fechas -->
+<div class="tabla"><table data-clase="Fechas">
+<tr><th>Variante</th><th class="n">Media por operación</th><th class="n">Contra la base</th><th class="n">Memoria por operación</th></tr>
+<tr><td><code>UtcNow</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:9%"></span>32,4 ns</td><td class="n ">1,00×</td><td class="n">0 B</td></tr>
+<tr><td><code>Now</code></td><td class="n"><span class="barra" style="width:10%"></span>35,6 ns</td><td class="n ojo">1,1× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>OffsetNow</code></td><td class="n"><span class="barra" style="width:11%"></span>41,3 ns</td><td class="n ojo">1,3× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>StopwatchTimestamp</code></td><td class="n"><span class="barra" style="width:7%"></span>26,5 ns</td><td class="n bien">1,22× más rápido</td><td class="n">0 B</td></tr>
+<tr><td><code>ToStringFormato</code></td><td class="n"><span class="barra" style="width:25%"></span>92,0 ns</td><td class="n ojo">2,8× más lento</td><td class="n">64 B</td></tr>
+<tr><td><code>ToStringO</code></td><td class="n"><span class="barra" style="width:9%"></span>33,8 ns</td><td class="n ">igual</td><td class="n">80 B</td></tr>
+<tr><td><code>TryFormat</code></td><td class="n"><span class="barra" style="width:19%"></span>69,5 ns</td><td class="n ojo">2,1× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>ParseExact</code></td><td class="n"><span class="barra" style="width:51%"></span>185,0 ns</td><td class="n mal">5,7× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>Parse</code></td><td class="n"><span class="barra" style="width:45%"></span>162,9 ns</td><td class="n mal">5,0× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>NewGuid</code></td><td class="n"><span class="barra" style="width:100%"></span>361,2 ns</td><td class="n mal">11× más lento</td><td class="n">0 B</td></tr>
+<tr><td><code>GuidToString</code></td><td class="n"><span class="barra" style="width:6%"></span>22,5 ns</td><td class="n bien">1,44× más rápido</td><td class="n">96 B</td></tr>
+</table></div>
+<!-- /tabla -->
+<p>Pedir la hora cuesta unos <b>30 ns</b>, y <code>DateTime.Now</code> apenas más que <code>UtcNow</code> (en Linux el runtime cachea la zona horaria; en Windows antes era peor). O sea: no hace falta cachear <code>UtcNow</code> «por rendimiento», aunque sí conviene inyectar un <code>TimeProvider</code> por testeabilidad. Para medir intervalos, <code>Stopwatch.GetTimestamp()</code> y <code>Stopwatch.GetElapsedTime(inicio)</code> (.NET 7+) es lo correcto, no restar dos <code>DateTime</code>.</p>
+<p>Formatear con <code>"O"</code> (ISO 8601 redondo) es casi 3× más rápido que un formato a medida porque tiene un camino especial; y <code>TryFormat</code> sobre un buffer no asigna. <code>DateTime.Parse</code> sin formato le ganó por poco a <code>ParseExact</code> acá, pero <code>ParseExact</code> es el que no te va a sorprender con una cultura distinta en el servidor. <code>Guid.NewGuid()</code> cuesta 360 ns porque pide bytes aleatorios al sistema operativo; .NET 9 agrega <code>Guid.CreateVersion7()</code>, que es ordenable por tiempo y el que querés como clave de base (hay un experimento sobre eso: <a href="../../experimentos/guid-vs-identity/">GUID o identity</a>).</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>El reloj es barato. Medí intervalos con <code>Stopwatch</code>, no con <code>DateTime</code>.</li>
+<li>Para fechas en JSON y logs, <code>"O"</code>: es el formato más rápido y el único que no se malinterpreta.</li>
+<li>Un GUID son 360 ns: nada en un pedido, 36 ms si generás 100.000 en un bucle.</li>
+</ul></div>
+<h2 id="chuleta"><small>Para terminar</small>La chuleta: qué vale la pena y qué no</h2>
+<p>Lo que de verdad se nota, ordenado por cuánto se nota. Lo de arriba son errores que convierten microsegundos en milisegundos; lo de abajo son nanosegundos que solo importan en un bucle caliente.</p>
+<h3>Esto sí (órdenes de magnitud)</h3>
+<ul>
+<li><b>Excepciones como control de flujo</b>: 1.000× el <code>if</code>. <code>TryParse</code>, <code>TryGetValue</code>, <code>FirstOrDefault</code>.</li>
+<li><b><code>FirstOrDefault</code> adentro de un bucle</b> sobre una lista: 200× un diccionario. <code>ToDictionary</code> antes del bucle.</li>
+<li><b><code>new Regex(...)</code> por llamada</b>: 22× y 6 KB de basura. <code>static readonly</code> o <code>[GeneratedRegex]</code>.</li>
+<li><b><code>StartsWith</code>/<code>EndsWith</code> sin <code>StringComparison</code></b>: 10× por pasar por la cultura. <code>Ordinal</code>.</li>
+<li><b><code>params</code>, boxing y clausuras</b> en APIs que se llaman millones de veces: asignan sin que se vea.</li>
+<li><b>Logs con interpolación o <code>LogDebug</code> sin <code>IsEnabled</code></b>: ~100 ns y ~100 B por cada log apagado. <code>[LoggerMessage]</code>.</li>
+<li><b>Newtonsoft donde podría ser System.Text.Json</b>: 2× el tiempo y 4× la memoria en cada respuesta de la API.</li>
+<li><b>Reflexión sin cachear</b> (<code>GetProperty</code> + <code>GetValue</code>): 12× y boxing. Delegados compilados, o source generators.</li>
+<li><b><code>.Result</code> y <code>Task.Run</code> para esperar</b>: 4× un <code>await</code>, y en una API el camino a la inanición.</li>
+</ul>
+<h3>Esto, solo en el camino caliente</h3>
+<ul>
+<li>LINQ vs. bucle: 2 a 3×, unos µs por cada mil elementos. <code>MinBy</code> en vez de <code>OrderBy().First()</code>.</li>
+<li><code>Split</code>/<code>Substring</code> vs. <code>Span</code>: 2 a 12× y 0 B. En parsers.</li>
+<li><code>string.Join</code>/interpolación vs. <code>+=</code>/<code>string.Format</code>: 2 a 3× y la mitad de memoria.</li>
+<li><code>ValueTask</code> en métodos que casi siempre completan sincrónicamente: 0 B contra 70 B por llamada.</li>
+<li><code>struct</code> como clave de diccionario: <code>record struct</code>, 4× y sin boxing.</li>
+<li>Capacidad inicial de las listas: casi 2× y la mitad de memoria.</li>
+<li><code>Enum.ToString()</code>: 24 B por llamada; un <code>switch</code> no asigna.</li>
+<li><code>Interlocked</code> vs. <code>lock</code> para un contador: 4×.</li>
+</ul>
+<h3>Esto no importa (dejá de discutirlo)</h3>
+<ul>
+<li>Virtual, interfaz o delegado contra llamada directa: una fracción de nanosegundo. <code>sealed</code> es prolijo, no rápido.</li>
+<li><code>Any()</code> contra <code>Count > 0</code> sobre una lista. <code>for</code> contra <code>foreach</code> sobre una <code>List&lt;T&gt;</code>.</li>
+<li><code>DateTime.Now</code> contra <code>UtcNow</code>. Pedir la hora son 30 ns.</li>
+<li><code>HasFlag</code>, <code>Enum.Parse</code>, <code>IsDefined</code>: ya no asignan ni son lentos.</li>
+<li>El 95 % del código, que corre una vez por pedido y no en un bucle. Ahí lo único que importa es que se entienda.</li>
+</ul>
+<div class="ojo"><b>La regla.</b> Antes de optimizar, medí: <code>dotnet-counters</code> para el GC y las excepciones, <code>dotnet-trace</code> o el perfilador de Visual Studio para la CPU, y BenchmarkDotNet para comparar dos formas de hacer lo mismo. Cambiá lo que el perfil marque, con el número antes y después en el PR. Lo demás es superstición, aunque venga con tabla.</div>
+
+<h2 id="reproducir"><small>Apéndice</small>Cómo reproducirlo y fuentes</h2>
+<p>El proyecto completo está en <a href="benchmarks/"><code>benchmarks/</code></a>: un <code>.csproj</code> de .NET 8 con BenchmarkDotNet, Newtonsoft.Json y Microsoft.Extensions.Logging, y un archivo por capítulo con el código tal cual se midió. Para correrlo todo (tarda unos 45 minutos con la configuración corta):</p>
+<pre><code>cd escritos/cuanto-cuesta-dotnet/benchmarks
+dotnet run -c Release -- --filter '*'              # todo
+dotnet run -c Release -- --filter '*Cadenas*'      # un capítulo
+dotnet run -c Release -- --list flat               # ver los 129</code></pre>
+<p>Los resultados quedan en <code>BenchmarkDotNet.Artifacts/results/</code>; <code>exportar.py</code> los convierte en <code>resultados.json</code> y <code>node tablas.js</code> regenera las tablas de esta página. La configuración es <code>ShortRun</code> (3 calentamientos, 5 iteraciones) con <code>MemoryDiagnoser</code>: alcanza para las relaciones entre variantes; si querés el nanosegundo exacto para tu máquina, sacá el <code>ShortRun</code> y dejá el job por defecto (tarda horas).</p>
+<p>Dos advertencias de BenchmarkDotNet que se aplicaron acá: cada benchmark <b>devuelve</b> lo que calcula (si no, el JIT puede eliminar el trabajo), y los datos se arman en el constructor, no adentro del método medido. Lo que se mide es exactamente lo que está en el bloque de código de cada capítulo.</p>
+<h3>Fuentes</h3>
+<ul>
+<li><a href="https://benchmarkdotnet.org/articles/guides/good-practices.html">BenchmarkDotNet: Good practices</a> y <a href="https://benchmarkdotnet.org/articles/configs/jobs.html">Jobs</a>: por qué devolver valores, cuándo usar <code>ShortRun</code>, cómo leer <code>MemoryDiagnoser</code>.</li>
+<li>Stephen Toub, <a href="https://devblogs.microsoft.com/dotnet/performance-improvements-in-net-8/">Performance Improvements in .NET 8</a>: la fuente de casi todas las explicaciones de «por qué» (interpolación, <code>Enum</code>, regex, JSON, PGO).</li>
+<li>Microsoft Learn, <a href="https://learn.microsoft.com/es-es/dotnet/standard/base-types/best-practices-strings">Best practices for comparing strings</a> (y <a href="https://learn.microsoft.com/es-es/dotnet/fundamentals/code-analysis/quality-rules/ca1310">CA1310</a>), <a href="https://learn.microsoft.com/es-es/dotnet/standard/base-types/regular-expression-source-generators">Regular expression source generators</a>, <a href="https://learn.microsoft.com/es-es/dotnet/standard/serialization/system-text-json/source-generation">System.Text.Json source generation</a>, <a href="https://learn.microsoft.com/es-es/dotnet/core/extensions/logger-message-generator">Compile-time logging source generation</a> y <a href="https://learn.microsoft.com/es-es/dotnet/standard/design-guidelines/exceptions-and-performance">Exceptions and performance</a>.</li>
+<li>Stephen Toub, <a href="https://devblogs.microsoft.com/dotnet/understanding-the-whys-whats-and-whens-of-valuetask/">Understanding the Whys, Whats, and Whens of ValueTask</a>.</li>
+<li>Microsoft Learn, <a href="https://learn.microsoft.com/es-es/dotnet/standard/memory-and-spans/memory-t-usage-guidelines">Memory&lt;T&gt; and Span&lt;T&gt; usage guidelines</a>.</li>
+<li>Microsoft Learn, <a href="https://learn.microsoft.com/es-es/dotnet/core/diagnostics/dotnet-counters">dotnet-counters</a>: los contadores de GC y excepciones que se mencionan.</li>
+</ul>
+</main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+(function () {
+  "use strict";
+  const secciones = [...document.querySelectorAll("main h2[id]")];
+  const items = secciones.map((h, i) => {
+    const titulo = h.childNodes[h.childNodes.length - 1].textContent.trim();
+    const small = h.querySelector("small") ? h.querySelector("small").textContent.replace("Capítulo ", "") : "";
+    const num = /^\d+$/.test(small) ? small : "";
+    return `<li><a href="#${h.id}" data-id="${h.id}"><span class="num">${num}</span>${titulo}</a></li>`;
+  }).join("");
+  document.getElementById("toc-lateral").innerHTML = items;
+  document.getElementById("toc-movil").innerHTML = items;
+  const enlaces = [...document.querySelectorAll("nav.toc a")];
+  const activar = (id) => enlaces.forEach((a) => a.classList.toggle("activo", a.dataset.id === id));
+  let pendiente = false;
+  const calcular = () => {
+    pendiente = false;
+    let actual = secciones[0].id;
+    for (const s of secciones) { if (s.getBoundingClientRect().top <= 120) actual = s.id; else break; }
+    activar(actual);
+  };
+  window.addEventListener("scroll", () => { if (!pendiente) { pendiente = true; requestAnimationFrame(calcular); } }, { passive: true });
+  window.addEventListener("hashchange", () => setTimeout(calcular, 50));
+  calcular();
+  // Botón copiar en cada bloque de código
+  const toast = document.getElementById("toast");
+  for (const pre of document.querySelectorAll("pre")) {
+    const b = document.createElement("button"); b.type = "button"; b.className = "copiar"; b.textContent = "Copiar";
+    b.addEventListener("click", async () => {
+      const texto = pre.querySelector("code").textContent;
+      try { await navigator.clipboard.writeText(texto); } catch (e) { const ta = document.createElement("textarea"); ta.value = texto; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); } catch (e2) { /* nada */ } ta.remove(); }
+      toast.textContent = "Copiado"; toast.classList.add("visible"); setTimeout(() => toast.classList.remove("visible"), 1500);
+    });
+    pre.appendChild(b);
+  }
+})();
+</script>
+</body>
+</html>

@@ -120,7 +120,7 @@
     "slug": "thread-pool-en-vivo",
     "nombre": "Por qué se cuelga tu API: el thread pool en vivo",
     "categoria": "experimentos",
-    "descripcion": "Simulador del thread pool de .NET: hilos, bloqueados, cola y latencia según hagas await, .Result o I/O sincrónica, en .NET 6+ o anterior. Con diagnóstico, las cuentas y qué hacer.",
+    "descripcion": "Simulador del thread pool de .NET: hilos, bloqueados, cola y latencia según hagas await, .Result o I/O sincrónica, contrastado contra un .NET 8 real. Con diagnóstico, las cuentas y qué hacer.",
     "estado": "terminado",
     "probar": "experimentos/thread-pool-en-vivo/",
     "desde": "2026-10-15"
@@ -133,5 +133,14 @@
     "estado": "terminado",
     "probar": "herramientas/connection-string-en-criollo/",
     "desde": "2026-10-15"
+  },
+  {
+    "slug": "cuanto-cuesta-dotnet",
+    "nombre": "Cuánto cuesta cada cosa en .NET 8",
+    "categoria": "escritos",
+    "descripcion": "129 microbenchmarks medidos con BenchmarkDotNet sobre las discusiones de todos los días: strings, LINQ, excepciones, regex, JSON, async, lock, logging. Con el código, la tabla y qué hacer con eso.",
+    "estado": "terminado",
+    "probar": "escritos/cuanto-cuesta-dotnet/",
+    "desde": "2026-10-16"
   }
 ]
