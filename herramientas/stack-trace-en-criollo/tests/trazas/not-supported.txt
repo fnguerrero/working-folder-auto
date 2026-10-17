@@ -1,0 +1,5 @@
+System.NotSupportedException: Collection is read-only.
+   at System.Collections.ObjectModel.ReadOnlyCollection`1.System.Collections.Generic.ICollection<T>.Add(T value)
+   at Program.<>c.<<Main>$>b__0_35() in /w/Generador/Program.cs:line 73
+   at Program.<>c__DisplayClass0_1.<<Main>$>b__120() in /w/Generador/Program.cs:line 25
+   at Program.<Main>$(String[] args) in /w/Generador/Program.cs:line 254

@@ -1,0 +1,10 @@
+System.FormatException: The input string 'abc' was not in a correct format.
+   at System.Number.ThrowFormatException[TChar](ReadOnlySpan`1 value)
+   at System.Int32.Parse(String s)
+   at Tienda.Api.Importador.<>c.<ParsearEdades>b__0_0(String f) in /w/Generador/Program.cs:line 305
+   at System.Linq.Enumerable.SelectArrayIterator`2.Fill(ReadOnlySpan`1 source, Span`1 destination, Func`2 func)
+   at System.Linq.Enumerable.SelectArrayIterator`2.ToList()
+   at Tienda.Api.Importador.ParsearEdades(IEnumerable`1 filas) in /w/Generador/Program.cs:line 305
+   at Program.<>c.<<Main>$>b__0_12() in /w/Generador/Program.cs:line 50
+   at Program.<>c__DisplayClass0_1.<<Main>$>b__120() in /w/Generador/Program.cs:line 25
+   at Program.<Main>$(String[] args) in /w/Generador/Program.cs:line 254

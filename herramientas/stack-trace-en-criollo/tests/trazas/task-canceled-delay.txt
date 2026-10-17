@@ -1,0 +1,4 @@
+System.Threading.Tasks.TaskCanceledException: A task was canceled.
+   at Program.<>c.<<<Main>$>b__0_39>d.MoveNext() in /w/Generador/Program.cs:line 77
+--- End of stack trace from previous location ---
+   at Program.<Main>$(String[] args) in /w/Generador/Program.cs:line 254

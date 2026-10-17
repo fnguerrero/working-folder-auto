@@ -142,5 +142,14 @@
     "estado": "terminado",
     "probar": "escritos/cuanto-cuesta-dotnet/",
     "desde": "2026-10-16"
+  },
+  {
+    "slug": "stack-trace-en-criollo",
+    "nombre": "Stack trace en criollo",
+    "categoria": "herramientas",
+    "descripcion": "Pegás una excepción de .NET como salió en el log y te dice qué pasó, dónde fue en tu código y qué suele significar: cadena de internas, async, lambdas, SQL Server, Postgres, EF Core, HttpClient. Nada sale del navegador.",
+    "estado": "terminado",
+    "probar": "herramientas/stack-trace-en-criollo/",
+    "desde": "2026-10-17"
   }
 ]

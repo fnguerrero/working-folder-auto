@@ -1,0 +1,4 @@
+System.IndexOutOfRangeException: Index was outside the bounds of the array.
+   at Program.<>c.<<Main>$>b__0_17() in /w/Generador/Program.cs:line 55
+   at Program.<>c__DisplayClass0_1.<<Main>$>b__120() in /w/Generador/Program.cs:line 25
+   at Program.<Main>$(String[] args) in /w/Generador/Program.cs:line 254

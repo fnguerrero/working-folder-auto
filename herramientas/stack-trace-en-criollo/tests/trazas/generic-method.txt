@@ -1,0 +1,5 @@
+System.Collections.Generic.KeyNotFoundException: No existe Pedido con clave 5
+   at Tienda.Api.Repositorio`1.Buscar[TKey](TKey clave) in /w/Generador/Program.cs:line 293
+   at Program.<>c.<<Main>$>b__0_65() in /w/Generador/Program.cs:line 103
+   at Program.<>c__DisplayClass0_1.<<Main>$>b__120() in /w/Generador/Program.cs:line 25
+   at Program.<Main>$(String[] args) in /w/Generador/Program.cs:line 254

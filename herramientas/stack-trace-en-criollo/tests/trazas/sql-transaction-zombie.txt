@@ -1,0 +1,6 @@
+System.InvalidOperationException: This SqlTransaction has completed; it is no longer usable.
+   at Microsoft.Data.SqlClient.SqlTransaction.ZombieCheck()
+   at Microsoft.Data.SqlClient.SqlTransaction.Commit()
+   at Program.<>c__DisplayClass0_0.<<Main>$>b__167() in /w/Generador/Program.cs:line 179
+   at Program.<>c__DisplayClass0_1.<<Main>$>b__120() in /w/Generador/Program.cs:line 25
+   at Program.<Main>$(String[] args) in /w/Generador/Program.cs:line 254

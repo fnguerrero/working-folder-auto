@@ -30,5 +30,6 @@ Trabaja directo sobre `main`. Si algo no te gusta, se mueve a `_archivo/`.
 | El thread pool en vivo | experimentos | Simulador del thread pool de .NET: inanición por .Result o I/O sincrónica contra async, contrastado contra un .NET 8 real, con diagnóstico y qué hacer. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/experimentos/thread-pool-en-vivo/) |
 | Connection string en criollo | herramientas | Explica una cadena de conexión de SQL Server, PostgreSQL, MySQL o Redis: cada clave, qué es peligroso y dónde guardarla. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/herramientas/connection-string-en-criollo/) |
 | Cuánto cuesta cada cosa en .NET 8 | escritos | 129 microbenchmarks de .NET 8 medidos con BenchmarkDotNet: strings, LINQ, excepciones, regex, JSON, async, lock, logging; con el código, la tabla y qué hacer. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/escritos/cuanto-cuesta-dotnet/) |
+| Stack trace en criollo | herramientas | Pegás una excepción de .NET y te dice qué pasó, dónde fue en tu código y qué suele significar. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/herramientas/stack-trace-en-criollo/) |
 
 Las convenciones de estructura y trabajo están en [CLAUDE.md](CLAUDE.md).

@@ -1,0 +1,16 @@
+System.Data.DataException: Error parsing column 1 (Nombre=Ana - String)
+ ---> System.FormatException: The input string 'Ana' was not in a correct format.
+   at System.Number.ThrowFormatException[TChar](ReadOnlySpan`1 value)
+   at System.String.System.IConvertible.ToInt32(IFormatProvider provider)
+   at System.Convert.ChangeType(Object value, Type conversionType, IFormatProvider provider)
+   at Deserialize8709b539-30eb-4eed-b56c-579eadc9abef(DbDataReader)
+   --- End of inner exception stack trace ---
+   at Dapper.SqlMapper.ThrowDataException(Exception ex, Int32 index, IDataReader reader, Object value) in /_/Dapper/SqlMapper.cs:line 3966
+   at Deserialize8709b539-30eb-4eed-b56c-579eadc9abef(DbDataReader)
+   at Dapper.SqlMapper.QueryImpl[T](IDbConnection cnn, CommandDefinition command, Type effectiveType)+MoveNext()
+   at System.Collections.Generic.List`1..ctor(IEnumerable`1 collection)
+   at System.Linq.Enumerable.ToList[TSource](IEnumerable`1 source)
+   at Dapper.SqlMapper.Query[T](IDbConnection cnn, String sql, Object param, IDbTransaction transaction, Boolean buffered, Nullable`1 commandTimeout, Nullable`1 commandType)
+   at Program.<>c__DisplayClass0_0.<<Main>$>b__171()
+   at Program.<>c__DisplayClass0_1.<<Main>$>b__120()
+   at Program.<Main>$(String[] args)

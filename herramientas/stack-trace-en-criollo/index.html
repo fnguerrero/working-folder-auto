@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<title>Stack trace en criollo</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --card: #fff; --fg: #1d1d1f; --muted: #6b6b70; --line: #e4e2dc; --accent: #5b4fd6; --accent-fg: #fff;
+    --peligro: #c0392b; --ojo: #b7791f; --dato: #1d4ed8; --code: #f0eee8; --ok: #1e7e4f; --tuyo: #1e7e4f; --tuyo-bg: rgba(30, 126, 79, .10);
+    --peligro-bg: rgba(192, 57, 43, .08); --ojo-bg: rgba(183, 121, 31, .08); --dato-bg: rgba(29, 78, 216, .07);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111114; --card: #1b1b20; --fg: #ececf1; --muted: #9a9aa3; --line: #2a2a31; --accent: #9d93ff; --accent-fg: #15131f;
+      --peligro: #ff7b6b; --ojo: #f0b454; --dato: #93c5fd; --code: #15151a; --ok: #6fd39a; --tuyo: #6fd39a; --tuyo-bg: rgba(111, 211, 154, .12);
+      --peligro-bg: rgba(255, 123, 107, .10); --ojo-bg: rgba(240, 180, 84, .10); --dato-bg: rgba(147, 197, 253, .10);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.45; }
+  header { padding: 18px 16px 6px; max-width: 1100px; margin: 0 auto; }
+  h1 { margin: 0; font-size: 1.5rem; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  a { color: var(--accent); }
+  main { max-width: 1100px; margin: 0 auto; padding: 10px 16px 32px; display: grid; gap: 14px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+  .panel h2 { margin: 0 0 10px; font-size: 1rem; }
+  textarea { width: 100%; min-height: 140px; font: .82rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; padding: 10px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--fg); resize: vertical; white-space: pre; overflow-wrap: normal; overflow-x: auto; }
+  textarea:focus-visible { outline: 2px solid var(--accent); }
+  .fila { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+  .fila label { font-size: .85rem; color: var(--muted); }
+  button, .ejemplos button { font: inherit; font-size: .85rem; min-height: 40px; padding: 6px 12px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+  button:hover { border-color: var(--accent); }
+  button[aria-pressed="true"], button.primario { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .ejemplos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .privado { font-size: .82rem; color: var(--muted); margin: 8px 0 0; }
+  .resumen { font-size: 1.05rem; margin: 0 0 10px; }
+  .resumen b { color: var(--accent); }
+  .diag { border-left: 4px solid var(--accent); padding: 8px 12px; background: var(--dato-bg); border-radius: 0 8px 8px 0; margin-bottom: 10px; }
+  .diag h3 { margin: 0 0 4px; font-size: 1.05rem; }
+  .diag p { margin: 4px 0; font-size: .95rem; }
+  .diag ul { margin: 6px 0 0; padding-left: 20px; font-size: .92rem; }
+  .diag li { margin: 3px 0; }
+  .diag .fuente { font-size: .82rem; }
+  .donde { margin-top: 10px; }
+  .donde h3 { margin: 0 0 4px; font-size: .95rem; }
+  .donde .principal { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9rem; background: var(--tuyo-bg); border-left: 3px solid var(--tuyo); padding: 6px 10px; border-radius: 0 6px 6px 0; overflow-wrap: anywhere; }
+  .donde .principal .archivo { color: var(--muted); font-size: .82rem; display: block; }
+  .donde ol { margin: 6px 0 0; padding-left: 20px; font-size: .85rem; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .donde ol li { overflow-wrap: anywhere; }
+  .avisos { display: grid; gap: 8px; margin-top: 12px; }
+  .aviso { border-left: 4px solid var(--c); background: var(--b); border-radius: 0 8px 8px 0; padding: 8px 12px; }
+  .aviso.peligro { --c: var(--peligro); --b: var(--peligro-bg); } .aviso.ojo { --c: var(--ojo); --b: var(--ojo-bg); } .aviso.dato { --c: var(--dato); --b: var(--dato-bg); }
+  .aviso h3 { margin: 0; font-size: .92rem; color: var(--c); }
+  .aviso p { margin: 3px 0 0; font-size: .88rem; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .88em; background: var(--code); padding: 1px 5px; border-radius: 5px; overflow-wrap: anywhere; }
+  .cadena { display: grid; gap: 8px; }
+  .ex { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+  .ex.causa { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+  .ex .tipo { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9rem; font-weight: 600; overflow-wrap: anywhere; }
+  .ex .tipo .ns { color: var(--muted); font-weight: 400; }
+  .ex .nivel { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .ex .msj { margin: 4px 0 0; font-size: .9rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .ex .extras { margin: 4px 0 0; font-size: .8rem; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+  .ex .mini { margin: 6px 0 0; font-size: .85rem; color: var(--muted); }
+  .ex .mini b { color: var(--fg); }
+  .filtros { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
+  .filtros button { min-height: 34px; padding: 4px 12px; font-size: .82rem; }
+  .filtros .sep { flex: 1; }
+  .traza { display: grid; gap: 10px; }
+  .traza h3 { margin: 0; font-size: .9rem; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+  .traza h3 .ns { color: var(--muted); font-weight: 400; }
+  .frames { list-style: none; margin: 4px 0 0; padding: 0; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .82rem; }
+  .frames li { padding: 4px 8px; border-top: 1px solid var(--line); display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline; overflow-wrap: anywhere; }
+  .frames li.tuyo { background: var(--tuyo-bg); }
+  .frames li.ruido { color: var(--muted); opacity: .75; }
+  .frames li.marcador { color: var(--muted); font-style: italic; justify-content: center; }
+  .frames .met { flex: 1 1 260px; min-width: 0; }
+  .frames .met .ns { color: var(--muted); }
+  .frames .arch { color: var(--muted); font-size: .78rem; }
+  .frames .arch b { color: var(--fg); font-weight: 600; }
+  .frames .omitidos { color: var(--muted); font-style: italic; }
+  .etq { font-family: system-ui, sans-serif; font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; border-radius: 4px; padding: 1px 6px; background: var(--code); color: var(--muted); }
+  .etq.tuyo { background: var(--tuyo); color: #fff; }
+  .etq.libreria { background: var(--ojo-bg); color: var(--ojo); }
+  .etq.generado { background: var(--dato-bg); color: var(--dato); }
+  .crudo { display: none; }
+  .mostrar-crudo .crudo { display: block; color: var(--muted); font-size: .75rem; flex-basis: 100%; }
+  .oculto { display: none !important; }
+  .texto p, .texto li { font-size: .95rem; max-width: 76ch; }
+  .texto h2 { font-size: 1.15rem; margin: 16px 0 6px; }
+  .texto h2:first-child { margin-top: 0; }
+  .texto ul { padding-left: 20px; }
+  .texto pre { background: var(--code); padding: 10px 12px; border-radius: 8px; overflow: auto; font-size: .8rem; line-height: 1.4; max-width: 76ch; }
+  .texto table { border-collapse: collapse; font-size: .88rem; }
+  .texto th, .texto td { text-align: left; padding: 5px 8px; border-top: 1px solid var(--line); vertical-align: top; }
+  .texto th { color: var(--muted); font-weight: 600; font-size: .8rem; }
+  .copiado { color: var(--ok); font-size: .82rem; margin-left: 6px; }
+  .sin-tuyos { color: var(--muted); font-size: .9rem; }
+  @media (max-width: 700px) { .frames .met { flex-basis: 100%; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Stack trace en criollo</h1>
+  <p>Pegás una excepción de .NET tal como salió en el log (con sus <code>---&gt;</code>, sus <code>MoveNext</code> y sus <code>&lt;&gt;c__DisplayClass</code>) y te dice qué pasó, dónde fue en tu código y qué suele significar. Entiende excepciones internas, AggregateException, async, lambdas, .NET Framework en español y trazas pegadas desde un JSON.</p>
+</header>
+<main>
+  <section class="panel" aria-label="La traza">
+    <h2>La traza</h2>
+    <textarea id="entrada" spellcheck="false" autocomplete="off" placeholder="System.NullReferenceException: Object reference not set to an instance of an object.
+   at Tienda.Api.Servicios.ServicioClientes.ArmarSaludo(Int32 id) in /src/Servicios/ServicioClientes.cs:line 21
+   at ..."></textarea>
+    <div class="fila">
+      <button type="button" id="limpiar">Limpiar</button>
+      <label><input type="checkbox" id="rutasCompletas"> Rutas completas de los archivos</label>
+      <label><input type="checkbox" id="verCrudo"> Ver cada frame como vino</label>
+    </div>
+    <div class="ejemplos" id="ejemplos" aria-label="Ejemplos"></div>
+    <p class="privado">Todo se procesa en tu navegador: no hay red, no se guarda nada, no hay «copiar link». Las trazas suelen tener rutas, nombres de servidores y datos: acá no salen de tu máquina.</p>
+  </section>
+
+  <section class="panel oculto" id="nada" aria-label="Sin resultado"><p id="nadaTexto"></p></section>
+
+  <section class="panel oculto" id="salida" aria-label="Qué pasó">
+    <h2>Qué pasó</h2>
+    <p class="resumen" id="resumen"></p>
+    <div class="diag" id="diag"></div>
+    <div class="donde" id="donde"></div>
+    <div class="avisos" id="avisos"></div>
+  </section>
+
+  <section class="panel oculto" id="panelCadena" aria-label="La cadena de excepciones">
+    <h2>La cadena de excepciones <span style="font-weight: 400; color: var(--muted); font-size: .85rem;">de afuera hacia adentro; la marcada es la que explica el problema</span></h2>
+    <div class="cadena" id="cadena"></div>
+  </section>
+
+  <section class="panel oculto" id="panelTraza" aria-label="La traza, limpia">
+    <h2>La traza, limpia</h2>
+    <div class="filtros" role="group" aria-label="Qué frames mostrar">
+      <button type="button" data-filtro="tuyos">Solo lo tuyo</button>
+      <button type="button" data-filtro="sin-ruido" aria-pressed="true">Sin ruido del runtime</button>
+      <button type="button" data-filtro="todo">Todo</button>
+      <span class="sep"></span>
+      <button type="button" id="copiarMd">Copiar en Markdown</button><span class="copiado oculto" id="copiado">copiado</span>
+    </div>
+    <div class="traza" id="traza"></div>
+  </section>
+
+  <section class="panel texto" aria-label="Cómo leer una traza de .NET">
+    <h2>Cómo se lee una traza de .NET</h2>
+    <p>Lo que escribe <code>Exception.ToString()</code> tiene siempre la misma forma: el <b>tipo</b> de la excepción, dos puntos, el <b>mensaje</b>, y debajo una línea <code>at</code> por cada método que estaba en la pila cuando se tiró, <b>del más interno al más externo</b>. La primera línea <code>at</code> es donde explotó; la última, quién empezó todo (<code>Main</code>, el middleware de ASP.NET Core, un timer). Si el ensamblado se compiló con símbolos (<code>.pdb</code>) y están al lado de la DLL, cada frame tuyo trae <code>in Archivo.cs:line N</code>.</p>
+    <p>La regla práctica: <b>buscá la primera línea que sea de tu código</b> (tu namespace) y mirá ese archivo y esa línea. Lo que está arriba son los detalles de la librería que terminó tirando; lo que está abajo, el camino por el que se llegó.</p>
+
+    <h2>Excepciones internas: la causa está adentro</h2>
+    <p>Cuando una línea dice <code>---&gt; Otro.Tipo: mensaje</code>, la excepción de arriba <b>envuelve</b> a la de abajo. Los frames que siguen al <code>---&gt;</code> son de la interna, hasta la línea <code>--- End of inner exception stack trace ---</code>; de ahí en adelante vuelven a ser de la externa. Pueden anidarse varias veces (un <code>DbUpdateException</code> que envuelve una <code>SqlException</code> que envuelve una <code>Win32Exception</code>). <b>La información útil casi siempre está en la más interna</b>, salvo cuando la más interna es un detalle de bajo nivel (una <code>SocketException (125): Operation canceled</code>) y la que explica el problema es la de más arriba (el <code>TaskCanceledException</code> que dice «HttpClient.Timeout»). Por eso esta página elige la que mejor reconoce, no la última.</p>
+    <p>En .NET Framework el <code>---&gt;</code> va en la misma línea que el encabezado; en .NET Core, en la siguiente. Y en .NET Framework con el paquete de idioma, todo viene en español: <code>en</code> en lugar de <code>at</code>, <code>línea</code> en lugar de <code>line</code>, «Fin del seguimiento de la pila de la excepción interna». Las dos formas se leen igual.</p>
+
+    <h2>AggregateException: varias a la vez</h2>
+    <p><code>.Result</code>, <code>.Wait()</code>, <code>Task.WaitAll</code> y <code>Parallel.ForEach</code> envuelven lo que falló en una <code>AggregateException</code>, cuyo mensaje es «One or more errors occurred. (mensaje 1) (mensaje 2)». La primera interna aparece con <code>---&gt;</code> y, si hay más, cada una viene al final como <code>---&gt; (Inner Exception #1) Tipo: mensaje … &lt;---</code>. Con <code>await</code> en lugar de <code>.Result</code> no hay envoltorio: la excepción original se propaga tal cual (y <code>Task.WhenAll</code> con <code>await</code> tira solo la primera; las otras quedan en <code>task.Exception</code>).</p>
+
+    <h2>Los nombres raros son del compilador</h2>
+    <table>
+      <thead><tr><th>En la traza</th><th>Qué es</th></tr></thead>
+      <tbody>
+        <tr><td><code>Clase.&lt;Metodo&gt;d__12.MoveNext()</code></td><td>El método <b>async</b> <code>Metodo</code>: el compilador lo convierte en una máquina de estados cuyo <code>MoveNext</code> ejecuta cada tramo entre <code>await</code>. Desde .NET 6 el runtime ya muestra <code>Clase.Metodo()</code> directamente.</td></tr>
+        <tr><td><code>Clase.Metodo(…)+MoveNext()</code></td><td>Un <b>iterador</b> (<code>yield return</code>) o un async en .NET 6+: el cuerpo corre recién cuando alguien lo enumera, por eso el frame siguiente suele ser <code>List`1..ctor</code> o <code>Enumerable.ToList</code>.</td></tr>
+        <tr><td><code>Clase.&lt;&gt;c.&lt;Metodo&gt;b__0_1(…)</code></td><td>Una <b>lambda</b> escrita dentro de <code>Metodo</code> que no captura variables (<code>&lt;&gt;c</code> es la clase estática que las agrupa).</td></tr>
+        <tr><td><code>Clase.&lt;&gt;c__DisplayClass5_0.&lt;Metodo&gt;b__0()</code></td><td>Una lambda de <code>Metodo</code> que <b>captura variables</b> locales (la «display class» es el objeto que las guarda).</td></tr>
+        <tr><td><code>Clase.&lt;Metodo&gt;g__Validar|1_0(…)</code></td><td>La <b>función local</b> <code>Validar</code> declarada dentro de <code>Metodo</code>.</td></tr>
+        <tr><td><code>Program.&lt;Main&gt;$(String[] args)</code></td><td>El <code>Main</code> generado por los <b>top-level statements</b> de C# 9+.</td></tr>
+        <tr><td><code>Clase..ctor(…)</code> / <code>Clase..cctor()</code></td><td>El <b>constructor</b> y el <b>constructor estático</b>. Un <code>TypeInitializationException</code> siempre tiene un <code>..cctor</code> adentro.</td></tr>
+        <tr><td><code>Clase.get_Total()</code></td><td>El <code>get</code> de la <b>propiedad</b> <code>Total</code> (ídem <code>set_</code>, <code>add_</code>, <code>remove_</code> para eventos).</td></tr>
+        <tr><td><code>List`1</code>, <code>Func`2</code>, <code>Metodo[T]</code></td><td>Genéricos: el número después del acento grave es la cantidad de parámetros de tipo (<code>List&lt;T&gt;</code>, <code>Func&lt;T1,T2&gt;</code>). Los corchetes en el método son sus propios parámetros de tipo.</td></tr>
+        <tr><td><code>lambda_method8(Closure, …)</code></td><td>Un delegate <b>compilado en tiempo de ejecución</b> desde un árbol de expresiones: el handler de un endpoint mínimo de ASP.NET Core, un mapeo de AutoMapper, una proyección de EF Core. No tiene archivo ni línea.</td></tr>
+        <tr><td><code>Deserialize1cfac4ff-…(DbDataReader)</code></td><td>El materializador que <b>Dapper</b> genera por consulta para armar tus objetos desde el reader.</td></tr>
+        <tr><td><code>--- End of stack trace from previous location ---</code></td><td>La excepción se <b>relanzó</b> al salir de un <code>await</code> (o con <code>ExceptionDispatchInfo.Throw</code>). Arriba está dónde se tiró; abajo, quién estaba esperando. No es un error.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Por qué a veces no hay números de línea</h2>
+    <ul>
+      <li>No están los <code>.pdb</code> al lado de las DLL en el servidor. Desde .NET Core los PDB «portables» se generan siempre (<code>&lt;DebugType&gt;portable&lt;/DebugType&gt;</code> es el default); hay que copiarlos en el deploy. No cuestan rendimiento.</li>
+      <li>En Release el JIT puede <b>inlinear</b> métodos chicos: desaparecen de la traza y el frame que ves es el que los llamaba.</li>
+      <li>Las rutas (<code>C:\Users\nico\src\…</code>) son de la máquina o el agente donde se compiló, no del servidor. <code>/_/</code> es una librería compilada con rutas deterministas (SourceLink).</li>
+      <li>Las librerías de Microsoft no traen número de línea porque sus PDB no se distribuyen; igual el nombre del método suele alcanzar.</li>
+    </ul>
+
+    <h2><code>throw;</code> y <code>throw ex;</code> no son lo mismo</h2>
+    <pre>try { Validar(monto); }
+catch (Exception ex)
+{
+    _log.LogError(ex, "Falló la validación");
+    throw;      // conserva la traza original: se ve Validar y la línea que tiró
+    // throw ex; // la pisa: la traza arranca acá, como si hubiera explotado en el catch
+}</pre>
+    <p>Si en una traza el primer frame es el <code>catch</code> de un método tuyo y no el método que realmente falló, alguien hizo <code>throw ex;</code>. Para relanzar desde otro lado (otro hilo, después de un <code>Wait</code>) sin perder nada: <code>ExceptionDispatchInfo.Capture(ex).Throw()</code>. Y si envolvés en una excepción propia, pasá la original como <code>innerException</code>: <code>throw new ImportacionException("Fila 12", ex)</code>.</p>
+
+    <h2>Para que las trazas de tu app sean mejores</h2>
+    <ul>
+      <li>Logueá la excepción como objeto, no su mensaje: <code>_log.LogError(ex, "…")</code> en ILogger, <code>Log.Error(ex, "…")</code> en Serilog. Así va completa, con internas y datos extra.</li>
+      <li>Excepciones propias con datos: <code>StockInsuficienteException(productoId, faltan)</code> dice más que <code>new Exception("Sin stock")</code>.</li>
+      <li>En ASP.NET Core, <code>AddProblemDetails()</code> + <code>UseExceptionHandler()</code> con un <code>IExceptionHandler</code>: el cliente recibe un problema estándar y el log, la traza completa.</li>
+      <li><code>SqlException.Number</code>, <code>PostgresException.SqlState</code> y <code>SocketException.SocketErrorCode</code> son para manejar en código (reintentar un 1205, devolver 409 ante un 2627), no para parsear el mensaje.</li>
+      <li>Para trazas más legibles en los logs, <a href="https://github.com/benaadams/Ben.Demystifier">Ben.Demystifier</a> hace algo parecido a esta página desde adentro de la app.</li>
+    </ul>
+
+    <h2>Qué es y qué no es esta página</h2>
+    <p>Es un lector de trazas con una lista de errores conocidos: los que aparecen todos los días en un backend .NET con SQL Server, PostgreSQL, EF Core, Dapper, HttpClient, System.Text.Json, Newtonsoft, Redis y ASP.NET Core. Las explicaciones son las causas <b>habituales</b>, no un diagnóstico de tu caso: el mensaje completo, tu código y el log de alrededor mandan. Si una excepción no está en la lista, igual vas a ver la cadena limpia, tus frames marcados y los nombres traducidos. Los ejemplos de arriba son trazas reales capturadas en .NET 8 contra un SQL Server 2022 y un PostgreSQL 16 de verdad (el proyecto que las genera está en el repo), salvo las dos que dicen «Serilog» y «.NET Framework», que están armadas a mano con el formato de cada caso.</p>
+
+    <h2>Fuentes</h2>
+    <ul>
+      <li><a href="https://learn.microsoft.com/dotnet/api/system.exception.tostring">Exception.ToString()</a> y <a href="https://learn.microsoft.com/dotnet/api/system.exception.stacktrace">Exception.StackTrace</a>, Microsoft Learn.</li>
+      <li><a href="https://learn.microsoft.com/dotnet/standard/exceptions/best-practices-for-exceptions">Best practices for exceptions</a>, Microsoft Learn.</li>
+      <li><a href="https://devblogs.microsoft.com/dotnet/announcing-net-6/#stack-traces">Stack traces más limpias en .NET 6</a>, .NET Blog.</li>
+      <li><a href="https://learn.microsoft.com/sql/connect/ado-net/sql/sqlclient-troubleshooting-guide">SqlClient troubleshooting guide</a> y <a href="https://learn.microsoft.com/sql/relational-databases/errors-events/database-engine-events-and-errors">Database engine events and errors</a>, Microsoft Learn.</li>
+      <li><a href="https://www.postgresql.org/docs/current/errcodes-appendix.html">PostgreSQL error codes</a> y <a href="https://www.npgsql.org/doc/basic-usage.html">documentación de Npgsql</a>.</li>
+      <li><a href="https://learn.microsoft.com/ef/core/saving/concurrency">Concurrencia</a>, <a href="https://learn.microsoft.com/ef/core/querying/client-eval">evaluación del lado del cliente</a> y <a href="https://learn.microsoft.com/ef/core/dbcontext-configuration/">configuración del DbContext</a> en EF Core, Microsoft Learn.</li>
+      <li><a href="https://learn.microsoft.com/dotnet/standard/serialization/system-text-json/handle-errors">Errores de System.Text.Json</a>, Microsoft Learn.</li>
+      <li><a href="https://stackexchange.github.io/StackExchange.Redis/Timeouts">Investigating timeout exceptions in StackExchange.Redis</a>.</li>
+    </ul>
+  </section>
+</main>
+<script src="conocimiento.js"></script>
+<script src="logica.js"></script>
+<script src="ejemplos.js"></script>
+<script>
+(function () {
+  "use strict";
+  const ST = window.StackTrace;
+  const $ = (id) => document.getElementById(id);
+  const entrada = $("entrada");
+  let filtro = "sin-ruido";
+  let analisis = null;
+
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c])); }
+  function h(tag, attrs, html) { const el = document.createElement(tag); if (attrs) Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v)); if (html !== undefined) el.innerHTML = html; return el; }
+  function partirTipo(tipo) { const i = Math.max(tipo.lastIndexOf("."), tipo.lastIndexOf("+")); return i < 0 ? ["", tipo] : [tipo.slice(0, i + 1), tipo.slice(i + 1)]; }
+  function archivo(f) { if (!f.archivo) return ""; const ruta = $("rutasCompletas").checked ? f.archivo : ST.archivoCorto(f.archivo); return `<span class="arch"><b>${esc(ruta)}</b>${f.linea ? ":" + f.linea : ""}</span>`; }
+  function nombre(f, conNs) {
+    const n = ST.nombreFrame(f, { conNamespace: false });
+    const ns = conNs && f.namespace ? `<span class="ns">${esc(f.namespace)}.</span>` : "";
+    return ns + esc(n);
+  }
+
+  function pintar() {
+    const texto = entrada.value;
+    ["salida", "panelCadena", "panelTraza", "nada"].forEach((id) => $(id).classList.add("oculto"));
+    if (!texto.trim()) { analisis = null; return; }
+    analisis = ST.analizar(texto);
+    if (!analisis.ok) { $("nada").classList.remove("oculto"); $("nadaTexto").textContent = analisis.motivo; return; }
+    pintarQuePaso();
+    pintarCadena();
+    pintarTraza();
+    ["salida", "panelCadena", "panelTraza"].forEach((id) => $(id).classList.remove("oculto"));
+  }
+
+  function pintarQuePaso() {
+    const a = analisis;
+    $("resumen").innerHTML = esc(a.resumen).replace(/\b([A-Z]\w*(?:Exception|Error)\w*(?: -?\d+| [0-9A-Z]{5}| \(\d+\))?)/g, "<b>$1</b>");
+    const r = a.causa.regla;
+    const ex = a.causa.ex;
+    const diag = $("diag");
+    diag.innerHTML = "";
+    if (r) {
+      diag.appendChild(h("h3", null, esc(r.titulo)));
+      diag.appendChild(h("p", null, `<code>${esc(ex.corto)}</code>${ex.mensaje ? ": " + esc(ex.mensaje.split("\n")[0]) : ""}`));
+      diag.appendChild(h("p", null, esc(r.que)));
+      const ul = h("ul");
+      r.hacer.forEach((t) => ul.appendChild(h("li", null, esc(t))));
+      diag.appendChild(ul);
+      if (r.fuente) diag.appendChild(h("p", { class: "fuente" }, `Fuente: <a href="${esc(r.fuente)}" rel="noopener">${esc(r.fuente.replace(/^https?:\/\//, "").split("/").slice(0, 2).join("/"))}…</a>`));
+    }
+    const donde = $("donde");
+    donde.innerHTML = "<h3>Dónde, en tu código</h3>";
+    if (a.donde) {
+      const f = a.donde.frame;
+      donde.appendChild(h("div", { class: "principal" }, `${nombre(f, true)}${f.archivo ? `<span class="archivo">${$("rutasCompletas").checked ? esc(f.archivo) : esc(ST.archivoCorto(f.archivo))}${f.linea ? ", línea " + f.linea : ""}</span>` : `<span class="archivo">sin archivo ni línea (no hay .pdb)</span>`}`));
+      if (a.llamadores.length > 1) {
+        const ol = h("ol", null, "");
+        a.llamadores.slice(1).forEach((l) => ol.appendChild(h("li", null, `llamado desde ${nombre(l, false)}${l.linea ? ` <span>(${esc(ST.archivoCorto(l.archivo))}:${l.linea})</span>` : ""}`)));
+        donde.appendChild(ol);
+      }
+      if (a.donde.ex !== a.causa.ex) donde.appendChild(h("p", { class: "sin-tuyos" }, `La ${esc(a.causa.ex.corto)} no pasó por tu código; este frame es de la ${esc(a.donde.ex.corto)} que la envuelve.`));
+    } else {
+      donde.appendChild(h("p", { class: "sin-tuyos" }, "Ningún frame es de tu código: todos son del framework o de librerías. Mirá «Todo» en la traza de abajo; el último frame de cada excepción dice quién arrancó (un middleware, un timer, el thread pool)."));
+    }
+    const av = $("avisos");
+    av.innerHTML = "";
+    a.avisos.forEach((x) => av.appendChild(h("div", { class: "aviso " + x.nivel }, `<h3>${esc(x.titulo)}</h3><p>${esc(x.texto)}</p>`)));
+  }
+
+  function pintarCadena() {
+    const cont = $("cadena");
+    cont.innerHTML = "";
+    analisis.porExcepcion.forEach(({ ex, reglas, numero, sqlState }) => {
+      const prof = ST.profundidad(ex);
+      const [ns, corto] = partirTipo(ex.tipo || "(sin tipo)");
+      const card = h("div", { class: "ex" + (ex === analisis.causa.ex ? " causa" : ""), style: `margin-left: ${Math.min(prof, 4) * 14}px` });
+      const nivel = prof === 0 ? "externa" : ex.indiceAgregada !== null ? `interna #${ex.indiceAgregada}` : ex.internas.length ? "interna" : "más interna";
+      card.appendChild(h("div", { class: "nivel" }, esc(nivel) + (ex === analisis.causa.ex ? " · la que explica el problema" : "")));
+      card.appendChild(h("div", { class: "tipo" }, `<span class="ns">${esc(ns)}</span>${esc(corto)}${ex.hresult ? ` <span class="ns">(${esc(ex.hresult)})</span>` : ""}`));
+      if (ex.mensaje) card.appendChild(h("p", { class: "msj" }, esc(ex.mensaje)));
+      const extras = [];
+      if (numero !== null && ex.corto === "SqlException") extras.push(`Error Number ${numero}`);
+      if (ex.extras.State) extras.push(`State ${esc(ex.extras.State)}`);
+      if (ex.extras.Class) extras.push(`Class ${esc(ex.extras.Class)}`);
+      if (sqlState && ex.corto === "PostgresException") extras.push(`SQLSTATE ${esc(sqlState)}`);
+      ["ConstraintName", "TableName", "ColumnName", "Detail", "Hint", "Where", "File name"].forEach((k) => { if (ex.extras[k]) extras.push(`${k}: ${esc(ex.extras[k])}`); });
+      if (extras.length) card.appendChild(h("div", { class: "extras" }, extras.join(" · ")));
+      const r = reglas[0];
+      if (r && ex !== analisis.causa.ex && r.prioridad > 0) card.appendChild(h("p", { class: "mini" }, `<b>${esc(r.titulo)}.</b> ${esc(r.que)}`));
+      const tuyos = ST.framesTuyos(ex);
+      if (tuyos.length && ex !== analisis.causa.ex) card.appendChild(h("p", { class: "mini" }, `Pasó por tu código en <code>${esc(ST.nombreFrame(tuyos[0]))}</code>${tuyos[0].linea ? ` (${esc(ST.archivoCorto(tuyos[0].archivo))}:${tuyos[0].linea})` : ""}.`));
+      cont.appendChild(card);
+    });
+  }
+
+  function pintarTraza() {
+    const cont = $("traza");
+    cont.innerHTML = "";
+    cont.classList.toggle("mostrar-crudo", $("verCrudo").checked);
+    analisis.todasLasEx.forEach((ex) => {
+      const bloque = h("div");
+      const [ns, corto] = partirTipo(ex.tipo || "(sin tipo)");
+      bloque.appendChild(h("h3", null, `<span class="ns">${esc(ns)}</span>${esc(corto)}${ex.mensaje ? `<span class="ns">: ${esc(ex.mensaje.split("\n")[0].slice(0, 160))}</span>` : ""}`));
+      const ul = h("ul", { class: "frames" });
+      let ocultos = 0;
+      const vaciar = () => { if (ocultos) { ul.appendChild(h("li", { class: "omitidos" }, `… ${ocultos} frame${ocultos > 1 ? "s" : ""} ${filtro === "tuyos" ? "que no son tuyos" : "del runtime"} omitido${ocultos > 1 ? "s" : ""}`)); ocultos = 0; } };
+      ex.frames.forEach((f) => {
+        if (f.marcador) { if (filtro !== "tuyos") { vaciar(); ul.appendChild(h("li", { class: "marcador" }, "— relanzada después de un await / ExceptionDispatchInfo —")); } return; }
+        const mostrar = filtro === "todo" || (filtro === "tuyos" ? f.origen === "tuyo" : !f.ruido);
+        if (!mostrar) { ocultos++; return; }
+        vaciar();
+        const etqs = [];
+        if (f.origen === "tuyo") etqs.push('<span class="etq tuyo">tuyo</span>');
+        else if (f.origen === "libreria" || f.libreria) etqs.push(`<span class="etq libreria">${esc(f.libreria || "librería")}</span>`);
+        else if (f.origen === "generado") etqs.push('<span class="etq generado">generado</span>');
+        f.etiquetas.forEach((e) => etqs.push(`<span class="etq">${esc(e)}</span>`));
+        const li = h("li", { class: f.origen + (f.ruido ? " ruido" : "") }, `<span class="met">${nombre(f, f.origen !== "tuyo")}</span>${archivo(f)}${etqs.join("")}<span class="crudo">${esc(f.crudo)}</span>`);
+        ul.appendChild(li);
+      });
+      vaciar();
+      if (!ex.frames.some((f) => !f.marcador)) ul.appendChild(h("li", { class: "omitidos" }, "sin frames (la excepción se creó pero no se tiró, o el log no los guardó)"));
+      bloque.appendChild(ul);
+      cont.appendChild(bloque);
+    });
+    if (analisis.otrasRaices.length) {
+      const aviso = h("p", { class: "sin-tuyos" }, `Además hay ${analisis.otrasRaices.length} excepción(es) más en el texto, independientes de esta: ${analisis.otrasRaices.map((e) => `<code>${esc(e.corto)}</code>`).join(", ")}. Pegalas por separado para analizarlas.`);
+      cont.appendChild(aviso);
+    }
+  }
+
+  // Ejemplos
+  const ej = $("ejemplos");
+  (window.EJEMPLOS || []).forEach((e) => {
+    const b = h("button", { type: "button" }, esc(e.nombre));
+    b.addEventListener("click", () => { entrada.value = e.texto; pintar(); window.scrollTo({ top: $("salida").offsetTop - 8, behavior: "smooth" }); });
+    ej.appendChild(b);
+  });
+
+  let timer = null;
+  entrada.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(pintar, 150); });
+  $("limpiar").addEventListener("click", () => { entrada.value = ""; pintar(); entrada.focus(); });
+  $("rutasCompletas").addEventListener("change", () => { if (analisis) { pintarQuePaso(); pintarTraza(); } });
+  $("verCrudo").addEventListener("change", () => { if (analisis) pintarTraza(); });
+  document.querySelectorAll("[data-filtro]").forEach((b) => b.addEventListener("click", () => {
+    filtro = b.dataset.filtro;
+    document.querySelectorAll("[data-filtro]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    if (analisis) pintarTraza();
+  }));
+  $("copiarMd").addEventListener("click", async () => {
+    if (!analisis) return;
+    const md = ST.aMarkdown(analisis, filtro);
+    try { await navigator.clipboard.writeText(md); } catch { const ta = document.createElement("textarea"); ta.value = md; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); } catch {} ta.remove(); }
+    $("copiado").classList.remove("oculto");
+    setTimeout(() => $("copiado").classList.add("oculto"), 1500);
+  });
+})();
+</script>
+</body>
+</html>

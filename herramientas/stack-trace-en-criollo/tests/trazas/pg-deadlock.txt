@@ -1,0 +1,17 @@
+Npgsql.PostgresException (0x80004005): 40P01: deadlock detected
+
+DETAIL: Detail redacted as it may contain sensitive data. Specify 'Include Error Detail' in the connection string to include this information.
+   at Tienda.Api.Datos.Pg.Deadlock(String cs) in /w/Generador/Program.cs:line 466
+   at Program.<>c__DisplayClass0_0.<<Main>$>b__110() in /w/Generador/Program.cs:line 232
+   at Program.<>c__DisplayClass0_1.<<Main>$>b__120() in /w/Generador/Program.cs:line 25
+   at Program.<Main>$(String[] args)
+  Exception data:
+    Severity: ERROR
+    SqlState: 40P01
+    MessageText: deadlock detected
+    Detail: Detail redacted as it may contain sensitive data. Specify 'Include Error Detail' in the connection string to include this information.
+    Hint: See server log for query details.
+    Where: while updating tuple (0,2) in relation "clientes"
+    File: deadlock.c
+    Line: 1130
+    Routine: DeadLockReport

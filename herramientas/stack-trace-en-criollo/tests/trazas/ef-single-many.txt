@@ -1,0 +1,6 @@
+System.InvalidOperationException: Sequence contains more than one element.
+   at Microsoft.EntityFrameworkCore.Query.ShapedQueryCompilingExpressionVisitor.SingleAsync[TSource](IAsyncEnumerable`1 asyncEnumerable, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Query.ShapedQueryCompilingExpressionVisitor.SingleAsync[TSource](IAsyncEnumerable`1 asyncEnumerable, CancellationToken cancellationToken)
+   at Program.<>c__DisplayClass0_5.<<<Main>$>b__188>d.MoveNext() in /w/Generador/Program.cs:line 204
+--- End of stack trace from previous location ---
+   at Program.<Main>$(String[] args) in /w/Generador/Program.cs:line 254

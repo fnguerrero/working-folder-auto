@@ -1,0 +1,5 @@
+System.InvalidOperationException: No existe el pedido 99
+   at Tienda.Api.Datos.RepositorioPedidos.LeerFilaAsync(Int32 id) in /w/Generador/Program.cs:line 337
+   at Tienda.Api.Datos.RepositorioPedidos.BuscarAsync(Int32 id) in /w/Generador/Program.cs:line 336
+   at Tienda.Api.Servicios.ServicioPedidos.ObtenerAsync(Int32 id) in /w/Generador/Program.cs:line 327
+   at Program.<Main>$(String[] args) in /w/Generador/Program.cs:line 254

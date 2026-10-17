@@ -1,0 +1,7 @@
+Microsoft.Data.SqlClient.SqlException (0x80131904): Transaction (Process ID 68) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+   at Tienda.Api.Datos.Sql.Deadlock(String cs) in /w/Generador/Program.cs:line 408
+   at Program.<>c__DisplayClass0_0.<<Main>$>b__157() in /w/Generador/Program.cs:line 169
+   at Program.<>c__DisplayClass0_1.<<Main>$>b__120() in /w/Generador/Program.cs:line 25
+   at Program.<Main>$(String[] args) in /w/Generador/Program.cs:line 254
+ClientConnectionId:14333b4c-3e18-4a07-b3a5-f87a741bf44b
+Error Number:1205,State:51,Class:13
