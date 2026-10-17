@@ -151,5 +151,14 @@
     "estado": "terminado",
     "probar": "herramientas/stack-trace-en-criollo/",
     "desde": "2026-10-17"
+  },
+  {
+    "slug": "asado",
+    "nombre": "Asado para cuántos",
+    "categoria": "apps",
+    "descripcion": "Decís cuántos vienen y qué va a la parrilla, y te dice cuánto comprar de cada cosa, cuánto carbón, a qué hora prender y en qué orden poner los cortes. Con la lista para el grupo y cuánto pone cada uno.",
+    "estado": "terminado",
+    "probar": "apps/asado/",
+    "desde": "2026-10-17"
   }
 ]

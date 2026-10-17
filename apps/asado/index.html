@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Asado para cuántos</title>
+<style>
+  :root { --bg: #f7f3ec; --card: #fff; --fg: #231f1a; --muted: #6f675d; --line: #e6ded2; --accent: #b4441c; --accent-fg: #fff; --fuego: #d97706; --code: #f1ebe1; --ok: #2f7d4f; --suave: rgba(180, 68, 28, .08); }
+  @media (prefers-color-scheme: dark) { :root { --bg: #16130f; --card: #211c17; --fg: #f1ebe2; --muted: #a39a8e; --line: #332c25; --accent: #f08a5d; --accent-fg: #1a110c; --fuego: #fbbf24; --code: #1a1612; --ok: #7bd39b; --suave: rgba(240, 138, 93, .12); } }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.45; }
+  header { padding: 18px 16px 6px; max-width: 980px; margin: 0 auto; }
+  h1 { margin: 0; font-size: 1.5rem; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  main { max-width: 980px; margin: 0 auto; padding: 10px 16px 32px; display: grid; gap: 14px; }
+  @media (min-width: 860px) { main { grid-template-columns: 380px 1fr; align-items: start; } .ancho { grid-column: 1 / -1; } }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+  .panel h2 { margin: 0 0 10px; font-size: 1rem; }
+  .gente { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+  .contador { border: 1px solid var(--line); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .contador label { font-size: .85rem; font-weight: 600; }
+  .contador small { color: var(--muted); font-size: .75rem; }
+  .contador .botones { display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-top: 6px; }
+  .contador button { width: 40px; height: 40px; border-radius: 50%; font-size: 1.2rem; padding: 0; }
+  .contador output { min-width: 28px; text-align: center; font-weight: 700; font-size: 1.1rem; }
+  button { font: inherit; font-size: .85rem; min-height: 40px; padding: 6px 12px; border-radius: 999px; cursor: pointer; border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+  button:hover { border-color: var(--accent); }
+  button[aria-pressed="true"], button.primario { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
+  .chips button { min-height: 36px; padding: 4px 12px; }
+  h3.sub { margin: 10px 0 4px; font-size: .85rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .resumen { font-size: 1.1rem; margin: 0 0 10px; }
+  .resumen b { color: var(--accent); }
+  table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+  th, td { text-align: left; padding: 7px 6px; border-top: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: .78rem; }
+  td.cant { white-space: nowrap; font-weight: 600; text-align: right; }
+  td.det { color: var(--muted); font-size: .85rem; }
+  tr.total td { font-weight: 700; border-top: 2px solid var(--line); }
+  input[type=number] { font: inherit; width: 100px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); text-align: right; }
+  .fila { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+  .copiado { color: var(--ok); font-size: .82rem; }
+  .plan { list-style: none; margin: 0; padding: 0; }
+  .plan li { display: grid; grid-template-columns: 70px 1fr; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
+  .plan .min { font-weight: 700; color: var(--fuego); white-space: nowrap; }
+  .plan .que b { display: block; }
+  .plan .que small { color: var(--muted); }
+  .plan li.hito { background: var(--suave); border-radius: 8px; padding: 8px; }
+  .nota { font-size: .85rem; color: var(--muted); margin: 8px 0 0; }
+  .texto p, .texto li { font-size: .95rem; max-width: 76ch; }
+  .texto h2 { font-size: 1.15rem; margin: 16px 0 6px; }
+  .texto h2:first-child { margin-top: 0; }
+  .oculto { display: none !important; }
+  pre { background: var(--code); padding: 10px 12px; border-radius: 8px; overflow: auto; font-size: .82rem; white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Asado para cuántos</h1>
+  <p>Decís cuántos son y qué va a la parrilla, y te dice cuánto comprar de cada cosa, cuánto carbón, a qué hora prender y en qué orden poner cada corte para que todo salga junto. Con la lista para mandar por WhatsApp y la cuenta de cuánto pone cada uno.</p>
+</header>
+<main>
+  <section class="panel" aria-label="Quiénes vienen y qué va">
+    <h2>Quiénes vienen</h2>
+    <div class="gente" id="gente"></div>
+    <h3 class="sub">Cortes</h3>
+    <div class="chips" id="cortes"></div>
+    <h3 class="sub">Achuras y entrada</h3>
+    <div class="chips" id="achuras"></div>
+    <h3 class="sub">Acompañamiento</h3>
+    <div class="chips" id="acomp"></div>
+    <h3 class="sub">Bebidas</h3>
+    <div class="chips" id="bebidas"></div>
+    <h3 class="sub">Fuego y duración</h3>
+    <div class="chips" id="fuego"></div>
+    <div class="chips" id="duracion"></div>
+  </section>
+
+  <div style="display: grid; gap: 14px; min-width: 0;">
+    <section class="panel" aria-label="Qué comprar">
+      <h2>Qué comprar</h2>
+      <p class="resumen" id="resumen"></p>
+      <table id="tabla" aria-label="Lista de compras"><tbody></tbody></table>
+      <div class="fila"><button type="button" class="primario" id="copiar">Copiar la lista</button><span class="copiado oculto" id="copiado">copiada, pegala en el grupo</span><button type="button" id="verLista">Ver como texto</button></div>
+      <pre id="lista" class="oculto"></pre>
+    </section>
+
+    <section class="panel" aria-label="El fuego y los tiempos">
+      <h2>El fuego y los tiempos</h2>
+      <p id="fuegoTexto"></p>
+      <ul class="plan" id="plan"></ul>
+      <p class="nota">Los minutos son desde que ponés lo primero en la parrilla, con el fuego ya hecho. Son tiempos orientativos para una parrilla a brasa moderada: el asador que mira y toca manda.</p>
+    </section>
+  </div>
+
+  <section class="panel ancho" aria-label="Cuánto pone cada uno">
+    <h2>Cuánto pone cada uno <span style="font-weight: 400; color: var(--muted); font-size: .85rem;">(cargá los precios de tu carnicería; se guardan en este navegador)</span></h2>
+    <table id="precios" aria-label="Precios"><thead><tr><th>Qué</th><th>Cantidad</th><th>Precio (por kg o por unidad)</th><th style="text-align: right;">Subtotal</th></tr></thead><tbody></tbody></table>
+    <p class="resumen" id="costoTotal" style="margin-top: 10px;"></p>
+  </section>
+
+  <section class="panel texto ancho" aria-label="De dónde salen los números">
+    <h2>De dónde salen los números</h2>
+    <ul>
+      <li><b>Carne:</b> 450 g por adulto entre cortes y achuras (es lo que se calcula de costumbre: «medio kilo por cabeza»), 650 g para los que comen mucho, 250 g por chico. Si la juntada es larga (almuerzo que se estira hasta la noche) se suma un 15 %; si es corta, se resta un 10 %. Las achuras se descuentan de ese total hasta un 40 %; el resto se reparte en partes iguales entre los cortes que elegiste, con un mínimo de medio kilo por corte. El pollo lleva un 25 % más porque tiene hueso.</li>
+      <li><b>Chorizos:</b> uno por adulto, uno y medio por comilón, medio por chico. <b>Morcillas:</b> una cada dos. Chinchulines, mollejas y riñón: 80 g por persona, como picada.</li>
+      <li><b>Provoleta:</b> una cada cuatro; para los vegetarianos, una cada dos, más 400 g de verduras cada uno. <b>Pan:</b> uno y pico por persona. <b>Ensaladas:</b> 160 g por persona en total.</li>
+      <li><b>Bebidas:</b> por adulto, 700 ml de cerveza, 250 ml de vino (una botella cada tres), 400 ml de gaseosa, 300 ml de agua, 80 ml de fernet; los chicos, gaseosa y agua. Se redondea al envase. Hielo: una bolsa cada cuatro.</li>
+      <li><b>Carbón:</b> un kilo por kilo de carne (más un 10 %), mínimo una bolsa de 3 kg; prendido 45 minutos antes. <b>Leña:</b> el doble, prendida una hora antes.</li>
+      <li><b>Tiempos:</b> chorizo 25 min, morcilla 12, entraña 18, riñón 20, provoleta 10, mollejas 35, chinchulines 40, colita 50, pollo 60, tira 75, bondiola y matambre 90, vacío 100. La entrada (achuras y provoleta) se sirve cuando está el chorizo; lo principal entra escalonado para que termine todo junto, nunca antes de 40 minutos después de la entrada.</li>
+    </ul>
+    <p>Todo queda en tu navegador (los precios se guardan con <code>localStorage</code>; nada se manda a ningún lado). Es una calculadora de las de servilleta, pensada para no quedarse corto: si sobra, mañana hay sánguches.</p>
+  </section>
+</main>
+<script src="logica.js"></script>
+<script>
+(function () {
+  "use strict";
+  const A = window.Asado;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c]));
+  const CLAVE = "asado-v1";
+  let estado = Object.assign({}, A.DEFAULT, { precios: {} });
+  try { const g = JSON.parse(localStorage.getItem(CLAVE) || "null"); if (g && typeof g === "object") estado = Object.assign(estado, g); } catch {}
+  function guardar() { try { localStorage.setItem(CLAVE, JSON.stringify(estado)); } catch {} }
+
+  const GENTE = [["adultos", "Adultos", "comen normal"], ["comilones", "Comilones", "repiten seguro"], ["chicos", "Chicos", "hasta 12 años"], ["vegetarianos", "Vegetarianos", "provoleta y verduras"]];
+  const gente = $("gente");
+  GENTE.forEach(([k, nombre, desc]) => {
+    const d = document.createElement("div"); d.className = "contador";
+    d.innerHTML = `<label for="n-${k}">${nombre}</label><small>${desc}</small><div class="botones"><button type="button" data-menos="${k}" aria-label="Menos ${nombre.toLowerCase()}">−</button><output id="n-${k}">${estado[k]}</output><button type="button" data-mas="${k}" aria-label="Más ${nombre.toLowerCase()}">+</button></div>`;
+    gente.appendChild(d);
+  });
+  gente.addEventListener("click", (ev) => {
+    const b = ev.target.closest("button"); if (!b) return;
+    const k = b.dataset.mas || b.dataset.menos;
+    estado[k] = Math.max(0, Math.min(200, (estado[k] | 0) + (b.dataset.mas ? 1 : -1)));
+    $("n-" + k).textContent = estado[k];
+    pintar();
+  });
+
+  function chips(cont, opciones, esMulti, campo) {
+    const el = $(cont); el.innerHTML = "";
+    opciones.forEach(([clave, nombre]) => {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = nombre; b.dataset.clave = clave;
+      const activo = esMulti ? estado[campo].includes(clave) : estado[campo] === clave;
+      b.setAttribute("aria-pressed", String(activo));
+      b.addEventListener("click", () => {
+        if (esMulti) { const i = estado[campo].indexOf(clave); if (i >= 0) estado[campo].splice(i, 1); else estado[campo].push(clave); }
+        else estado[campo] = clave;
+        chips(cont, opciones, esMulti, campo); pintar();
+      });
+      el.appendChild(b);
+    });
+  }
+  const cortes = Object.entries(A.CORTES).filter(([, c]) => c.tipo === "carne").map(([k, c]) => [k, c.nombre]);
+  const achuras = Object.entries(A.CORTES).filter(([, c]) => c.tipo === "achura").map(([k, c]) => [k, c.nombre]);
+  chips("cortes", cortes, true, "cortes");
+  chips("achuras", achuras, true, "achuras");
+  // provoleta, pan y ensaladas son booleanos: los manejo como chips de un array auxiliar
+  estado.acomp = estado.acomp || ["provoleta", "pan", "ensaladas"].filter((k) => estado[k] !== false);
+  chips("acomp", [["provoleta", "Provoleta"], ["pan", "Pan"], ["ensaladas", "Ensaladas"]], true, "acomp");
+  chips("bebidas", Object.entries(A.BEBIDAS).map(([k, b]) => [k, b.nombre]), true, "bebidas");
+  chips("fuego", [["carbon", "A carbón"], ["lena", "A leña"]], false, "combustible");
+  chips("duracion", [["corta", "Juntada corta"], ["normal", "Normal"], ["larga", "Larga (se estira)"]], false, "duracion");
+
+  let resultado = null;
+  function pintar() {
+    ["provoleta", "pan", "ensaladas"].forEach((k) => { estado[k] = estado.acomp.includes(k); });
+    guardar();
+    resultado = A.calcular(estado);
+    const r = resultado;
+    $("resumen").innerHTML = r.comensales
+      ? `Para <b>${r.comensales}</b> (${esc(A.describirGente(r.entrada))}): <b>${esc(A.formatoKg(r.totalCarneKg))}</b> de carnicería${r.carnivoros ? `, unos ${r.gramosPorPersona} g por persona` : ""}, y <b>${r.combustible.kg} kg</b> de ${r.combustible.nombre.toLowerCase()}.`
+      : "Sumá gente con los botones de la izquierda.";
+    const tb = $("tabla").querySelector("tbody"); tb.innerHTML = "";
+    const fila = (a, b, c, clase) => { const tr = document.createElement("tr"); if (clase) tr.className = clase; tr.innerHTML = `<td>${a}</td><td class="cant">${b}</td><td class="det">${c}</td>`; tb.appendChild(tr); };
+    const seccion = (t) => { const tr = document.createElement("tr"); tr.innerHTML = `<th colspan="3">${t}</th>`; tb.appendChild(tr); };
+    if (r.items.length) {
+      seccion("Carnicería");
+      r.items.forEach((i) => fila(esc(i.nombre), i.unidades ? `${i.unidades} u.` : esc(A.formatoKg(i.kg)), i.unidades ? `${esc(A.formatoKg(i.kg))} aprox.` : ""));
+      fila("Total de carnicería", esc(A.formatoKg(r.totalCarneKg)), "", "total");
+    }
+    seccion("Lo demás");
+    r.extras.forEach((x) => fila(esc(x.nombre), x.unidades ? `${x.unidades} u.` : x.kg ? esc(A.formatoKg(x.kg)) : "", esc(x.detalle)));
+    seccion("Bebidas");
+    r.bebidas.forEach((b) => fila(esc(b.nombre), b.envases ? `${b.envases}` : "", esc(b.detalle)));
+    seccion("Fuego");
+    fila(esc(r.combustible.nombre), `${r.combustible.kg} kg`, esc(r.combustible.detalle));
+    $("lista").textContent = A.listaCompras(r);
+
+    const t = r.tiempos;
+    const hora = (min) => { const h = Math.floor(Math.abs(min) / 60), m = Math.abs(min) % 60; return (min < 0 ? "−" : "") + (h ? h + " h " : "") + (m || !h ? m + " min" : ""); };
+    $("fuegoTexto").innerHTML = r.items.length || r.extras.some((x) => x.minutos)
+      ? `Prendé el ${r.combustible.nombre.toLowerCase()} <b>${t.prenderMinutos} minutos antes</b> de poner lo primero. ${t.servirEntrada ? `La entrada sale a los <b>${hora(t.servirEntrada)}</b>` : ""}${t.servirEntrada && t.plan.some((p) => p.momento === "principal") ? " y lo" : t.plan.some((p) => p.momento === "principal") ? "Lo" : ""}${t.plan.some((p) => p.momento === "principal") ? ` principal a <b>${hora(t.servirPrincipal)}</b> de empezar.` : ""}`
+      : "Elegí algo para poner en la parrilla.";
+    const ul = $("plan"); ul.innerHTML = "";
+    const hitos = [];
+    if (t.servirEntrada) hitos.push({ minuto: t.servirEntrada, hito: "Sale la entrada: choripán, morcilla, provoleta." });
+    if (t.plan.some((p) => p.momento === "principal")) hitos.push({ minuto: t.servirPrincipal, hito: "Sale la carne. Dejala reposar 5 minutos antes de cortar." });
+    t.plan.concat(hitos).sort((a, b) => a.minuto - b.minuto || (a.hito ? 1 : -1)).forEach((p) => {
+      const li = document.createElement("li");
+      if (p.hito) { li.className = "hito"; li.innerHTML = `<span class="min">${hora(p.minuto)}</span><span class="que"><b>${esc(p.hito)}</b></span>`; }
+      else li.innerHTML = `<span class="min">${hora(p.minuto)}</span><span class="que"><b>${esc(p.nombre)}</b> fuego ${esc(p.fuego)}, ${p.minutos} min <small>· ${esc(p.nota)}</small></span>`;
+      ul.appendChild(li);
+    });
+    pintarPrecios();
+  }
+
+  function pintarPrecios() {
+    const r = resultado;
+    const tb = $("precios").querySelector("tbody"); tb.innerHTML = "";
+    const filas = [];
+    r.items.forEach((i) => filas.push([i.clave, i.nombre, A.formatoKg(i.kg), "por kg"]));
+    r.extras.filter((x) => x.unidades || x.kg).forEach((x) => filas.push([x.clave, x.nombre, x.unidades ? `${x.unidades} u.` : A.formatoKg(x.kg), x.unidades ? "por unidad" : "por kg"]));
+    r.bebidas.filter((b) => b.envases).forEach((b) => filas.push([b.clave, b.nombre, `${b.envases} × ${b.envaseNombre}`, "por envase"]));
+    filas.push(["combustible", r.combustible.nombre, `${r.combustible.kg} kg`, "por kg"]);
+    const c = A.costo(r, estado.precios);
+    filas.forEach(([clave, nombre, cant, unidad]) => {
+      const tr = document.createElement("tr");
+      const linea = c.lineas.find((l) => l.nombre === nombre);
+      tr.innerHTML = `<td>${esc(nombre)}</td><td class="det">${esc(cant)}</td><td><input type="number" min="0" step="1" inputmode="numeric" data-precio="${clave}" value="${estado.precios[clave] || ""}" placeholder="${unidad}" aria-label="Precio de ${esc(nombre)} ${unidad}"></td><td class="cant">${linea ? esc(A.pesos(linea.subtotal)) : ""}</td>`;
+      tb.appendChild(tr);
+    });
+    $("costoTotal").innerHTML = c.total ? `Total <b>${esc(A.pesos(c.total))}</b>: <b>${esc(A.pesos(c.porPersona))}</b> cada uno entre ${c.pagan} grande${c.pagan > 1 ? "s" : ""} (los chicos no pagan).` : "Cargá los precios y te digo el total y cuánto pone cada uno.";
+  }
+  $("precios").addEventListener("input", (ev) => {
+    const i = ev.target.closest("input[data-precio]"); if (!i) return;
+    const v = parseFloat(i.value);
+    if (v > 0) estado.precios[i.dataset.precio] = v; else delete estado.precios[i.dataset.precio];
+    guardar();
+    const c = A.costo(resultado, estado.precios);
+    // actualizar subtotales sin re-renderizar los inputs
+    $("precios").querySelectorAll("tbody tr").forEach((tr) => { const n = tr.children[0].textContent; const l = c.lineas.find((x) => x.nombre === n); tr.children[3].textContent = l ? A.pesos(l.subtotal) : ""; });
+    $("costoTotal").innerHTML = c.total ? `Total <b>${esc(A.pesos(c.total))}</b>: <b>${esc(A.pesos(c.porPersona))}</b> cada uno entre ${c.pagan} grande${c.pagan > 1 ? "s" : ""} (los chicos no pagan).` : "Cargá los precios y te digo el total y cuánto pone cada uno.";
+  });
+
+  $("copiar").addEventListener("click", async () => {
+    const txt = A.listaCompras(resultado);
+    try { await navigator.clipboard.writeText(txt); } catch { const ta = document.createElement("textarea"); ta.value = txt; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); } catch {} ta.remove(); }
+    $("copiado").classList.remove("oculto"); setTimeout(() => $("copiado").classList.add("oculto"), 2000);
+  });
+  $("verLista").addEventListener("click", () => { const p = $("lista"); p.classList.toggle("oculto"); $("verLista").textContent = p.classList.contains("oculto") ? "Ver como texto" : "Ocultar el texto"; });
+  pintar();
+})();
+</script>
+</body>
+</html>
