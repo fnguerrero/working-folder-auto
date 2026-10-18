@@ -160,5 +160,14 @@
     "estado": "terminado",
     "probar": "apps/asado/",
     "desde": "2026-10-17"
+  },
+  {
+    "slug": "cohete",
+    "nombre": "Cohete",
+    "categoria": "juegos",
+    "descripcion": "Tocás el cohete y despega hasta la Luna, que sonríe y canta, y vuelve en paracaídas; las estrellas suenan al tocarlas, los planetas rebotan y pasan ovnis y cometas. Para Valentín: sin puntaje ni perder.",
+    "estado": "terminado",
+    "probar": "juegos/cohete/",
+    "desde": "2026-10-18"
   }
 ]

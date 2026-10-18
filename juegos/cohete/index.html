@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b1230">
+<title>Cohete</title>
+<style>
+  :root { --tap: 48px; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #0b1230; color: #fff;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden;
+    -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+    touch-action: none; overscroll-behavior: none; }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: pointer; }
+  .barra { position: fixed; top: calc(8px + env(safe-area-inset-top)); left: calc(8px + env(safe-area-inset-left));
+    right: calc(8px + env(safe-area-inset-right)); display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; pointer-events: none; }
+  .barra h1 { margin: 0; font-size: 1.2rem; text-shadow: 0 2px 4px rgba(0,0,0,.45); letter-spacing: -.01em; }
+  .botones { display: flex; gap: 8px; pointer-events: auto; }
+  .botones button { min-height: var(--tap); min-width: var(--tap); border: 0; border-radius: 14px; padding: 0 14px;
+    font: 700 1rem/1 inherit; color: #123; background: rgba(255,255,255,.92); box-shadow: 0 3px 0 rgba(0,0,0,.35);
+    cursor: pointer; touch-action: manipulation; }
+  .botones button:focus-visible { outline: 3px solid #ffd166; outline-offset: 2px; }
+  .botones button[aria-pressed="true"] { background: #ffd166; }
+  .ayuda { position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+    padding: 8px 14px; border-radius: 999px; background: rgba(0,0,0,.4); font-size: .9rem; pointer-events: none;
+    white-space: nowrap; transition: opacity .6s; }
+  .ayuda.oculta { opacity: 0; }
+  @media (prefers-reduced-motion: reduce) { .ayuda { transition: none; } }
+</style>
+</head>
+<body>
+<canvas id="cielo" aria-label="Cohete: tocá el cohete para despegar y las estrellas para que suenen" role="img"></canvas>
+<header class="barra">
+  <h1>🚀 Cohete</h1>
+  <div class="botones">
+    <button id="despegar" type="button" aria-label="Despegar">🚀 ¡Vamos!</button>
+    <button id="sonido" type="button" aria-pressed="true" aria-label="Sonido">🔊</button>
+  </div>
+</header>
+<div id="ayuda" class="ayuda">Tocá el cohete para despegar</div>
+
+<script>
+(() => {
+  "use strict";
+  const canvas = document.getElementById("cielo");
+  const ctx = canvas.getContext("2d");
+  const ayuda = document.getElementById("ayuda");
+  const btnDespegar = document.getElementById("despegar");
+  const btnSonido = document.getElementById("sonido");
+  const reducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---------- Estado ----------
+  let W = 1, H = 1, dpr = 1, suelo = 0, esc = 1;
+  let ALT_LUNA = 1, CAM_MAX = 0, cam = 0;
+  const estrellas = [], planetas = [], chispas = [], humo = [], estelas = [];
+  const dedos = new Map(); // pointerId -> {x, y, ultimoX, ultimoY, recorrido, fiuu}
+  let cohete = null, luna = null, satelite = null, ovni = null, cometa = null;
+  let ultimoT = 0, tiempo = 0, viajes = 0;
+  let sonidoActivo = true, huboToque = false, pausado = false;
+
+  const azar = (a, b) => a + Math.random() * (b - a);
+  const elegir = (xs) => xs[Math.floor(Math.random() * xs.length)];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  // Do mayor pentatónica, dos octavas: suena bien cualquier combinación de dedos.
+  const PENTA = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51, 1567.98];
+
+  try { sonidoActivo = localStorage.getItem("cohete.sonido") !== "no"; } catch (e) { /* sin localStorage, da igual */ }
+  btnSonido.setAttribute("aria-pressed", String(sonidoActivo));
+  btnSonido.textContent = sonidoActivo ? "🔊" : "🔇";
+
+  // ---------- Sonido (WebAudio, sin archivos) ----------
+  let actx = null, master = null, rumble = null;
+  function audio() {
+    if (!sonidoActivo) return null;
+    if (!actx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      actx = new AC();
+      master = actx.createGain(); master.gain.value = 0.5; master.connect(actx.destination);
+    }
+    if (actx.state === "suspended") actx.resume();
+    return actx;
+  }
+  function ruido(a, seg, forma) {
+    const n = Math.floor(a.sampleRate * seg), buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (forma ? forma(i / n) : 1);
+    return buf;
+  }
+  // Campanita: seno con un armónico y decaimiento largo.
+  function sonNota(f, vol = 0.3, dur = 1.1) {
+    const a = audio(); if (!a) return;
+    const t = a.currentTime;
+    for (const [mult, v, tipo] of [[1, 1, "sine"], [2.01, 0.25, "sine"], [3, 0.08, "triangle"]]) {
+      const o = a.createOscillator(); o.type = tipo; o.frequency.value = f * mult;
+      const g = a.createGain(); g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol * v, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + dur / mult);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t + dur);
+    }
+  }
+  // Rumble del motor: ruido grave filtrado que sube de tono mientras acelera. Queda sonando hasta apagarlo.
+  function sonMotor(prender) {
+    const a = audio();
+    if (!prender || !a) {
+      if (rumble) { const t = rumble.a.currentTime; rumble.g.gain.cancelScheduledValues(t); rumble.g.gain.setValueAtTime(rumble.g.gain.value, t); rumble.g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5); rumble.src.stop(t + 0.55); rumble = null; }
+      return;
+    }
+    if (rumble) return;
+    const t = a.currentTime;
+    const src = a.createBufferSource(); src.buffer = ruido(a, 1.5); src.loop = true;
+    const filtro = a.createBiquadFilter(); filtro.type = "lowpass"; filtro.Q.value = 1.2;
+    filtro.frequency.setValueAtTime(90, t); filtro.frequency.exponentialRampToValueAtTime(420, t + 2.5);
+    const g = a.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.7, t + 0.6);
+    src.connect(filtro); filtro.connect(g); g.connect(master); src.start(t);
+    rumble = { a, src, g };
+  }
+  // Fiuuu: la estrella fugaz. Ruido con pasabanda que baja.
+  function sonFiuu() {
+    const a = audio(); if (!a) return;
+    const t = a.currentTime;
+    const src = a.createBufferSource(); src.buffer = ruido(a, 0.5, (k) => Math.sin(k * Math.PI));
+    const filtro = a.createBiquadFilter(); filtro.type = "bandpass"; filtro.Q.value = 3;
+    filtro.frequency.setValueAtTime(3200, t); filtro.frequency.exponentialRampToValueAtTime(500, t + 0.5);
+    const g = a.createGain(); g.gain.value = 0.3;
+    src.connect(filtro); filtro.connect(g); g.connect(master); src.start(t);
+  }
+  // Boing: un planeta que rebota.
+  function sonBoing() {
+    const a = audio(); if (!a) return;
+    const t = a.currentTime;
+    const o = a.createOscillator(); o.type = "sine";
+    o.frequency.setValueAtTime(420, t); o.frequency.exponentialRampToValueAtTime(150, t + 0.25);
+    const g = a.createGain(); g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.35, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.32);
+  }
+  // Bip: tocar el cohete en vuelo.
+  function sonBip() {
+    const a = audio(); if (!a) return;
+    const t = a.currentTime;
+    const o = a.createOscillator(); o.type = "square"; o.frequency.value = elegir([880, 988, 1175]);
+    const g = a.createGain(); g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.12, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.1);
+  }
+  // Ovni: dos notitas raras que suben y bajan.
+  function sonOvni() {
+    const a = audio(); if (!a) return;
+    const t = a.currentTime;
+    const o = a.createOscillator(); o.type = "triangle";
+    o.frequency.setValueAtTime(600, t); o.frequency.linearRampToValueAtTime(1300, t + 0.15); o.frequency.linearRampToValueAtTime(700, t + 0.3); o.frequency.linearRampToValueAtTime(1500, t + 0.45);
+    const g = a.createGain(); g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.2, t + 0.02); g.gain.setValueAtTime(0.2, t + 0.4); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.52);
+  }
+  // Pof: se abre el paracaídas / el cohete toca el suelo.
+  function sonPof() {
+    const a = audio(); if (!a) return;
+    const t = a.currentTime;
+    const src = a.createBufferSource(); src.buffer = ruido(a, 0.18, (k) => Math.pow(1 - k, 3));
+    const filtro = a.createBiquadFilter(); filtro.type = "lowpass"; filtro.frequency.value = 700;
+    const g = a.createGain(); g.gain.value = 0.5;
+    src.connect(filtro); filtro.connect(g); g.connect(master); src.start(t);
+  }
+  // La melodía de la luna: cortita y alegre.
+  function sonLuna() {
+    const a = audio(); if (!a) return;
+    const notas = [[523.25, 0], [659.25, 0.16], [783.99, 0.32], [1046.5, 0.48], [783.99, 0.72], [1046.5, 0.88]];
+    const t = a.currentTime;
+    for (const [f, d] of notas) {
+      const o = a.createOscillator(); o.type = "triangle"; o.frequency.value = f;
+      const g = a.createGain(); g.gain.setValueAtTime(0.0001, t + d);
+      g.gain.exponentialRampToValueAtTime(0.3, t + d + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.35);
+      o.connect(g); g.connect(master); o.start(t + d); o.stop(t + d + 0.4);
+    }
+  }
+
+  // ---------- Coordenadas ----------
+  // El mundo se mide en «altura» desde la plataforma. Cada cosa tiene una profundidad d: 1 se mueve con el cohete,
+  // menos de 1 se mueve más despacio (paralaje). Pantalla: y = suelo - alt + cam * d.
+  const pantallaY = (alt, d) => suelo - alt + cam * d;
+
+  // ---------- Estrellas y planetas ----------
+  function armarCielo() {
+    estrellas.length = 0; planetas.length = 0;
+    const dens = (reducido ? 0.5 : 1) * Math.max(16, Math.round(W * H / 14000));
+    for (const d of [0.35, 0.65, 1]) {
+      const tope = suelo + CAM_MAX * d + 40;
+      const n = Math.round(dens * tope / suelo * (d === 1 ? 0.9 : 0.55));
+      for (let i = 0; i < n; i++) {
+        estrellas.push({ x: Math.random(), alt: azar(-10, tope), d, r: azar(1.2, 3.2) * (0.6 + d * 0.6) * esc, fase: Math.random() * 6.3,
+          vel: azar(0.8, 2.2), brillo: 0, tono: elegir(["#fff", "#fff6d5", "#d8ecff", "#ffe3f3"]), nota: 0 });
+      }
+    }
+    // Las que están cerca tienen nota según la altura: más arriba, más aguda.
+    for (const e of estrellas) e.nota = PENTA[clamp(Math.floor((e.alt / (suelo + CAM_MAX)) * PENTA.length * 2) % PENTA.length, 0, PENTA.length - 1)];
+    const colores = [["#ff8c42", "#ffb37a"], ["#5ef2a6", "#b4ffd9"], ["#c77dff", "#e7c6ff"], ["#8ecae6", "#d3f0ff"], ["#ffd23f", "#fff0a8"]];
+    function planeta(x, alt, d, r, anillo) {
+      const [c1, c2] = elegir(colores);
+      planetas.push({ x, alt, d, r: r * esc, c1, c2, anillo, ang: Math.random() * 6, giro: 0, bote: 0, vgiro: azar(0.05, 0.15) });
+    }
+    // Dos a la vista al arrancar.
+    planeta(azar(0.14, 0.26), suelo * azar(0.55, 0.72), 0.5, azar(20, 26), true);
+    planeta(azar(0.74, 0.88), suelo * azar(0.3, 0.5), 0.5, azar(16, 22), false);
+    // Dos que aparecen durante el viaje (altura calculada para que se vean a un tercio y a dos tercios de la subida).
+    planeta(azar(0.68, 0.82), suelo - H * 0.3 + CAM_MAX * 0.35 * 0.6, 0.6, azar(24, 32), Math.random() < 0.5);
+    planeta(azar(0.12, 0.28), suelo - H * 0.35 + CAM_MAX * 0.72 * 0.6, 0.6, azar(22, 30), true);
+  }
+  function dibujarEstrella(e) {
+    const x = e.x * W, y = pantallaY(e.alt, e.d);
+    if (y < -20 || y > H + 20) return;
+    const tit = 0.7 + 0.3 * Math.sin(tiempo * e.vel + e.fase);
+    let r = e.r * tit, alfa = (0.45 + 0.55 * tit) * (0.5 + e.d * 0.5);
+    if (e.brillo > 0) {
+      const k = e.brillo / 0.9;
+      r = e.r * (1 + 5 * Math.sin(k * Math.PI)); alfa = 1;
+      ctx.save(); ctx.globalAlpha = 0.9 * k; ctx.strokeStyle = e.tono; ctx.lineWidth = 2 * esc; ctx.lineCap = "round";
+      for (let i = 0; i < 6; i++) {
+        const a = i * Math.PI / 3 + (1 - k) * 0.5, L = r * 2.4;
+        ctx.beginPath(); ctx.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r); ctx.lineTo(x + Math.cos(a) * L, y + Math.sin(a) * L); ctx.stroke();
+      }
+      ctx.restore();
+    }
+    ctx.globalAlpha = alfa; ctx.fillStyle = e.tono;
+    ctx.beginPath();
+    for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, rr = i % 2 ? r * 0.4 : r; ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
+    ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+  }
+  function dibujarPlaneta(p) {
+    const x = p.x * W, y = pantallaY(p.alt, p.d);
+    if (y < -p.r * 2 || y > H + p.r * 2) return;
+    const bote = p.bote > 0 ? 1 + 0.18 * Math.sin(p.bote * 14) * p.bote : 1;
+    ctx.save(); ctx.translate(x, y); ctx.scale(bote, 2 - bote); ctx.rotate(p.ang);
+    if (p.anillo) { ctx.strokeStyle = p.c2; ctx.lineWidth = p.r * 0.22; ctx.globalAlpha = 0.85; ctx.beginPath(); ctx.ellipse(0, 0, p.r * 1.7, p.r * 0.45, -0.3, Math.PI * 0.05, Math.PI * 0.95); ctx.stroke(); ctx.globalAlpha = 1; }
+    const g = ctx.createRadialGradient(-p.r * 0.35, -p.r * 0.35, p.r * 0.1, 0, 0, p.r);
+    g.addColorStop(0, p.c2); g.addColorStop(1, p.c1);
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, p.r, 0, Math.PI * 2); ctx.fill();
+    ctx.save(); ctx.beginPath(); ctx.arc(0, 0, p.r, 0, Math.PI * 2); ctx.clip();
+    ctx.fillStyle = "rgba(255,255,255,.22)";
+    ctx.beginPath(); ctx.ellipse(0, -p.r * 0.25, p.r * 1.1, p.r * 0.14, 0.1, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0, p.r * 0.35, p.r * 1.1, p.r * 0.1, -0.1, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "rgba(0,0,0,.12)"; ctx.beginPath(); ctx.arc(p.r * 0.45, p.r * 0.1, p.r * 0.18, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    if (p.anillo) { ctx.strokeStyle = p.c2; ctx.lineWidth = p.r * 0.22; ctx.globalAlpha = 0.85; ctx.beginPath(); ctx.ellipse(0, 0, p.r * 1.7, p.r * 0.45, -0.3, Math.PI * 1.05, Math.PI * 1.95); ctx.stroke(); ctx.globalAlpha = 1; }
+    ctx.restore();
+  }
+
+  // ---------- Cohete, luna, satélite ----------
+  function crearCohete() { return { x: 0.42, alt: 0, v: 0, fase: "lista", t: 0, temblor: 0, chispa: 0, para: 0 }; }
+  function alturaCohete() { return 86 * esc; }
+  function despegar() {
+    if (!cohete || cohete.fase !== "lista") { if (cohete) tocarCoheteEnVuelo(); return; }
+    cohete.fase = "encendido"; cohete.t = 0; cohete.v = 0; viajes++;
+    sonMotor(true);
+  }
+  function tocarCoheteEnVuelo() {
+    cohete.chispa = 0.3; sonBip();
+    const y = pantallaY(cohete.alt, 1) - alturaCohete() * 0.5;
+    chispear(cohete.x * W, y, 8, elegir(["#ffd166", "#fff", "#5ef2a6"]));
+  }
+  function moverCohete(c, dt) {
+    c.t += dt;
+    if (c.chispa > 0) c.chispa -= dt;
+    const camMeta = () => clamp(c.alt - H * 0.45, 0, CAM_MAX);
+    if (c.fase === "encendido") {
+      c.temblor = 2 * esc * Math.min(1, c.t);
+      if (!reducido || Math.random() < 0.3) humear(c, 2, 0.5);
+      if (c.t > 1.3) { c.fase = "subiendo"; c.t = 0; }
+    } else if (c.fase === "subiendo") {
+      const quiere = c.alt > ALT_LUNA - H * 0.5 ? H * 0.28 : H * 0.9;
+      c.v += (quiere - c.v) * (1 - Math.exp(-dt * 1.6));
+      c.alt += c.v * dt; c.temblor = 1.2 * esc;
+      humear(c, reducido ? 1 : 3, 1);
+      cam += (camMeta() - cam) * (1 - Math.exp(-dt * 6));
+      if (c.alt >= ALT_LUNA) {
+        c.alt = ALT_LUNA; c.fase = "luna"; c.t = 0; c.temblor = 0; c.v = 0;
+        sonMotor(false); sonLuna(); luna.feliz = 3.2; luna.parpadeo = 0;
+        chispear(luna.x * W, pantallaY(luna.alt, 1), reducido ? 8 : 26, "#fff6a8");
+      }
+    } else if (c.fase === "luna") {
+      cam += (camMeta() - cam) * (1 - Math.exp(-dt * 6));
+      if (c.t > 3.2) { c.fase = "bajando"; c.t = 0; c.para = 0; sonPof(); }
+    } else if (c.fase === "bajando") {
+      c.para = Math.min(1, c.para + dt * 2.5);
+      c.v += (H * 0.26 - c.v) * (1 - Math.exp(-dt * 2));
+      c.alt -= c.v * dt;
+      cam += (camMeta() - cam) * (1 - Math.exp(-dt * 6));
+      if (c.alt <= 0) {
+        c.alt = 0; c.v = 0; c.fase = "lista"; c.t = 0; c.para = 0; cam = 0;
+        sonPof(); chispear(c.x * W, suelo, reducido ? 4 : 12, "#cfd8e3");
+        for (let i = 0; i < 6; i++) humo.push({ x: c.x * W + azar(-30, 30) * esc, alt: azar(0, 8), vx: azar(-25, 25), vy: azar(5, 20), r: azar(8, 14) * esc, vida: azar(0.8, 1.4), tono: 200 });
+      }
+    }
+  }
+  function humear(c, n, fuerza) {
+    for (let i = 0; i < n; i++) {
+      humo.push({ x: c.x * W + azar(-6, 6) * esc, alt: c.alt + azar(-4, 4), vx: azar(-18, 18) * fuerza, vy: -azar(60, 140) * fuerza,
+        r: azar(5, 9) * esc, vida: azar(0.7, 1.4), tono: azar(170, 230) });
+    }
+  }
+  function dibujarCohete(c) {
+    const h = alturaCohete(), w = h * 0.42;
+    const x = c.x * W + (c.temblor ? azar(-c.temblor, c.temblor) : 0) + (c.fase === "bajando" ? Math.sin(c.t * 1.6) * 18 * esc : 0);
+    const base = pantallaY(c.alt, 1) + (c.temblor ? azar(-c.temblor, c.temblor) : 0);
+    ctx.save(); ctx.translate(x, base);
+    if (c.fase === "bajando") ctx.rotate(Math.sin(c.t * 1.6) * 0.12);
+    // Llama.
+    if (c.fase === "encendido" || c.fase === "subiendo") {
+      const f = (c.fase === "encendido" ? 0.5 + 0.5 * Math.min(1, c.t) : 1) * (0.85 + 0.3 * Math.random());
+      const g = ctx.createLinearGradient(0, 0, 0, h * 0.7 * f);
+      g.addColorStop(0, "#fff"); g.addColorStop(0.3, "#ffd166"); g.addColorStop(0.7, "#ff7b2e"); g.addColorStop(1, "rgba(255,80,30,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-w * 0.32, 0); ctx.quadraticCurveTo(0, h * 0.95 * f, w * 0.32, 0); ctx.fill();
+    }
+    // Paracaídas.
+    if (c.fase === "bajando" && c.para > 0) {
+      const R = w * 1.7 * c.para, top = -h - R * 0.9;
+      ctx.strokeStyle = "rgba(255,255,255,.7)"; ctx.lineWidth = 1.5;
+      for (const k of [-1, -0.5, 0, 0.5, 1]) { ctx.beginPath(); ctx.moveTo(0, -h * 0.8); ctx.lineTo(k * R, top + R * 0.25); ctx.stroke(); }
+      ctx.beginPath(); ctx.moveTo(-R, top + R * 0.25);
+      ctx.arc(0, top + R * 0.25, R, Math.PI, 0);
+      for (let i = 0; i < 4; i++) ctx.quadraticCurveTo(R - R * (i + 0.5) / 2, top + R * 0.42, R - R * (i + 1) / 2, top + R * 0.25);
+      ctx.closePath();
+      const gp = ctx.createLinearGradient(-R, 0, R, 0); gp.addColorStop(0, "#ff5e78"); gp.addColorStop(0.5, "#ffd166"); gp.addColorStop(1, "#5ef2a6");
+      ctx.fillStyle = gp; ctx.fill();
+    }
+    // Patas y aletas.
+    ctx.fillStyle = "#ff5e78";
+    ctx.beginPath(); ctx.moveTo(-w * 0.45, -h * 0.05); ctx.lineTo(-w * 0.95, h * 0.05); ctx.lineTo(-w * 0.45, -h * 0.4); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(w * 0.45, -h * 0.05); ctx.lineTo(w * 0.95, h * 0.05); ctx.lineTo(w * 0.45, -h * 0.4); ctx.fill();
+    // Cuerpo.
+    const gc = ctx.createLinearGradient(-w / 2, 0, w / 2, 0); gc.addColorStop(0, "#dfe6ee"); gc.addColorStop(0.5, "#ffffff"); gc.addColorStop(1, "#b8c4d0");
+    ctx.fillStyle = gc; ctx.beginPath();
+    ctx.moveTo(-w / 2, 0); ctx.lineTo(-w / 2, -h * 0.62); ctx.quadraticCurveTo(-w / 2, -h, 0, -h); ctx.quadraticCurveTo(w / 2, -h, w / 2, -h * 0.62); ctx.lineTo(w / 2, 0); ctx.closePath(); ctx.fill();
+    // Punta.
+    ctx.fillStyle = "#ff5e78"; ctx.beginPath(); ctx.moveTo(-w / 2, -h * 0.62); ctx.quadraticCurveTo(-w / 2, -h, 0, -h); ctx.quadraticCurveTo(w / 2, -h, w / 2, -h * 0.62); ctx.quadraticCurveTo(0, -h * 0.68, -w / 2, -h * 0.62); ctx.fill();
+    // Tobera.
+    ctx.fillStyle = "#6b7a8a"; ctx.beginPath(); ctx.moveTo(-w * 0.3, 0); ctx.lineTo(w * 0.3, 0); ctx.lineTo(w * 0.4, h * 0.08); ctx.lineTo(-w * 0.4, h * 0.08); ctx.fill();
+    // Ventana con carita.
+    ctx.fillStyle = "#1b3a5c"; ctx.beginPath(); ctx.arc(0, -h * 0.5, w * 0.24, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#ffd166"; ctx.lineWidth = Math.max(2, w * 0.06); ctx.stroke();
+    ctx.fillStyle = "#fff";
+    const ojo = c.fase === "luna" && Math.sin(c.t * 6) > 0.6 ? 0.03 : 0.06;
+    ctx.beginPath(); ctx.ellipse(-w * 0.08, -h * 0.52, w * 0.05, w * ojo, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(w * 0.08, -h * 0.52, w * 0.05, w * ojo, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = Math.max(1.5, w * 0.04); ctx.lineCap = "round";
+    ctx.beginPath(); ctx.arc(0, -h * 0.47, w * 0.09, 0.2, Math.PI - 0.2); ctx.stroke();
+    if (c.chispa > 0) { ctx.globalAlpha = c.chispa / 0.3; ctx.strokeStyle = "#ffd166"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, -h * 0.5, w * 0.9, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
+    ctx.restore();
+  }
+  function crearLuna() { return { x: 0.68, alt: ALT_LUNA + 30 * esc, R: Math.min(W, H) * 0.17, feliz: 0, parpadeo: 0, tParp: 3 }; }
+  function dibujarLuna(l) {
+    const x = l.x * W, y = pantallaY(l.alt, 1), R = l.R;
+    if (y < -R * 1.5 || y > H + R * 1.5) return;
+    ctx.save(); ctx.translate(x, y);
+    ctx.save(); ctx.shadowColor = "rgba(255,245,200,.6)"; ctx.shadowBlur = R * 0.6;
+    const g = ctx.createRadialGradient(-R * 0.3, -R * 0.3, R * 0.2, 0, 0, R); g.addColorStop(0, "#fffbe6"); g.addColorStop(1, "#f0dc9a");
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    ctx.fillStyle = "rgba(190,160,90,.35)";
+    for (const [cx, cy, cr] of [[-0.45, -0.1, 0.16], [0.35, -0.45, 0.11], [0.5, 0.3, 0.14], [-0.15, 0.55, 0.09]]) { ctx.beginPath(); ctx.arc(cx * R, cy * R, cr * R, 0, Math.PI * 2); ctx.fill(); }
+    // Carita: siempre tranquila, se pone contenta cuando llega el cohete.
+    const feliz = l.feliz > 0, cerrado = l.parpadeo > 0;
+    ctx.fillStyle = "#4a3a1a"; ctx.strokeStyle = "#4a3a1a"; ctx.lineCap = "round"; ctx.lineWidth = Math.max(2, R * 0.06);
+    for (const s of [-1, 1]) {
+      if (cerrado || (feliz && Math.sin(l.feliz * 5) > 0.3)) { ctx.beginPath(); ctx.arc(s * R * 0.28, -R * 0.12, R * 0.1, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke(); }
+      else { ctx.beginPath(); ctx.arc(s * R * 0.28, -R * 0.12, R * 0.08, 0, Math.PI * 2); ctx.fill(); }
+    }
+    ctx.beginPath();
+    if (feliz) { ctx.arc(0, R * 0.1, R * 0.38, 0.15, Math.PI - 0.15); ctx.fillStyle = "#4a3a1a"; ctx.fill(); ctx.fillStyle = "#ff8da1"; ctx.beginPath(); ctx.arc(0, R * 0.22, R * 0.2, 0, Math.PI); ctx.fill(); }
+    else { ctx.arc(0, R * 0.15, R * 0.25, 0.3, Math.PI - 0.3); ctx.stroke(); }
+    if (feliz) { ctx.fillStyle = "rgba(255,120,140,.35)"; for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(s * R * 0.5, R * 0.12, R * 0.12, 0, Math.PI * 2); ctx.fill(); } }
+    ctx.restore();
+  }
+  function crearSatelite() { const dir = Math.random() < 0.5 ? 1 : -1; return { x: dir > 0 ? -0.15 : 1.15, alt: azar(ALT_LUNA * 0.3, ALT_LUNA * 0.8), dir, d: 0.85, ang: 0 }; }
+  function dibujarSatelite(s) {
+    const x = s.x * W, y = pantallaY(s.alt, s.d);
+    if (y < -40 || y > H + 40) return;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(s.ang); const k = 14 * esc;
+    ctx.fillStyle = "#3a6fd8"; for (const sx of [-1, 1]) ctx.fillRect(sx * k * 1.1 - (sx < 0 ? k * 1.8 : 0), -k * 0.45, k * 1.8, k * 0.9);
+    ctx.fillStyle = "#cfd8e3"; ctx.fillRect(-k * 0.6, -k * 0.6, k * 1.2, k * 1.2);
+    ctx.strokeStyle = "#cfd8e3"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, -k * 0.6); ctx.lineTo(0, -k * 1.3); ctx.stroke();
+    ctx.fillStyle = Math.sin(tiempo * 6) > 0 ? "#ff5e78" : "#7a2030"; ctx.beginPath(); ctx.arc(0, -k * 1.4, k * 0.2, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+  function crearOvni() { const dir = Math.random() < 0.5 ? 1 : -1; return { x: dir > 0 ? -0.15 : 1.15, alt: suelo * azar(0.45, 0.8), dir, d: 0.8, saludo: 0, vel: azar(0.035, 0.06) }; }
+  function dibujarOvni(o) {
+    const x = o.x * W, y = pantallaY(o.alt, o.d) + Math.sin(tiempo * 2.5) * 6;
+    if (y < -40 || y > H + 40) return;
+    const k = 22 * esc;
+    ctx.save(); ctx.translate(x, y);
+    if (o.saludo > 0) ctx.rotate(Math.sin(o.saludo * 18) * 0.25);
+    ctx.fillStyle = "rgba(94,242,166,.25)"; ctx.beginPath(); ctx.ellipse(0, k * 0.2, k * 1.6, k * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#8ecae6"; ctx.beginPath(); ctx.arc(0, -k * 0.25, k * 0.6, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = "#5ef2a6"; ctx.beginPath(); ctx.arc(0, -k * 0.3, k * 0.18, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#c77dff"; ctx.beginPath(); ctx.ellipse(0, 0, k * 1.3, k * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+    for (let i = -2; i <= 2; i++) {
+      const prendida = o.saludo > 0 ? Math.sin(o.saludo * 25 + i) > 0 : Math.sin(tiempo * 4 + i * 1.3) > 0.3;
+      ctx.fillStyle = prendida ? "#ffd166" : "#7a5aa0"; ctx.beginPath(); ctx.arc(i * k * 0.5, k * 0.12, k * 0.1, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+  function crearCometa() { const dir = Math.random() < 0.5 ? 1 : -1; return { x: dir > 0 ? -60 : W + 60, y: azar(H * 0.05, H * 0.3), vx: dir * azar(90, 140) * esc, vy: azar(25, 55) * esc, saludo: 0 }; }
+  function dibujarCometa(c) {
+    ctx.save(); ctx.translate(c.x, c.y);
+    const a = Math.atan2(c.vy, c.vx); ctx.rotate(a);
+    const L = 90 * esc * (c.saludo > 0 ? 1.4 : 1), r = 9 * esc;
+    const g = ctx.createLinearGradient(0, 0, -L, 0); g.addColorStop(0, "rgba(255,255,255,.95)"); g.addColorStop(0.4, "rgba(142,202,230,.5)"); g.addColorStop(1, "rgba(142,202,230,0)");
+    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(0, -r); ctx.lineTo(-L, 0); ctx.lineTo(0, r); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#1b3a5c";
+    const ojo = c.saludo > 0 && Math.sin(c.saludo * 12) > 0 ? 0.1 : 0.3;
+    ctx.beginPath(); ctx.ellipse(r * 0.35, -r * 0.3, r * 0.2, r * ojo, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(r * 0.35, r * 0.3, r * 0.2, r * ojo, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  // ---------- Chispas, humo, estelas ----------
+  function chispear(x, y, n, color) {
+    if (reducido) n = Math.min(n, 3);
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, v = azar(40, 150) * esc;
+      chispas.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vida: azar(0.4, 0.9), color, r: azar(2, 4) * esc });
+    }
+  }
+  function estela(x, y, vx, vy) {
+    estelas.push({ x, y, vx: vx * 0.15 + azar(-20, 20), vy: vy * 0.15 + azar(-20, 20), vida: azar(0.5, 1), r: azar(2, 5) * esc, tono: elegir(["#fff", "#ffe9a8", "#d8ecff"]) });
+  }
+
+  // ---------- Fondo ----------
+  function dibujarFondo() {
+    // Cuanto más alto, más negro el cielo.
+    const k = clamp(cam / Math.max(1, CAM_MAX), 0, 1);
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, k > 0.5 ? "#02030c" : "#070b22"); g.addColorStop(0.6, k > 0.5 ? "#050a1e" : "#0b1230"); g.addColorStop(1, k > 0.8 ? "#070b22" : "#1b2a5a");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  }
+  function dibujarSuelo() {
+    const y = pantallaY(0, 1);
+    if (y > H + 200) return;
+    // Lomas.
+    ctx.fillStyle = "#17305c"; ctx.beginPath(); ctx.moveTo(0, y + 10);
+    for (let x = 0; x <= W; x += 10) ctx.lineTo(x, y + 10 - Math.sin(x / W * Math.PI * 2.2 + 1) * 24 * esc - Math.sin(x / 70) * 6);
+    ctx.lineTo(W, H + 200); ctx.lineTo(0, H + 200); ctx.fill();
+    ctx.fillStyle = "#102347"; ctx.beginPath(); ctx.moveTo(0, y + 30);
+    for (let x = 0; x <= W; x += 10) ctx.lineTo(x, y + 30 - Math.sin(x / W * Math.PI * 1.4 + 2.5) * 18 * esc);
+    ctx.lineTo(W, H + 200); ctx.lineTo(0, H + 200); ctx.fill();
+    // Plataforma y torre.
+    const px = cohete.x * W, pw = 64 * esc;
+    ctx.fillStyle = "#6b7a8a"; ctx.fillRect(px - pw / 2, y, pw, 8 * esc);
+    ctx.fillStyle = "#4a5866"; ctx.fillRect(px - pw / 2 + 6, y + 8 * esc, 6 * esc, 24 * esc); ctx.fillRect(px + pw / 2 - 6 - 6 * esc, y + 8 * esc, 6 * esc, 24 * esc);
+    ctx.strokeStyle = "#8a9bb0"; ctx.lineWidth = 3 * esc;
+    const tx = px + pw * 0.75, th = alturaCohete() * 0.9;
+    ctx.beginPath(); ctx.moveTo(tx, y + 6); ctx.lineTo(tx, y - th); ctx.moveTo(tx + 12 * esc, y + 6); ctx.lineTo(tx + 12 * esc, y - th); ctx.stroke();
+    ctx.lineWidth = 1.5 * esc; for (let i = 1; i < 6; i++) { const yy = y - th * i / 6; ctx.beginPath(); ctx.moveTo(tx, yy); ctx.lineTo(tx + 12 * esc, yy - th / 12); ctx.stroke(); }
+    ctx.fillStyle = Math.sin(tiempo * 3) > 0 ? "#ff5e78" : "#7a2030"; ctx.beginPath(); ctx.arc(tx + 6 * esc, y - th - 5 * esc, 4 * esc, 0, Math.PI * 2); ctx.fill();
+    // Casita con la ventana prendida.
+    const cx = W * 0.82, ch = 30 * esc;
+    ctx.fillStyle = "#2b3f6b"; ctx.fillRect(cx - ch * 0.7, y - ch * 0.8, ch * 1.4, ch * 0.9);
+    ctx.fillStyle = "#3f2b5e"; ctx.beginPath(); ctx.moveTo(cx - ch * 0.85, y - ch * 0.8); ctx.lineTo(cx, y - ch * 1.45); ctx.lineTo(cx + ch * 0.85, y - ch * 0.8); ctx.fill();
+    ctx.fillStyle = "#ffd166"; ctx.fillRect(cx - ch * 0.2, y - ch * 0.55, ch * 0.4, ch * 0.35);
+  }
+
+  // ---------- Bucle ----------
+  function paso(dt) {
+    tiempo += dt;
+    moverCohete(cohete, dt);
+    for (const e of estrellas) if (e.brillo > 0) e.brillo -= dt;
+    for (const p of planetas) {
+      p.ang += p.vgiro * dt + (p.giro > 0 ? 6 * dt * p.giro : 0);
+      if (p.giro > 0) p.giro -= dt; if (p.bote > 0) p.bote -= dt;
+    }
+    if (luna.feliz > 0) luna.feliz -= dt;
+    luna.tParp -= dt; if (luna.tParp < 0) { luna.parpadeo = 0.14; luna.tParp = azar(2.5, 6); }
+    if (luna.parpadeo > 0) luna.parpadeo -= dt;
+    for (const c of chispas) { c.x += c.vx * dt; c.y += c.vy * dt; c.vy += 60 * dt; c.vida -= dt; }
+    for (let i = chispas.length - 1; i >= 0; i--) if (chispas[i].vida <= 0) chispas.splice(i, 1);
+    for (const h of humo) { h.x += h.vx * dt; h.alt += h.vy * dt; h.r += 12 * dt * esc; h.vida -= dt; }
+    for (let i = humo.length - 1; i >= 0; i--) if (humo[i].vida <= 0) humo.splice(i, 1);
+    if (humo.length > 160) humo.splice(0, humo.length - 160);
+    for (const s of estelas) { s.x += s.vx * dt; s.y += s.vy * dt; s.vida -= dt; }
+    for (let i = estelas.length - 1; i >= 0; i--) if (estelas[i].vida <= 0) estelas.splice(i, 1);
+    // Satélite: aparece durante el viaje.
+    if (satelite) {
+      satelite.x += satelite.dir * 0.09 * dt; satelite.ang += dt * 0.4;
+      if ((satelite.dir > 0 && satelite.x > 1.2) || (satelite.dir < 0 && satelite.x < -0.2)) satelite = null;
+    } else if (cohete.fase === "subiendo" && cohete.alt > ALT_LUNA * 0.15 && Math.random() < dt * 0.8) satelite = crearSatelite();
+    // Ovni y cometa: cada tanto, con el cohete en la plataforma o cuando sea.
+    if (ovni) {
+      ovni.x += ovni.dir * ovni.vel * dt * (ovni.saludo > 0 ? 0.2 : 1);
+      if (ovni.saludo > 0) ovni.saludo -= dt;
+      if ((ovni.dir > 0 && ovni.x > 1.2) || (ovni.dir < 0 && ovni.x < -0.2)) ovni = null;
+    } else if (!cometa && Math.random() < dt / 28) ovni = crearOvni();
+    if (cometa) {
+      cometa.x += cometa.vx * dt * (cometa.saludo > 0 ? 0.35 : 1); cometa.y += cometa.vy * dt * (cometa.saludo > 0 ? 0.35 : 1);
+      if (cometa.saludo > 0) cometa.saludo -= dt;
+      if (!reducido && Math.random() < dt * 20) estela(cometa.x, cometa.y, -cometa.vx, -cometa.vy);
+      if (cometa.x < -120 || cometa.x > W + 120 || cometa.y > H + 60) cometa = null;
+    } else if (!ovni && Math.random() < dt / 22) cometa = crearCometa();
+    // Dedo que se desliza: estrella fugaz.
+    for (const d of dedos.values()) {
+      if (d.fiuu > 0) d.fiuu -= dt;
+    }
+  }
+  function dibujar() {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    dibujarFondo();
+    for (const e of estrellas) if (e.d < 1) dibujarEstrella(e);
+    for (const p of planetas) dibujarPlaneta(p);
+    for (const e of estrellas) if (e.d === 1) dibujarEstrella(e);
+    dibujarLuna(luna);
+    if (satelite) dibujarSatelite(satelite);
+    if (ovni) dibujarOvni(ovni);
+    if (cometa) dibujarCometa(cometa);
+    dibujarSuelo();
+    for (const h of humo) {
+      const y = pantallaY(h.alt, 1); if (y < -30 || y > H + 30) continue;
+      ctx.globalAlpha = clamp(h.vida * 0.6, 0, 0.6); ctx.fillStyle = `rgb(${h.tono},${h.tono},${h.tono + 15})`;
+      ctx.beginPath(); ctx.arc(h.x, y, h.r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    dibujarCohete(cohete);
+    for (const s of estelas) { ctx.globalAlpha = clamp(s.vida, 0, 1); ctx.fillStyle = s.tono; ctx.beginPath(); ctx.arc(s.x, s.y, s.r * s.vida, 0, Math.PI * 2); ctx.fill(); }
+    for (const c of chispas) { ctx.globalAlpha = clamp(c.vida * 1.5, 0, 1); ctx.fillStyle = c.color; ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2); ctx.fill(); }
+    ctx.globalAlpha = 1;
+    for (const d of dedos.values()) { ctx.fillStyle = "rgba(255,255,255,.12)"; ctx.beginPath(); ctx.arc(d.x, d.y, 24, 0, Math.PI * 2); ctx.fill(); }
+  }
+  function cuadro(t) {
+    if (!pausado) {
+      const dt = Math.min(0.05, (t - (ultimoT || t)) / 1000); ultimoT = t;
+      paso(dt); dibujar();
+    }
+    requestAnimationFrame(cuadro);
+  }
+
+  // ---------- Entrada ----------
+  function posicion(ev) { const r = canvas.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; }
+  function tocar(x, y) {
+    huboToque = true; ayuda.classList.add("oculta");
+    audio();
+    // ¿El cohete? (Con margen generoso para dedos chicos.)
+    const h = alturaCohete(), cx = cohete.x * W, cy = pantallaY(cohete.alt, 1);
+    if (Math.abs(x - cx) < h * 0.45 && y < cy + h * 0.15 && y > cy - h * 1.2) { despegar(); return "cohete"; }
+    // ¿El ovni o el cometa?
+    if (ovni && Math.hypot(x - ovni.x * W, y - pantallaY(ovni.alt, ovni.d)) < 40 * esc) { ovni.saludo = 1.2; sonOvni(); chispear(ovni.x * W, pantallaY(ovni.alt, ovni.d), 10, "#5ef2a6"); return "ovni"; }
+    if (cometa && Math.hypot(x - cometa.x, y - cometa.y) < 40 * esc) { cometa.saludo = 1; sonNota(PENTA[6], 0.3, 0.8); chispear(cometa.x, cometa.y, 12, "#8ecae6"); return "cometa"; }
+    // ¿Un planeta?
+    for (const p of planetas) {
+      const py = pantallaY(p.alt, p.d);
+      if (Math.hypot(x - p.x * W, y - py) < p.r * 1.7 + 12) { p.giro = 1; p.bote = 1; sonBoing(); chispear(p.x * W, py, 8, p.c2); return "planeta"; }
+    }
+    // ¿La luna?
+    const ly = pantallaY(luna.alt, 1);
+    if (Math.hypot(x - luna.x * W, y - ly) < luna.R + 10) { luna.feliz = Math.max(luna.feliz, 1.5); sonNota(PENTA[4], 0.25, 1.4); chispear(luna.x * W, ly, 10, "#fff6a8"); return "luna"; }
+    // ¿Una estrella? La más cercana a menos de 30 px (o del tamaño de un dedo).
+    let mejor = null, dmin = Math.max(30, 26 * esc);
+    for (const e of estrellas) {
+      const ey = pantallaY(e.alt, e.d); if (ey < -10 || ey > H + 10) continue;
+      const d = Math.hypot(x - e.x * W, y - ey);
+      if (d < dmin) { dmin = d; mejor = e; }
+    }
+    if (mejor) { mejor.brillo = 0.9; sonNota(mejor.nota); chispear(mejor.x * W, pantallaY(mejor.alt, mejor.d), 6, mejor.tono); return "estrella"; }
+    // Cielo vacío: nace una estrellita ahí, con una nota grave.
+    const nueva = { x: x / W, alt: suelo - y + cam, d: 1, r: azar(1.6, 2.8) * esc, fase: Math.random() * 6.3, vel: azar(0.8, 2.2), brillo: 0.9, tono: "#fff", nota: PENTA[Math.floor(clamp(1 - y / H, 0, 0.999) * 5)] };
+    estrellas.push(nueva); if (estrellas.length > 900) estrellas.splice(0, 1);
+    sonNota(nueva.nota, 0.2); chispear(x, y, 5, "#fff");
+    return "cielo";
+  }
+  canvas.addEventListener("pointerdown", (ev) => {
+    ev.preventDefault();
+    try { canvas.setPointerCapture(ev.pointerId); } catch (e) { /* no pasa nada */ }
+    const { x, y } = posicion(ev);
+    dedos.set(ev.pointerId, { x, y, ultimoX: x, ultimoY: y, recorrido: 0, fiuu: 0 });
+    tocar(x, y);
+  });
+  canvas.addEventListener("pointermove", (ev) => {
+    const d = dedos.get(ev.pointerId); if (!d) return;
+    const { x, y } = posicion(ev);
+    const dx = x - d.ultimoX, dy = y - d.ultimoY, paso = Math.hypot(dx, dy);
+    d.x = x; d.y = y; d.ultimoX = x; d.ultimoY = y; d.recorrido += paso;
+    if (paso > 0) {
+      const n = reducido ? 1 : Math.min(4, Math.ceil(paso / 6));
+      for (let i = 0; i < n; i++) estela(x - dx * i / n, y - dy * i / n, dx * 8, dy * 8);
+      if (d.recorrido > 60 && d.fiuu <= 0) { d.fiuu = 0.7; sonFiuu(); }
+    }
+  });
+  const soltar = (ev) => { dedos.delete(ev.pointerId); };
+  canvas.addEventListener("pointerup", soltar);
+  canvas.addEventListener("pointercancel", soltar);
+  canvas.addEventListener("lostpointercapture", soltar);
+  window.addEventListener("keydown", (ev) => {
+    if (ev.target && ev.target.tagName === "BUTTON" && (ev.key === "Enter" || ev.key === " ")) return;
+    if (ev.key === " " || ev.key === "Enter") { ev.preventDefault(); huboToque = true; ayuda.classList.add("oculta"); audio(); despegar(); }
+    else if (ev.key === "m" || ev.key === "M") btnSonido.click();
+    else if (ev.key.length === 1 && /[a-z0-9]/i.test(ev.key)) {
+      // Cualquier otra tecla: una estrella al azar brilla y suena.
+      const visibles = estrellas.filter((e) => { const y = pantallaY(e.alt, e.d); return y > 0 && y < H; });
+      const e = elegir(visibles); if (e) { audio(); e.brillo = 0.9; sonNota(e.nota); chispear(e.x * W, pantallaY(e.alt, e.d), 6, e.tono); }
+    }
+  });
+  btnDespegar.addEventListener("click", () => { huboToque = true; ayuda.classList.add("oculta"); audio(); despegar(); });
+  btnSonido.addEventListener("click", () => {
+    sonidoActivo = !sonidoActivo;
+    btnSonido.setAttribute("aria-pressed", String(sonidoActivo)); btnSonido.textContent = sonidoActivo ? "🔊" : "🔇";
+    try { localStorage.setItem("cohete.sonido", sonidoActivo ? "si" : "no"); } catch (e) { /* da igual */ }
+    if (sonidoActivo) { audio(); sonNota(PENTA[2], 0.2, 0.6); if (cohete.fase === "encendido" || cohete.fase === "subiendo") sonMotor(true); }
+    else if (rumble) { rumble.src.stop(); rumble = null; }
+  });
+  document.addEventListener("visibilitychange", () => {
+    pausado = document.hidden; ultimoT = 0;
+    if (pausado) { dedos.clear(); if (rumble) { rumble.src.stop(); rumble = null; } }
+    else if (cohete.fase === "encendido" || cohete.fase === "subiendo") sonMotor(true);
+  });
+
+  // ---------- Tamaño ----------
+  function medir() {
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    esc = clamp(Math.min(W, H) / 560, 1, 1.6);
+    suelo = H * 0.84;
+    ALT_LUNA = H * 2.3; CAM_MAX = ALT_LUNA - H * 0.45;
+    armarCielo();
+    if (!cohete) cohete = crearCohete();
+    luna = Object.assign(crearLuna(), luna ? { feliz: luna.feliz } : {});
+    if (cohete.fase !== "lista") cam = clamp(cohete.alt - H * 0.45, 0, CAM_MAX);
+  }
+  window.addEventListener("resize", medir);
+
+  // ---------- Arranque ----------
+  medir();
+  requestAnimationFrame(cuadro);
+  setTimeout(() => { if (!huboToque) ayuda.classList.add("oculta"); }, 12000);
+
+  // Para las pruebas automáticas.
+  window.__cohete = {
+    estrellas, planetas, chispas, humo, estelas, dedos, tocar,
+    get cohete() { return cohete; }, get fase() { return cohete.fase; }, get alt() { return cohete.alt; },
+    get luna() { return luna; }, get ovni() { return ovni; }, get cometa() { return cometa; }, get satelite() { return satelite; },
+    get cam() { return cam; }, get suelo() { return suelo; }, get tiempo() { return tiempo; }, get viajes() { return viajes; },
+    get altLuna() { return ALT_LUNA; }, pantallaY, get W() { return W; }, get H() { return H; },
+  };
+})();
+</script>
+</body>
+</html>
