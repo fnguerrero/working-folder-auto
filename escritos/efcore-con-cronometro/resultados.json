@@ -1,0 +1,1523 @@
+{
+  "entorno": {
+    "dotnet": "8.0.32",
+    "efcore": "8.0.32",
+    "sqlclient": "5.1.9",
+    "dapper": "2.1.89",
+    "sqlserver": "16.0.4305.5 Developer Edition (64-bit)",
+    "cpus": 2,
+    "so": "Debian GNU/Linux 12 (bookworm)",
+    "fecha": "2026-10-18",
+    "nota": "La máquina: 4 vCPU en total, 2 para el programa y 2 para SQL Server 2022 en Docker, en la misma máquina. Tiempo = mediana de 5 corridas con contexto nuevo (la primera, de calentamiento, está en primeraMs)."
+  },
+  "baseDatos": {
+    "clientes": 50000,
+    "productos": 2000,
+    "pedidos": 400000,
+    "items": 1200815,
+    "eventos": 1600195,
+    "documentos": 500,
+    "pedidosCliente1": 100000,
+    "pedidosCliente2": 200,
+    "pedidosCliente3": 500
+  },
+  "repeticiones": 5,
+  "capitulos": {
+    "n1": [
+      {
+        "capitulo": "n1",
+        "variante": "Un viaje por pedido: Entry(p).Collection(p => p.Items).Load()",
+        "medianaMs": 214.7019,
+        "primeraMs": 1071.5571,
+        "minMs": 184.5431,
+        "maxMs": 270.4567,
+        "viajesAlServidor": 201,
+        "lecturasLogicas": 3053,
+        "filasRecibidas": 795,
+        "bytesRecibidos": 153954,
+        "bytesAsignados": 4536936,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[ClienteId] = 2",
+          "SELECT [i].[ItemId], [i].[Cantidad], [i].[PedidoId], [i].[Precio], [i].[ProductoId]\nFROM [Items] AS [i]\nWHERE [i].[PedidoId] = @__p_0"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "n1",
+        "variante": "Lazy loading: foreach (var p in pedidos) n += p.Items.Count",
+        "medianaMs": 249.3544,
+        "primeraMs": 376.6393,
+        "minMs": 221.8522,
+        "maxMs": 284.4786,
+        "viajesAlServidor": 201,
+        "lecturasLogicas": 3053,
+        "filasRecibidas": 795,
+        "bytesRecibidos": 153954,
+        "bytesAsignados": 6301872,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[ClienteId] = 2",
+          "SELECT [i].[ItemId], [i].[Cantidad], [i].[PedidoId], [i].[Precio], [i].[ProductoId]\nFROM [Items] AS [i]\nWHERE [i].[PedidoId] = @__p_0"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "n1",
+        "variante": "Include(p => p.Items)",
+        "medianaMs": 31.5399,
+        "primeraMs": 76.0855,
+        "minMs": 21.1546,
+        "maxMs": 39.0073,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 3094,
+        "filasRecibidas": 595,
+        "bytesRecibidos": 337680,
+        "bytesAsignados": 2068888,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total], [i].[ItemId], [i].[Cantidad], [i].[PedidoId], [i].[Precio], [i].[ProductoId]\nFROM [Pedidos] AS [p]\nLEFT JOIN [Items] AS [i] ON [p].[PedidoId] = [i].[PedidoId]\nWHERE [p].[ClienteId] = 2\nORDER BY [p].[PedidoId]"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "n1",
+        "variante": "Proyección: Select(p => new { p.PedidoId, Cantidad = p.Items.Count })",
+        "medianaMs": 3.0693,
+        "primeraMs": 37.06,
+        "minMs": 2.5916,
+        "maxMs": 3.5515,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 670,
+        "filasRecibidas": 200,
+        "bytesRecibidos": 2213,
+        "bytesAsignados": 149760,
+        "sql": [
+          "SELECT [p].[PedidoId], (\n    SELECT COUNT(*)\n    FROM [Items] AS [i]\n    WHERE [p].[PedidoId] = [i].[PedidoId]) AS [Cantidad]\nFROM [Pedidos] AS [p]\nWHERE [p].[ClienteId] = 2"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "n1",
+        "variante": "Proyección con los ítems adentro: Select(p => new { p.PedidoId, Items = p.Items.Select(…).ToList() })",
+        "medianaMs": 5.4792,
+        "primeraMs": 22.0527,
+        "minMs": 4.9726,
+        "maxMs": 6.3286,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 2455,
+        "filasRecibidas": 595,
+        "bytesRecibidos": 12176,
+        "bytesAsignados": 350216,
+        "sql": [
+          "SELECT [p].[PedidoId], [i].[ProductoId], [i].[Cantidad], [i].[ItemId]\nFROM [Pedidos] AS [p]\nLEFT JOIN [Items] AS [i] ON [p].[PedidoId] = [i].[PedidoId]\nWHERE [p].[ClienteId] = 2\nORDER BY [p].[PedidoId]"
+        ],
+        "nota": null
+      }
+    ],
+    "cartesiano": [
+      {
+        "capitulo": "cartesiano",
+        "variante": "Include(p => p.Items)",
+        "medianaMs": 57.841,
+        "primeraMs": 76.9632,
+        "minMs": 52.3751,
+        "maxMs": 65.2944,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 12438,
+        "filasRecibidas": 3011,
+        "bytesRecibidos": 1672182,
+        "bytesAsignados": 6435976,
+        "sql": [
+          "SELECT [t].[PedidoId], [t].[ClienteId], [t].[Estado], [t].[Fecha], [t].[Notas], [t].[Total], [i].[ItemId], [i].[Cantidad], [i].[PedidoId], [i].[Precio], [i].[ProductoId]\nFROM (\n    SELECT TOP(@__p_0) [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\n    FROM [Pedidos] AS [p]\n    WHERE [p].[ClienteId] = 1\n    ORDER BY [p].[PedidoId]\n) AS [t]\nLEFT JOIN [Items] AS [i] ON [t].[PedidoId] = [i].[PedidoId]\nORDER BY [t].[PedidoId]"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "cartesiano",
+        "variante": "Include(p => p.Items).Include(p => p.Eventos)",
+        "medianaMs": 200.6964,
+        "primeraMs": 266.5489,
+        "minMs": 172.3947,
+        "maxMs": 221.9639,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 59673,
+        "filasRecibidas": 12413,
+        "bytesRecibidos": 7251547,
+        "bytesAsignados": 25271992,
+        "sql": [
+          "SELECT [t].[PedidoId], [t].[ClienteId], [t].[Estado], [t].[Fecha], [t].[Notas], [t].[Total], [i].[ItemId], [i].[Cantidad], [i].[PedidoId], [i].[Precio], [i].[ProductoId], [e].[EventoId], [e].[Fecha], [e].[PedidoId], [e].[Tipo]\nFROM (\n    SELECT TOP(@__p_0) [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\n    FROM [Pedidos] AS [p]\n    WHERE [p].[ClienteId] = 1\n    ORDER BY [p].[PedidoId]\n) AS [t]\nLEFT JOIN [Items] AS [i] ON [t].[PedidoId] = [i].[PedidoId]\nLEFT JOIN [Eventos] AS [e] ON [t].[PedidoId] = [e].[PedidoId]\nORDER BY [t].[PedidoId], [i].[ItemId]"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "cartesiano",
+        "variante": "Include(p => p.Items).Include(p => p.Eventos).AsSplitQuery()",
+        "medianaMs": 58.0364,
+        "primeraMs": 109.1884,
+        "minMs": 55.7785,
+        "maxMs": 62.7464,
+        "viajesAlServidor": 3,
+        "lecturasLogicas": 29394,
+        "filasRecibidas": 8108,
+        "bytesRecibidos": 739743,
+        "bytesAsignados": 5234232,
+        "sql": [
+          "SELECT TOP(@__p_0) [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[ClienteId] = 1\nORDER BY [p].[PedidoId]",
+          "SELECT [i].[ItemId], [i].[Cantidad], [i].[PedidoId], [i].[Precio], [i].[ProductoId], [t].[PedidoId]\nFROM (\n    SELECT TOP(@__p_0) [p].[PedidoId]\n    FROM [Pedidos] AS [p]\n    WHERE [p].[ClienteId] = 1\n    ORDER BY [p].[PedidoId]\n) AS [t]\nINNER JOIN [Items] AS [i] ON [t].[PedidoId] = [i].[PedidoId]\nORDER BY [t].[PedidoId]",
+          "SELECT [e].[EventoId], [e].[Fecha], [e].[PedidoId], [e].[Tipo], [t].[PedidoId]\nFROM (\n    SELECT TOP(@__p_0) [p].[PedidoId]\n    FROM [Pedidos] AS [p]\n    WHERE [p].[ClienteId] = 1\n    ORDER BY [p].[PedidoId]\n) AS [t]\nINNER JOIN [Eventos] AS [e] ON [t].[PedidoId] = [e].[PedidoId]\nORDER BY [t].[PedidoId]"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "cartesiano",
+        "variante": "Proyección: Select(p => new { p.PedidoId, p.Total, Items = p.Items.Select(…).ToList(), Eventos = p.Eventos.Select(…).ToList() })",
+        "medianaMs": 57.4638,
+        "primeraMs": 94.8702,
+        "minMs": 53.5731,
+        "maxMs": 77.8564,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 59673,
+        "filasRecibidas": 12413,
+        "bytesRecibidos": 616724,
+        "bytesAsignados": 5500800,
+        "sql": [
+          "SELECT [t].[PedidoId], [t].[Total], [i].[ProductoId], [i].[Cantidad], [i].[ItemId], [e].[Fecha], [e].[Tipo], [e].[EventoId]\nFROM (\n    SELECT TOP(@__p_0) [p].[PedidoId], [p].[Total]\n    FROM [Pedidos] AS [p]\n    WHERE [p].[ClienteId] = 1\n    ORDER BY [p].[PedidoId]\n) AS [t]\nLEFT JOIN [Items] AS [i] ON [t].[PedidoId] = [i].[PedidoId]\nLEFT JOIN [Eventos] AS [e] ON [t].[PedidoId] = [e].[PedidoId]\nORDER BY [t].[PedidoId], [i].[ItemId]"
+        ],
+        "nota": null
+      }
+    ],
+    "tracking": [
+      {
+        "capitulo": "tracking",
+        "variante": "ToList() rastreando (lo que hace por defecto)",
+        "medianaMs": 185.6885,
+        "primeraMs": 1450.8011,
+        "minMs": 107.1491,
+        "maxMs": 531.0674,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 1364,
+        "filasRecibidas": 20000,
+        "bytesRecibidos": 10658719,
+        "bytesAsignados": 61288440,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] <= 20000"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "tracking",
+        "variante": "AsNoTracking().ToList()",
+        "medianaMs": 48.5949,
+        "primeraMs": 52.7142,
+        "minMs": 46.0203,
+        "maxMs": 64.354,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 1364,
+        "filasRecibidas": 20000,
+        "bytesRecibidos": 10658719,
+        "bytesAsignados": 38327448,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] <= 20000"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "tracking",
+        "variante": "Include(p => p.Cliente), rastreando",
+        "medianaMs": 1862.6164,
+        "primeraMs": 2130.8434,
+        "minMs": 1812.0552,
+        "maxMs": 1976.6815,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 1367,
+        "filasRecibidas": 20000,
+        "bytesRecibidos": 11819958,
+        "bytesAsignados": 66483816,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total], [c].[ClienteId], [c].[Alta], [c].[Email], [c].[Nombre]\nFROM [Pedidos] AS [p]\nINNER JOIN [Clientes] AS [c] ON [p].[ClienteId] = [c].[ClienteId]\nWHERE [p].[PedidoId] <= 20000"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "tracking",
+        "variante": "Include(p => p.Cliente), rastreando, con Cliente.Pedidos inicializada como HashSet<Pedido>",
+        "medianaMs": 168.6556,
+        "primeraMs": 171.7579,
+        "minMs": 164.0958,
+        "maxMs": 185.4405,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 1367,
+        "filasRecibidas": 20000,
+        "bytesRecibidos": 11819958,
+        "bytesAsignados": 67359352,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total], [c].[ClienteId], [c].[Alta], [c].[Email], [c].[Nombre]\nFROM [Pedidos] AS [p]\nINNER JOIN [Clientes] AS [c] ON [p].[ClienteId] = [c].[ClienteId]\nWHERE [p].[PedidoId] <= 20000"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "tracking",
+        "variante": "Include(p => p.Cliente).AsNoTracking()",
+        "medianaMs": 90.9908,
+        "primeraMs": 102.8574,
+        "minMs": 85.9314,
+        "maxMs": 114.3018,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 1367,
+        "filasRecibidas": 20000,
+        "bytesRecibidos": 11819958,
+        "bytesAsignados": 50556280,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total], [c].[ClienteId], [c].[Alta], [c].[Email], [c].[Nombre]\nFROM [Pedidos] AS [p]\nINNER JOIN [Clientes] AS [c] ON [p].[ClienteId] = [c].[ClienteId]\nWHERE [p].[PedidoId] <= 20000"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "tracking",
+        "variante": "Include(p => p.Cliente).AsNoTrackingWithIdentityResolution()",
+        "medianaMs": 2838.1995,
+        "primeraMs": 2780.8762,
+        "minMs": 2628.7798,
+        "maxMs": 2989.2255,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 1367,
+        "filasRecibidas": 20000,
+        "bytesRecibidos": 11819958,
+        "bytesAsignados": 72245032,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total], [c].[ClienteId], [c].[Alta], [c].[Email], [c].[Nombre]\nFROM [Pedidos] AS [p]\nINNER JOIN [Clientes] AS [c] ON [p].[ClienteId] = [c].[ClienteId]\nWHERE [p].[PedidoId] <= 20000"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "tracking",
+        "variante": "Include(p => p.Cliente).AsNoTrackingWithIdentityResolution(), con Cliente.Pedidos como HashSet<Pedido>",
+        "medianaMs": 190.8453,
+        "primeraMs": 190.4251,
+        "minMs": 169.7944,
+        "maxMs": 213.6686,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 1367,
+        "filasRecibidas": 20000,
+        "bytesRecibidos": 11819958,
+        "bytesAsignados": 73120568,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total], [c].[ClienteId], [c].[Alta], [c].[Email], [c].[Nombre]\nFROM [Pedidos] AS [p]\nINNER JOIN [Clientes] AS [c] ON [p].[ClienteId] = [c].[ClienteId]\nWHERE [p].[PedidoId] <= 20000"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "tracking",
+        "variante": "ToList() rastreando y después SaveChanges() sin haber cambiado nada",
+        "medianaMs": 206.8041,
+        "primeraMs": 201.2129,
+        "minMs": 198.9672,
+        "maxMs": 207.98,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 1364,
+        "filasRecibidas": 20000,
+        "bytesRecibidos": 10658719,
+        "bytesAsignados": 78994632,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] <= 20000"
+        ],
+        "nota": null
+      }
+    ],
+    "proyeccion": [
+      {
+        "capitulo": "proyeccion",
+        "variante": "La entidad completa (con Notas)",
+        "medianaMs": 46.7824,
+        "primeraMs": 61.3288,
+        "minMs": 46.0139,
+        "maxMs": 76.2287,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 1364,
+        "filasRecibidas": 20000,
+        "bytesRecibidos": 10680590,
+        "bytesAsignados": 38337272,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] <= 20000"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "proyeccion",
+        "variante": "Select(p => new { p.PedidoId, p.Total })",
+        "medianaMs": 9.5262,
+        "primeraMs": 15.3034,
+        "minMs": 9.2831,
+        "maxMs": 12.5922,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 1364,
+        "filasRecibidas": 20000,
+        "bytesRecibidos": 220425,
+        "bytesAsignados": 5267224,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] <= 20000"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "proyeccion",
+        "variante": "Select(p => new PedidoResumen(p.PedidoId, p.Fecha, p.Estado, p.Total))",
+        "medianaMs": 16.4903,
+        "primeraMs": 23.3909,
+        "minMs": 14.4089,
+        "maxMs": 17.0725,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 1364,
+        "filasRecibidas": 20000,
+        "bytesRecibidos": 584543,
+        "bytesAsignados": 6355976,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[Fecha], [p].[Estado], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] <= 20000"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "proyeccion",
+        "variante": "Sum(p => p.Total) en el servidor",
+        "medianaMs": 8.888,
+        "primeraMs": 20.9722,
+        "minMs": 8.0491,
+        "maxMs": 9.132,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 1364,
+        "filasRecibidas": 1,
+        "bytesRecibidos": 186,
+        "bytesAsignados": 101544,
+        "sql": [
+          "SELECT COALESCE(SUM([p].[Total]), 0.0)\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] <= 20000"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "proyeccion",
+        "variante": "ToList().Sum(p => p.Total) (la cuenta en el cliente)",
+        "medianaMs": 44.9099,
+        "primeraMs": 67.0545,
+        "minMs": 43.6335,
+        "maxMs": 45.5042,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 1364,
+        "filasRecibidas": 20000,
+        "bytesRecibidos": 10680590,
+        "bytesAsignados": 38337320,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] <= 20000"
+        ],
+        "nota": null
+      }
+    ],
+    "paginacion": [
+      {
+        "capitulo": "paginacion",
+        "variante": "OrderBy(PedidoId).Skip(0).Take(50): página 1",
+        "medianaMs": 1.5677,
+        "primeraMs": 6.544,
+        "minMs": 1.4948,
+        "maxMs": 1.8156,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 19,
+        "filasRecibidas": 50,
+        "bytesRecibidos": 24680,
+        "bytesAsignados": 197400,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nORDER BY [p].[PedidoId]\nOFFSET @__p_0 ROWS FETCH NEXT @__p_1 ROWS ONLY"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "paginacion",
+        "variante": "OrderBy(PedidoId).Skip(99.950).Take(50): página 2.000",
+        "medianaMs": 86.7181,
+        "primeraMs": 104.8469,
+        "minMs": 70.595,
+        "maxMs": 110.5733,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 6860,
+        "filasRecibidas": 50,
+        "bytesRecibidos": 27092,
+        "bytesAsignados": 204664,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nORDER BY [p].[PedidoId]\nOFFSET @__p_0 ROWS FETCH NEXT @__p_1 ROWS ONLY"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "paginacion",
+        "variante": "OrderBy(PedidoId).Skip(399.950).Take(50): página 8.000 (la última)",
+        "medianaMs": 342.4852,
+        "primeraMs": 287.4023,
+        "minMs": 277.004,
+        "maxMs": 407.7727,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 27395,
+        "filasRecibidas": 50,
+        "bytesRecibidos": 27825,
+        "bytesAsignados": 206888,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nORDER BY [p].[PedidoId]\nOFFSET @__p_0 ROWS FETCH NEXT @__p_1 ROWS ONLY"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "paginacion",
+        "variante": "Where(p => p.PedidoId > ultimo).OrderBy(PedidoId).Take(50): keyset, página 1",
+        "medianaMs": 1.4178,
+        "primeraMs": 6.8515,
+        "minMs": 1.2186,
+        "maxMs": 1.5507,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 19,
+        "filasRecibidas": 50,
+        "bytesRecibidos": 24680,
+        "bytesAsignados": 198952,
+        "sql": [
+          "SELECT TOP(@__p_1) [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] > @__ultimo_0\nORDER BY [p].[PedidoId]"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "paginacion",
+        "variante": "Where(p => p.PedidoId > ultimo).OrderBy(PedidoId).Take(50): keyset, página 8.000",
+        "medianaMs": 0.9505,
+        "primeraMs": 1.6606,
+        "minMs": 0.9029,
+        "maxMs": 2.5248,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 7,
+        "filasRecibidas": 50,
+        "bytesRecibidos": 27825,
+        "bytesAsignados": 208440,
+        "sql": [
+          "SELECT TOP(@__p_1) [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] > @__ultimo_0\nORDER BY [p].[PedidoId]"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "paginacion",
+        "variante": "OrderBy(Fecha).ThenBy(PedidoId).Skip(399.950).Take(50): página 8.000 por fecha",
+        "medianaMs": 941.6329,
+        "primeraMs": 932.4264,
+        "minMs": 820.7438,
+        "maxMs": 997.3207,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 1275897,
+        "filasRecibidas": 50,
+        "bytesRecibidos": 27827,
+        "bytesAsignados": 208296,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nORDER BY [p].[Fecha], [p].[PedidoId]\nOFFSET @__p_0 ROWS FETCH NEXT @__p_1 ROWS ONLY"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "paginacion",
+        "variante": "Where(p => p.Fecha > f || (p.Fecha == f && p.PedidoId > id)).OrderBy(Fecha).ThenBy(PedidoId).Take(50): keyset por fecha, página 8.000",
+        "medianaMs": 1.1845,
+        "primeraMs": 8.4579,
+        "minMs": 1.1555,
+        "maxMs": 1.3224,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 165,
+        "filasRecibidas": 50,
+        "bytesRecibidos": 27827,
+        "bytesAsignados": 216112,
+        "sql": [
+          "SELECT TOP(@__p_2) [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[Fecha] > @__f_0 OR ([p].[Fecha] = @__f_0 AND [p].[PedidoId] > @__id_1)\nORDER BY [p].[Fecha], [p].[PedidoId]"
+        ],
+        "nota": null
+      }
+    ],
+    "contains": [
+      {
+        "capitulo": "contains",
+        "variante": "Where(p => ids.Contains(p.PedidoId)) con 10 ids, EF Core 8 (OPENJSON)",
+        "medianaMs": 1.4742,
+        "primeraMs": 89.8807,
+        "minMs": 1.3089,
+        "maxMs": 1.8777,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 30,
+        "filasRecibidas": 10,
+        "bytesRecibidos": 273,
+        "bytesAsignados": 107520,
+        "sql": [
+          "SELECT [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] IN (\n    SELECT [i].[value]\n    FROM OPENJSON(@__ids_0) WITH ([value] int '$') AS [i]\n)"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "contains",
+        "variante": "Where(p => ids.Contains(p.PedidoId)) con 1.000 ids, EF Core 8 (OPENJSON)",
+        "medianaMs": 5.3168,
+        "primeraMs": 9.8799,
+        "minMs": 4.892,
+        "maxMs": 6.7663,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 3000,
+        "filasRecibidas": 1000,
+        "bytesRecibidos": 7203,
+        "bytesAsignados": 374176,
+        "sql": [
+          "SELECT [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] IN (\n    SELECT [i].[value]\n    FROM OPENJSON(@__ids_0) WITH ([value] int '$') AS [i]\n)"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "contains",
+        "variante": "Where(p => ids.Contains(p.PedidoId)) con 10.000 ids, EF Core 8 (OPENJSON)",
+        "medianaMs": 27.974,
+        "primeraMs": 36.1452,
+        "minMs": 27.2965,
+        "maxMs": 34.5417,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 30000,
+        "filasRecibidas": 10000,
+        "bytesRecibidos": 70267,
+        "bytesAsignados": 3066512,
+        "sql": [
+          "SELECT [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] IN (\n    SELECT [i].[value]\n    FROM OPENJSON(@__ids_0) WITH ([value] int '$') AS [i]\n)"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "contains",
+        "variante": "Where(p => ids.Contains(p.PedidoId)) con 10 ids, UseCompatibilityLevel(120) (IN con literales)",
+        "medianaMs": 1.5216,
+        "primeraMs": 42.6455,
+        "minMs": 1.2654,
+        "maxMs": 66.4186,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 30,
+        "filasRecibidas": 10,
+        "bytesRecibidos": 255,
+        "bytesAsignados": 112472,
+        "sql": [
+          "SELECT [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] IN (16970, 20905, 146574, 153289, 264376, 270468, 337427, 341985, 348503, 381588)"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "contains",
+        "variante": "Where(p => ids.Contains(p.PedidoId)) con 1.000 ids, UseCompatibilityLevel(120) (IN con literales)",
+        "medianaMs": 6.69,
+        "primeraMs": 46.5038,
+        "minMs": 6.3298,
+        "maxMs": 8.8295,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 3189,
+        "filasRecibidas": 1000,
+        "bytesRecibidos": 7185,
+        "bytesAsignados": 507128,
+        "sql": [
+          "SELECT [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] IN (63, 802, 2286, 2465, 2755, 2757, 3066, 3314, 3534, 3582, 3674, 4441, 4469, 5454, 6023, 6388, 7012, 7020, 7234, 7241, 7703, 7975, 8445, 8460, 8662, 8704, 9241, 9650, 9741, 9951, 10011, 11074, 11206, 11427, 12088, 13808, 15240, 15557, 16087, 16623, 17039, 17726, 18488, 18659, 18683, 18889, 19985, 20111, 20293, 20465, 20863, 21122, 21439, 22118, 22272, 22565, 22904, 22911, 23318, 24506, 24890, 25041, 26240, 26532, 27183, 27321, 27467, 27541, 27609, 29191, 29802, 30053, 30202, 30329, 30695, 30967, 31044, 31395, 31435, 31618, 31842, 31956, 32012, 32078, 32263, 32342, 33438, 33760, 34505, 34780, 35127, 35624, 36915, 38662, 39083, 39445, 39464, 39921, 40063, 41078, 41180, 41261, 42235, 43492, 43736, 43893, 44520, 44816, 44835, 45207, 45287, 45674, 45752, 45814, 45915, 45952, 46249, 46369, 47241, 47487, 47509, 47963, 48252, 48764, 48985, 49120, 49594, 49976, 50008, 50135, 50755, 50933, 51388, 52337, 52551, 52877, 54071, 54438, 54555, 55588, 55922, 55943, 56899, 57019, 57716, 58165, 58411, 58601, 58902, 59311, 59594, 59887, 60295, 60599, 60686, 60690, 60692, 60739, 61613, 62010, 62163, 62329, 62436, 62690, 62819, 62894, 63572, 63948, 64178, 64422, 64597, 64658, 65179, 65616, 65694, 66600, 66718, 67013, 67269, 67869, 68045, 69251, 69331, 69355, 69803, 69975, 70410, 71656, 72014, 72101, 72274, 72280, 72397, 73157, 73649, 73878, 74342, 74399, 74409, 74666, 74831, 74862, 75458, 75571, 75957, 76003, 76395, 76771, 76937, 77456, 77678, 77817, 77966, 78091, 78108, 78580, 78603, 79194, 79222, 79622, 79628, 79679, 79775, 79809, 79910, 80746, 80980, 81136, 81615, 81976, 83033, 83313, 83487, 83736, 83911, 83927, 83928, 83940, 84406, 84495, 84685, 84717, 84852, 85137, 85628, 85640, 86036, 86801, 86859, 86926, 87427, 87896, 88476, 88565, 89332, 90053, 90408, 90745, 90815, 91025, 91069, 91729, 91940, 91989, 92224, 93019, 94138, 94223, 94795, 95072, 95580, 95751, 95758, 95818, 96525, 97477, 98270, 98340, 98589, 98912, 99120, 99546, 99735, 99923, 100607, 102028, 102688, 104509, 104680, 105145, 105425, 105488, 105738, 105999, 106955, 107273, 107289, 107609, 107655, 108241, 108280, 110733, 111208, 111308, 111898, 111904, 112076, 112312, 113200, 113829, 115108, 115155, 115531, 116078, 117180, 117560, 118870, 119011, 120126, 120471, 120594, 120650, 120657, 120718, 121039, 121765, 123173, 123515, 123741, 123841, 123943, 125065, 125972, 126248, 126949, 127166, 127224, 127339, 127349, 128292, 128356, 128448, 128505, 129293, 129353, 129734, 129886, 130043, 130305, 130343, 130460, 130702, 130839, 130912, 132364, 132473, 132674, 133523, 134117, 134137, 134423, 134443, 134702, 134737, 134838, 135148, 135318, 135681, 136613, 136944, 137341, 137546, 137658, 137854, 138590, 139215, 139250, 139352, 141891, 142089, 142549, 142586, 142653, 143227, 143747, 144121, 144696, 145601, 145751, 146263, 146883, 146989, 147309, 147324, 147401, 147762, 147962, 148005, 148130, 148139, 148703, 148783, 149872, 150485, 150556, 151147, 151370, 151645, 151716, 151751, 151847, 152580, 152936, 153030, 153760, 153804, 154202, 154223, 154393, 154406, 154515, 154837, 154862, 155068, 156288, 156337, 156646, 156996, 157376, 157555, 157651, 157896, 158163, 159605, 160709, 160806, 161139, 161625, 162057, 162116, 162509, 162963, 163143, 164195, 164263, 165351, 166197, 166432, 166667, 168067, 168147, 168667, 169349, 170100, 170258, 170695, 170885, 170937, 171138, 171353, 171568, 171917, 171936, 171981, 172449, 173065, 173571, 173757, 174483, 175173, 175852, 176480, 176570, 176952, 177927, 178246, 178362, 178474, 178703, 178850, 178895, 179452, 179608, 179709, 179908, 180247, 181271, 181697, 182258, 182862, 182909, 182941, 183126, 183829, 183860, 183908, 183967, 184783, 185016, 185177, 185347, 185734, 186215, 187405, 188080, 189371, 189465, 189642, 190060, 190182, 190641, 191219, 191710, 191983, 192123, 192660, 192827, 193384, 193420, 193616, 193769, 193775, 193881, 194087, 195426, 196310, 196318, 197249, 197288, 197356, 198087, 198106, 198120, 198124, 198429, 199020, 199309, 199415, 199441, 200279, 200896, 201092, 201358, 201851, 202018, 202643, 202681, 202768, 203528, 203546, 204008, 204021, 204104, 204443, 205001, 205276, 206154, 206179, 206446, 206635, 206671, 206796, 206821, 206970, 207113, 207385, 207477, 208111, 209098, 209435, 211389, 211897, 212150, 213334, 214000, 214537, 214711, 215720, 215812, 216089, 216691, 216763, 216858, 217008, 217388, 217552, 217892, 218640, 218979, 220117, 220811, 221372, 221440, 222311, 222862, 223668, 224489, 224528, 224722, 225628, 226144, 226164, 226456, 226590, 226749, 226955, 227007, 227038, 227064, 227382, 227778, 227977, 228290, 228962, 229270, 229331, 229977, 229996, 230160, 230750, 231264, 232559, 232966, 233126, 233189, 233551, 234428, 234793, 235708, 235761, 236017, 236507, 236605, 237373, 237385, 237628, 237829, 238073, 238609, 238656, 239100, 239218, 241503, 243344, 243558, 243634, 243818, 243879, 243909, 243921, 244112, 244232, 244430, 244659, 245094, 245438, 245898, 247095, 247193, 247766, 248020, 248434, 248918, 249008, 249043, 249053, 249097, 249175, 250345, 250349, 250506, 250607, 251321, 251433, 251440, 251685, 251857, 251917, 252150, 252748, 253013, 253696, 253745, 254237, 254264, 257686, 257812, 257831, 258265, 258379, 258440, 259343, 259604, 260509, 261049, 261355, 262402, 263445, 263660, 263773, 263997, 264114, 264296, 265034, 265186, 265495, 265810, 266014, 266048, 266512, 266790, 267135, 267138, 268560, 269910, 270868, 272269, 272541, 272868, 272961, 273592, 274056, 274802, 274831, 275522, 275798, 276346, 276668, 276929, 277330, 277389, 278215, 278528, 278712, 278810, 279082, 279834, 280676, 281068, 281135, 281714, 281792, 282854, 283233, 283297, 283803, 284204, 284357, 284370, 284462, 284604, 284723, 285158, 285305, 285411, 285443, 285819, 287451, 287484, 288804, 288847, 288962, 289066, 289288, 289519, 289701, 289869, 289912, 290527, 291638, 292127, 292577, 292669, 293571, 295073, 296081, 296538, 297471, 297719, 297835, 298439, 298801, 299276, 300388, 300707, 301505, 302086, 302840, 303644, 303645, 304184, 304192, 304801, 304810, 306845, 307213, 307611, 307899, 308088, 308437, 308515, 308533, 308548, 309015, 309258, 310072, 310553, 310924, 310954, 311350, 312203, 312510, 312718, 313213, 313693, 313829, 314040, 314692, 314922, 315996, 316513, 316888, 317375, 317487, 318412, 318461, 318537, 319578, 320513, 320838, 321931, 321954, 322409, 322720, 322781, 323023, 323332, 325096, 325747, 325884, 326250, 327003, 327017, 327019, 327125, 328111, 329342, 329779, 330451, 330751, 331536, 332273, 332371, 332471, 333135, 333266, 333662, 334094, 334414, 334842, 335368, 336419, 337135, 337194, 339689, 340100, 340270, 340786, 341035, 342532, 342577, 342720, 343339, 343540, 343801, 344207, 344414, 344443, 344582, 344732, 344987, 346670, 347282, 347478, 347812, 347996, 348202, 348770, 349262, 349453, 349816, 351222, 351601, 352119, 352136, 352782, 353453, 353641, 354505, 354740, 355393, 356472, 356588, 357100, 357857, 357950, 358257, 359096, 359675, 359940, 360261, 360311, 361028, 361335, 361491, 362745, 362972, 363104, 363921, 365123, 365276, 365623, 366275, 366946, 367200, 367797, 368134, 368999, 369194, 369226, 369375, 369418, 369801, 369806, 369936, 370008, 370143, 370180, 370308, 370365, 370891, 372099, 372378, 372440, 372455, 372831, 372927, 373000, 373057, 373604, 373839, 373902, 374005, 374021, 375624, 376648, 376701, 377099, 377687, 378260, 378396, 378598, 380598, 380711, 380725, 380950, 381399, 381433, 381738, 382379, 382545, 383274, 383496, 383548, 383699, 384390, 384940, 385027, 385095, 385258, 385270, 385985, 386690, 387384, 387913, 389205, 390546, 392529, 392573, 392803, 393374, 394522, 396118, 396560, 396742, 397082, 399158, 399206, 399547, 399619)"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "contains",
+        "variante": "Where(p => ids.Contains(p.PedidoId)) con 10.000 ids, UseCompatibilityLevel(120) (IN con literales)",
+        "medianaMs": 106.9005,
+        "primeraMs": 999.8183,
+        "minMs": 100.1582,
+        "maxMs": 134.8047,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 27395,
+        "filasRecibidas": 10000,
+        "bytesRecibidos": 70249,
+        "bytesAsignados": 4390400,
+        "sql": [
+          "SELECT [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] IN (266, 294, 332, 345, 362, 365, 480, 598, 625, 630, 718, 728, 814, 817, 904, 926, 937, 952, 955, 996, 1024, 1030, 1097, 1192, 1233, 1242, 1318, 1322, 1342, 1370, 1396, 1462, 1520, 1545, 1558, 1574, 1587, 1670, 1747, 1765, 1807, 1824, 1872, 1949, 1961, 2004, 2009, 2014, 2024, 2041, 2068, 2097, 2155, 2200, 2233, 2320, 2361, 2425, 2438, 2443, 2460, 2491, 2500, 2509, 2533, 2557, 2640, 2688, 2698, 2768, 2806, 2807, 2839, 2854, 2942, 2976, 3011, 3016, 3041, 3069, 3222, 3264, 3290, 3316, 3341, 3373, 3375, 3387, 3424, 3481, 3486, 3489, 3518, 3547, 3553, 3558, 3598, 3638, 3692, 3734, 3782, 3832, 3875, 3878, 3903, 3950, 3952, 3956, 4013, 4266, 4364, 4418, 4521, 4575, 4582, 4590, 4645, 4707, 4728, 4731, 4833, 4845, 4847, 4959, 5030, 5053, 5108, 5149, 5178, 5228, 5251, 5269, 5405, 5414, 5438, 5492, 5520, 5523, 5529, 5659, 5676, 5678, 5695, 5702, 5713, 5735, 5770, 5771, 5780, 5796, 5808, 5845, 5855, 5943, 6000, 6030, 6047, 6074, 6099, 6108, 6192, 6199, 6261, 6265, 6306, 6323, 6324, 6366, 6370, 6466, 6599, 6672, 6677, 6739, 6741, 6855, 6863, 6867, 6868, 6917, 6924, 6943, 6979, 7108, 7147, 7168, 7194, 7228, 7254, 7261, 7382, 7406, 7514, 7599, 7617, 7686, 7776, 7834, 7849, 7881, 7956, 7969, 8035, 8061, 8126, 8134, 8137, 8223, 8235, 8266, 8272, 8285, 8337, 8557, 8562, 8744, 8780, 8818, 8832, 8878, 8890, 8906, 8918, 9012, 9040, 9055, 9070, 9076, 9126, 9167, 9206, 9243, 9244, 9247, 9327, 9402, 9446, 9488, 9495, 9568, 9589, 9631, 9703, 9730, 9756, 9891, 9898, 9940, 9959, 10132, 10187, 10199, 10248, 10352, 10392, 10471, 10506, 10513, 10545, 10562, 10601, 10618, 10629, 10669, 10686, 10760, 10770, 10772, 10801, 10869, 10901, 10923, 10945, 10948, 10956, 10985, 10992, 11009, 11018, 11050, 11071, 11098, 11157, 11197, 11279, 11348, 11360, 11385, 11389, 11448, 11459, 11464, 11497, 11565, 11685, 11691, 11708, 11767, 11854, 11869, 11888, 11896, 11900, 11921, 11971, 11979, 11983, 11999, 12038, 12078, 12112, 12221, 12251, 12353, 12466, 12548, 12565, 12667, 12705, 12747, 12771, 12806, 12822, 12908, 12937, 12967, 12968, 12974, 12976, 12977, 13028, 13048, 13083, 13119, 13179, 13263, 13290, 13314, 13334, 13360, 13399, 13430, 13432, 13440, 13468, 13645, 13648, 13764, 13767, 13809, 13834, 13838, 13846, 13908, 13984, 14000, 14026, 14064, 14065, 14081, 14124, 14238, 14287, 14360, 14412, 14423, 14494, 14569, 14606, 14614, 14624, 14627, 14634, 14670, 14745, 14751, 14780, 14809, 14926, 15008, 15035, 15036, 15105, 15166, 15183, 15197, 15274, 15305, 15358, 15399, 15475, 15569, 15574, 15603, 15616, 15664, 15687, 15762, 15771, 15780, 15795, 15852, 15922, 15933, 15957, 16007, 16009, 16086, 16181, 16229, 16248, 16299, 16344, 16390, 16408, 16415, 16439, 16472, 16491, 16566, 16606, 16611, 16639, 16727, 16858, 16878, 16883, 16919, 16946, 16957, 16972, 17003, 17072, 17082, 17119, 17296, 17304, 17404, 17454, 17493, 17553, 17579, 17706, 17718, 17817, 17818, 17850, 17922, 17934, 17954, 17998, 18011, 18087, 18122, 18189, 18250, 18305, 18309, 18324, 18328, 18367, 18408, 18440, 18460, 18469, 18480, 18505, 18509, 18542, 18552, 18619, 18664, 18754, 18755, 18787, 18826, 18827, 18828, 18926, 18930, 19021, 19038, 19075, 19099, 19140, 19200, 19228, 19261, 19303, 19315, 19337, 19339, 19465, 19468, 19496, 19633, 19695, 19755, 19800, 19806, 19849, 19918, 19959, 20028, 20051, 20076, 20104, 20170, 20172, 20200, 20216, 20232, 20262, 20289, 20325, 20378, 20387, 20449, 20488, 20523, 20645, 20664, 20690, 20696, 20705, 20742, 20791, 20896, 21012, 21107, 21115, 21121, 21134, 21338, 21339, 21356, 21370, 21481, 21491, 21543, 21636, 21811, 21822, 21824, 21866, 21995, 22020, 22055, 22092, 22095, 22216, 22235, 22314, 22354, 22397, 22407, 22423, 22443, 22453, 22457, 22474, 22487, 22507, 22523, 22584, 22661, 22706, 22739, 22782, 22801, 22819, 22824, 22884, 22892, 22902, 22932, 22965, 22994, 23061, 23075, 23117, 23120, 23124, 23196, 23220, 23252, 23315, 23317, 23322, 23323, 23380, 23397, 23399, 23413, 23438, 23461, 23483, 23580, 23627, 23697, 23785, 23880, 23900, 23912, 23972, 23978, 24007, 24032, 24190, 24220, 24273, 24299, 24323, 24352, 24366, 24445, 24459, 24491, 24548, 24578, 24584, 24636, 24724, 24847, 24918, 24993, 25011, 25029, 25070, 25193, 25220, 25232, 25271, 25343, 25355, 25463, 25479, 25508, 25519, 25576, 25614, 25632, 25634, 25636, 25659, 25678, 25680, 25683, 25684, 25737, 25775, 25850, 25859, 26023, 26029, 26114, 26121, 26128, 26132, 26150, 26160, 26166, 26190, 26222, 26242, 26261, 26329, 26374, 26390, 26391, 26396, 26408, 26418, 26496, 26529, 26575, 26610, 26689, 26710, 26732, 26869, 26905, 26924, 26982, 27013, 27020, 27021, 27166, 27167, 27193, 27237, 27269, 27336, 27378, 27444, 27460, 27471, 27474, 27601, 27627, 27672, 27728, 27785, 27815, 27868, 27937, 27949, 27963, 28011, 28035, 28041, 28091, 28137, 28192, 28242, 28252, 28260, 28286, 28381, 28429, 28571, 28597, 28616, 28707, 28710, 28722, 28854, 28872, 28884, 28898, 28965, 29013, 29042, 29062, 29116, 29174, 29279, 29314, 29359, 29378, 29381, 29572, 29650, 29873, 29920, 29931, 30018, 30046, 30050, 30055, 30064, 30106, 30143, 30151, 30211, 30289, 30378, 30389, 30453, 30475, 30510, 30525, 30531, 30552, 30569, 30660, 30672, 30710, 30775, 30804, 30883, 30943, 30948, 31019, 31050, 31061, 31093, 31133, 31140, 31232, 31238, 31268, 31334, 31355, 31573, 31627, 31662, 31755, 31861, 31912, 31934, 32032, 32049, 32095, 32099, 32135, 32144, 32173, 32181, 32213, 32225, 32269, 32314, 32315, 32344, 32368, 32409, 32465, 32474, 32604, 32731, 32776, 32877, 32886, 32977, 32999, 33052, 33089, 33114, 33130, 33150, 33199, 33229, 33249, 33287, 33297, 33341, 33352, 33353, 33362, 33462, 33471, 33472, 33481, 33553, 33564, 33579, 33596, 33603, 33657, 33669, 33717, 33759, 33792, 33801, 33807, 33903, 33911, 33933, 33963, 33964, 34071, 34088, 34106, 34141, 34172, 34221, 34253, 34290, 34401, 34427, 34435, 34451, 34526, 34538, 34558, 34573, 34623, 34658, 34674, 34693, 34698, 34711, 34725, 34742, 34768, 34811, 34824, 34876, 34955, 35018, 35071, 35172, 35180, 35200, 35237, 35241, 35252, 35320, 35340, 35471, 35479, 35487, 35496, 35516, 35534, 35575, 35578, 35631, 35690, 35696, 35709, 35715, 35746, 35762, 35783, 35794, 35803, 35808, 35844, 35847, 35857, 35871, 35962, 35990, 36013, 36019, 36051, 36129, 36135, 36158, 36211, 36228, 36252, 36424, 36442, 36492, 36614, 36641, 36668, 36680, 36710, 36810, 36913, 36966, 36996, 37078, 37122, 37204, 37209, 37316, 37334, 37353, 37363, 37392, 37397, 37472, 37510, 37540, 37563, 37565, 37576, 37592, 37624, 37700, 37712, 37740, 37962, 38005, 38064, 38118, 38125, 38173, 38206, 38255, 38284, 38298, 38372, 38381, 38403, 38472, 38484, 38487, 38502, 38601, 38653, 38656, 38730, 38789, 38796, 38804, 38881, 38905, 38947, 39022, 39102, 39122, 39175, 39215, 39241, 39267, 39297, 39336, 39368, 39431, 39445, 39500, 39516, 39568, 39641, 39646, 39658, 39665, 39736, 39778, 39801, 39813, 39814, 39816, 39823, 39845, 39916, 40009, 40013, 40050, 40064, 40070, 40092, 40098, 40100, 40111, 40123, 40154, 40225, 40232, 40355, 40361, 40362, 40389, 40434, 40516, 40582, 40637, 40654, 40682, 40689, 40694, 40727, 40733, 40761, 40808, 40942, 40965, 41025, 41030, 41181, 41192, 41217, 41244, 41262, 41285, 41300, 41406, 41437, 41467, 41580, 41740, 41798, 41850, 41855, 41902, 41994, 42035, 42061, 42068, 42117, 42121, 42154, 42195, 42209, 42232, 42234, 42300, 42309, 42310, 42351, 42387, 42391, 42426, 42431, 42460, 42478, 42492, 42529, 42612, 42618, 42633, 42715, 42731, 42761, 42814, 42842, 42873, 42891, 42894, 42921, 42952, 42953, 43002, 43065, 43073, 43078, 43108, 43232, 43281, 43285, 43306, 43317, 43318, 43321, 43362, 43387, 43395, 43401, 43448, 43455, 43490, 43525, 43564, 43617, 43625, 43671, 43711, 43763, 43772, 43789, 43796, 43827, 43895, 43953, 44012, 44029, 44031, 44069, 44112, 44117, 44262, 44271, 44308, 44342, 44454, 44478, 44499, 44609, 44674, 44675, 44734, 44747, 44773, 44802, 44918, 44925, 44935, 44974, 45026, 45055, 45108, 45192, 45210, 45217, 45263, 45279, 45317, 45379, 45431, 45461, 45489, 45502, 45506, 45513, 45607, 45755, 45759, 45779, 45812, 45844, 45853, 45859, 45930, 45957, 45965, 46089, 46093, 46116, 46168, 46177, 46184, 46195, 46254, 46294, 46313, 46326, 46349, 46481, 46574, 46576, 46635, 46644, 46669, 46756, 46780, 46785, 46797, 46801, 46808, 46875, 46877, 46923, 46955, 46996, 47045, 47082, 47147, 47171, 47357, 47379, 47530, 47546, 47562, 47612, 47643, 47665, 47683, 47714, 47748, 47832, 47883, 47923, 47953, 48030, 48044, 48136, 48249, 48261, 48304, 48312, 48407, 48442, 48513, 48552, 48612, 48780, 48951, 48962, 49061, 49095, 49118, 49135, 49137, 49165, 49236, 49240, 49267, 49294, 49349, 49364, 49410, 49431, 49497, 49506, 49552, 49586, 49612, 49626, 49642, 49865, 49880, 49963, 50099, 50101, 50152, 50179, 50195, 50207, 50236, 50288, 50313, 50366, 50432, 50460, 50463, 50537, 50571, 50578, 50610, 50616, 50645, 50688, 50793, 50960, 51062, 51137, 51142, 51145, 51185, 51210, 51242, 51319, 51324, 51336, 51360, 51378, 51421, 51478, 51528, 51560, 51562, 51589, 51654, 51676, 51692, 51695, 51715, 51718, 51723, 51745, 51778, 51781, 51872, 51949, 52017, 52095, 52137, 52182, 52257, 52273, 52275, 52279, 52281, 52322, 52374, 52385, 52497, 52509, 52627, 52719, 52817, 52908, 52964, 52974, 53001, 53057, 53077, 53081, 53130, 53131, 53160, 53177, 53199, 53200, 53205, 53270, 53287, 53354, 53501, 53560, 53562, 53587, 53603, 53672, 53699, 53826, 53853, 53878, 54009, 54118, 54122, 54165, 54177, 54219, 54267, 54272, 54354, 54360, 54422, 54467, 54486, 54534, 54600, 54610, 54629, 54695, 54726, 54739, 54834, 54846, 54847, 54876, 54921, 54973, 55010, 55031, 55051, 55070, 55079, 55156, 55190, 55264, 55286, 55289, 55299, 55301, 55346, 55403, 55407, 55509, 55522, 55527, 55582, 55584, 55585, 55592, 55658, 55671, 55710, 55855, 55879, 55991, 56068, 56083, 56102, 56145, 56147, 56265, 56270, 56280, 56300, 56327, 56355, 56375, 56505, 56533, 56652, 56665, 56781, 56787, 56788, 56789, 56792, 56844, 56891, 56919, 57031, 57040, 57111, 57141, 57185, 57217, 57456, 57476, 57500, 57553, 57557, 57638, 57656, 57676, 57685, 57873, 57897, 58009, 58017, 58098, 58152, 58160, 58248, 58251, 58287, 58291, 58356, 58385, 58532, 58550, 58630, 58641, 58644, 58701, 58713, 58719, 58767, 58848, 58899, 58902, 58975, 59001, 59007, 59054, 59184, 59203, 59217, 59238, 59260, 59281, 59333, 59346, 59384, 59399, 59430, 59486, 59530, 59611, 59646, 59701, 59727, 59846, 59884, 59909, 60043, 60143, 60154, 60197, 60216, 60246, 60249, 60252, 60256, 60325, 60330, 60333, 60340, 60416, 60541, 60567, 60581, 60593, 60618, 60621, 60625, 60680, 60689, 60905, 61056, 61091, 61175, 61202, 61239, 61254, 61314, 61343, 61460, 61465, 61524, 61545, 61546, 61603, 61613, 61617, 61621, 61629, 61635, 61640, 61654, 61662, 61670, 61700, 61709, 61732, 61769, 61786, 61817, 61825, 61841, 61852, 61873, 61875, 61967, 61985, 61989, 62005, 62007, 62008, 62018, 62038, 62094, 62118, 62219, 62229, 62240, 62277, 62292, 62325, 62341, 62358, 62479, 62480, 62505, 62537, 62542, 62553, 62587, 62633, 62651, 62681, 62728, 62962, 63005, 63028, 63090, 63125, 63148, 63151, 63173, 63218, 63221, 63227, 63246, 63263, 63428, 63466, 63511, 63569, 63597, 63682, 63698, 63711, 63726, 63732, 63751, 63757, 63790, 63794, 63809, 63828, 63835, 63851, 63957, 63980, 64068, 64106, 64115, 64165, 64168, 64246, 64323, 64346, 64360, 64442, 64479, 64504, 64581, 64652, 64666, 64695, 64735, 64981, 65001, 65180, 65236, 65242, 65303, 65341, 65410, 65437, 65440, 65472, 65475, 65516, 65518, 65547, 65593, 65595, 65633, 65682, 65764, 65820, 65842, 65867, 65978, 65986, 66024, 66114, 66152, 66194, 66200, 66290, 66305, 66309, 66316, 66366, 66409, 66544, 66627, 66665, 66670, 66694, 66708, 66716, 66882, 66893, 66967, 66970, 66992, 67010, 67043, 67054, 67059, 67066, 67081, 67181, 67196, 67197, 67200, 67201, 67216, 67292, 67301, 67311, 67329, 67361, 67366, 67388, 67392, 67447, 67495, 67504, 67551, 67626, 67638, 67657, 67660, 67663, 67688, 67817, 67823, 67876, 67916, 67953, 68022, 68047, 68169, 68194, 68214, 68226, 68295, 68335, 68369, 68382, 68392, 68483, 68490, 68530, 68555, 68580, 68612, 68639, 68661, 68685, 68920, 68956, 68983, 68994, 69005, 69089, 69125, 69140, 69160, 69183, 69210, 69220, 69230, 69286, 69292, 69310, 69330, 69411, 69429, 69469, 69488, 69491, 69537, 69544, 69567, 69657, 69658, 69710, 69774, 69872, 69900, 69926, 69950, 70022, 70059, 70077, 70114, 70118, 70160, 70202, 70214, 70228, 70252, 70299, 70324, 70327, 70376, 70570, 70584, 70679, 70727, 70926, 70956, 70968, 70972, 70973, 70979, 70988, 71092, 71172, 71227, 71238, 71261, 71423, 71436, 71501, 71515, 71529, 71541, 71548, 71552, 71559, 71565, 71577, 71624, 71735, 71798, 71836, 71852, 71874, 71876, 71883, 71888, 71895, 71964, 71983, 71993, 72170, 72174, 72177, 72198, 72216, 72297, 72344, 72379, 72382, 72399, 72405, 72427, 72429, 72439, 72463, 72503, 72551, 72564, 72608, 72736, 72751, 72770, 72776, 72786, 72793, 72795, 72883, 72890, 72910, 72994, 73011, 73018, 73049, 73063, 73133, 73143, 73145, 73251, 73254, 73326, 73380, 73394, 73435, 73437, 73463, 73475, 73491, 73520, 73522, 73665, 73670, 73685, 73687, 73716, 73756, 73767, 73878, 73903, 74038, 74042, 74138, 74150, 74161, 74242, 74256, 74274, 74317, 74334, 74396, 74445, 74487, 74489, 74504, 74536, 74570, 74867, 74887, 74892, 74896, 74929, 74935, 74942, 74952, 75028, 75031, 75048, 75058, 75101, 75107, 75133, 75135, 75210, 75332, 75339, 75343, 75350, 75383, 75469, 75513, 75575, 75585, 75669, 75797, 75806, 75823, 75874, 75929, 75956, 76015, 76069, 76077, 76115, 76210, 76229, 76255, 76261, 76362, 76366, 76440, 76551, 76585, 76595, 76647, 76674, 76753, 76823, 76828, 76844, 76918, 76937, 76975, 76986, 76999, 77014, 77037, 77079, 77080, 77087, 77118, 77167, 77201, 77225, 77270, 77287, 77351, 77354, 77373, 77388, 77416, 77417, 77523, 77524, 77530, 77546, 77580, 77622, 77663, 77666, 77682, 77703, 77831, 77900, 77968, 78007, 78028, 78035, 78038, 78105, 78123, 78148, 78152, 78224, 78238, 78311, 78367, 78375, 78457, 78504, 78508, 78585, 78590, 78655, 78694, 78711, 78765, 78767, 78805, 78824, 78827, 78831, 78849, 78892, 78946, 78955, 78982, 78998, 79086, 79123, 79128, 79145, 79152, 79157, 79212, 79328, 79420, 79432, 79579, 79639, 79642, 79649, 79742, 79775, 79780, 79844, 79888, 79928, 79958, 79959, 80007, 80021, 80158, 80181, 80187, 80224, 80260, 80277, 80307, 80349, 80462, 80468, 80472, 80487, 80552, 80629, 80673, 80735, 80747, 80749, 80750, 80760, 80880, 81041, 81103, 81215, 81242, 81245, 81289, 81341, 81352, 81363, 81375, 81475, 81494, 81538, 81591, 81630, 81697, 81800, 81832, 81845, 81888, 81904, 81911, 81957, 82016, 82086, 82148, 82205, 82220, 82253, 82283, 82307, 82366, 82464, 82468, 82529, 82538, 82546, 82550, 82554, 82589, 82621, 82702, 82745, 82770, 82800, 82814, 82833, 82846, 82880, 82966, 83128, 83176, 83195, 83232, 83351, 83367, 83375, 83379, 83389, 83452, 83491, 83544, 83674, 83686, 83735, 83749, 83774, 83891, 83894, 83910, 83980, 84042, 84088, 84097, 84132, 84136, 84248, 84489, 84578, 84604, 84608, 84652, 84658, 84719, 84742, 84757, 84853, 84958, 84978, 85024, 85100, 85277, 85337, 85357, 85361, 85414, 85430, 85441, 85467, 85513, 85530, 85584, 85595, 85617, 85620, 85647, 85650, 85701, 85761, 85838, 85874, 85877, 85916, 86017, 86059, 86108, 86136, 86192, 86194, 86228, 86297, 86358, 86542, 86610, 86614, 86649, 86654, 87003, 87007, 87024, 87084, 87122, 87127, 87161, 87181, 87203, 87246, 87324, 87402, 87434, 87532, 87538, 87546, 87590, 87598, 87648, 87723, 87745, 87760, 87788, 87868, 87935, 87939, 87946, 87976, 87990, 87995, 88037, 88072, 88120, 88182, 88294, 88310, 88357, 88404, 88455, 88478, 88491, 88505, 88506, 88553, 88610, 88710, 88758, 88781, 88817, 88922, 88937, 88965, 89062, 89093, 89210, 89240, 89247, 89267, 89288, 89399, 89445, 89470, 89523, 89590, 89594, 89702, 89716, 89748, 89757, 89783, 89841, 89870, 89879, 89931, 90094, 90099, 90112, 90152, 90211, 90215, 90307, 90378, 90389, 90407, 90433, 90466, 90488, 90525, 90637, 90640, 90741, 90763, 90946, 91024, 91096, 91098, 91159, 91254, 91297, 91302, 91395, 91397, 91409, 91477, 91516, 91531, 91553, 91575, 91597, 91600, 91667, 91744, 91772, 91784, 91824, 91872, 91929, 91952, 92109, 92116, 92177, 92242, 92279, 92319, 92462, 92491, 92501, 92523, 92561, 92573, 92613, 92686, 92707, 92720, 92774, 92795, 92805, 92814, 92832, 92858, 92952, 92966, 92978, 93044, 93065, 93144, 93202, 93267, 93313, 93342, 93348, 93372, 93376, 93447, 93477, 93538, 93642, 93697, 93765, 93776, 93814, 93892, 93923, 93960, 94043, 94053, 94082, 94119, 94132, 94137, 94155, 94159, 94224, 94263, 94332, 94339, 94356, 94358, 94379, 94433, 94435, 94481, 94486, 94520, 94527, 94543, 94601, 94649, 94723, 94758, 94863, 94866, 94869, 94883, 94972, 95024, 95096, 95099, 95153, 95224, 95306, 95315, 95352, 95355, 95357, 95402, 95436, 95462, 95484, 95491, 95519, 95533, 95536, 95551, 95662, 95698, 95757, 95786, 95838, 95849, 95865, 95880, 96006, 96115, 96167, 96173, 96262, 96271, 96316, 96339, 96340, 96410, 96565, 96584, 96610, 96611, 96700, 96747, 96908, 96923, 96948, 96994, 97000, 97030, 97064, 97071, 97096, 97125, 97172, 97324, 97335, 97354, 97409, 97420, 97494, 97518, 97522, 97553, 97623, 97632, 97666, 97693, 97749, 97803, 97878, 97963, 97976, 98067, 98090, 98099, 98118, 98175, 98193, 98200, 98259, 98263, 98331, 98413, 98450, 98479, 98528, 98620, 98682, 98718, 98799, 98816, 98844, 98958, 98965, 98968, 98971, 99000, 99043, 99063, 99089, 99152, 99245, 99264, 99346, 99384, 99394, 99402, 99426, 99524, 99636, 99669, 99715, 99799, 99819, 99833, 99867, 99881, 99887, 99900, 99959, 99973, 100015, 100046, 100058, 100069, 100087, 100135, 100158, 100188, 100280, 100320, 100350, 100359, 100398, 100400, 100403, 100452, 100461, 100510, 100527, 100536, 100604, 100606, 100709, 100716, 100762, 100821, 100849, 100865, 100879, 100924, 100964, 101000, 101003, 101049, 101185, 101211, 101222, 101245, 101256, 101292, 101324, 101437, 101455, 101462, 101471, 101527, 101553, 101615, 101687, 101691, 101702, 101753, 101767, 101850, 101859, 101908, 102005, 102111, 102141, 102171, 102289, 102301, 102461, 102467, 102492, 102498, 102501, 102661, 102685, 102734, 102778, 102789, 102808, 102948, 102966, 103015, 103038, 103057, 103079, 103084, 103095, 103143, 103146, 103202, 103210, 103234, 103238, 103288, 103313, 103357, 103399, 103472, 103492, 103563, 103687, 103797, 103812, 103890, 103944, 103972, 103976, 103978, 103990, 104168, 104226, 104365, 104372, 104406, 104432, 104510, 104596, 104617, 104637, 104663, 104686, 104695, 104708, 104736, 104766, 104781, 104818, 104846, 104865, 104982, 105030, 105032, 105065, 105155, 105162, 105199, 105374, 105484, 105647, 105729, 105742, 105772, 105822, 105828, 105840, 105841, 105844, 105891, 105909, 105926, 105948, 105953, 106035, 106041, 106059, 106132, 106179, 106215, 106282, 106340, 106362, 106464, 106481, 106494, 106504, 106570, 106588, 106598, 106603, 106641, 106712, 106741, 106743, 106808, 106818, 106827, 106837, 106845, 107126, 107133, 107160, 107261, 107318, 107326, 107355, 107393, 107501, 107553, 107561, 107564, 107584, 107611, 107700, 107709, 107847, 107898, 107978, 108008, 108063, 108124, 108248, 108267, 108284, 108310, 108331, 108332, 108349, 108350, 108368, 108461, 108481, 108487, 108507, 108584, 108604, 108619, 108734, 108777, 108823, 108849, 109020, 109043, 109095, 109266, 109331, 109366, 109399, 109411, 109461, 109470, 109494, 109525, 109564, 109592, 109654, 109726, 109817, 109826, 109860, 109942, 109979, 109994, 110026, 110064, 110138, 110187, 110239, 110241, 110250, 110252, 110280, 110321, 110396, 110556, 110713, 110770, 110773, 110869, 110884, 110979, 111092, 111118, 111144, 111232, 111241, 111317, 111323, 111381, 111432, 111458, 111465, 111483, 111565, 111572, 111766, 111796, 111818, 111836, 111840, 111858, 111912, 111973, 111997, 112016, 112017, 112048, 112111, 112161, 112212, 112258, 112268, 112301, 112324, 112351, 112466, 112504, 112536, 112629, 112708, 112754, 112930, 113019, 113083, 113137, 113159, 113169, 113171, 113194, 113215, 113310, 113322, 113338, 113370, 113448, 113455, 113534, 113568, 113640, 113655, 113669, 113789, 113804, 113900, 113931, 113950, 113963, 114009, 114043, 114055, 114067, 114186, 114204, 114226, 114243, 114267, 114363, 114371, 114394, 114455, 114472, 114477, 114479, 114550, 114573, 114618, 114625, 114729, 114754, 114923, 114979, 115063, 115066, 115139, 115155, 115237, 115402, 115475, 115496, 115505, 115553, 115569, 115621, 115625, 115655, 115675, 115809, 115811, 115829, 115833, 115897, 115939, 116133, 116171, 116184, 116238, 116254, 116295, 116314, 116326, 116335, 116372, 116507, 116509, 116598, 116710, 116766, 116794, 116811, 116818, 116851, 116893, 116944, 116995, 117002, 117004, 117010, 117027, 117086, 117095, 117099, 117113, 117183, 117197, 117264, 117303, 117319, 117358, 117359, 117363, 117427, 117500, 117547, 117566, 117567, 117599, 117610, 117622, 117642, 117681, 117698, 117731, 117756, 117798, 117860, 117861, 118011, 118038, 118043, 118108, 118121, 118127, 118204, 118226, 118230, 118309, 118310, 118333, 118339, 118341, 118392, 118513, 118548, 118556, 118596, 118618, 118634, 118638, 118647, 118720, 118747, 118808, 118839, 118883, 118914, 118968, 118998, 119056, 119124, 119150, 119185, 119243, 119290, 119323, 119327, 119335, 119362, 119378, 119384, 119403, 119418, 119466, 119476, 119493, 119518, 119593, 119612, 119634, 119655, 119783, 119946, 119956, 119976, 119995, 119997, 120022, 120097, 120139, 120147, 120162, 120164, 120209, 120224, 120300, 120369, 120414, 120434, 120451, 120463, 120530, 120561, 120602, 120627, 120672, 120731, 120735, 120842, 120923, 120937, 120940, 121021, 121060, 121096, 121134, 121275, 121287, 121295, 121323, 121346, 121358, 121396, 121566, 121613, 121676, 121681, 121727, 121736, 121759, 121819, 121845, 121855, 121892, 121906, 121942, 121956, 122036, 122160, 122205, 122281, 122292, 122302, 122349, 122360, 122400, 122420, 122433, 122497, 122519, 122540, 122574, 122597, 122616, 122641, 122651, 122668, 122763, 122891, 122945, 122962, 122967, 122990, 123048, 123055, 123110, 123121, 123173, 123202, 123221, 123331, 123332, 123368, 123376, 123452, 123484, 123515, 123591, 123628, 123657, 123692, 123732, 123781, 123803, 123811, 123874, 123928, 123941, 123950, 124016, 124028, 124042, 124077, 124100, 124167, 124217, 124235, 124271, 124345, 124387, 124543, 124680, 124693, 124782, 124810, 124952, 124973, 124974, 124977, 125012, 125063, 125075, 125081, 125100, 125132, 125140, 125149, 125393, 125406, 125458, 125462, 125498, 125505, 125549, 125585, 125619, 125652, 125702, 125735, 125751, 125789, 125935, 125992, 126032, 126052, 126055, 126081, 126087, 126228, 126242, 126502, 126504, 126637, 126719, 126722, 126780, 126795, 126907, 126923, 126931, 126940, 126971, 127012, 127066, 127095, 127147, 127153, 127193, 127264, 127303, 127339, 127365, 127457, 127473, 127492, 127526, 127538, 127587, 127633, 127651, 127667, 127742, 127746, 127755, 127798, 127858, 127907, 128003, 128077, 128152, 128202, 128241, 128269, 128292, 128368, 128397, 128427, 128466, 128468, 128521, 128544, 128560, 128592, 128702, 128750, 128773, 128900, 128992, 129045, 129141, 129155, 129179, 129201, 129246, 129274, 129299, 129493, 129538, 129547, 129550, 129568, 129585, 129613, 129616, 129653, 129663, 129716, 129728, 129757, 129764, 129794, 129805, 129893, 129975, 129983, 130020, 130031, 130109, 130111, 130279, 130308, 130506, 130527, 130542, 130564, 130593, 130603, 130630, 130666, 130668, 130684, 130702, 130786, 130845, 130909, 131018, 131027, 131031, 131043, 131082, 131108, 131128, 131146, 131163, 131233, 131308, 131326, 131411, 131494, 131495, 131564, 131615, 131616, 131627, 131644, 131678, 131698, 131728, 131796, 131923, 131924, 131985, 132136, 132177, 132239, 132255, 132264, 132350, 132351, 132378, 132409, 132453, 132457, 132477, 132501, 132570, 132599, 132621, 132624, 132680, 132693, 132732, 132811, 132856, 132907, 132934, 133060, 133064, 133109, 133179, 133231, 133438, 133443, 133455, 133458, 133488, 133508, 133518, 133543, 133710, 133723, 133784, 133797, 133814, 133862, 133917, 133960, 134011, 134012, 134048, 134077, 134080, 134088, 134147, 134158, 134170, 134213, 134224, 134235, 134252, 134292, 134416, 134460, 134510, 134542, 134601, 134688, 134703, 134735, 134832, 134922, 134927, 134938, 134945, 134962, 134979, 135027, 135032, 135098, 135104, 135140, 135150, 135169, 135195, 135228, 135289, 135319, 135348, 135380, 135417, 135523, 135692, 135725, 135764, 135804, 135877, 135942, 135949, 135966, 136014, 136075, 136088, 136159, 136213, 136257, 136269, 136349, 136360, 136391, 136420, 136430, 136454, 136469, 136541, 136575, 136611, 136708, 136742, 136764, 136791, 136792, 136874, 136879, 136900, 136934, 136936, 136986, 136999, 137049, 137067, 137114, 137172, 137207, 137248, 137253, 137281, 137341, 137359, 137410, 137448, 137492, 137499, 137518, 137583, 137760, 137828, 137830, 137868, 137881, 137882, 137905, 137917, 137949, 137973, 137976, 137986, 138149, 138221, 138253, 138284, 138314, 138348, 138377, 138444, 138502, 138527, 138551, 138572, 138592, 138596, 138609, 138631, 138637, 138681, 138768, 138777, 138784, 138811, 138813, 138872, 138923, 138971, 138993, 139047, 139120, 139126, 139129, 139167, 139267, 139306, 139347, 139361, 139402, 139416, 139424, 139428, 139524, 139636, 139683, 139703, 139711, 139713, 139833, 139854, 140006, 140022, 140029, 140090, 140092, 140172, 140204, 140213, 140218, 140271, 140294, 140365, 140397, 140404, 140473, 140519, 140601, 140686, 140717, 140746, 140851, 140878, 140947, 140989, 141044, 141047, 141057, 141080, 141112, 141113, 141202, 141264, 141287, 141294, 141303, 141343, 141357, 141423, 141443, 141445, 141474, 141476, 141567, 141606, 141661, 141692, 141739, 141776, 141856, 141906, 141911, 141916, 141917, 141953, 141983, 141998, 142003, 142019, 142076, 142118, 142142, 142160, 142196, 142337, 142341, 142428, 142454, 142473, 142480, 142488, 142507, 142526, 142664, 142735, 142768, 142807, 142873, 142897, 142907, 143077, 143086, 143102, 143127, 143144, 143241, 143250, 143274, 143386, 143415, 143544, 143556, 143603, 143621, 143665, 143737, 143752, 143765, 143809, 143826, 143911, 143913, 143965, 143979, 144040, 144063, 144070, 144093, 144098, 144108, 144246, 144256, 144302, 144307, 144369, 144417, 144492, 144496, 144567, 144653, 144656, 144677, 144811, 144927, 144939, 145010, 145030, 145084, 145180, 145232, 145244, 145273, 145277, 145293, 145307, 145353, 145408, 145429, 145497, 145509, 145530, 145537, 145544, 145567, 145689, 145771, 145786, 145815, 145842, 145898, 145902, 145921, 146045, 146056, 146080, 146086, 146103, 146124, 146151, 146165, 146249, 146272, 146275, 146286, 146322, 146347, 146449, 146463, 146513, 146572, 146580, 146619, 146649, 146724, 146783, 146858, 146889, 146934, 146960, 146967, 146986, 146999, 147043, 147054, 147107, 147156, 147266, 147299, 147302, 147347, 147374, 147397, 147410, 147415, 147416, 147421, 147430, 147433, 147440, 147444, 147451, 147521, 147556, 147588, 147666, 147862, 147874, 147965, 147990, 147998, 148018, 148046, 148091, 148103, 148175, 148240, 148253, 148290, 148341, 148357, 148401, 148408, 148472, 148499, 148524, 148606, 148638, 148667, 148706, 148738, 148750, 148800, 148807, 148847, 148898, 149014, 149022, 149042, 149049, 149085, 149120, 149123, 149127, 149148, 149160, 149223, 149264, 149291, 149308, 149341, 149364, 149379, 149412, 149445, 149546, 149600, 149609, 149725, 149737, 149762, 149787, 149792, 149845, 149856, 149905, 149931, 149935, 149983, 149991, 150027, 150155, 150170, 150179, 150184, 150188, 150210, 150237, 150245, 150264, 150318, 150339, 150402, 150415, 150428, 150480, 150485, 150505, 150508, 150646, 150650, 150708, 150791, 150800, 150845, 151017, 151019, 151024, 151042, 151048, 151057, 151104, 151142, 151175, 151176, 151188, 151266, 151293, 151425, 151447, 151483, 151517, 151530, 151578, 151639, 151654, 151762, 151782, 151787, 151810, 151870, 151948, 151966, 151978, 151990, 152158, 152180, 152351, 152356, 152357, 152369, 152370, 152421, 152443, 152450, 152470, 152474, 152483, 152511, 152518, 152622, 152690, 152702, 152745, 152787, 152829, 152843, 152872, 152910, 152941, 152951, 152972, 153027, 153057, 153103, 153143, 153165, 153197, 153227, 153257, 153263, 153316, 153447, 153611, 153617, 153669, 153710, 153734, 153796, 153872, 153874, 153938, 154000, 154100, 154111, 154133, 154238, 154266, 154268, 154292, 154305, 154331, 154390, 154569, 154611, 154719, 154777, 154839, 154860, 154864, 154877, 154905, 154915, 154918, 155028, 155169, 155197, 155244, 155315, 155386, 155408, 155447, 155524, 155552, 155563, 155681, 155854, 155865, 155903, 155931, 155952, 156016, 156040, 156044, 156071, 156072, 156095, 156120, 156144, 156206, 156213, 156258, 156270, 156318, 156384, 156435, 156470, 156500, 156509, 156516, 156532, 156680, 156808, 156863, 156889, 157005, 157010, 157202, 157253, 157301, 157316, 157449, 157515, 157517, 157552, 157605, 157608, 157718, 157760, 157854, 157882, 157902, 157930, 157959, 157976, 157977, 157982, 158065, 158143, 158148, 158269, 158282, 158311, 158459, 158477, 158538, 158549, 158580, 158614, 158667, 158672, 158713, 158720, 158738, 158787, 158894, 158933, 158942, 158964, 159016, 159027, 159063, 159065, 159138, 159242, 159404, 159455, 159500, 159509, 159579, 159701, 159712, 159824, 159907, 159928, 160012, 160066, 160071, 160097, 160136, 160165, 160176, 160207, 160292, 160385, 160396, 160414, 160422, 160520, 160568, 160692, 160738, 160784, 160843, 160853, 160882, 160894, 160909, 160966, 160975, 161078, 161188, 161224, 161261, 161282, 161306, 161308, 161385, 161392, 161396, 161413, 161445, 161475, 161490, 161493, 161506, 161507, 161586, 161631, 161665, 161666, 161669, 161804, 161912, 161937, 161959, 161993, 162010, 162013, 162018, 162083, 162206, 162237, 162347, 162364, 162409, 162483, 162506, 162522, 162572, 162597, 162657, 162665, 162668, 162694, 162737, 162784, 162833, 162837, 162845, 162850, 162934, 162988, 163103, 163227, 163259, 163329, 163331, 163390, 163433, 163449, 163464, 163483, 163517, 163527, 163615, 163645, 163689, 163706, 163762, 163803, 163842, 163860, 163871, 164019, 164064, 164128, 164136, 164167, 164242, 164317, 164318, 164321, 164325, 164420, 164474, 164491, 164516, 164571, 164637, 164652, 164677, 164683, 164684, 164692, 164696, 164702, 164743, 164745, 164764, 164782, 164783, 164784, 164788, 164823, 164880, 164882, 164924, 165011, 165026, 165047, 165173, 165223, 165296, 165328, 165374, 165423, 165430, 165438, 165490, 165558, 165567, 165604, 165610, 165619, 165690, 165752, 165788, 165811, 165851, 165887, 165969, 165978, 165982, 166020, 166066, 166110, 166155, 166167, 166175, 166187, 166190, 166246, 166280, 166298, 166420, 166464, 166491, 166530, 166575, 166612, 166664, 166747, 166772, 166861, 166934, 167004, 167012, 167024, 167029, 167054, 167100, 167102, 167109, 167112, 167113, 167159, 167231, 167241, 167261, 167264, 167266, 167382, 167399, 167456, 167470, 167479, 167620, 167642, 167785, 167837, 167890, 167905, 167959, 167964, 168025, 168026, 168048, 168073, 168098, 168150, 168196, 168199, 168200, 168214, 168310, 168343, 168373, 168422, 168426, 168526, 168533, 168536, 168594, 168646, 168770, 168810, 168824, 168857, 168943, 169059, 169111, 169126, 169156, 169196, 169208, 169224, 169267, 169289, 169302, 169328, 169334, 169340, 169370, 169421, 169446, 169458, 169502, 169627, 169660, 169693, 169735, 169749, 169831, 169847, 169889, 169942, 169954, 169990, 170049, 170122, 170245, 170266, 170298, 170323, 170346, 170383, 170409, 170476, 170479, 170498, 170567, 170572, 170763, 170800, 170840, 170907, 170950, 170997, 170998, 171134, 171141, 171177, 171181, 171182, 171193, 171200, 171241, 171312, 171370, 171391, 171405, 171412, 171459, 171468, 171602, 171620, 171650, 171711, 171775, 171841, 171910, 171913, 171928, 171974, 171979, 172028, 172046, 172072, 172073, 172094, 172103, 172112, 172192, 172202, 172309, 172315, 172422, 172456, 172489, 172496, 172543, 172605, 172680, 172712, 172713, 172735, 172762, 172763, 172770, 172775, 172793, 172834, 172856, 172869, 172986, 173084, 173167, 173234, 173371, 173374, 173396, 173530, 173547, 173580, 173587, 173777, 173818, 173848, 173871, 173905, 173976, 174002, 174061, 174079, 174086, 174094, 174130, 174156, 174223, 174306, 174349, 174357, 174369, 174450, 174457, 174510, 174521, 174555, 174700, 174780, 174790, 174881, 174945, 174987, 175114, 175152, 175224, 175237, 175264, 175322, 175327, 175329, 175359, 175376, 175394, 175418, 175479, 175510, 175556, 175573, 175576, 175625, 175657, 175693, 175802, 175809, 176083, 176150, 176165, 176174, 176181, 176188, 176380, 176410, 176433, 176464, 176475, 176479, 176566, 176646, 176678, 176750, 176762, 176768, 176801, 176878, 176969, 177006, 177028, 177050, 177086, 177103, 177123, 177170, 177205, 177234, 177363, 177456, 177473, 177569, 177582, 177622, 177627, 177648, 177659, 177693, 177704, 177709, 177726, 177755, 177762, 177903, 177924, 178014, 178044, 178048, 178049, 178143, 178162, 178192, 178218, 178376, 178403, 178418, 178458, 178497, 178518, 178531, 178533, 178659, 178678, 178699, 178720, 178860, 178922, 178974, 179045, 179122, 179136, 179137, 179173, 179188, 179312, 179354, 179466, 179574, 179622, 179744, 179748, 179816, 179893, 179903, 179931, 179950, 179976, 179996, 180096, 180102, 180120, 180130, 180145, 180177, 180185, 180225, 180289, 180346, 180421, 180432, 180433, 180446, 180478, 180489, 180531, 180533, 180539, 180570, 180587, 180656, 180705, 180829, 180952, 180953, 180997, 181014, 181015, 181060, 181075, 181133, 181157, 181169, 181202, 181233, 181284, 181352, 181393, 181412, 181438, 181472, 181495, 181514, 181599, 181602, 181623, 181651, 181658, 181660, 181681, 181723, 181734, 181777, 181813, 181833, 181834, 181904, 181993, 182034, 182078, 182097, 182125, 182148, 182194, 182235, 182251, 182253, 182502, 182545, 182655, 182664, 182667, 182672, 182693, 182757, 182812, 182891, 182917, 183059, 183062, 183080, 183087, 183152, 183172, 183254, 183303, 183324, 183352, 183358, 183365, 183424, 183427, 183479, 183488, 183493, 183572, 183611, 183616, 183692, 183794, 183866, 184021, 184070, 184173, 184308, 184434, 184465, 184483, 184491, 184569, 184620, 184628, 184634, 184647, 184663, 184731, 184758, 184769, 184808, 184857, 184892, 185002, 185009, 185039, 185108, 185162, 185214, 185255, 185338, 185340, 185526, 185594, 185606, 185612, 185660, 185681, 185700, 185751, 185817, 185841, 185969, 185999, 186015, 186038, 186073, 186146, 186158, 186161, 186178, 186192, 186193, 186299, 186302, 186352, 186389, 186397, 186402, 186417, 186457, 186461, 186472, 186497, 186506, 186512, 186522, 186551, 186603, 186612, 186640, 186772, 186783, 186853, 186910, 186913, 186915, 186922, 186947, 186984, 187013, 187060, 187077, 187094, 187098, 187137, 187153, 187154, 187214, 187325, 187360, 187499, 187522, 187558, 187559, 187622, 187675, 187724, 187880, 187883, 187888, 187952, 187962, 188019, 188058, 188069, 188108, 188125, 188157, 188182, 188183, 188239, 188249, 188289, 188337, 188385, 188431, 188503, 188516, 188586, 188638, 188756, 188779, 188882, 188918, 188970, 189025, 189028, 189065, 189081, 189092, 189102, 189151, 189165, 189230, 189258, 189290, 189325, 189331, 189372, 189386, 189456, 189504, 189549, 189557, 189614, 189622, 189642, 189752, 189781, 189788, 189803, 189849, 189931, 189956, 189959, 189969, 190013, 190124, 190201, 190250, 190259, 190283, 190319, 190345, 190346, 190366, 190476, 190507, 190566, 190625, 190659, 190795, 190820, 190931, 190935, 190942, 190993, 191002, 191009, 191038, 191147, 191158, 191206, 191257, 191276, 191317, 191348, 191354, 191411, 191455, 191491, 191498, 191570, 191590, 191624, 191682, 191719, 191751, 191764, 191863, 191867, 191882, 191992, 192025, 192274, 192283, 192332, 192371, 192389, 192445, 192466, 192497, 192567, 192706, 192709, 192722, 192733, 192736, 192833, 192836, 192875, 192885, 192891, 192894, 192992, 193050, 193059, 193096, 193099, 193153, 193187, 193216, 193278, 193334, 193385, 193401, 193441, 193534, 193537, 193569, 193582, 193626, 193629, 193633, 193653, 193739, 193740, 193760, 193776, 193843, 193868, 193918, 193965, 194031, 194115, 194124, 194156, 194187, 194225, 194300, 194339, 194345, 194374, 194427, 194508, 194523, 194535, 194581, 194620, 194651, 194682, 194701, 194722, 194756, 194758, 194793, 194794, 194823, 194836, 194889, 194891, 194941, 194979, 195062, 195081, 195117, 195127, 195128, 195139, 195140, 195250, 195341, 195343, 195415, 195479, 195487, 195564, 195568, 195611, 195661, 195668, 195702, 195723, 195740, 195766, 195801, 195847, 196057, 196096, 196103, 196233, 196286, 196293, 196309, 196368, 196529, 196541, 196598, 196669, 196744, 196758, 196820, 196866, 196870, 196911, 196920, 197037, 197059, 197113, 197175, 197218, 197236, 197240, 197297, 197326, 197396, 197470, 197492, 197503, 197533, 197537, 197590, 197615, 197626, 197628, 197644, 197729, 197782, 197794, 197849, 197917, 197944, 197974, 197984, 198005, 198011, 198018, 198089, 198152, 198163, 198258, 198307, 198311, 198316, 198363, 198372, 198388, 198390, 198465, 198520, 198541, 198547, 198627, 198660, 198664, 198666, 198682, 198696, 198755, 198764, 198836, 198839, 198965, 199009, 199058, 199109, 199129, 199138, 199143, 199190, 199374, 199375, 199434, 199503, 199602, 199660, 199755, 199801, 199802, 199986, 200035, 200076, 200156, 200203, 200231, 200320, 200324, 200387, 200390, 200417, 200421, 200429, 200466, 200491, 200575, 200580, 200599, 200622, 200668, 200695, 200701, 200726, 200808, 200818, 200858, 200900, 201121, 201266, 201334, 201428, 201464, 201477, 201528, 201536, 201555, 201571, 201602, 201629, 201690, 201733, 201755, 201756, 201780, 201854, 201873, 201917, 201934, 202062, 202081, 202213, 202219, 202237, 202264, 202280, 202292, 202302, 202309, 202327, 202335, 202347, 202361, 202376, 202444, 202576, 202619, 202645, 202707, 202712, 202739, 202758, 202892, 202950, 203103, 203105, 203160, 203163, 203211, 203252, 203253, 203254, 203285, 203321, 203357, 203363, 203368, 203396, 203402, 203568, 203574, 203580, 203608, 203629, 203654, 203683, 203741, 203757, 203805, 203850, 203879, 203915, 204016, 204078, 204209, 204319, 204363, 204402, 204507, 204550, 204645, 204649, 204656, 204657, 204679, 204687, 204781, 204852, 204902, 204914, 204966, 205022, 205032, 205070, 205081, 205130, 205145, 205163, 205192, 205257, 205276, 205290, 205298, 205319, 205423, 205563, 205581, 205591, 205686, 205746, 205747, 205772, 205842, 205849, 205893, 205897, 205900, 205918, 205931, 205965, 206037, 206054, 206063, 206100, 206115, 206149, 206283, 206319, 206322, 206330, 206386, 206393, 206437, 206448, 206497, 206504, 206530, 206540, 206554, 206573, 206640, 206685, 206696, 206851, 206900, 207045, 207056, 207166, 207202, 207213, 207233, 207281, 207421, 207440, 207539, 207561, 207599, 207625, 207678, 207716, 207717, 207767, 207840, 207860, 207875, 207898, 207911, 207920, 207949, 208030, 208112, 208142, 208155, 208170, 208242, 208297, 208301, 208305, 208411, 208441, 208444, 208463, 208486, 208514, 208565, 208571, 208575, 208587, 208595, 208651, 208675, 208676, 208681, 208686, 208730, 208746, 208770, 208782, 208802, 208815, 208831, 208896, 208944, 208979, 209092, 209118, 209160, 209200, 209209, 209269, 209272, 209296, 209419, 209424, 209451, 209675, 209793, 209851, 210032, 210050, 210057, 210087, 210282, 210321, 210347, 210349, 210357, 210510, 210513, 210520, 210556, 210562, 210606, 210633, 210697, 210706, 210835, 210846, 210881, 210894, 210909, 210942, 210994, 211051, 211120, 211122, 211186, 211336, 211337, 211347, 211375, 211422, 211434, 211437, 211438, 211443, 211532, 211540, 211578, 211686, 211696, 211726, 211805, 211810, 211896, 211898, 212043, 212068, 212084, 212113, 212148, 212164, 212168, 212186, 212287, 212297, 212338, 212426, 212429, 212496, 212534, 212595, 212599, 212604, 212610, 212952, 212962, 212984, 212992, 213063, 213215, 213246, 213310, 213376, 213472, 213568, 213609, 213694, 213715, 213725, 213746, 213749, 213820, 213889, 213920, 213934, 213968, 213993, 214022, 214074, 214106, 214111, 214137, 214179, 214198, 214205, 214234, 214253, 214277, 214358, 214367, 214422, 214451, 214492, 214503, 214508, 214522, 214554, 214566, 214568, 214569, 214698, 214705, 214711, 214750, 214797, 214846, 214886, 214994, 215076, 215083, 215105, 215209, 215216, 215248, 215293, 215303, 215515, 215589, 215777, 215791, 215793, 215846, 215917, 215966, 215981, 216018, 216072, 216181, 216282, 216299, 216317, 216342, 216350, 216414, 216474, 216532, 216564, 216620, 216625, 216637, 216704, 216713, 216757, 216801, 216902, 216965, 216981, 217020, 217035, 217108, 217163, 217197, 217240, 217262, 217304, 217396, 217415, 217418, 217460, 217467, 217474, 217479, 217562, 217577, 217578, 217605, 217644, 217732, 217764, 217773, 217838, 217883, 217911, 217914, 217961, 218015, 218034, 218088, 218101, 218122, 218169, 218195, 218204, 218235, 218279, 218283, 218338, 218394, 218405, 218507, 218551, 218622, 218697, 218704, 218707, 218727, 218761, 218787, 218846, 218886, 218903, 218920, 218928, 219032, 219105, 219153, 219176, 219184, 219200, 219264, 219274, 219276, 219289, 219455, 219462, 219489, 219509, 219615, 219643, 219686, 219714, 219749, 219841, 219851, 219906, 219934, 219959, 219988, 220052, 220110, 220184, 220230, 220287, 220314, 220318, 220446, 220447, 220470, 220488, 220543, 220559, 220629, 220644, 220723, 220790, 220842, 220859, 220906, 220927, 220934, 220983, 221029, 221041, 221042, 221076, 221112, 221194, 221260, 221274, 221292, 221300, 221325, 221330, 221342, 221348, 221353, 221417, 221429, 221443, 221463, 221509, 221520, 221536, 221561, 221600, 221628, 221681, 221692, 221702, 221762, 221862, 221863, 221871, 221893, 221898, 221910, 221933, 222000, 222003, 222033, 222056, 222078, 222085, 222117, 222125, 222230, 222287, 222341, 222481, 222541, 222601, 222629, 222667, 222720, 222763, 222876, 222883, 222884, 222910, 222949, 222953, 223102, 223106, 223115, 223152, 223206, 223324, 223363, 223414, 223432, 223486, 223539, 223573, 223601, 223626, 223654, 223668, 223760, 223767, 223805, 223810, 223822, 223825, 223850, 223872, 223884, 223960, 223974, 223975, 224154, 224164, 224229, 224273, 224364, 224377, 224391, 224414, 224610, 224689, 224698, 224745, 224769, 224872, 224894, 224907, 224910, 224920, 224954, 224970, 224996, 225045, 225063, 225078, 225092, 225101, 225108, 225172, 225184, 225250, 225336, 225339, 225430, 225475, 225477, 225533, 225539, 225549, 225562, 225578, 225620, 225637, 225660, 225665, 225683, 225812, 225917, 225945, 226012, 226020, 226023, 226086, 226118, 226154, 226289, 226378, 226444, 226495, 226501, 226604, 226611, 226752, 226796, 226874, 226881, 227007, 227030, 227065, 227080, 227101, 227113, 227124, 227138, 227161, 227269, 227334, 227335, 227486, 227516, 227574, 227578, 227598, 227609, 227614, 227821, 227827, 227835, 227865, 227904, 227929, 227970, 227997, 228001, 228034, 228075, 228092, 228105, 228124, 228144, 228177, 228192, 228203, 228225, 228234, 228320, 228389, 228524, 228541, 228681, 228687, 228724, 228824, 228857, 228862, 229067, 229152, 229165, 229171, 229172, 229238, 229257, 229263, 229295, 229453, 229472, 229523, 229568, 229580, 229645, 229650, 229655, 229722, 229727, 229767, 229807, 229844, 229915, 230084, 230131, 230143, 230193, 230207, 230209, 230238, 230272, 230301, 230337, 230355, 230408, 230481, 230550, 230640, 230716, 230739, 230741, 230746, 230783, 230789, 230955, 230969, 230970, 230986, 231015, 231018, 231066, 231093, 231135, 231164, 231167, 231260, 231292, 231300, 231353, 231403, 231429, 231472, 231577, 231580, 231616, 231728, 231729, 231809, 231867, 231872, 231901, 231961, 231973, 232030, 232049, 232086, 232087, 232105, 232107, 232210, 232221, 232255, 232275, 232328, 232351, 232377, 232440, 232446, 232448, 232479, 232520, 232565, 232566, 232618, 232708, 232712, 232784, 232820, 232850, 232926, 233003, 233004, 233221, 233231, 233306, 233322, 233368, 233419, 233434, 233478, 233593, 233620, 233711, 233723, 233731, 233769, 233798, 233846, 233915, 233946, 233964, 233976, 233994, 233997, 234013, 234016, 234092, 234108, 234114, 234116, 234145, 234194, 234262, 234302, 234303, 234305, 234312, 234321, 234361, 234383, 234392, 234472, 234483, 234491, 234507, 234681, 234686, 234730, 234767, 234841, 234994, 235013, 235062, 235139, 235242, 235328, 235345, 235365, 235380, 235388, 235474, 235514, 235599, 235603, 235604, 235685, 235690, 235719, 235756, 235784, 235785, 235807, 235812, 235848, 235851, 235901, 235927, 235948, 235994, 236014, 236073, 236084, 236107, 236138, 236299, 236353, 236473, 236509, 236515, 236561, 236589, 236632, 236698, 236718, 236850, 236868, 236884, 236899, 236954, 236955, 236959, 237002, 237050, 237300, 237315, 237340, 237478, 237525, 237543, 237621, 237648, 237656, 237671, 237675, 237699, 237777, 237799, 237832, 237845, 237949, 237981, 237998, 238001, 238101, 238133, 238176, 238204, 238213, 238315, 238319, 238329, 238365, 238461, 238533, 238587, 238595, 238639, 238708, 238732, 238744, 238760, 238820, 238871, 238881, 238900, 238922, 238943, 238944, 238946, 239086, 239177, 239192, 239225, 239237, 239243, 239244, 239368, 239450, 239454, 239463, 239525, 239526, 239587, 239658, 239663, 239674, 239748, 239863, 239877, 239899, 239901, 239959, 240056, 240057, 240058, 240166, 240197, 240225, 240238, 240314, 240320, 240324, 240331, 240349, 240376, 240378, 240421, 240435, 240478, 240541, 240611, 240619, 240663, 240706, 240757, 240768, 240832, 240906, 240907, 240959, 240982, 240985, 241062, 241091, 241106, 241151, 241156, 241193, 241256, 241314, 241357, 241367, 241380, 241413, 241465, 241515, 241550, 241631, 241737, 241761, 241863, 241864, 241936, 241951, 241955, 242125, 242310, 242316, 242369, 242380, 242419, 242537, 242541, 242605, 242618, 242658, 242719, 242798, 242803, 242811, 242895, 242896, 242948, 242966, 242992, 242993, 243064, 243081, 243120, 243222, 243308, 243421, 243423, 243442, 243448, 243483, 243517, 243543, 243545, 243551, 243588, 243593, 243595, 243664, 243686, 243693, 243707, 243738, 243749, 243776, 243784, 243848, 243909, 243946, 243957, 244004, 244011, 244043, 244072, 244091, 244129, 244232, 244266, 244303, 244333, 244377, 244408, 244445, 244473, 244484, 244495, 244518, 244558, 244616, 244621, 244622, 244629, 244646, 244655, 244685, 244687, 244721, 244733, 244759, 244787, 244822, 244835, 244839, 244866, 244875, 244901, 244903, 244914, 244924, 244933, 244947, 245100, 245177, 245228, 245242, 245252, 245311, 245359, 245393, 245410, 245417, 245419, 245427, 245487, 245506, 245536, 245543, 245633, 245640, 245679, 245710, 245720, 245743, 245812, 245893, 245990, 246035, 246037, 246097, 246186, 246202, 246253, 246278, 246298, 246319, 246358, 246425, 246459, 246466, 246518, 246526, 246543, 246552, 246575, 246584, 246591, 246625, 246643, 246647, 246674, 246678, 246762, 246802, 246806, 246824, 246883, 246914, 246981, 247031, 247133, 247162, 247172, 247200, 247208, 247336, 247415, 247417, 247564, 247614, 247635, 247669, 247681, 247771, 247785, 247839, 247897, 247913, 247988, 247990, 248019, 248045, 248064, 248114, 248126, 248195, 248277, 248366, 248415, 248458, 248528, 248530, 248596, 248601, 248691, 248699, 248720, 248764, 248903, 248914, 248969, 249100, 249104, 249237, 249327, 249359, 249371, 249379, 249404, 249415, 249438, 249511, 249550, 249579, 249649, 249679, 249682, 249815, 249834, 249855, 249882, 249899, 249933, 250068, 250095, 250186, 250219, 250274, 250336, 250340, 250394, 250542, 250568, 250584, 250598, 250613, 250614, 250629, 250651, 250662, 250671, 250678, 250714, 250750, 250790, 250868, 250918, 250955, 250961, 250969, 250986, 251099, 251168, 251214, 251220, 251262, 251319, 251321, 251360, 251383, 251410, 251414, 251583, 251627, 251654, 251746, 251822, 251824, 251838, 251843, 251861, 251883, 251905, 251969, 251985, 252023, 252066, 252093, 252131, 252185, 252246, 252280, 252289, 252366, 252378, 252475, 252481, 252484, 252528, 252541, 252556, 252568, 252619, 252637, 252703, 252835, 252926, 253051, 253083, 253117, 253170, 253221, 253247, 253264, 253424, 253446, 253456, 253479, 253532, 253539, 253562, 253625, 253633, 253674, 253725, 253776, 253779, 253844, 253859, 253936, 253958, 253969, 254028, 254045, 254069, 254088, 254108, 254134, 254207, 254223, 254277, 254321, 254347, 254442, 254473, 254514, 254517, 254544, 254643, 254663, 254679, 254753, 254755, 254813, 254816, 254830, 254940, 254996, 255062, 255070, 255085, 255120, 255152, 255166, 255235, 255318, 255356, 255434, 255462, 255533, 255571, 255597, 255598, 255649, 255693, 255700, 255857, 255862, 255893, 255926, 255991, 255997, 256014, 256042, 256050, 256091, 256111, 256139, 256143, 256280, 256331, 256346, 256423, 256428, 256460, 256534, 256585, 256627, 256662, 256667, 256669, 256800, 256888, 256983, 256997, 257016, 257057, 257161, 257186, 257209, 257230, 257278, 257308, 257317, 257331, 257349, 257457, 257589, 257592, 257730, 257734, 257834, 257884, 257926, 258130, 258131, 258167, 258263, 258371, 258441, 258462, 258468, 258475, 258547, 258570, 258583, 258602, 258705, 258741, 258790, 258826, 258842, 258872, 258899, 258956, 258965, 259015, 259171, 259195, 259209, 259245, 259291, 259299, 259301, 259396, 259408, 259411, 259425, 259447, 259459, 259499, 259622, 259632, 259721, 259730, 259781, 259810, 259837, 259840, 259860, 259892, 259895, 259911, 259977, 260008, 260013, 260046, 260053, 260102, 260243, 260267, 260289, 260323, 260324, 260352, 260369, 260396, 260446, 260515, 260575, 260579, 260589, 260684, 260707, 260881, 260993, 260995, 261101, 261105, 261145, 261146, 261147, 261218, 261228, 261261, 261287, 261347, 261363, 261435, 261482, 261534, 261552, 261618, 261690, 261702, 261714, 261722, 261754, 261756, 261994, 262032, 262077, 262183, 262184, 262193, 262247, 262341, 262422, 262445, 262497, 262533, 262553, 262584, 262640, 262670, 262708, 262750, 262783, 262801, 262802, 262893, 262953, 262963, 262988, 263069, 263112, 263138, 263195, 263269, 263298, 263303, 263321, 263326, 263329, 263416, 263449, 263469, 263584, 263603, 263615, 263617, 263645, 263681, 263699, 263707, 263734, 263805, 263819, 263840, 263859, 263905, 263911, 263938, 263954, 264036, 264045, 264121, 264145, 264178, 264186, 264232, 264282, 264294, 264324, 264341, 264388, 264507, 264513, 264516, 264591, 264607, 264655, 264724, 264727, 264779, 264832, 264913, 264931, 265039, 265091, 265099, 265161, 265186, 265194, 265219, 265299, 265410, 265426, 265427, 265451, 265474, 265477, 265521, 265584, 265633, 265737, 265749, 265782, 265814, 265827, 265857, 265862, 265882, 265885, 265921, 265966, 266017, 266093, 266146, 266221, 266273, 266275, 266408, 266458, 266474, 266507, 266517, 266535, 266573, 266681, 266685, 266820, 266822, 266941, 267002, 267020, 267060, 267064, 267141, 267146, 267171, 267180, 267186, 267232, 267284, 267387, 267420, 267432, 267437, 267442, 267455, 267474, 267528, 267530, 267585, 267655, 267734, 267735, 267739, 267791, 267805, 267904, 267929, 268021, 268051, 268063, 268067, 268127, 268147, 268185, 268194, 268212, 268226, 268247, 268471, 268517, 268520, 268527, 268551, 268635, 268739, 268872, 268873, 268912, 268948, 269022, 269057, 269092, 269108, 269184, 269219, 269258, 269285, 269329, 269361, 269415, 269473, 269478, 269497, 269553, 269566, 269620, 269626, 269637, 269694, 269813, 269885, 269895, 269898, 269916, 269918, 269998, 270057, 270091, 270160, 270235, 270337, 270361, 270418, 270524, 270589, 270668, 270696, 270699, 270704, 270734, 270747, 270760, 270796, 270829, 270858, 270933, 270945, 270972, 270980, 270987, 271049, 271056, 271067, 271102, 271115, 271270, 271344, 271429, 271449, 271479, 271537, 271571, 271657, 271682, 271706, 271785, 271795, 271924, 271929, 271964, 271979, 272027, 272043, 272067, 272113, 272154, 272170, 272238, 272239, 272434, 272436, 272634, 272644, 272666, 272703, 272778, 272904, 272925, 272988, 272994, 273012, 273056, 273066, 273114, 273164, 273194, 273219, 273258, 273314, 273319, 273331, 273335, 273337, 273352, 273356, 273366, 273380, 273442, 273472, 273489, 273528, 273589, 273590, 273629, 273742, 273891, 273989, 274125, 274194, 274195, 274244, 274306, 274318, 274332, 274347, 274471, 274526, 274586, 274634, 274644, 274646, 274648, 274681, 274737, 274816, 274855, 274870, 274934, 274947, 274951, 274996, 275008, 275010, 275016, 275112, 275161, 275214, 275221, 275261, 275264, 275282, 275319, 275360, 275390, 275439, 275461, 275517, 275611, 275665, 275738, 275781, 275783, 275795, 275823, 275890, 275900, 275928, 275934, 275952, 275957, 276129, 276154, 276189, 276240, 276270, 276350, 276390, 276395, 276452, 276473, 276544, 276676, 276697, 276719, 276733, 276765, 276767, 276778, 276806, 276877, 276930, 277025, 277038, 277039, 277094, 277132, 277144, 277195, 277211, 277216, 277348, 277352, 277393, 277443, 277484, 277511, 277554, 277572, 277574, 277590, 277768, 277815, 277863, 277903, 277916, 277919, 277928, 277946, 277997, 278058, 278074, 278118, 278144, 278172, 278179, 278243, 278272, 278299, 278389, 278433, 278456, 278575, 278577, 278584, 278610, 278623, 278626, 278634, 278654, 278690, 278714, 278761, 278763, 278767, 278847, 278895, 278898, 278913, 278986, 279078, 279113, 279161, 279248, 279294, 279295, 279309, 279313, 279316, 279430, 279474, 279516, 279724, 279730, 279733, 279735, 279816, 279870, 279880, 279900, 280041, 280066, 280094, 280096, 280102, 280105, 280259, 280334, 280367, 280370, 280492, 280496, 280651, 280670, 280758, 280769, 280786, 280844, 280848, 280879, 280908, 280930, 280941, 280987, 280991, 280993, 280998, 281004, 281087, 281095, 281101, 281116, 281177, 281235, 281257, 281340, 281363, 281426, 281483, 281489, 281515, 281542, 281574, 281583, 281606, 281621, 281631, 281686, 281704, 281732, 281787, 281803, 281817, 281948, 282060, 282111, 282133, 282137, 282144, 282156, 282184, 282188, 282222, 282230, 282232, 282234, 282344, 282363, 282478, 282496, 282518, 282519, 282538, 282594, 282606, 282650, 282681, 282693, 282758, 282765, 282788, 282844, 282849, 282854, 282857, 282904, 282991, 283121, 283172, 283295, 283312, 283323, 283393, 283406, 283445, 283483, 283528, 283570, 283589, 283603, 283686, 283689, 283704, 283727, 283757, 283792, 283797, 283813, 283824, 283862, 283933, 284005, 284034, 284107, 284133, 284140, 284141, 284256, 284274, 284316, 284364, 284365, 284406, 284440, 284458, 284472, 284490, 284511, 284567, 284571, 284602, 284605, 284633, 284694, 284713, 284722, 284810, 284836, 284837, 284852, 284897, 284899, 284922, 284942, 285078, 285332, 285353, 285420, 285428, 285443, 285494, 285517, 285682, 285683, 285733, 285771, 285784, 285809, 285824, 285843, 285871, 285891, 285910, 285939, 286019, 286022, 286092, 286118, 286191, 286238, 286258, 286285, 286293, 286300, 286325, 286341, 286485, 286532, 286534, 286570, 286608, 286622, 286661, 286669, 286710, 286767, 286772, 286787, 286788, 286813, 286819, 286847, 286871, 286890, 286905, 286911, 286936, 286948, 287035, 287115, 287163, 287203, 287337, 287340, 287384, 287399, 287440, 287454, 287562, 287574, 287634, 287668, 287707, 287715, 287827, 287834, 287848, 287852, 287856, 287862, 287889, 287917, 287995, 288077, 288128, 288189, 288208, 288230, 288239, 288310, 288324, 288397, 288408, 288419, 288458, 288513, 288522, 288547, 288552, 288585, 288587, 288620, 288622, 288646, 288702, 288717, 288771, 288874, 288900, 288931, 288944, 289013, 289044, 289111, 289131, 289133, 289168, 289209, 289223, 289310, 289316, 289339, 289363, 289392, 289404, 289415, 289461, 289465, 289480, 289504, 289560, 289563, 289614, 289624, 289767, 289776, 289832, 289903, 289915, 289931, 289963, 289984, 290008, 290257, 290326, 290371, 290415, 290419, 290420, 290422, 290423, 290424, 290463, 290464, 290465, 290479, 290518, 290530, 290535, 290546, 290577, 290606, 290649, 290733, 290734, 290747, 290770, 290792, 290895, 290982, 291004, 291036, 291077, 291087, 291101, 291146, 291185, 291252, 291254, 291392, 291475, 291553, 291562, 291567, 291588, 291591, 291664, 291719, 291743, 291886, 291948, 291967, 292009, 292042, 292096, 292129, 292156, 292190, 292203, 292226, 292286, 292298, 292423, 292473, 292569, 292632, 292656, 292690, 292716, 292756, 292823, 292853, 292857, 292883, 292892, 292903, 292907, 292942, 292992, 293009, 293094, 293126, 293227, 293270, 293285, 293339, 293357, 293358, 293380, 293405, 293424, 293495, 293578, 293623, 293700, 293713, 293726, 293756, 293845, 293878, 293881, 293893, 293908, 293951, 293959, 293961, 293969, 293981, 294026, 294051, 294097, 294142, 294165, 294201, 294241, 294278, 294338, 294346, 294368, 294375, 294395, 294423, 294428, 294474, 294476, 294572, 294574, 294787, 294801, 294813, 294954, 295006, 295007, 295053, 295204, 295235, 295253, 295326, 295335, 295389, 295403, 295411, 295417, 295442, 295482, 295491, 295547, 295581, 295594, 295596, 295601, 295631, 295637, 295643, 295649, 295658, 295689, 295726, 295736, 295760, 295763, 295771, 295816, 295817, 295864, 295920, 295921, 295937, 295943, 295966, 296007, 296063, 296068, 296118, 296157, 296167, 296179, 296264, 296275, 296287, 296298, 296315, 296389, 296402, 296417, 296424, 296428, 296481, 296493, 296549, 296609, 296637, 296688, 296704, 296709, 296718, 296777, 296794, 296827, 296904, 296977, 297007, 297078, 297119, 297171, 297185, 297196, 297217, 297274, 297283, 297298, 297302, 297418, 297460, 297490, 297510, 297523, 297590, 297597, 297629, 297665, 297667, 297675, 297681, 297690, 297774, 297788, 297844, 297876, 297916, 297957, 298004, 298008, 298021, 298043, 298087, 298102, 298151, 298168, 298193, 298243, 298257, 298358, 298359, 298361, 298368, 298374, 298421, 298495, 298571, 298572, 298602, 298613, 298651, 298699, 298764, 298775, 298812, 298823, 298836, 298843, 298901, 298957, 298979, 299027, 299053, 299071, 299131, 299146, 299158, 299180, 299223, 299229, 299249, 299338, 299375, 299396, 299399, 299503, 299548, 299604, 299617, 299659, 299674, 299755, 299774, 299788, 299804, 299824, 299925, 300040, 300126, 300137, 300139, 300218, 300236, 300263, 300329, 300379, 300414, 300420, 300524, 300532, 300535, 300703, 300711, 300723, 300795, 300813, 300833, 300918, 300992, 301016, 301085, 301129, 301188, 301200, 301348, 301499, 301505, 301583, 301639, 301661, 301667, 301704, 301716, 301788, 301824, 301834, 301860, 301864, 301873, 301894, 301944, 301961, 301989, 302050, 302052, 302076, 302095, 302246, 302249, 302297, 302316, 302352, 302372, 302490, 302495, 302506, 302511, 302521, 302532, 302558, 302562, 302731, 302735, 302749, 302875, 302988, 303048, 303134, 303140, 303163, 303202, 303271, 303333, 303342, 303357, 303407, 303440, 303481, 303506, 303522, 303656, 303740, 303823, 303860, 303863, 303955, 303977, 304025, 304051, 304128, 304151, 304167, 304203, 304207, 304213, 304232, 304289, 304304, 304377, 304397, 304403, 304506, 304654, 304735, 304764, 304811, 304863, 304896, 304901, 304906, 304910, 304942, 304978, 305015, 305049, 305055, 305057, 305062, 305088, 305091, 305123, 305144, 305156, 305181, 305199, 305217, 305224, 305230, 305248, 305343, 305364, 305425, 305510, 305531, 305538, 305591, 305696, 305717, 305736, 305777, 305809, 305855, 305874, 305927, 306096, 306135, 306165, 306170, 306178, 306212, 306269, 306270, 306537, 306570, 306583, 306612, 306626, 306633, 306698, 306704, 306719, 306742, 306765, 306806, 306832, 306886, 306902, 306905, 306941, 306980, 307018, 307090, 307098, 307117, 307119, 307170, 307202, 307208, 307220, 307221, 307301, 307400, 307401, 307460, 307473, 307559, 307578, 307619, 307649, 307650, 307669, 307687, 307690, 307709, 307768, 307783, 307793, 307798, 307816, 307839, 307889, 307906, 307922, 308001, 308004, 308013, 308058, 308077, 308169, 308256, 308261, 308298, 308357, 308652, 308756, 308833, 308866, 308896, 308924, 308925, 308974, 308977, 309009, 309018, 309094, 309122, 309195, 309221, 309233, 309308, 309590, 309647, 309654, 309724, 309756, 309779, 309806, 309879, 309884, 309888, 309972, 309990, 310028, 310061, 310102, 310146, 310156, 310188, 310194, 310203, 310304, 310326, 310332, 310356, 310441, 310448, 310615, 310644, 310675, 310734, 310747, 310756, 310781, 310869, 310941, 311021, 311045, 311058, 311095, 311111, 311182, 311259, 311294, 311316, 311333, 311375, 311426, 311433, 311607, 311616, 311695, 311701, 311712, 311721, 311724, 311756, 311821, 311842, 311846, 311925, 311940, 311997, 312014, 312042, 312060, 312143, 312146, 312267, 312302, 312338, 312397, 312470, 312479, 312603, 312661, 312711, 312717, 312722, 312727, 312730, 312731, 312790, 312840, 312846, 312874, 312878, 312885, 312910, 312914, 312976, 313026, 313096, 313120, 313183, 313248, 313308, 313322, 313358, 313368, 313420, 313441, 313459, 313482, 313609, 313616, 313647, 313679, 313702, 313714, 313724, 313740, 313755, 313844, 313874, 313875, 313877, 313894, 313906, 313930, 313935, 313952, 313960, 313969, 314046, 314068, 314113, 314119, 314191, 314209, 314215, 314247, 314277, 314397, 314438, 314479, 314580, 314584, 314587, 314603, 314632, 314644, 314833, 314970, 315037, 315039, 315041, 315117, 315222, 315244, 315532, 315570, 315581, 315646, 315663, 315720, 315737, 315745, 315767, 315820, 315826, 315833, 315849, 315906, 315932, 315963, 315993, 316047, 316063, 316064, 316074, 316121, 316136, 316170, 316174, 316186, 316209, 316228, 316234, 316296, 316370, 316402, 316428, 316453, 316461, 316474, 316544, 316579, 316645, 316694, 316721, 316728, 316734, 316746, 316823, 316854, 316864, 316867, 317032, 317053, 317081, 317093, 317108, 317150, 317165, 317177, 317242, 317291, 317293, 317323, 317365, 317379, 317428, 317479, 317505, 317530, 317759, 317763, 317833, 317941, 317979, 317982, 318060, 318068, 318092, 318136, 318179, 318182, 318212, 318401, 318425, 318508, 318581, 318593, 318616, 318682, 318686, 318690, 318724, 318841, 318872, 318928, 318956, 319034, 319043, 319065, 319088, 319089, 319219, 319286, 319370, 319391, 319409, 319433, 319462, 319463, 319483, 319487, 319495, 319501, 319533, 319541, 319549, 319557, 319588, 319599, 319600, 319624, 319739, 319755, 319797, 319836, 319839, 319866, 319881, 319892, 319906, 320004, 320033, 320115, 320186, 320209, 320320, 320336, 320348, 320373, 320409, 320438, 320483, 320540, 320624, 320625, 320797, 320819, 320840, 320842, 320858, 320876, 320902, 320905, 320943, 320968, 320994, 321043, 321102, 321179, 321182, 321302, 321323, 321343, 321344, 321372, 321432, 321445, 321455, 321601, 321621, 321642, 321660, 321733, 321755, 321776, 321816, 321873, 321896, 321910, 321923, 321931, 322010, 322035, 322154, 322186, 322320, 322475, 322493, 322511, 322647, 322699, 322724, 322791, 322826, 322846, 322864, 322874, 322904, 322918, 323085, 323142, 323209, 323223, 323287, 323314, 323317, 323340, 323341, 323370, 323388, 323403, 323516, 323532, 323613, 323674, 323733, 323801, 323832, 323857, 323923, 323926, 323979, 323987, 323990, 323998, 324010, 324058, 324172, 324220, 324282, 324291, 324300, 324308, 324347, 324388, 324403, 324513, 324542, 324568, 324650, 324751, 324821, 324902, 324987, 325000, 325052, 325076, 325110, 325175, 325183, 325276, 325388, 325396, 325436, 325443, 325545, 325566, 325636, 325701, 325753, 325771, 325777, 325788, 325809, 325852, 325865, 325902, 325913, 325955, 325998, 326177, 326234, 326303, 326334, 326402, 326405, 326411, 326440, 326540, 326547, 326570, 326591, 326594, 326680, 326687, 326699, 326741, 326759, 326828, 326832, 326846, 326864, 326905, 326910, 326925, 327045, 327162, 327194, 327207, 327226, 327247, 327287, 327407, 327413, 327434, 327455, 327458, 327475, 327504, 327512, 327555, 327573, 327582, 327597, 327670, 327725, 327767, 327836, 327940, 327957, 327996, 327999, 328025, 328030, 328039, 328058, 328096, 328124, 328177, 328226, 328256, 328324, 328332, 328367, 328376, 328467, 328524, 328606, 328672, 328736, 328748, 328758, 328853, 328876, 328896, 328911, 328941, 328993, 328999, 329075, 329082, 329190, 329244, 329286, 329378, 329384, 329443, 329570, 329686, 329687, 329815, 329840, 329853, 329882, 329890, 329909, 330094, 330117, 330137, 330148, 330196, 330235, 330244, 330368, 330383, 330410, 330478, 330649, 330681, 330689, 330718, 330719, 330755, 330766, 331006, 331070, 331090, 331165, 331185, 331352, 331419, 331520, 331637, 331648, 331670, 331699, 331721, 331781, 331792, 331841, 331856, 331873, 331904, 331930, 331943, 332020, 332072, 332082, 332114, 332127, 332161, 332162, 332201, 332265, 332297, 332328, 332338, 332364, 332400, 332422, 332451, 332495, 332608, 332623, 332633, 332799, 332802, 332807, 332817, 332821, 332826, 332827, 332828, 332837, 332860, 332866, 332897, 332912, 332925, 332962, 332986, 333017, 333020, 333021, 333057, 333063, 333080, 333142, 333165, 333174, 333253, 333345, 333400, 333403, 333427, 333465, 333523, 333547, 333550, 333598, 333605, 333631, 333758, 333784, 333828, 333842, 333872, 333970, 333972, 334013, 334103, 334146, 334166, 334202, 334279, 334284, 334379, 334464, 334516, 334519, 334554, 334558, 334634, 334697, 334712, 334761, 334764, 334774, 334790, 334810, 334815, 334871, 334915, 334925, 334969, 335075, 335127, 335134, 335204, 335233, 335285, 335366, 335395, 335498, 335524, 335557, 335562, 335576, 335586, 335651, 335652, 335670, 335672, 335852, 335872, 335878, 335881, 335897, 336017, 336021, 336069, 336100, 336141, 336170, 336218, 336251, 336256, 336452, 336555, 336593, 336608, 336628, 336669, 336685, 336790, 336871, 336877, 336883, 336916, 336986, 337014, 337063, 337128, 337160, 337180, 337262, 337275, 337332, 337357, 337388, 337398, 337459, 337467, 337580, 337645, 337710, 337804, 337926, 337968, 337991, 338032, 338079, 338108, 338114, 338229, 338255, 338275, 338316, 338328, 338371, 338382, 338396, 338457, 338522, 338526, 338598, 338599, 338602, 338663, 338812, 338854, 338931, 338938, 338941, 338974, 339014, 339025, 339030, 339196, 339212, 339308, 339317, 339343, 339362, 339412, 339440, 339464, 339478, 339531, 339541, 339554, 339594, 339608, 339628, 339775, 339836, 339885, 339987, 340033, 340054, 340062, 340076, 340082, 340121, 340179, 340200, 340218, 340258, 340292, 340370, 340527, 340594, 340597, 340601, 340623, 340641, 340659, 340708, 340756, 340779, 340814, 340963, 340976, 341025, 341036, 341043, 341051, 341066, 341084, 341100, 341112, 341130, 341152, 341166, 341184, 341192, 341206, 341217, 341268, 341292, 341369, 341371, 341469, 341479, 341577, 341648, 341671, 341757, 341774, 341866, 341929, 341954, 342029, 342062, 342076, 342088, 342101, 342204, 342233, 342237, 342248, 342303, 342313, 342318, 342332, 342373, 342436, 342467, 342502, 342541, 342660, 342758, 342800, 342817, 342882, 342920, 342975, 342987, 343019, 343113, 343125, 343170, 343190, 343207, 343210, 343241, 343290, 343348, 343374, 343426, 343441, 343467, 343488, 343495, 343505, 343506, 343528, 343648, 343651, 343673, 343702, 343731, 343737, 343747, 343765, 343768, 343818, 343845, 343852, 343880, 343931, 343972, 344022, 344056, 344058, 344061, 344070, 344121, 344331, 344357, 344385, 344394, 344397, 344399, 344400, 344463, 344536, 344603, 344615, 344663, 344669, 344715, 344738, 344756, 344757, 344800, 344818, 344852, 345050, 345088, 345135, 345146, 345229, 345282, 345306, 345316, 345449, 345496, 345516, 345580, 345713, 345748, 345811, 345864, 345879, 345907, 345924, 345965, 345999, 346148, 346170, 346204, 346221, 346227, 346283, 346287, 346368, 346398, 346435, 346466, 346520, 346524, 346624, 346627, 346650, 346677, 346714, 346732, 346797, 346807, 346818, 346848, 346857, 346897, 346903, 346935, 346942, 346944, 346945, 346966, 346976, 346997, 347011, 347019, 347062, 347093, 347105, 347123, 347131, 347203, 347212, 347239, 347282, 347283, 347459, 347472, 347482, 347577, 347586, 347600, 347683, 347756, 347812, 347901, 347914, 347924, 347966, 348036, 348057, 348128, 348135, 348136, 348138, 348161, 348179, 348227, 348307, 348308, 348318, 348321, 348345, 348471, 348475, 348482, 348511, 348700, 348753, 348765, 348809, 348828, 348845, 348887, 348894, 348900, 348904, 348964, 348975, 349030, 349050, 349120, 349138, 349143, 349182, 349205, 349223, 349330, 349332, 349351, 349355, 349392, 349427, 349432, 349437, 349495, 349507, 349566, 349613, 349654, 349655, 349679, 349726, 349756, 349858, 349902, 349965, 349980, 349983, 350021, 350050, 350065, 350101, 350109, 350244, 350246, 350249, 350266, 350317, 350330, 350372, 350415, 350424, 350436, 350493, 350586, 350597, 350675, 350703, 350749, 350751, 350766, 350797, 350834, 350969, 350977, 351006, 351023, 351024, 351033, 351137, 351140, 351143, 351169, 351219, 351249, 351263, 351310, 351340, 351341, 351368, 351393, 351448, 351546, 351557, 351573, 351598, 351618, 351646, 351653, 351655, 351663, 351730, 351798, 351809, 351841, 351859, 351904, 351959, 351978, 351988, 352005, 352012, 352022, 352043, 352061, 352108, 352119, 352123, 352146, 352163, 352235, 352258, 352267, 352296, 352316, 352384, 352486, 352495, 352516, 352595, 352608, 352609, 352614, 352667, 352783, 352854, 352889, 352903, 352992, 353103, 353162, 353163, 353198, 353276, 353490, 353525, 353681, 353718, 353744, 353802, 353883, 353892, 353934, 353942, 354013, 354025, 354035, 354063, 354115, 354163, 354288, 354387, 354394, 354436, 354586, 354603, 354608, 354656, 354671, 354734, 354743, 354762, 354779, 354798, 354872, 354911, 355301, 355334, 355385, 355412, 355442, 355484, 355527, 355648, 355668, 355695, 355712, 355810, 355833, 355918, 355945, 355958, 355979, 356063, 356085, 356087, 356100, 356102, 356160, 356171, 356188, 356258, 356284, 356290, 356292, 356303, 356336, 356375, 356386, 356461, 356474, 356532, 356547, 356566, 356635, 356652, 356785, 356798, 356861, 356879, 356926, 356930, 356970, 356975, 357030, 357039, 357117, 357119, 357139, 357161, 357253, 357279, 357385, 357417, 357510, 357536, 357577, 357596, 357597, 357601, 357695, 357722, 357771, 357805, 357829, 357892, 357897, 357920, 357939, 357957, 357966, 358012, 358023, 358036, 358081, 358125, 358171, 358220, 358300, 358327, 358352, 358411, 358423, 358424, 358474, 358574, 358607, 358634, 358640, 358649, 358719, 358835, 358843, 358874, 358888, 358908, 358913, 358963, 359070, 359191, 359233, 359237, 359278, 359316, 359326, 359336, 359475, 359564, 359603, 359647, 359671, 359698, 359747, 359768, 359783, 359789, 359825, 359927, 360029, 360039, 360117, 360124, 360163, 360218, 360253, 360331, 360363, 360374, 360432, 360441, 360541, 360545, 360578, 360664, 360672, 360752, 360780, 360789, 360809, 360932, 360933, 360947, 360976, 360991, 361039, 361111, 361135, 361136, 361227, 361248, 361281, 361289, 361329, 361333, 361393, 361429, 361433, 361434, 361446, 361489, 361491, 361551, 361565, 361567, 361608, 361710, 361811, 361858, 361876, 361933, 361942, 362087, 362163, 362172, 362173, 362231, 362245, 362256, 362382, 362467, 362476, 362499, 362562, 362610, 362649, 362717, 362718, 362758, 362790, 362914, 363002, 363041, 363049, 363064, 363107, 363154, 363164, 363215, 363265, 363275, 363649, 363707, 363708, 363742, 363783, 363871, 363930, 363939, 363974, 363982, 364010, 364013, 364067, 364077, 364109, 364135, 364147, 364151, 364167, 364245, 364270, 364374, 364395, 364406, 364417, 364450, 364514, 364523, 364601, 364618, 364634, 364646, 364659, 364720, 364740, 364802, 364824, 364829, 364832, 364852, 364964, 364993, 365012, 365051, 365099, 365180, 365218, 365243, 365324, 365427, 365441, 365496, 365501, 365725, 365727, 365789, 365822, 365859, 366064, 366077, 366095, 366141, 366144, 366264, 366288, 366315, 366362, 366447, 366505, 366538, 366541, 366580, 366605, 366636, 366646, 366654, 366731, 366733, 366738, 366806, 366862, 366884, 366902, 366910, 367000, 367030, 367105, 367468, 367479, 367499, 367708, 367728, 367733, 367749, 367809, 367817, 367836, 367922, 367954, 367959, 367962, 367980, 367990, 367993, 368061, 368073, 368094, 368125, 368139, 368180, 368184, 368298, 368301, 368371, 368378, 368427, 368431, 368435, 368493, 368519, 368526, 368560, 368648, 368813, 368818, 368876, 368896, 368966, 369037, 369050, 369093, 369208, 369222, 369224, 369284, 369314, 369348, 369437, 369497, 369579, 369595, 369617, 369666, 369691, 369732, 369761, 369800, 369823, 369830, 369856, 369871, 369891, 369902, 369903, 369913, 369927, 370100, 370134, 370168, 370183, 370243, 370249, 370271, 370322, 370334, 370390, 370431, 370462, 370590, 370681, 370703, 370722, 370779, 370792, 370823, 370923, 370927, 370940, 370974, 371014, 371022, 371027, 371149, 371204, 371213, 371229, 371331, 371352, 371380, 371427, 371498, 371517, 371549, 371579, 371586, 371599, 371646, 371648, 371739, 371809, 371833, 371890, 371956, 372027, 372042, 372049, 372061, 372068, 372075, 372168, 372194, 372195, 372266, 372305, 372329, 372335, 372499, 372503, 372687, 372745, 372903, 372953, 372971, 373018, 373182, 373269, 373319, 373337, 373369, 373380, 373417, 373438, 373505, 373541, 373549, 373583, 373592, 373614, 373694, 373844, 373915, 373968, 373993, 374014, 374018, 374066, 374090, 374233, 374247, 374249, 374260, 374271, 374274, 374293, 374336, 374363, 374407, 374460, 374479, 374531, 374539, 374677, 374710, 374783, 374790, 374818, 374873, 374888, 374906, 374910, 374922, 375008, 375032, 375079, 375086, 375110, 375220, 375237, 375238, 375261, 375295, 375370, 375464, 375467, 375469, 375497, 375548, 375598, 375608, 375622, 375634, 375646, 375679, 375726, 375728, 375741, 375749, 375761, 375768, 375798, 375825, 375850, 375868, 375910, 375916, 375923, 375953, 376092, 376100, 376160, 376181, 376212, 376213, 376231, 376294, 376302, 376303, 376375, 376402, 376456, 376496, 376557, 376575, 376590, 376628, 376668, 376674, 376686, 376733, 376803, 376807, 376818, 376842, 376886, 376935, 377069, 377230, 377231, 377312, 377341, 377344, 377352, 377368, 377468, 377473, 377477, 377494, 377503, 377541, 377641, 377644, 377663, 377696, 377743, 377794, 377795, 377823, 377833, 377971, 378100, 378138, 378199, 378306, 378325, 378384, 378513, 378522, 378548, 378552, 378554, 378574, 378650, 378720, 378747, 378771, 378808, 378816, 378832, 378875, 378883, 378887, 378940, 378961, 378983, 379013, 379025, 379037, 379090, 379100, 379167, 379324, 379334, 379415, 379432, 379520, 379535, 379541, 379551, 379613, 379616, 379670, 379694, 379719, 379774, 379791, 379792, 379814, 379847, 379948, 379974, 379989, 380020, 380029, 380081, 380100, 380175, 380191, 380216, 380254, 380284, 380357, 380361, 380391, 380392, 380400, 380427, 380445, 380507, 380606, 380643, 380664, 380723, 380740, 380755, 380802, 380830, 380892, 380894, 380902, 380950, 380961, 381002, 381007, 381038, 381164, 381218, 381264, 381271, 381272, 381296, 381333, 381392, 381459, 381502, 381586, 381589, 381596, 381629, 381674, 381792, 381803, 381945, 381952, 382006, 382097, 382115, 382132, 382270, 382297, 382308, 382380, 382393, 382394, 382424, 382442, 382527, 382549, 382633, 382661, 382671, 382690, 382723, 382732, 382870, 382897, 383017, 383070, 383085, 383256, 383326, 383356, 383384, 383394, 383450, 383456, 383500, 383642, 383650, 383668, 383752, 383769, 383777, 383787, 383823, 384062, 384079, 384087, 384140, 384156, 384167, 384273, 384360, 384364, 384400, 384419, 384539, 384644, 384670, 384753, 384854, 384870, 384888, 384917, 384949, 384964, 384971, 384991, 385010, 385156, 385222, 385245, 385281, 385303, 385304, 385305, 385339, 385371, 385380, 385429, 385474, 385548, 385584, 385733, 385803, 385902, 386013, 386029, 386073, 386097, 386100, 386146, 386251, 386299, 386369, 386395, 386491, 386526, 386531, 386562, 386574, 386601, 386602, 386723, 386845, 386858, 386879, 386902, 386924, 386939, 386973, 386993, 387012, 387014, 387087, 387108, 387110, 387123, 387163, 387183, 387221, 387235, 387291, 387590, 387642, 387678, 387722, 387771, 387785, 387795, 387798, 387830, 387963, 387994, 388035, 388089, 388105, 388120, 388168, 388212, 388223, 388229, 388236, 388267, 388305, 388404, 388464, 388484, 388528, 388567, 388605, 388631, 388643, 388660, 388691, 388706, 388711, 388720, 388737, 388788, 388793, 388821, 388896, 388897, 388936, 388937, 388945, 388946, 388953, 388979, 389034, 389090, 389113, 389123, 389131, 389133, 389150, 389249, 389275, 389352, 389363, 389463, 389481, 389482, 389634, 389710, 389712, 389756, 389776, 389783, 389872, 390014, 390251, 390287, 390292, 390298, 390302, 390312, 390420, 390449, 390725, 390740, 390775, 390839, 390862, 390876, 390883, 390884, 390900, 390983, 390986, 391015, 391152, 391217, 391300, 391303, 391375, 391425, 391444, 391463, 391481, 391498, 391501, 391701, 391748, 391773, 391815, 391821, 391839, 391945, 392020, 392065, 392089, 392236, 392274, 392291, 392293, 392344, 392352, 392383, 392389, 392495, 392497, 392504, 392534, 392544, 392597, 392612, 392615, 392632, 392657, 392755, 392768, 392795, 392811, 392819, 392863, 392891, 392917, 392963, 392970, 393005, 393034, 393046, 393049, 393102, 393159, 393174, 393185, 393224, 393334, 393341, 393431, 393452, 393475, 393495, 393563, 393587, 393678, 393727, 393773, 393787, 393889, 393933, 394017, 394137, 394170, 394267, 394269, 394300, 394315, 394402, 394420, 394470, 394485, 394528, 394613, 394665, 394733, 394748, 394819, 394908, 394913, 395043, 395077, 395081, 395140, 395213, 395275, 395312, 395353, 395358, 395362, 395365, 395415, 395430, 395487, 395540, 395586, 395642, 395645, 395795, 395807, 395812, 395854, 395881, 395887, 395927, 395962, 396004, 396059, 396124, 396137, 396144, 396205, 396249, 396277, 396279, 396303, 396401, 396443, 396463, 396590, 396595, 396613, 396633, 396684, 396743, 396761, 396805, 396828, 396853, 396892, 396948, 396970, 396972, 396976, 397000, 397171, 397184, 397233, 397245, 397286, 397312, 397328, 397396, 397540, 397555, 397584, 397613, 397616, 397665, 397787, 397862, 397978, 398066, 398088, 398132, 398190, 398228, 398233, 398253, 398314, 398332, 398344, 398362, 398589, 398591, 398602, 398653, 398711, 398718, 398738, 398756, 398779, 398897, 398914, 398924, 398930, 398952, 398954, 398993, 399011, 399168, 399203, 399303, 399337, 399341, 399365, 399461, 399514, 399621, 399693, 399729, 399734, 399735, 399764, 399806, 399833, 399837, 399850, 399863, 399926, 399977, 399982)"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "contains",
+        "variante": "Lo mismo con 1.000 ids pero sobre Clientes.Email (texto) en vez de la clave: Where(c => emails.Contains(c.Email))",
+        "medianaMs": 4.9586,
+        "primeraMs": 22.3331,
+        "minMs": 4.6317,
+        "maxMs": 7.2979,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 3000,
+        "filasRecibidas": 128,
+        "bytesRecibidos": 848,
+        "bytesAsignados": 459608,
+        "sql": [
+          "SELECT [c].[ClienteId]\nFROM [Clientes] AS [c]\nWHERE [c].[Email] IN (\n    SELECT [e].[value]\n    FROM OPENJSON(@__emails_0) WITH ([value] varchar(200) '$') AS [e]\n)"
+        ],
+        "nota": null
+      }
+    ],
+    "demas": [
+      {
+        "capitulo": "demas",
+        "variante": "Any()",
+        "medianaMs": 0.8744,
+        "primeraMs": 13.447,
+        "minMs": 0.8595,
+        "maxMs": 0.9496,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 3,
+        "filasRecibidas": 1,
+        "bytesRecibidos": 176,
+        "bytesAsignados": 106656,
+        "sql": [
+          "SELECT CASE\n    WHEN EXISTS (\n        SELECT 1\n        FROM [Pedidos] AS [p]\n        WHERE [p].[ClienteId] = 1) THEN CAST(1 AS bit)\n    ELSE CAST(0 AS bit)\nEND"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "demas",
+        "variante": "Count() > 0",
+        "medianaMs": 7.9618,
+        "primeraMs": 27.1397,
+        "minMs": 7.5293,
+        "maxMs": 8.9162,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 177,
+        "filasRecibidas": 1,
+        "bytesRecibidos": 179,
+        "bytesAsignados": 106656,
+        "sql": [
+          "SELECT COUNT(*)\nFROM [Pedidos] AS [p]\nWHERE [p].[ClienteId] = 1"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "demas",
+        "variante": "FirstOrDefault() != null",
+        "medianaMs": 0.8884,
+        "primeraMs": 6.9055,
+        "minMs": 0.8109,
+        "maxMs": 1.0495,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 4,
+        "filasRecibidas": 1,
+        "bytesRecibidos": 797,
+        "bytesAsignados": 109648,
+        "sql": [
+          "SELECT TOP(1) [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[ClienteId] = 1"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "demas",
+        "variante": "ToList().Any()",
+        "medianaMs": 465.7372,
+        "primeraMs": 559.439,
+        "minMs": 411.4307,
+        "maxMs": 592.0722,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 27396,
+        "filasRecibidas": 100000,
+        "bytesRecibidos": 53529340,
+        "bytesAsignados": 191140600,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[ClienteId] = 1"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "demas",
+        "variante": "Count(p => p.Total > 50000)",
+        "medianaMs": 52.2409,
+        "primeraMs": 76.4758,
+        "minMs": 50.7014,
+        "maxMs": 60.0719,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 28773,
+        "filasRecibidas": 1,
+        "bytesRecibidos": 179,
+        "bytesAsignados": 108040,
+        "sql": [
+          "SELECT COUNT(*)\nFROM [Pedidos] AS [p]\nWHERE [p].[ClienteId] = 1 AND [p].[Total] > 50000.0"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "demas",
+        "variante": "ToList().Count(p => p.Total > 50000)",
+        "medianaMs": 458.2436,
+        "primeraMs": 483.7442,
+        "minMs": 446.2677,
+        "maxMs": 460.5577,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 27396,
+        "filasRecibidas": 100000,
+        "bytesRecibidos": 53529340,
+        "bytesAsignados": 191140640,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[ClienteId] = 1"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "demas",
+        "variante": "Where(p => p.Total > 50000).OrderByDescending(p => p.Fecha).Take(10).ToList()",
+        "medianaMs": 376.4781,
+        "primeraMs": 422.5457,
+        "minMs": 355.2141,
+        "maxMs": 418.9675,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 956959,
+        "filasRecibidas": 10,
+        "bytesRecibidos": 5570,
+        "bytesAsignados": 139520,
+        "sql": [
+          "SELECT TOP(@__p_0) [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[ClienteId] = 1 AND [p].[Total] > 50000.0\nORDER BY [p].[Fecha] DESC"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "demas",
+        "variante": "ToList().Where(p => p.Total > 50000).OrderByDescending(p => p.Fecha).Take(10).ToList()",
+        "medianaMs": 457.1844,
+        "primeraMs": 543.9219,
+        "minMs": 414.1119,
+        "maxMs": 522.0386,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 27396,
+        "filasRecibidas": 100000,
+        "bytesRecibidos": 53529340,
+        "bytesAsignados": 193621112,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[ClienteId] = 1"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "demas",
+        "variante": "Where(p => p.Total > 50000).OrderByDescending(p => p.Fecha).Take(10).ToList(), con un índice sobre (ClienteId, Fecha) INCLUDE (Total)",
+        "medianaMs": 1.5391,
+        "primeraMs": 6.1149,
+        "minMs": 1.3425,
+        "maxMs": 1.9261,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 36,
+        "filasRecibidas": 10,
+        "bytesRecibidos": 5570,
+        "bytesAsignados": 139520,
+        "sql": [
+          "SELECT TOP(@__p_0) [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[ClienteId] = 1 AND [p].[Total] > 50000.0\nORDER BY [p].[Fecha] DESC"
+        ],
+        "nota": null
+      }
+    ],
+    "insertar": [
+      {
+        "capitulo": "insertar",
+        "variante": "2.000 pedidos: Add + SaveChanges adentro del foreach",
+        "medianaMs": 6403.9256,
+        "primeraMs": 6494.3832,
+        "minMs": 6125.2116,
+        "maxMs": 6580.9847,
+        "viajesAlServidor": 2000,
+        "lecturasLogicas": 28686,
+        "filasRecibidas": 0,
+        "bytesRecibidos": 210138,
+        "bytesAsignados": 1816720752,
+        "sql": [
+          "SET IMPLICIT_TRANSACTIONS OFF;\nSET NOCOUNT ON;\nINSERT INTO [Pedidos] ([ClienteId], [Estado], [Fecha], [Notas], [Total])\nOUTPUT INSERTED.[PedidoId]\nVALUES (@p0, @p1, @p2, @p3, @p4);\n"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "insertar",
+        "variante": "2.000 pedidos: AddRange + un SaveChanges",
+        "medianaMs": 239.7502,
+        "primeraMs": 267.8868,
+        "minMs": 208.4752,
+        "maxMs": 248.4174,
+        "viajesAlServidor": 50,
+        "lecturasLogicas": 28939,
+        "filasRecibidas": 0,
+        "bytesRecibidos": 23376,
+        "bytesAsignados": 27209384,
+        "sql": [
+          "SET IMPLICIT_TRANSACTIONS OFF;\nSET NOCOUNT ON;\nMERGE [Pedidos] USING (\nVALUES (@p0, @p1, @p2, @p3, @p4, 0),\n(@p5, @p6, @p7, @p8, @p9, 1),\n(@p10, @p11, @p12, @p13, @p14, 2),\n(@p15, @p16, @p17, @p18, @p19, 3),\n(@p20, @p21, @p22, @p23, @p24, 4),\n(@p25, @p26, @p27, @p28, @p29, 5),\n(@p30, @p31, @p32, @p33, @p34, 6),\n(@p35, @p36, @p37, @p38, @p39, 7),\n(@p40, @p41, @p42, @p43, @p44, 8),\n(@p45, @p46, @p47, @p48, @p49, 9),\n(@p50, @p51, @p52, @p53, @p54, 10),\n(@p55, @p56, @p57, @p58, @p59, 11),\n(@p60, @p61, @p62, @p63, @p64, 12),\n(@p65, @p66, @p67, @p68, @p69, 13),\n(@p70, @p71, @p72, @p73, @p74, 14),\n(@p75, @p76, @p77, @p78, @p79, 15),\n(@p80, @p81, @p82, @p83, @p84, 16),\n(@p85, @p86, @p87, @p88, @p89, 17),\n(@p90, @p91, @p92, @p93, @p94, 18),\n(@p95, @p96, @p97, @p98, @p99, 19),\n(@p100, @p101, @p102, @p103, @p104, 20),\n(@p105, @p106, @p107, @p108, @p109, 21),\n(@p110, @p111, @p112, @p113, @p114, 22),\n(@p115, @p116, @p117, @p118, @p119, 23),\n(@p120, @p121, @p122, @p123, @p124, 24),\n(@p125, @p126, @p127, @p128, @p129, 25),\n(@p130, @p131, @p132, @p133, @p134, 26),\n(@p135, @p136, @p137, @p138, @p139, 27),\n(@p140, @p141, @p142, @p143, @p144, 28),\n(@p145, @p146, @p147, @p148, @p149, 29),\n(@p150, @p151, @p152, @p153, @p154, 30),\n(@p155, @p156, @p157, @p158, @p159, 31),\n(@p160, @p161, @p162, @p163, @p164, 32),\n(@p165, @p166, @p167, @p168, @p169, 33),\n(@p170, @p171, @p172, @p173, @p174, 34),\n(@p175, @p176, @p177, @p178, @p179, 35),\n(@p180, @p181, @p182, @p183, @p184, 36),\n(@p185, @p186, @p187, @p188, @p189, 37),\n(@p190, @p191, @p192, @p193, @p194, 38),\n(@p195, @p196, @p197, @p198, @p199, 39),\n(@p200, @p201, @p202, @p203, @p204, 40),\n(@p205, @p206, @p207, @p208, @p209, 41)) AS i ([ClienteId], [Estado], [Fecha], [Notas], [Total], _Position) ON 1=0\nWHEN NOT MATCHED THEN\nINSERT ([ClienteId], [Estado], [Fecha], [Notas], [Total])\nVALUES (i.[ClienteId], i.[Estado], i.[Fecha], i.[Notas], i.[Total])\nOUTPUT INSERTED.[PedidoId], i._Position;\n",
+          "SET IMPLICIT_TRANSACTIONS OFF;\nSET NOCOUNT ON;\nMERGE [Pedidos] USING (\nVALUES (@p0, @p1, @p2, @p3, @p4, 0),\n(@p5, @p6, @p7, @p8, @p9, 1),\n(@p10, @p11, @p12, @p13, @p14, 2),\n(@p15, @p16, @p17, @p18, @p19, 3),\n(@p20, @p21, @p22, @p23, @p24, 4),\n(@p25, @p26, @p27, @p28, @p29, 5),\n(@p30, @p31, @p32, @p33, @p34, 6),\n(@p35, @p36, @p37, @p38, @p39, 7),\n(@p40, @p41, @p42, @p43, @p44, 8),\n(@p45, @p46, @p47, @p48, @p49, 9),\n(@p50, @p51, @p52, @p53, @p54, 10),\n(@p55, @p56, @p57, @p58, @p59, 11),\n(@p60, @p61, @p62, @p63, @p64, 12),\n(@p65, @p66, @p67, @p68, @p69, 13),\n(@p70, @p71, @p72, @p73, @p74, 14),\n(@p75, @p76, @p77, @p78, @p79, 15),\n(@p80, @p81, @p82, @p83, @p84, 16),\n(@p85, @p86, @p87, @p88, @p89, 17),\n(@p90, @p91, @p92, @p93, @p94, 18),\n(@p95, @p96, @p97, @p98, @p99, 19),\n(@p100, @p101, @p102, @p103, @p104, 20),\n(@p105, @p106, @p107, @p108, @p109, 21),\n(@p110, @p111, @p112, @p113, @p114, 22),\n(@p115, @p116, @p117, @p118, @p119, 23),\n(@p120, @p121, @p122, @p123, @p124, 24),\n(@p125, @p126, @p127, @p128, @p129, 25)) AS i ([ClienteId], [Estado], [Fecha], [Notas], [Total], _Position) ON 1=0\nWHEN NOT MATCHED THEN\nINSERT ([ClienteId], [Estado], [Fecha], [Notas], [Total])\nVALUES (i.[ClienteId], i.[Estado], i.[Fecha], i.[Notas], i.[Total])\nOUTPUT INSERTED.[PedidoId], i._Position;\n"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "insertar",
+        "variante": "2.000 pedidos: SqlBulkCopy",
+        "medianaMs": 105.8166,
+        "primeraMs": 140.2257,
+        "minMs": 50.4292,
+        "maxMs": 135.2196,
+        "viajesAlServidor": 3,
+        "lecturasLogicas": 23928,
+        "filasRecibidas": 7,
+        "bytesRecibidos": 808,
+        "bytesAsignados": 1905584,
+        "sql": [],
+        "nota": null
+      },
+      {
+        "capitulo": "insertar",
+        "variante": "20.000 pedidos: AddRange + un SaveChanges",
+        "medianaMs": 2068.4324,
+        "primeraMs": 1974.4174,
+        "minMs": 2035.1221,
+        "maxMs": 2120.8104,
+        "viajesAlServidor": 479,
+        "lecturasLogicas": 306488,
+        "filasRecibidas": 0,
+        "bytesRecibidos": 231279,
+        "bytesAsignados": 272924336,
+        "sql": [
+          "SET IMPLICIT_TRANSACTIONS OFF;\nSET NOCOUNT ON;\nMERGE [Pedidos] USING (\nVALUES (@p0, @p1, @p2, @p3, @p4, 0),\n(@p5, @p6, @p7, @p8, @p9, 1),\n(@p10, @p11, @p12, @p13, @p14, 2),\n(@p15, @p16, @p17, @p18, @p19, 3),\n(@p20, @p21, @p22, @p23, @p24, 4),\n(@p25, @p26, @p27, @p28, @p29, 5),\n(@p30, @p31, @p32, @p33, @p34, 6),\n(@p35, @p36, @p37, @p38, @p39, 7),\n(@p40, @p41, @p42, @p43, @p44, 8),\n(@p45, @p46, @p47, @p48, @p49, 9),\n(@p50, @p51, @p52, @p53, @p54, 10),\n(@p55, @p56, @p57, @p58, @p59, 11),\n(@p60, @p61, @p62, @p63, @p64, 12),\n(@p65, @p66, @p67, @p68, @p69, 13),\n(@p70, @p71, @p72, @p73, @p74, 14),\n(@p75, @p76, @p77, @p78, @p79, 15),\n(@p80, @p81, @p82, @p83, @p84, 16),\n(@p85, @p86, @p87, @p88, @p89, 17),\n(@p90, @p91, @p92, @p93, @p94, 18),\n(@p95, @p96, @p97, @p98, @p99, 19),\n(@p100, @p101, @p102, @p103, @p104, 20),\n(@p105, @p106, @p107, @p108, @p109, 21),\n(@p110, @p111, @p112, @p113, @p114, 22),\n(@p115, @p116, @p117, @p118, @p119, 23),\n(@p120, @p121, @p122, @p123, @p124, 24),\n(@p125, @p126, @p127, @p128, @p129, 25),\n(@p130, @p131, @p132, @p133, @p134, 26),\n(@p135, @p136, @p137, @p138, @p139, 27),\n(@p140, @p141, @p142, @p143, @p144, 28),\n(@p145, @p146, @p147, @p148, @p149, 29),\n(@p150, @p151, @p152, @p153, @p154, 30),\n(@p155, @p156, @p157, @p158, @p159, 31),\n(@p160, @p161, @p162, @p163, @p164, 32),\n(@p165, @p166, @p167, @p168, @p169, 33),\n(@p170, @p171, @p172, @p173, @p174, 34),\n(@p175, @p176, @p177, @p178, @p179, 35),\n(@p180, @p181, @p182, @p183, @p184, 36),\n(@p185, @p186, @p187, @p188, @p189, 37),\n(@p190, @p191, @p192, @p193, @p194, 38),\n(@p195, @p196, @p197, @p198, @p199, 39),\n(@p200, @p201, @p202, @p203, @p204, 40),\n(@p205, @p206, @p207, @p208, @p209, 41)) AS i ([ClienteId], [Estado], [Fecha], [Notas], [Total], _Position) ON 1=0\nWHEN NOT MATCHED THEN\nINSERT ([ClienteId], [Estado], [Fecha], [Notas], [Total])\nVALUES (i.[ClienteId], i.[Estado], i.[Fecha], i.[Notas], i.[Total])\nOUTPUT INSERTED.[PedidoId], i._Position;\n",
+          "SET IMPLICIT_TRANSACTIONS OFF;\nSET NOCOUNT ON;\nMERGE [Pedidos] USING (\nVALUES (@p0, @p1, @p2, @p3, @p4, 0),\n(@p5, @p6, @p7, @p8, @p9, 1),\n(@p10, @p11, @p12, @p13, @p14, 2),\n(@p15, @p16, @p17, @p18, @p19, 3),\n(@p20, @p21, @p22, @p23, @p24, 4),\n(@p25, @p26, @p27, @p28, @p29, 5),\n(@p30, @p31, @p32, @p33, @p34, 6),\n(@p35, @p36, @p37, @p38, @p39, 7)) AS i ([ClienteId], [Estado], [Fecha], [Notas], [Total], _Position) ON 1=0\nWHEN NOT MATCHED THEN\nINSERT ([ClienteId], [Estado], [Fecha], [Notas], [Total])\nVALUES (i.[ClienteId], i.[Estado], i.[Fecha], i.[Notas], i.[Total])\nOUTPUT INSERTED.[PedidoId], i._Position;\n"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "insertar",
+        "variante": "20.000 pedidos: SqlBulkCopy",
+        "medianaMs": 513.7207,
+        "primeraMs": 430.7018,
+        "minMs": 435.1812,
+        "maxMs": 539.5113,
+        "viajesAlServidor": 3,
+        "lecturasLogicas": 136810,
+        "filasRecibidas": 7,
+        "bytesRecibidos": 808,
+        "bytesAsignados": 20348232,
+        "sql": [],
+        "nota": null
+      },
+      {
+        "capitulo": "insertar",
+        "variante": "20.000 pedidos: AddRange + SaveChanges con AutoDetectChangesEnabled = false",
+        "medianaMs": 1962.2789,
+        "primeraMs": 1862.2297,
+        "minMs": 1955.1512,
+        "maxMs": 2099.6319,
+        "viajesAlServidor": 479,
+        "lecturasLogicas": 306478,
+        "filasRecibidas": 0,
+        "bytesRecibidos": 231279,
+        "bytesAsignados": 255160800,
+        "sql": [
+          "SET IMPLICIT_TRANSACTIONS OFF;\nSET NOCOUNT ON;\nMERGE [Pedidos] USING (\nVALUES (@p0, @p1, @p2, @p3, @p4, 0),\n(@p5, @p6, @p7, @p8, @p9, 1),\n(@p10, @p11, @p12, @p13, @p14, 2),\n(@p15, @p16, @p17, @p18, @p19, 3),\n(@p20, @p21, @p22, @p23, @p24, 4),\n(@p25, @p26, @p27, @p28, @p29, 5),\n(@p30, @p31, @p32, @p33, @p34, 6),\n(@p35, @p36, @p37, @p38, @p39, 7),\n(@p40, @p41, @p42, @p43, @p44, 8),\n(@p45, @p46, @p47, @p48, @p49, 9),\n(@p50, @p51, @p52, @p53, @p54, 10),\n(@p55, @p56, @p57, @p58, @p59, 11),\n(@p60, @p61, @p62, @p63, @p64, 12),\n(@p65, @p66, @p67, @p68, @p69, 13),\n(@p70, @p71, @p72, @p73, @p74, 14),\n(@p75, @p76, @p77, @p78, @p79, 15),\n(@p80, @p81, @p82, @p83, @p84, 16),\n(@p85, @p86, @p87, @p88, @p89, 17),\n(@p90, @p91, @p92, @p93, @p94, 18),\n(@p95, @p96, @p97, @p98, @p99, 19),\n(@p100, @p101, @p102, @p103, @p104, 20),\n(@p105, @p106, @p107, @p108, @p109, 21),\n(@p110, @p111, @p112, @p113, @p114, 22),\n(@p115, @p116, @p117, @p118, @p119, 23),\n(@p120, @p121, @p122, @p123, @p124, 24),\n(@p125, @p126, @p127, @p128, @p129, 25),\n(@p130, @p131, @p132, @p133, @p134, 26),\n(@p135, @p136, @p137, @p138, @p139, 27),\n(@p140, @p141, @p142, @p143, @p144, 28),\n(@p145, @p146, @p147, @p148, @p149, 29),\n(@p150, @p151, @p152, @p153, @p154, 30),\n(@p155, @p156, @p157, @p158, @p159, 31),\n(@p160, @p161, @p162, @p163, @p164, 32),\n(@p165, @p166, @p167, @p168, @p169, 33),\n(@p170, @p171, @p172, @p173, @p174, 34),\n(@p175, @p176, @p177, @p178, @p179, 35),\n(@p180, @p181, @p182, @p183, @p184, 36),\n(@p185, @p186, @p187, @p188, @p189, 37),\n(@p190, @p191, @p192, @p193, @p194, 38),\n(@p195, @p196, @p197, @p198, @p199, 39),\n(@p200, @p201, @p202, @p203, @p204, 40),\n(@p205, @p206, @p207, @p208, @p209, 41)) AS i ([ClienteId], [Estado], [Fecha], [Notas], [Total], _Position) ON 1=0\nWHEN NOT MATCHED THEN\nINSERT ([ClienteId], [Estado], [Fecha], [Notas], [Total])\nVALUES (i.[ClienteId], i.[Estado], i.[Fecha], i.[Notas], i.[Total])\nOUTPUT INSERTED.[PedidoId], i._Position;\n",
+          "SET IMPLICIT_TRANSACTIONS OFF;\nSET NOCOUNT ON;\nMERGE [Pedidos] USING (\nVALUES (@p0, @p1, @p2, @p3, @p4, 0),\n(@p5, @p6, @p7, @p8, @p9, 1),\n(@p10, @p11, @p12, @p13, @p14, 2),\n(@p15, @p16, @p17, @p18, @p19, 3),\n(@p20, @p21, @p22, @p23, @p24, 4),\n(@p25, @p26, @p27, @p28, @p29, 5),\n(@p30, @p31, @p32, @p33, @p34, 6),\n(@p35, @p36, @p37, @p38, @p39, 7)) AS i ([ClienteId], [Estado], [Fecha], [Notas], [Total], _Position) ON 1=0\nWHEN NOT MATCHED THEN\nINSERT ([ClienteId], [Estado], [Fecha], [Notas], [Total])\nVALUES (i.[ClienteId], i.[Estado], i.[Fecha], i.[Notas], i.[Total])\nOUTPUT INSERTED.[PedidoId], i._Position;\n"
+        ],
+        "nota": null
+      }
+    ],
+    "actualizar": [
+      {
+        "capitulo": "actualizar",
+        "variante": "10.000 pedidos: cargar, cambiar Estado en el foreach y SaveChanges",
+        "medianaMs": 554.2003,
+        "primeraMs": 622.9179,
+        "minMs": 493.7641,
+        "maxMs": 556.3435,
+        "viajesAlServidor": 242,
+        "lecturasLogicas": 40683,
+        "filasRecibidas": 10000,
+        "bytesRecibidos": 5628372,
+        "bytesAsignados": 116482280,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] <= 10000",
+          "SET NOCOUNT ON;\nUPDATE [Pedidos] SET [Estado] = @p0\nOUTPUT 1\nWHERE [PedidoId] = @p1;\nUPDATE [Pedidos] SET [Estado] = @p2\nOUTPUT 1\nWHERE [PedidoId] = @p3;\nUPDATE [Pedidos] SET [Estado] = @p4\nOUTPUT 1\nWHERE [PedidoId] = @p5;\nUPDATE [Pedidos] SET [Estado] = @p6\nOUTPUT 1\nWHERE [PedidoId] = @p7;\nUPDATE [Pedidos] SET [Estado] = @p8\nOUTPUT 1\nWHERE [PedidoId] = @p9;\nUPDATE [Pedidos] SET [Estado] = @p10\nOUTPUT 1\nWHERE [PedidoId] = @p11;\nUPDATE [Pedidos] SET [Estado] = @p12\nOUTPUT 1\nWHERE [PedidoId] = @p13;\nUPDATE [Pedidos] SET [Estado] = @p14\nOUTPUT 1\nWHERE [PedidoId] = @p15;\nUPDATE [Pedidos] SET [Estado] = @p16\nOUTPUT 1\nWHERE [PedidoId] = @p17;\nUPDATE [Pedidos] SET [Estado] = @p18\nOUTPUT 1\nWHERE [PedidoId] = @p19;\nUPDATE [Pedidos] SET [Estado] = @p20\nOUTPUT 1\nWHERE [PedidoId] = @p21;\nUPDATE [Pedidos] SET [Estado] = @p22\nOUTPUT 1\nWHERE [PedidoId] = @p23;\nUPDATE [Pedidos] SET [Estado] = @p24\nOUTPUT 1\nWHERE [PedidoId] = @p25;\nUPDATE [Pedidos] SET [Estado] = @p26\nOUTPUT 1\nWHERE [PedidoId] = @p27;\nUPDATE [Pedidos] SET [Estado] = @p28\nOUTPUT 1\nWHERE [PedidoId] = @p29;\nUPDATE [Pedidos] SET [Estado] = @p30\nOUTPUT 1\nWHERE [PedidoId] = @p31;\nUPDATE [Pedidos] SET [Estado] = @p32\nOUTPUT 1\nWHERE [PedidoId] = @p33;\nUPDATE [Pedidos] SET [Estado] = @p34\nOUTPUT 1\nWHERE [PedidoId] = @p35;\nUPDATE [Pedidos] SET [Estado] = @p36\nOUTPUT 1\nWHERE [PedidoId] = @p37;\nUPDATE [Pedidos] SET [Estado] = @p38\nOUTPUT 1\nWHERE [PedidoId] = @p39;\nUPDATE [Pedidos] SET [Estado] = @p40\nOUTPUT 1\nWHERE [PedidoId] = @p41;\nUPDATE [Pedidos] SET [Estado] = @p42\nOUTPUT 1\nWHERE [PedidoId] = @p43;\nUPDATE [Pedidos] SET [Estado] = @p44\nOUTPUT 1\nWHERE [PedidoId] = @p45;\nUPDATE [Pedidos] SET [Estado] = @p46\nOUTPUT 1\nWHERE [PedidoId] = @p47;\nUPDATE [Pedidos] SET [Estado] = @p48\nOUTPUT 1\nWHERE [PedidoId] = @p49;\nUPDATE [Pedidos] SET [Estado] = @p50\nOUTPUT 1\nWHERE [PedidoId] = @p51;\nUPDATE [Pedidos] SET [Estado] = @p52\nOUTPUT 1\nWHERE [PedidoId] = @p53;\nUPDATE [Pedidos] SET [Estado] = @p54\nOUTPUT 1\nWHERE [PedidoId] = @p55;\nUPDATE [Pedidos] SET [Estado] = @p56\nOUTPUT 1\nWHERE [PedidoId] = @p57;\nUPDATE [Pedidos] SET [Estado] = @p58\nOUTPUT 1\nWHERE [PedidoId] = @p59;\nUPDATE [Pedidos] SET [Estado] = @p60\nOUTPUT 1\nWHERE [PedidoId] = @p61;\nUPDATE [Pedidos] SET [Estado] = @p62\nOUTPUT 1\nWHERE [PedidoId] = @p63;\nUPDATE [Pedidos] SET [Estado] = @p64\nOUTPUT 1\nWHERE [PedidoId] = @p65;\nUPDATE [Pedidos] SET [Estado] = @p66\nOUTPUT 1\nWHERE [PedidoId] = @p67;\nUPDATE [Pedidos] SET [Estado] = @p68\nOUTPUT 1\nWHERE [PedidoId] = @p69;\nUPDATE [Pedidos] SET [Estado] = @p70\nOUTPUT 1\nWHERE [PedidoId] = @p71;\nUPDATE [Pedidos] SET [Estado] = @p72\nOUTPUT 1\nWHERE [PedidoId] = @p73;\nUPDATE [Pedidos] SET [Estado] = @p74\nOUTPUT 1\nWHERE [PedidoId] = @p75;\nUPDATE [Pedidos] SET [Estado] = @p76\nOUTPUT 1\nWHERE [PedidoId] = @p77;\nUPDATE [Pedidos] SET [Estado] = @p78\nOUTPUT 1\nWHERE [PedidoId] = @p79;\nUPDATE [Pedidos] SET [Estado] = @p80\nOUTPUT 1\nWHERE [PedidoId] = @p81;\nUPDATE [Pedidos] SET [Estado] = @p82\nOUTPUT 1\nWHERE [PedidoId] = @p83;\n",
+          "SET NOCOUNT ON;\nUPDATE [Pedidos] SET [Estado] = @p0\nOUTPUT 1\nWHERE [PedidoId] = @p1;\nUPDATE [Pedidos] SET [Estado] = @p2\nOUTPUT 1\nWHERE [PedidoId] = @p3;\nUPDATE [Pedidos] SET [Estado] = @p4\nOUTPUT 1\nWHERE [PedidoId] = @p5;\nUPDATE [Pedidos] SET [Estado] = @p6\nOUTPUT 1\nWHERE [PedidoId] = @p7;\n"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "actualizar",
+        "variante": "10.000 pedidos: ExecuteUpdate(s => s.SetProperty(p => p.Estado, \"Enviado\"))",
+        "medianaMs": 42.2384,
+        "primeraMs": 62.201,
+        "minMs": 34.2978,
+        "maxMs": 55.0675,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 10683,
+        "filasRecibidas": 0,
+        "bytesRecibidos": 159,
+        "bytesAsignados": 106856,
+        "sql": [
+          "UPDATE [p]\nSET [p].[Estado] = 'Enviado'\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] <= 10000"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "actualizar",
+        "variante": "Borrar los eventos de 10.000 pedidos: cargar, RemoveRange y SaveChanges",
+        "medianaMs": 2092.1428,
+        "primeraMs": 2206.7056,
+        "minMs": 1874.3337,
+        "maxMs": 2138.7669,
+        "viajesAlServidor": 954,
+        "lecturasLogicas": 328680,
+        "filasRecibidas": 39937,
+        "bytesRecibidos": 2364333,
+        "bytesAsignados": 222957344,
+        "sql": [
+          "SELECT [e].[EventoId], [e].[Fecha], [e].[PedidoId], [e].[Tipo]\nFROM [Eventos] AS [e]\nWHERE [e].[PedidoId] > 390000",
+          "SET NOCOUNT ON;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p0;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p1;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p2;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p3;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p4;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p5;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p6;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p7;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p8;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p9;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p10;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p11;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p12;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p13;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p14;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p15;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p16;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p17;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p18;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p19;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p20;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p21;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p22;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p23;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p24;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p25;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p26;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p27;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p28;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p29;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p30;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p31;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p32;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p33;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p34;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p35;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p36;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p37;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p38;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p39;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p40;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p41;\n",
+          "SET NOCOUNT ON;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p0;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p1;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p2;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p3;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p4;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p5;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p6;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p7;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p8;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p9;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p10;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p11;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p12;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p13;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p14;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p15;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p16;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p17;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p18;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p19;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p20;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p21;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p22;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p23;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p24;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p25;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p26;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p27;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p28;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p29;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p30;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p31;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p32;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p33;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p34;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p35;\nDELETE FROM [Eventos]\nOUTPUT 1\nWHERE [EventoId] = @p36;\n"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "actualizar",
+        "variante": "Borrar los eventos de 10.000 pedidos: ExecuteDelete()",
+        "medianaMs": 401.1485,
+        "primeraMs": 431.8012,
+        "minMs": 340.6082,
+        "maxMs": 510.7491,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 340939,
+        "filasRecibidas": 0,
+        "bytesRecibidos": 159,
+        "bytesAsignados": 104472,
+        "sql": [
+          "DELETE FROM [e]\nFROM [Eventos] AS [e]\nWHERE [e].[PedidoId] > 390000"
+        ],
+        "nota": null
+      }
+    ],
+    "clave": [
+      {
+        "capitulo": "clave",
+        "variante": "2.000 búsquedas: new TiendaContext + Find(id)",
+        "medianaMs": 1230.8027,
+        "primeraMs": 3605.0783,
+        "minMs": 1137.4286,
+        "maxMs": 1316.4157,
+        "viajesAlServidor": 2000,
+        "lecturasLogicas": 6000,
+        "filasRecibidas": 2000,
+        "bytesRecibidos": 1430151,
+        "bytesAsignados": 167457504,
+        "sql": [
+          "SELECT TOP(1) [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] = @__p_0"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "clave",
+        "variante": "2.000 búsquedas: new TiendaContext + First(p => p.PedidoId == id)",
+        "medianaMs": 1286.707,
+        "primeraMs": 1331.1417,
+        "minMs": 1079.1172,
+        "maxMs": 1296.0226,
+        "viajesAlServidor": 2000,
+        "lecturasLogicas": 6000,
+        "filasRecibidas": 2000,
+        "bytesRecibidos": 1430151,
+        "bytesAsignados": 159902696,
+        "sql": [
+          "SELECT TOP(1) [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] = @__id_0"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "clave",
+        "variante": "2.000 búsquedas: new TiendaContext + AsNoTracking().First(…)",
+        "medianaMs": 1119.5723,
+        "primeraMs": 1189.9532,
+        "minMs": 1063.8252,
+        "maxMs": 1215.0905,
+        "viajesAlServidor": 2000,
+        "lecturasLogicas": 6000,
+        "filasRecibidas": 2000,
+        "bytesRecibidos": 1430151,
+        "bytesAsignados": 157518696,
+        "sql": [
+          "SELECT TOP(1) [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] = @__id_0"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "clave",
+        "variante": "2.000 búsquedas: new TiendaContext + consulta compilada (EF.CompileQuery)",
+        "medianaMs": 841.5002,
+        "primeraMs": 1021.1241,
+        "minMs": 799.0812,
+        "maxMs": 957.2902,
+        "viajesAlServidor": 2000,
+        "lecturasLogicas": 6000,
+        "filasRecibidas": 2000,
+        "bytesRecibidos": 1430151,
+        "bytesAsignados": 148494264,
+        "sql": [
+          "SELECT TOP(1) [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] = @__id"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "clave",
+        "variante": "2.000 búsquedas: contexto del pool (PooledDbContextFactory) + First(…)",
+        "medianaMs": 456.98,
+        "primeraMs": 550.1446,
+        "minMs": 414.4509,
+        "maxMs": 595.912,
+        "viajesAlServidor": 2000,
+        "lecturasLogicas": 6000,
+        "filasRecibidas": 2000,
+        "bytesRecibidos": 1430151,
+        "bytesAsignados": 26018000,
+        "sql": [
+          "SELECT TOP(1) [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] = @__id_0"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "clave",
+        "variante": "2.000 búsquedas: un solo contexto + First(…)",
+        "medianaMs": 461.0723,
+        "primeraMs": 483.7059,
+        "minMs": 419.7587,
+        "maxMs": 534.5599,
+        "viajesAlServidor": 2000,
+        "lecturasLogicas": 6000,
+        "filasRecibidas": 2000,
+        "bytesRecibidos": 1430151,
+        "bytesAsignados": 25926600,
+        "sql": [
+          "SELECT TOP(1) [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] = @__id_0"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "clave",
+        "variante": "2.000 búsquedas: un solo contexto + Find(id)",
+        "medianaMs": 575.0424,
+        "primeraMs": 591.91,
+        "minMs": 541.4092,
+        "maxMs": 713.9024,
+        "viajesAlServidor": 2000,
+        "lecturasLogicas": 6000,
+        "filasRecibidas": 2000,
+        "bytesRecibidos": 1430151,
+        "bytesAsignados": 33238520,
+        "sql": [
+          "SELECT TOP(1) [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] = @__p_0"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "clave",
+        "variante": "2.000 búsquedas: un solo contexto, los 2.000 ya rastreados (una consulta con Contains) + Find(id)",
+        "medianaMs": 14.0151,
+        "primeraMs": 63.6657,
+        "minMs": 13.5811,
+        "maxMs": 29.7498,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 6000,
+        "filasRecibidas": 2000,
+        "bytesRecibidos": 1059865,
+        "bytesAsignados": 6440864,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] IN (\n    SELECT [i].[value]\n    FROM OPENJSON(@__ids_0) WITH ([value] int '$') AS [i]\n)"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "clave",
+        "variante": "2.000 búsquedas: un solo contexto, los 2.000 ya rastreados + First(…) (igual va a la base)",
+        "medianaMs": 491.863,
+        "primeraMs": 546.2376,
+        "minMs": 430.551,
+        "maxMs": 619.6465,
+        "viajesAlServidor": 2001,
+        "lecturasLogicas": 12000,
+        "filasRecibidas": 4000,
+        "bytesRecibidos": 2489878,
+        "bytesAsignados": 26537176,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] IN (\n    SELECT [i].[value]\n    FROM OPENJSON(@__ids_0) WITH ([value] int '$') AS [i]\n)",
+          "SELECT TOP(1) [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] = @__id_0"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "clave",
+        "variante": "2.000 búsquedas: un solo contexto, los 2.000 ya rastreados + Local.FirstOrDefault(…) (sin ir a la base)",
+        "medianaMs": 3728.2155,
+        "primeraMs": 3837.2687,
+        "minMs": 3552.2267,
+        "maxMs": 3978.6526,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 6000,
+        "filasRecibidas": 2000,
+        "bytesRecibidos": 1059865,
+        "bytesAsignados": 3558904984,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] IN (\n    SELECT [i].[value]\n    FROM OPENJSON(@__ids_0) WITH ([value] int '$') AS [i]\n)"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "clave",
+        "variante": "2.000 búsquedas: Dapper QueryFirst",
+        "medianaMs": 308.2646,
+        "primeraMs": 369.5007,
+        "minMs": 287.2867,
+        "maxMs": 312.9671,
+        "viajesAlServidor": 2000,
+        "lecturasLogicas": 6000,
+        "filasRecibidas": 2000,
+        "bytesRecibidos": 144138,
+        "bytesAsignados": 5744144,
+        "sql": [],
+        "nota": null
+      },
+      {
+        "capitulo": "clave",
+        "variante": "2.000 búsquedas: SqlCommand a mano",
+        "medianaMs": 302.9628,
+        "primeraMs": 294.6145,
+        "minMs": 284.5149,
+        "maxMs": 340.2217,
+        "viajesAlServidor": 2000,
+        "lecturasLogicas": 6000,
+        "filasRecibidas": 2000,
+        "bytesRecibidos": 144138,
+        "bytesAsignados": 4144144,
+        "sql": [],
+        "nota": null
+      }
+    ],
+    "varchar": [
+      {
+        "capitulo": "varchar",
+        "variante": "Where(c => c.Email == email), con IsUnicode(false) en el modelo (parámetro varchar)",
+        "medianaMs": 0.9939,
+        "primeraMs": 5.8211,
+        "minMs": 0.9558,
+        "maxMs": 1.1404,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 3,
+        "filasRecibidas": 1,
+        "bytesRecibidos": 213,
+        "bytesAsignados": 108032,
+        "sql": [
+          "SELECT TOP(2) [c].[ClienteId]\nFROM [Clientes] AS [c]\nWHERE [c].[Email] = @__email_0"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "varchar",
+        "variante": "Where(c => c.Email == email), sin IsUnicode(false) (parámetro nvarchar contra columna varchar)",
+        "medianaMs": 7.722,
+        "primeraMs": 25.297,
+        "minMs": 7.1469,
+        "maxMs": 8.3063,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 257,
+        "filasRecibidas": 1,
+        "bytesRecibidos": 213,
+        "bytesAsignados": 107872,
+        "sql": [
+          "SELECT TOP(2) [c].[ClienteId]\nFROM [Clientes] AS [c]\nWHERE [c].[Email] = @__email_0"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "varchar",
+        "variante": "Where(c => c.Email.StartsWith(\"cliente31416@\"))",
+        "medianaMs": 1.1293,
+        "primeraMs": 8.6523,
+        "minMs": 0.9544,
+        "maxMs": 2.7852,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 3,
+        "filasRecibidas": 1,
+        "bytesRecibidos": 195,
+        "bytesAsignados": 106248,
+        "sql": [
+          "SELECT TOP(2) [c].[ClienteId]\nFROM [Clientes] AS [c]\nWHERE [c].[Email] LIKE 'cliente31416@%'"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "varchar",
+        "variante": "Where(c => c.Email.Contains(\"31416@\"))",
+        "medianaMs": 22.4988,
+        "primeraMs": 20.1287,
+        "minMs": 21.9802,
+        "maxMs": 24.5953,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 257,
+        "filasRecibidas": 1,
+        "bytesRecibidos": 195,
+        "bytesAsignados": 106248,
+        "sql": [
+          "SELECT TOP(2) [c].[ClienteId]\nFROM [Clientes] AS [c]\nWHERE [c].[Email] LIKE '%31416@%'"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "varchar",
+        "variante": "Where(c => c.Email.EndsWith(\"e31416@ejemplo.com.ar\"))",
+        "medianaMs": 30.3378,
+        "primeraMs": 23.9521,
+        "minMs": 24.3802,
+        "maxMs": 30.6859,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 257,
+        "filasRecibidas": 1,
+        "bytesRecibidos": 195,
+        "bytesAsignados": 106248,
+        "sql": [
+          "SELECT TOP(2) [c].[ClienteId]\nFROM [Clientes] AS [c]\nWHERE [c].[Email] LIKE '%e31416@ejemplo.com.ar'"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "varchar",
+        "variante": "Where(c => c.Email.ToLower() == email.ToLower())",
+        "medianaMs": 13.6969,
+        "primeraMs": 20.6121,
+        "minMs": 13.5649,
+        "maxMs": 14.3587,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 257,
+        "filasRecibidas": 1,
+        "bytesRecibidos": 213,
+        "bytesAsignados": 109072,
+        "sql": [
+          "SELECT TOP(2) [c].[ClienteId]\nFROM [Clientes] AS [c]\nWHERE LOWER([c].[Email]) = @__ToLower_0"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "varchar",
+        "variante": "Where(c => EF.Functions.Like(c.Email, \"cliente31416@%\"))",
+        "medianaMs": 0.8575,
+        "primeraMs": 4.3126,
+        "minMs": 0.6953,
+        "maxMs": 1.012,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 3,
+        "filasRecibidas": 1,
+        "bytesRecibidos": 195,
+        "bytesAsignados": 107224,
+        "sql": [
+          "SELECT TOP(2) [c].[ClienteId]\nFROM [Clientes] AS [c]\nWHERE [c].[Email] LIKE 'cliente31416@%'"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "varchar",
+        "variante": "Where(c => c.Email.Trim() == email)",
+        "medianaMs": 6.5381,
+        "primeraMs": 10.4392,
+        "minMs": 6.1678,
+        "maxMs": 7.0332,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 257,
+        "filasRecibidas": 1,
+        "bytesRecibidos": 213,
+        "bytesAsignados": 107728,
+        "sql": [
+          "SELECT TOP(2) [c].[ClienteId]\nFROM [Clientes] AS [c]\nWHERE LTRIM(RTRIM([c].[Email])) = @__email_0"
+        ],
+        "nota": null
+      }
+    ],
+    "constantes": [
+      {
+        "capitulo": "constantes",
+        "variante": "300 consultas con FromSqlRaw($\"… WHERE Total > {total}\") (el valor pegado en el SQL)",
+        "medianaMs": 640.2974,
+        "primeraMs": 1105.177,
+        "minMs": 618.2573,
+        "maxMs": 695.1292,
+        "viajesAlServidor": 300,
+        "lecturasLogicas": 12923,
+        "filasRecibidas": 300,
+        "bytesRecibidos": 12438,
+        "bytesAsignados": 3928624,
+        "sql": [
+          "SELECT COUNT(*)\nFROM (\n    SELECT TOP 10 * FROM dbo.Pedidos WHERE ClienteId = 1 AND Total > 1000\n) AS [e]",
+          "SELECT COUNT(*)\nFROM (\n    SELECT TOP 10 * FROM dbo.Pedidos WHERE ClienteId = 1 AND Total > 1017\n) AS [e]",
+          "SELECT COUNT(*)\nFROM (\n    SELECT TOP 10 * FROM dbo.Pedidos WHERE ClienteId = 1 AND Total > 1034\n) AS [e]"
+        ],
+        "nota": "planes en caché al terminar: 300"
+      },
+      {
+        "capitulo": "constantes",
+        "variante": "300 consultas con FromSql($\"… WHERE Total > {total}\") (interpolado: parámetro)",
+        "medianaMs": 91.9192,
+        "primeraMs": 191.5002,
+        "minMs": 77.1987,
+        "maxMs": 150.9078,
+        "viajesAlServidor": 300,
+        "lecturasLogicas": 1262,
+        "filasRecibidas": 300,
+        "bytesRecibidos": 17838,
+        "bytesAsignados": 4315024,
+        "sql": [
+          "SELECT COUNT(*)\nFROM (\n    SELECT TOP 10 * FROM dbo.Pedidos WHERE ClienteId = 1 AND Total > @p0\n) AS [e]"
+        ],
+        "nota": "planes en caché al terminar: 1"
+      },
+      {
+        "capitulo": "constantes",
+        "variante": "300 consultas LINQ: Where(p => p.ClienteId == 1 && p.Total > total).Take(10).Count()",
+        "medianaMs": 132.9895,
+        "primeraMs": 195.5421,
+        "minMs": 100.2959,
+        "maxMs": 199.3148,
+        "viajesAlServidor": 300,
+        "lecturasLogicas": 1262,
+        "filasRecibidas": 300,
+        "bytesRecibidos": 17838,
+        "bytesAsignados": 6727480,
+        "sql": [
+          "SELECT COUNT(*)\nFROM (\n    SELECT TOP(@__p_1) [p].[PedidoId]\n    FROM [Pedidos] AS [p]\n    WHERE [p].[ClienteId] = 1 AND [p].[Total] > @__total_0\n) AS [t]"
+        ],
+        "nota": "planes en caché al terminar: 1"
+      },
+      {
+        "capitulo": "constantes",
+        "variante": "300 consultas LINQ armadas con Expression.Constant (el valor como constante del árbol)",
+        "medianaMs": 743.6224,
+        "primeraMs": 1164.4487,
+        "minMs": 680.0526,
+        "maxMs": 793.5057,
+        "viajesAlServidor": 300,
+        "lecturasLogicas": 12923,
+        "filasRecibidas": 300,
+        "bytesRecibidos": 17838,
+        "bytesAsignados": 6261448,
+        "sql": [
+          "SELECT COUNT(*)\nFROM (\n    SELECT TOP(@__p_0) [p].[PedidoId]\n    FROM [Pedidos] AS [p]\n    WHERE [p].[ClienteId] = 1 AND [p].[Total] > 1000.0\n) AS [t]",
+          "SELECT COUNT(*)\nFROM (\n    SELECT TOP(@__p_0) [p].[PedidoId]\n    FROM [Pedidos] AS [p]\n    WHERE [p].[ClienteId] = 1 AND [p].[Total] > 1017.0\n) AS [t]",
+          "SELECT COUNT(*)\nFROM (\n    SELECT TOP(@__p_0) [p].[PedidoId]\n    FROM [Pedidos] AS [p]\n    WHERE [p].[ClienteId] = 1 AND [p].[Total] > 1034.0\n) AS [t]"
+        ],
+        "nota": "planes en caché al terminar: 300"
+      }
+    ],
+    "async": [
+      {
+        "capitulo": "async",
+        "variante": "500 documentos de 80 KB: ToList()",
+        "medianaMs": 139.5636,
+        "primeraMs": 155.9023,
+        "minMs": 131.6341,
+        "maxMs": 163.6865,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 20019,
+        "filasRecibidas": 500,
+        "bytesRecibidos": 40087768,
+        "bytesAsignados": 120325648,
+        "sql": [
+          "SELECT [d].[DocumentoId], [d].[Cuerpo], [d].[Titulo]\nFROM [Documentos] AS [d]"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "async",
+        "variante": "500 documentos de 80 KB: await ToListAsync()",
+        "medianaMs": 892.173,
+        "primeraMs": 1013.7431,
+        "minMs": 845.7012,
+        "maxMs": 994.6747,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 20019,
+        "filasRecibidas": 500,
+        "bytesRecibidos": 40087768,
+        "bytesAsignados": 966833288,
+        "sql": [
+          "SELECT [d].[DocumentoId], [d].[Cuerpo], [d].[Titulo]\nFROM [Documentos] AS [d]"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "async",
+        "variante": "500 documentos: await ToListAsync() trayendo solo Titulo",
+        "medianaMs": 2.0682,
+        "primeraMs": 8.6061,
+        "minMs": 1.7,
+        "maxMs": 2.4675,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 7,
+        "filasRecibidas": 500,
+        "bytesRecibidos": 16521,
+        "bytesAsignados": 273648,
+        "sql": [
+          "SELECT [d].[DocumentoId], [d].[Titulo]\nFROM [Documentos] AS [d]"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "async",
+        "variante": "20.000 pedidos: ToList()",
+        "medianaMs": 45.6646,
+        "primeraMs": 51.2039,
+        "minMs": 44.3919,
+        "maxMs": 55.5865,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 1364,
+        "filasRecibidas": 20000,
+        "bytesRecibidos": 10658719,
+        "bytesAsignados": 38277208,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] <= 20000"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "async",
+        "variante": "20.000 pedidos: await ToListAsync()",
+        "medianaMs": 117.2995,
+        "primeraMs": 106.852,
+        "minMs": 90.6028,
+        "maxMs": 141.137,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 1364,
+        "filasRecibidas": 20000,
+        "bytesRecibidos": 10658719,
+        "bytesAsignados": 53837424,
+        "sql": [
+          "SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] <= 20000"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "async",
+        "variante": "Un pedido por clave: First(…)",
+        "medianaMs": 0.9652,
+        "primeraMs": 4.9355,
+        "minMs": 0.8311,
+        "maxMs": 1.0784,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 3,
+        "filasRecibidas": 1,
+        "bytesRecibidos": 671,
+        "bytesAsignados": 106672,
+        "sql": [
+          "SELECT TOP(1) [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] = 1234"
+        ],
+        "nota": null
+      },
+      {
+        "capitulo": "async",
+        "variante": "Un pedido por clave: await FirstAsync(…)",
+        "medianaMs": 1.2756,
+        "primeraMs": 7.7375,
+        "minMs": 1.1594,
+        "maxMs": 1.3948,
+        "viajesAlServidor": 1,
+        "lecturasLogicas": 3,
+        "filasRecibidas": 1,
+        "bytesRecibidos": 671,
+        "bytesAsignados": 109800,
+        "sql": [
+          "SELECT TOP(1) [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]\nFROM [Pedidos] AS [p]\nWHERE [p].[PedidoId] = 1234"
+        ],
+        "nota": null
+      }
+    ]
+  }
+}

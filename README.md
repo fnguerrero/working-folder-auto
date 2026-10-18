@@ -33,5 +33,6 @@ Trabaja directo sobre `main`. Si algo no te gusta, se mueve a `_archivo/`.
 | Stack trace en criollo | herramientas | Pegás una excepción de .NET y te dice qué pasó, dónde fue en tu código y qué suele significar. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/herramientas/stack-trace-en-criollo/) |
 | Asado para cuántos | apps | Cuánto comprar para un asado, a qué hora prender, en qué orden poner los cortes y cuánto pone cada uno. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/apps/asado/) |
 | Cohete | juegos | Tocás el cohete y despega hasta la Luna, que sonríe y canta, y vuelve en paracaídas; estrellas que suenan, planetas, ovnis y cometas. Para Valentín. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/juegos/cohete/) |
+| EF Core con el cronómetro en la mano | escritos | Trece experimentos sobre lo que EF Core manda al servidor y lo que trae, medidos contra SQL Server: N+1, Include, tracking, paginación, Contains, inserciones, ExecuteUpdate, varchar, planes, async. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/escritos/efcore-con-cronometro/) |
 
 Las convenciones de estructura y trabajo están en [CLAUDE.md](CLAUDE.md).

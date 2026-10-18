@@ -169,5 +169,14 @@
     "estado": "terminado",
     "probar": "juegos/cohete/",
     "desde": "2026-10-18"
+  },
+  {
+    "slug": "efcore-con-cronometro",
+    "nombre": "EF Core con el cronómetro en la mano",
+    "categoria": "escritos",
+    "descripcion": "Trece experimentos sobre lo que Entity Framework Core manda al servidor y lo que trae de vuelta, medidos contra un SQL Server real: N+1, Include, tracking, proyección, paginación, Contains, Any, inserciones, ExecuteUpdate, búsquedas por clave, varchar, caché de planes y async. Con el SQL que mandó EF y qué hacer.",
+    "estado": "terminado",
+    "probar": "escritos/efcore-con-cronometro/",
+    "desde": "2026-10-18"
   }
 ]

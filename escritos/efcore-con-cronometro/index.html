@@ -1,0 +1,831 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Trece experimentos sobre lo que Entity Framework Core manda al servidor y lo que trae de vuelta, medidos contra un SQL Server de verdad: N+1, Include, tracking, proyección, paginación, Contains, Any, inserciones, ExecuteUpdate, búsquedas por clave, varchar, caché de planes y async.">
+<title>EF Core con el cronómetro en la mano</title>
+<style>
+  :root {
+    --bg: #fbfaf7; --fg: #23201c; --suave: #6b655c; --linea: #e4e0d8; --panel: #f1eee7;
+    --acento: #1b6f7a; --bien: #2e7d32; --mal: #a4373a; --ojo: #b26a00;
+    --codigo-bg: #1e2430; --codigo-fg: #e6e9ef; --ancho: 76ch; --toc: 280px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #15171c; --fg: #e8e6e1; --suave: #a19c93; --linea: #2c3038; --panel: #1d2026;
+      --acento: #6fd0dc; --bien: #7bd389; --mal: #ff8a8d; --ojo: #ffbf5e; --codigo-bg: #0f1218; --codigo-fg: #e6e9ef; }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.6 Georgia, "Times New Roman", "Noto Serif", serif; }
+  a { color: var(--acento); }
+  code, pre, kbd { font-family: ui-monospace, "Cascadia Code", Consolas, "SF Mono", Menlo, monospace; }
+  code { font-size: .88em; background: var(--panel); padding: .1em .35em; border-radius: 5px; overflow-wrap: anywhere; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  h1, h2, h3, h4 { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.2; letter-spacing: -.01em; }
+  h1 { font-size: clamp(1.9rem, 5vw, 2.8rem); margin: .2em 0 .3em; }
+  h2 { font-size: 1.65rem; margin: 2.2em 0 .6em; padding-top: .6em; border-top: 1px solid var(--linea); }
+  h2 small { display: block; color: var(--suave); font-size: .55em; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .3em; }
+  h3 { font-size: 1.2rem; margin: 1.8em 0 .4em; }
+  p, ul, ol { margin: 0 0 1em; }
+  li { margin-bottom: .3em; }
+  .bajada { font-size: 1.15rem; color: var(--suave); font-family: system-ui, sans-serif; }
+  .meta { color: var(--suave); font-size: .9rem; font-family: system-ui, sans-serif; }
+  .marco { display: grid; grid-template-columns: 1fr; gap: 0 40px; max-width: 1200px; margin: 0 auto; padding: 24px 16px 80px; }
+  main { min-width: 0; max-width: 980px; }
+  main p, main ul, main ol, main h1, main h2, main h3, .ojo, .llevo, .bajada { max-width: var(--ancho); }
+  nav.toc { font-family: system-ui, sans-serif; font-size: .92rem; }
+  nav.toc ol { list-style: none; padding: 0; margin: 0; }
+  nav.toc li { margin: 0; }
+  nav.toc a { display: block; padding: 5px 10px; color: var(--suave); text-decoration: none; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--fg); }
+  nav.toc a.activo { color: var(--acento); border-left-color: var(--acento); }
+  nav.toc .num { display: inline-block; width: 2.2ch; color: var(--suave); opacity: .7; }
+  details.toc-movil { border: 1px solid var(--linea); border-radius: 12px; padding: 10px 14px; margin: 0 0 24px; background: var(--panel); }
+  details.toc-movil summary { cursor: pointer; font-weight: 700; font-family: system-ui, sans-serif; }
+  .toc-lateral { display: none; }
+  @media (min-width: 960px) {
+    .marco { grid-template-columns: var(--toc) minmax(0, 1fr); }
+    .toc-lateral { display: block; position: sticky; top: 16px; align-self: start; max-height: calc(100vh - 32px); overflow: auto; padding-right: 6px; }
+    details.toc-movil { display: none; }
+  }
+  pre { position: relative; margin: 0 0 1em; padding: 14px 16px; border-radius: 12px; background: var(--codigo-bg); color: var(--codigo-fg); font-size: .84rem; line-height: 1.5; overflow: auto; tab-size: 4; max-width: 100%; }
+  pre.sql { border-left: 4px solid var(--acento); }
+  pre.sql::before { content: "lo que mandó EF"; display: block; font: 600 .68rem system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--acento); margin-bottom: 6px; }
+  pre .copiar { position: absolute; top: 6px; right: 6px; font: 600 .72rem system-ui, sans-serif; background: rgba(255,255,255,.12); color: var(--codigo-fg); border: 0; border-radius: 6px; padding: 4px 8px; cursor: pointer; }
+  pre .copiar:hover { background: rgba(255,255,255,.22); }
+  .tabla { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 0 1.2em; border: 1px solid var(--linea); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; font: .86rem/1.4 system-ui, sans-serif; min-width: 860px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--linea); vertical-align: top; }
+  th { background: var(--panel); color: var(--suave); font-weight: 600; font-size: .78rem; letter-spacing: .03em; text-transform: uppercase; position: sticky; top: 0; }
+  tr:last-child td { border-bottom: 0; }
+  td:first-child { min-width: 260px; max-width: 420px; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td code { font-size: .8em; white-space: normal; }
+  td.bien { color: var(--bien); font-weight: 600; } td.mal { color: var(--mal); font-weight: 600; } td.medio { color: var(--ojo); font-weight: 600; }
+  .barra { display: inline-block; height: .7em; background: var(--acento); border-radius: 3px; vertical-align: middle; margin-right: 6px; opacity: .8; }
+  .base { font: 600 .68rem system-ui, sans-serif; color: var(--suave); border: 1px solid var(--linea); border-radius: 999px; padding: 1px 6px; margin-left: 4px; vertical-align: middle; }
+  .ojo { border-left: 4px solid var(--ojo); background: var(--panel); padding: 10px 14px; border-radius: 0 10px 10px 0; margin: 0 0 1.2em; font-size: .97em; }
+  .ojo b:first-child { font-family: system-ui, sans-serif; }
+  .llevo { border: 1px solid var(--linea); border-radius: 12px; padding: 12px 16px; margin: 1.2em 0; background: var(--panel); }
+  .llevo h4 { margin: 0 0 .4em; font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; color: var(--suave); }
+  .llevo ul { margin: 0; padding-left: 20px; }
+  .llevo li { margin-bottom: .25em; }
+  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 999px; font: .9rem system-ui, sans-serif; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .toast.visible { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="marco">
+<nav class="toc toc-lateral" aria-label="Índice"><ol id="toc-lateral"></ol></nav>
+<main>
+<p class="meta"><a href="../../">← Volver a la vitrina</a></p>
+<h1>EF Core con el cronómetro en la mano</h1>
+<p class="bajada">Trece experimentos sobre lo que Entity Framework Core manda al servidor y lo que trae de vuelta, medidos contra un SQL Server de verdad: viajes, lecturas, filas, bytes y memoria. Para gente que escribe LINQ todos los días y quiere saber qué pasa debajo.</p>
+<p class="meta">EF Core 8 · Microsoft.Data.SqlClient · SQL Server 2022 (Developer, Linux) · base «Tienda»: 400.000 pedidos, 1,2 millones de ítems, 1,6 millones de eventos, 50.000 clientes · todos los números y todo el SQL salen de <a href="resultados.json">resultados.json</a>, generado por el proyecto <a href="experimentos/">experimentos/</a>. Es el hermano de <a href="../indices-con-cronometro/">Índices con el cronómetro en la mano</a>: aquel mira el servidor, este mira lo que EF le pide.</p>
+
+<details class="toc-movil"><summary>Índice</summary><nav class="toc"><ol id="toc-movil"></ol></nav></details>
+
+<h2 id="intro"><small>Antes de empezar</small>Qué se mide y por qué</h2>
+<p>Entity Framework Core es muy bueno escondiendo lo que hace. Eso es lo que lo hace cómodo y también lo que hace que una línea de LINQ inocente termine en doscientos viajes al servidor o en 50 MB de filas que nadie va a mirar. Este escrito agarra las situaciones de todos los días (cargar relaciones, paginar, buscar por una lista de ids, insertar de a muchos, preguntar «¿hay alguno?») y las mide, con el SQL que EF realmente mandó al lado.</p>
+<p>Cada variante se corrió <b>seis veces con un contexto nuevo cada vez</b>: la primera, que paga la compilación de la consulta y el JIT, no se cuenta; de las otras cinco se toma la mediana. En cada corrida se mide:</p>
+<ul>
+<li><b>Tiempo</b>: lo que tardó la operación completa, del lado de .NET, con el servidor en la misma máquina (un viaje de ida y vuelta cuesta alrededor de medio milisegundo acá; en una red real, varias veces más, y todo lo que dependa de la cantidad de viajes empeora en proporción).</li>
+<li><b>Viajes</b>: cuántas veces fue y vino del servidor (<code>ServerRoundtrips</code> de las estadísticas de <code>SqlConnection</code>).</li>
+<li><b>Lecturas</b>: páginas de 8 KB que leyó SQL Server para contestar (<code>logical_reads</code> de <code>sys.dm_exec_sessions</code>), que es la medida estable del costo del lado del servidor, como se explica en <a href="../indices-con-cronometro/#intro">el escrito de índices</a>.</li>
+<li><b>Filas</b> que el servidor devolvió y <b>bytes recibidos</b> por el cliente: lo que viajó por la red.</li>
+<li><b>Memoria .NET</b>: bytes asignados en el proceso durante la operación (<code>GC.GetTotalAllocatedBytes</code>), que es lo que después tiene que barrer el recolector.</li>
+</ul>
+<p>La columna «contra la base» compara el tiempo con el de la primera fila de cada tabla, que es siempre la forma más común o más inocente de escribirlo.</p>
+<h3>La base de ejemplo</h3>
+<p>La misma tienda del escrito de índices, un poco más gorda: <code>Clientes</code> (50.000, con <code>Email</code> <code>varchar(200)</code> e índice único), <code>Productos</code> (2.000), <code>Pedidos</code> (400.000, con un campo <code>Notas</code> de 150 a 400 caracteres para que las filas pesen como pesan las de verdad), <code>Items</code> (1,2 millones, de 1 a 5 por pedido), <code>Eventos</code> (1,6 millones, de 2 a 6 por pedido: el historial de estados) y <code>Documentos</code> (500 textos de 40.000 caracteres, para el capítulo de async). El cliente 1 es un mayorista con 100.000 pedidos, el 2 tiene 200 y el 3 tiene 500; el resto, unos seis cada uno. Los índices son los que EF crea solo por las claves foráneas, más uno sobre <code>Pedidos.Fecha</code>.</p>
+<pre><code>public class Pedido
+{
+    public int PedidoId { get; set; }
+    public int ClienteId { get; set; }
+    public virtual Cliente Cliente { get; set; } = null!;
+    public DateTime Fecha { get; set; }
+    public string Estado { get; set; } = "Nuevo";       // varchar(20)
+    public decimal Total { get; set; }
+    public string? Notas { get; set; }                  // nvarchar(max), 150 a 400 caracteres
+    public virtual ICollection&lt;Item&gt; Items { get; set; } = new List&lt;Item&gt;();
+    public virtual ICollection&lt;Evento&gt; Eventos { get; set; } = new List&lt;Evento&gt;();
+}</code></pre>
+<p>Todo el código que midió está en <a href="experimentos/Program.cs"><code>experimentos/Program.cs</code></a>; el modelo en <a href="experimentos/Modelo.cs"><code>Modelo.cs</code></a>. Los bloques de código de cada capítulo son ese código, recortado donde se repite.</p>
+
+<h2 id="n1"><small>Capítulo 1</small>El N+1: un viaje por cada pedido</h2>
+<p>El cliente 2 tiene 200 pedidos con 595 ítems en total. Queremos, para cada pedido, cuántos ítems tiene. Cinco maneras de pedirlo:</p>
+<pre><code>// 1. Cargar los pedidos y después, para cada uno, su colección
+var pedidos = ctx.Pedidos.Where(p =&gt; p.ClienteId == 2).ToList();
+foreach (var p in pedidos) { ctx.Entry(p).Collection(x =&gt; x.Items).Load(); n += p.Items.Count; }
+
+// 2. Lo mismo sin darse cuenta: con UseLazyLoadingProxies(), tocar p.Items dispara la carga
+foreach (var p in pedidos) n += p.Items.Count;
+
+// 3. Include
+ctx.Pedidos.Where(p =&gt; p.ClienteId == 2).Include(p =&gt; p.Items).ToList();
+
+// 4. Proyectar solo lo que hace falta
+ctx.Pedidos.Where(p =&gt; p.ClienteId == 2).Select(p =&gt; new { p.PedidoId, Cantidad = p.Items.Count }).ToList();
+
+// 5. Proyectar con los ítems adentro
+ctx.Pedidos.Where(p =&gt; p.ClienteId == 2)
+   .Select(p =&gt; new { p.PedidoId, Items = p.Items.Select(i =&gt; new { i.ProductoId, i.Cantidad }).ToList() }).ToList();</code></pre>
+<!-- tabla:n1 -->
+<div class="tabla"><table data-capitulo="n1">
+<tr><th>Variante</th><th class="n">Tiempo</th><th class="n">Contra la base</th><th class="n">Viajes</th><th class="n">Lecturas</th><th class="n">Filas</th><th class="n">Recibido</th><th class="n">Memoria .NET</th></tr>
+<tr><td><code>Un viaje por pedido: Entry(p).Collection(p =&gt; p.Items).Load()</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:52px"></span>214,7 ms</td><td class="n ">1,0×</td><td class="n">201</td><td class="n">3.053</td><td class="n">795</td><td class="n">150 KB</td><td class="n">4,33 MB</td></tr>
+<tr><td><code>Lazy loading: foreach (var p in pedidos) n += p.Items.Count</code></td><td class="n"><span class="barra" style="width:60px"></span>249,4 ms</td><td class="n medio">1,2× más lento</td><td class="n">201</td><td class="n">3.053</td><td class="n">795</td><td class="n">150 KB</td><td class="n">6,01 MB</td></tr>
+<tr><td><code>Include(p =&gt; p.Items)</code></td><td class="n"><span class="barra" style="width:8px"></span>31,5 ms</td><td class="n bien">6,8× más rápido</td><td class="n">1</td><td class="n">3.094</td><td class="n">595</td><td class="n">330 KB</td><td class="n">1,97 MB</td></tr>
+<tr><td><code>Proyección: Select(p =&gt; new { p.PedidoId, Cantidad = p.Items.Count })</code></td><td class="n"><span class="barra" style="width:2px"></span>3,07 ms</td><td class="n bien">70× más rápido</td><td class="n">1</td><td class="n">670</td><td class="n">200</td><td class="n">2,2 KB</td><td class="n">146 KB</td></tr>
+<tr><td><code>Proyección con los ítems adentro: Select(p =&gt; new { p.PedidoId, Items = p.Items.Select(…).ToList() })</code></td><td class="n"><span class="barra" style="width:2px"></span>5,48 ms</td><td class="n bien">39× más rápido</td><td class="n">1</td><td class="n">2.455</td><td class="n">595</td><td class="n">12 KB</td><td class="n">342 KB</td></tr>
+</table></div>
+<!-- /tabla -->
+<p>Las dos primeras hacen <b>201 viajes</b>: uno por la lista y uno por cada pedido. En esta máquina, con el servidor al lado, eso son 215 ms; en una red de oficina con 1 ms de ida y vuelta serían 400 y pico, y contra una base en otra región, segundos. El lazy loading es el mismo problema con peor pinta, porque el código no muestra ninguna consulta: la hace la propiedad al leerla.</p>
+<p><code>Include</code> lo resuelve en un viaje, pero mirá la columna de bytes: <b>329 KB</b> para 200 pedidos, cuando la proyección con los ítems adentro trae lo mismo en 11 KB. Es que <code>Include</code> genera un <code>JOIN</code> y cada fila del resultado repite todas las columnas del pedido, <code>Notas</code> incluida, una vez por ítem:</p>
+<!-- sql:n1:2 -->
+<pre class="sql"><code>SELECT [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total], [i].[ItemId], [i].[Cantidad], [i].[PedidoId], [i].[Precio], [i].[ProductoId]
+FROM [Pedidos] AS [p]
+LEFT JOIN [Items] AS [i] ON [p].[PedidoId] = [i].[PedidoId]
+WHERE [p].[ClienteId] = 2
+ORDER BY [p].[PedidoId]</code></pre>
+<!-- /sql -->
+<p>Y si lo único que hacía falta era el conteo, la proyección con <code>p.Items.Count</code> lo calcula en el servidor y vuelve con 200 filas de dos columnas: 2 KB, 670 lecturas y 3 ms. Diez veces menos que el <code>Include</code> y setenta veces menos que el bucle.</p>
+<!-- sql:n1:3 -->
+<pre class="sql"><code>SELECT [p].[PedidoId], (
+    SELECT COUNT(*)
+    FROM [Items] AS [i]
+    WHERE [p].[PedidoId] = [i].[PedidoId]) AS [Cantidad]
+FROM [Pedidos] AS [p]
+WHERE [p].[ClienteId] = 2</code></pre>
+<!-- /sql -->
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Un <code>foreach</code> que adentro toca una navegación es un N+1, se vea la consulta o no. Con lazy loading no se ve.</li>
+<li><code>Include</code> arregla los viajes, no los bytes: repite el padre por cada hijo. Para listados grandes, proyectar.</li>
+<li>Si lo que querés es un número por pedido, pedí el número: <code>p.Items.Count</code> adentro del <code>Select</code> va al servidor.</li>
+</ul></div>
+
+<h2 id="cartesiano"><small>Capítulo 2</small>Dos Include y la explosión cartesiana</h2>
+<p>Mil pedidos del mayorista, con sus ítems (de 1 a 5) y sus eventos (de 2 a 6). Primero con un <code>Include</code>, después con dos, después con dos y <code>AsSplitQuery()</code>, y al final proyectando:</p>
+<pre><code>var q = ctx.Pedidos.AsNoTracking().Where(p =&gt; p.ClienteId == 1).OrderBy(p =&gt; p.PedidoId).Take(1000);
+q.Include(p =&gt; p.Items).ToList();
+q.Include(p =&gt; p.Items).Include(p =&gt; p.Eventos).ToList();
+q.Include(p =&gt; p.Items).Include(p =&gt; p.Eventos).AsSplitQuery().ToList();
+q.Select(p =&gt; new { p.PedidoId, p.Total,
+                    Items   = p.Items.Select(i =&gt; new { i.ProductoId, i.Cantidad }).ToList(),
+                    Eventos = p.Eventos.Select(e =&gt; new { e.Fecha, e.Tipo }).ToList() }).ToList();</code></pre>
+<!-- tabla:cartesiano -->
+<div class="tabla"><table data-capitulo="cartesiano">
+<tr><th>Variante</th><th class="n">Tiempo</th><th class="n">Contra la base</th><th class="n">Viajes</th><th class="n">Lecturas</th><th class="n">Filas</th><th class="n">Recibido</th><th class="n">Memoria .NET</th></tr>
+<tr><td><code>Include(p =&gt; p.Items)</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:17px"></span>57,8 ms</td><td class="n ">1,0×</td><td class="n">1</td><td class="n">12.438</td><td class="n">3.011</td><td class="n">1,59 MB</td><td class="n">6,14 MB</td></tr>
+<tr><td><code>Include(p =&gt; p.Items).Include(p =&gt; p.Eventos)</code></td><td class="n"><span class="barra" style="width:60px"></span>200,7 ms</td><td class="n mal">3,5× más lento</td><td class="n">1</td><td class="n">59.673</td><td class="n">12.413</td><td class="n">6,92 MB</td><td class="n">24,1 MB</td></tr>
+<tr><td><code>Include(p =&gt; p.Items).Include(p =&gt; p.Eventos).AsSplitQuery()</code></td><td class="n"><span class="barra" style="width:17px"></span>58,0 ms</td><td class="n ">igual</td><td class="n">3</td><td class="n">29.394</td><td class="n">8.108</td><td class="n">722 KB</td><td class="n">4,99 MB</td></tr>
+<tr><td><code>Proyección: Select(p =&gt; new { p.PedidoId, p.Total, Items = p.Items.Select(…).ToList(), Eventos = p.Eventos.Select(…).ToList() })</code></td><td class="n"><span class="barra" style="width:17px"></span>57,5 ms</td><td class="n ">igual</td><td class="n">1</td><td class="n">59.673</td><td class="n">12.413</td><td class="n">602 KB</td><td class="n">5,25 MB</td></tr>
+</table></div>
+<!-- /tabla -->
+<p>Con un solo <code>Include</code> vienen 3.011 filas (los ítems). Con dos, <b>12.413</b>: para cada pedido, el servidor arma el producto cartesiano de sus ítems por sus eventos, y cada una de esas filas lleva otra vez las columnas del pedido. Son 7 MB por la red y 24 MB de objetos en .NET, para que EF después descarte los duplicados. Es lo que la documentación llama <i>cartesian explosion</i>, y crece multiplicando: con un tercer <code>Include</code> de colección serían decenas de miles de filas.</p>
+<!-- sql:cartesiano:1 -->
+<pre class="sql"><code>SELECT [t].[PedidoId], [t].[ClienteId], [t].[Estado], [t].[Fecha], [t].[Notas], [t].[Total], [i].[ItemId], [i].[Cantidad], [i].[PedidoId], [i].[Precio], [i].[ProductoId], [e].[EventoId], [e].[Fecha], [e].[PedidoId], [e].[Tipo]
+FROM (
+    SELECT TOP(@__p_0) [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]
+    FROM [Pedidos] AS [p]
+    WHERE [p].[ClienteId] = 1
+    ORDER BY [p].[PedidoId]
+) AS [t]
+LEFT JOIN [Items] AS [i] ON [t].[PedidoId] = [i].[PedidoId]
+LEFT JOIN [Eventos] AS [e] ON [t].[PedidoId] = [e].[PedidoId]
+ORDER BY [t].[PedidoId], [i].[ItemId]</code></pre>
+<!-- /sql -->
+<p><code>AsSplitQuery()</code> lo parte en <b>tres consultas</b> (pedidos, ítems, eventos), cada una con solo sus filas: 8.108 en total, 722 KB. Cuesta dos viajes más y pierde la consistencia de una sola lectura (si alguien inserta un evento entre la segunda y la tercera consulta, lo ves), pero para dos o más colecciones es la opción sana. Se puede dejar como comportamiento por defecto con <code>UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)</code> al configurar el proveedor.</p>
+<p>La proyección es interesante por lo que no arregla: EF Core 8 también la genera como una sola consulta con el mismo producto cartesiano (12.413 filas). Lo que la salva es que las filas son angostas, porque no viaja <code>Notas</code> ni nada que no se haya pedido: 602 KB en vez de 7 MB. Si a la proyección le agregás <code>AsSplitQuery()</code>, también se parte.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Un <code>Include</code> de colección está bien. Dos o más sobre la misma entidad, con <code>AsSplitQuery()</code> o proyectando.</li>
+<li>Mirá las filas que vuelven, no solo los viajes: 1.000 pedidos no deberían ser 12.000 filas.</li>
+</ul></div>
+
+<h2 id="tracking"><small>Capítulo 3</small>Lo que cuesta que EF te siga el rastro</h2>
+<p>Por defecto, cada entidad que devuelve una consulta queda registrada en el <i>change tracker</i> del contexto, con una copia de sus valores originales, para poder detectar qué cambió en el <code>SaveChanges</code>. Es lo que hace que modificar una propiedad y guardar «simplemente funcione», y se paga en memoria y en tiempo. Leemos 20.000 pedidos:</p>
+<pre><code>var q = ctx.Pedidos.Where(p =&gt; p.PedidoId &lt;= 20000);
+q.ToList();                                                     // rastreando
+q.AsNoTracking().ToList();
+q.Include(p =&gt; p.Cliente).ToList();                             // rastreando (los 20.000 son del cliente 1)
+q.Include(p =&gt; p.Cliente).AsNoTracking().ToList();
+q.Include(p =&gt; p.Cliente).AsNoTrackingWithIdentityResolution().ToList();
+var l = q.ToList(); ctx.SaveChanges();                          // sin haber cambiado nada</code></pre>
+<!-- tabla:tracking -->
+<div class="tabla"><table data-capitulo="tracking">
+<tr><th>Variante</th><th class="n">Tiempo</th><th class="n">Contra la base</th><th class="n">Viajes</th><th class="n">Lecturas</th><th class="n">Filas</th><th class="n">Recibido</th><th class="n">Memoria .NET</th></tr>
+<tr><td><code>ToList() rastreando (lo que hace por defecto)</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:4px"></span>185,7 ms</td><td class="n ">1,0×</td><td class="n">1</td><td class="n">1.364</td><td class="n">20.000</td><td class="n">10,2 MB</td><td class="n">58,4 MB</td></tr>
+<tr><td><code>AsNoTracking().ToList()</code></td><td class="n"><span class="barra" style="width:2px"></span>48,6 ms</td><td class="n bien">3,8× más rápido</td><td class="n">1</td><td class="n">1.364</td><td class="n">20.000</td><td class="n">10,2 MB</td><td class="n">36,6 MB</td></tr>
+<tr><td><code>Include(p =&gt; p.Cliente), rastreando</code></td><td class="n"><span class="barra" style="width:39px"></span>1,86 s</td><td class="n mal">10× más lento</td><td class="n">1</td><td class="n">1.367</td><td class="n">20.000</td><td class="n">11,3 MB</td><td class="n">63,4 MB</td></tr>
+<tr><td><code>Include(p =&gt; p.Cliente), rastreando, con Cliente.Pedidos inicializada como HashSet&lt;Pedido&gt;</code></td><td class="n"><span class="barra" style="width:4px"></span>168,7 ms</td><td class="n bien">1,1× más rápido</td><td class="n">1</td><td class="n">1.367</td><td class="n">20.000</td><td class="n">11,3 MB</td><td class="n">64,2 MB</td></tr>
+<tr><td><code>Include(p =&gt; p.Cliente).AsNoTracking()</code></td><td class="n"><span class="barra" style="width:2px"></span>91,0 ms</td><td class="n bien">2,0× más rápido</td><td class="n">1</td><td class="n">1.367</td><td class="n">20.000</td><td class="n">11,3 MB</td><td class="n">48,2 MB</td></tr>
+<tr><td><code>Include(p =&gt; p.Cliente).AsNoTrackingWithIdentityResolution()</code></td><td class="n"><span class="barra" style="width:60px"></span>2,84 s</td><td class="n mal">15× más lento</td><td class="n">1</td><td class="n">1.367</td><td class="n">20.000</td><td class="n">11,3 MB</td><td class="n">68,9 MB</td></tr>
+<tr><td><code>Include(p =&gt; p.Cliente).AsNoTrackingWithIdentityResolution(), con Cliente.Pedidos como HashSet&lt;Pedido&gt;</code></td><td class="n"><span class="barra" style="width:4px"></span>190,8 ms</td><td class="n ">igual</td><td class="n">1</td><td class="n">1.367</td><td class="n">20.000</td><td class="n">11,3 MB</td><td class="n">69,7 MB</td></tr>
+<tr><td><code>ToList() rastreando y después SaveChanges() sin haber cambiado nada</code></td><td class="n"><span class="barra" style="width:4px"></span>206,8 ms</td><td class="n medio">1,1× más lento</td><td class="n">1</td><td class="n">1.364</td><td class="n">20.000</td><td class="n">10,2 MB</td><td class="n">75,3 MB</td></tr>
+</table></div>
+<!-- /tabla -->
+<p>Las lecturas y los bytes son iguales en todas: el servidor hace lo mismo. La diferencia es toda del lado de .NET. Rastrear 20.000 pedidos cuesta <b>entre dos y cuatro veces el tiempo y 22 MB más</b> que no rastrearlos (186 ms contra 49 en esta corrida; en otra dio 131 contra 54: el rastreo es trabajo de CPU en .NET y baila más que lo que hace el servidor). Para una pantalla que lista y no modifica, ese trabajo es puro desperdicio; <code>AsNoTracking()</code> en la consulta, o <code>ChangeTracker.QueryTrackingBehavior = NoTracking</code> en el contexto de lectura, lo evita.</p>
+<p>Lo del <code>Include(p =&gt; p.Cliente)</code> rastreando es otra cosa, y es la sorpresa del capítulo: <b>1,9 segundos</b> en vez de 190 ms, sin que el servidor haya hecho nada distinto. El culpable es la colección de navegación del otro lado: cuando EF materializa cada pedido tiene que agregarlo a <code>Cliente.Pedidos</code>, y esa colección estaba inicializada en la entidad como <code>new List&lt;Pedido&gt;()</code>. Para no duplicar, EF pregunta <code>Contains</code> antes de agregar, y <code>Contains</code> en una lista es recorrerla: con 20.000 pedidos del mismo cliente son 200 millones de comparaciones. Con <code>new HashSet&lt;Pedido&gt;()</code> la misma consulta vuelve a su tiempo normal: 169 ms, once veces menos. EF crea <code>HashSet</code> cuando la colección está en <code>null</code>; el problema aparece cuando uno «ayuda» inicializándola con una lista. <code>AsNoTrackingWithIdentityResolution()</code> tiene exactamente el mismo problema (es la misma fijación de navegaciones, sin el rastreo), y con <code>HashSet</code> se arregla igual (2,8 segundos contra 191 ms).</p>
+<p><code>AsNoTracking()</code> a secas con el <code>Include</code> es rápido por el camino opuesto: no hace la fijación, así que materializa <b>20.000 instancias distintas del mismo cliente</b> (una por pedido, 12 MB más de memoria). Si lo que hacés es mostrar el nombre del cliente al lado de cada pedido, da lo mismo; si vas a comparar referencias o armar un grafo, no.</p>
+<p>La última fila es un <code>SaveChanges()</code> sin ningún cambio sobre 20.000 entidades rastreadas: <code>DetectChanges</code> tiene que comparar cada propiedad de cada entidad con su copia original. Acá son unos 20 ms y 17 MB más, poca cosa; en el capítulo 8 vamos a ver lo que pasa cuando eso se hace 2.000 veces.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Consulta que no va a modificar nada: <code>AsNoTracking()</code>. Mitad de tiempo, un tercio menos de memoria.</li>
+<li>No inicialices las colecciones de navegación con <code>List</code>. Dejalas en <code>null</code> o usá <code>HashSet</code>: las fijaciones son O(1) en vez de O(n).</li>
+<li><code>AsNoTracking()</code> con <code>Include</code> de referencia duplica el padre por cada hijo. Si eso importa, <code>AsNoTrackingWithIdentityResolution()</code>.</li>
+</ul></div>
+
+<h2 id="proyeccion"><small>Capítulo 4</small>Traer la entidad o traer lo que hace falta</h2>
+<p>Los mismos 20.000 pedidos, sin rastrear, de cuatro formas. La entidad entera pesa por <code>Notas</code>, que es un texto de 150 a 400 caracteres; las dos proyecciones traen dos y cuatro columnas; y las dos últimas suman el total, una en el servidor y otra en el cliente:</p>
+<pre><code>var q = ctx.Pedidos.AsNoTracking().Where(p =&gt; p.PedidoId &lt;= 20000);
+q.ToList();
+q.Select(p =&gt; new { p.PedidoId, p.Total }).ToList();
+q.Select(p =&gt; new PedidoResumen(p.PedidoId, p.Fecha, p.Estado, p.Total)).ToList();   // un record
+q.Sum(p =&gt; p.Total);
+q.ToList().Sum(p =&gt; p.Total);</code></pre>
+<!-- tabla:proyeccion -->
+<div class="tabla"><table data-capitulo="proyeccion">
+<tr><th>Variante</th><th class="n">Tiempo</th><th class="n">Contra la base</th><th class="n">Viajes</th><th class="n">Lecturas</th><th class="n">Filas</th><th class="n">Recibido</th><th class="n">Memoria .NET</th></tr>
+<tr><td><code>La entidad completa (con Notas)</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:60px"></span>46,8 ms</td><td class="n ">1,0×</td><td class="n">1</td><td class="n">1.364</td><td class="n">20.000</td><td class="n">10,2 MB</td><td class="n">36,6 MB</td></tr>
+<tr><td><code>Select(p =&gt; new { p.PedidoId, p.Total })</code></td><td class="n"><span class="barra" style="width:12px"></span>9,53 ms</td><td class="n bien">4,9× más rápido</td><td class="n">1</td><td class="n">1.364</td><td class="n">20.000</td><td class="n">215 KB</td><td class="n">5,02 MB</td></tr>
+<tr><td><code>Select(p =&gt; new PedidoResumen(p.PedidoId, p.Fecha, p.Estado, p.Total))</code></td><td class="n"><span class="barra" style="width:21px"></span>16,5 ms</td><td class="n bien">2,8× más rápido</td><td class="n">1</td><td class="n">1.364</td><td class="n">20.000</td><td class="n">571 KB</td><td class="n">6,06 MB</td></tr>
+<tr><td><code>Sum(p =&gt; p.Total) en el servidor</code></td><td class="n"><span class="barra" style="width:11px"></span>8,89 ms</td><td class="n bien">5,3× más rápido</td><td class="n">1</td><td class="n">1.364</td><td class="n">1</td><td class="n">186 B</td><td class="n">99 KB</td></tr>
+<tr><td><code>ToList().Sum(p =&gt; p.Total) (la cuenta en el cliente)</code></td><td class="n"><span class="barra" style="width:58px"></span>44,9 ms</td><td class="n ">igual</td><td class="n">1</td><td class="n">1.364</td><td class="n">20.000</td><td class="n">10,2 MB</td><td class="n">36,6 MB</td></tr>
+</table></div>
+<!-- /tabla -->
+<p>Las lecturas no cambian (el servidor recorre las mismas 1.364 páginas en los cinco casos), pero lo que viaja sí: <b>10,4 MB</b> la entidad contra <b>215 KB</b> las dos columnas, 48 veces menos, y la memoria en .NET baja de 37 MB a 5. El tiempo acompaña: 47 ms contra 9,5. El <code>record</code> con cuatro columnas está en el medio y es lo que uno suele querer para un listado.</p>
+<p>Las dos últimas filas son el mismo <code>Sum</code> con el punto en distinto lugar. <code>q.Sum(…)</code> se traduce a <code>SELECT SUM(Total)</code> y vuelve una fila; <code>q.ToList().Sum(…)</code> trae los 20.000 pedidos enteros y suma en memoria. Cinco veces más lento, 10 MB más de red y 37 MB de basura, por un <code>ToList()</code> que sobraba. Es el error más fácil de cometer y el más difícil de ver en un code review, porque el resultado es el mismo.</p>
+<!-- sql:proyeccion:3 -->
+<pre class="sql"><code>SELECT COALESCE(SUM([p].[Total]), 0.0)
+FROM [Pedidos] AS [p]
+WHERE [p].[PedidoId] &lt;= 20000</code></pre>
+<!-- /sql -->
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Para listar, proyectá a un record o a un tipo anónimo con las columnas que la pantalla usa. La entidad completa es para cuando la vas a modificar.</li>
+<li>Todo lo que esté después de un <code>ToList()</code>, <code>AsEnumerable()</code> o <code>ToArray()</code> se ejecuta en .NET sobre lo que ya viajó. Los agregados, filtros y ordenamientos van antes.</li>
+</ul></div>
+
+<h2 id="paginacion"><small>Capítulo 5</small>Paginar con Skip o con la última clave</h2>
+<p>La forma natural de paginar en LINQ es <code>Skip(n).Take(50)</code>, que EF traduce a <code>OFFSET … FETCH</code>. El servidor, para saltear 399.950 filas, tiene que leerlas y descartarlas. La alternativa es <i>keyset</i> o <i>paginación por cursor</i>: recordar la clave de la última fila mostrada y pedir las siguientes:</p>
+<pre><code>// OFFSET: la página 8.000 de 50
+ctx.Pedidos.OrderBy(p =&gt; p.PedidoId).Skip(7999 * 50).Take(50).ToList();
+
+// Keyset: «las 50 siguientes a la última que mostré»
+ctx.Pedidos.Where(p =&gt; p.PedidoId &gt; ultimo).OrderBy(p =&gt; p.PedidoId).Take(50).ToList();
+
+// Lo mismo ordenando por fecha (hay índice sobre Fecha) y desempatando por id
+ctx.Pedidos.OrderBy(p =&gt; p.Fecha).ThenBy(p =&gt; p.PedidoId).Skip(7999 * 50).Take(50).ToList();
+ctx.Pedidos.Where(p =&gt; p.Fecha &gt; f || (p.Fecha == f &amp;&amp; p.PedidoId &gt; id))
+   .OrderBy(p =&gt; p.Fecha).ThenBy(p =&gt; p.PedidoId).Take(50).ToList();</code></pre>
+<!-- tabla:paginacion -->
+<div class="tabla"><table data-capitulo="paginacion">
+<tr><th>Variante</th><th class="n">Tiempo</th><th class="n">Contra la base</th><th class="n">Viajes</th><th class="n">Lecturas</th><th class="n">Filas</th><th class="n">Recibido</th><th class="n">Memoria .NET</th></tr>
+<tr><td><code>OrderBy(PedidoId).Skip(0).Take(50): página 1</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:2px"></span>1,57 ms</td><td class="n ">1,0×</td><td class="n">1</td><td class="n">19</td><td class="n">50</td><td class="n">24 KB</td><td class="n">193 KB</td></tr>
+<tr><td><code>OrderBy(PedidoId).Skip(99.950).Take(50): página 2.000</code></td><td class="n"><span class="barra" style="width:6px"></span>86,7 ms</td><td class="n mal">55× más lento</td><td class="n">1</td><td class="n">6.860</td><td class="n">50</td><td class="n">26 KB</td><td class="n">200 KB</td></tr>
+<tr><td><code>OrderBy(PedidoId).Skip(399.950).Take(50): página 8.000 (la última)</code></td><td class="n"><span class="barra" style="width:22px"></span>342,5 ms</td><td class="n mal">218× más lento</td><td class="n">1</td><td class="n">27.395</td><td class="n">50</td><td class="n">27 KB</td><td class="n">202 KB</td></tr>
+<tr><td><code>Where(p =&gt; p.PedidoId &gt; ultimo).OrderBy(PedidoId).Take(50): keyset, página 1</code></td><td class="n"><span class="barra" style="width:2px"></span>1,42 ms</td><td class="n bien">1,1× más rápido</td><td class="n">1</td><td class="n">19</td><td class="n">50</td><td class="n">24 KB</td><td class="n">194 KB</td></tr>
+<tr><td><code>Where(p =&gt; p.PedidoId &gt; ultimo).OrderBy(PedidoId).Take(50): keyset, página 8.000</code></td><td class="n"><span class="barra" style="width:2px"></span>951 µs</td><td class="n bien">1,6× más rápido</td><td class="n">1</td><td class="n">7</td><td class="n">50</td><td class="n">27 KB</td><td class="n">204 KB</td></tr>
+<tr><td><code>OrderBy(Fecha).ThenBy(PedidoId).Skip(399.950).Take(50): página 8.000 por fecha</code></td><td class="n"><span class="barra" style="width:60px"></span>941,6 ms</td><td class="n mal">601× más lento</td><td class="n">1</td><td class="n">1.275.897</td><td class="n">50</td><td class="n">27 KB</td><td class="n">203 KB</td></tr>
+<tr><td><code>Where(p =&gt; p.Fecha &gt; f || (p.Fecha == f &amp;&amp; p.PedidoId &gt; id)).OrderBy(Fecha).ThenBy(PedidoId).Take(50): keyset por fecha, página 8.000</code></td><td class="n"><span class="barra" style="width:2px"></span>1,18 ms</td><td class="n bien">1,3× más rápido</td><td class="n">1</td><td class="n">165</td><td class="n">50</td><td class="n">27 KB</td><td class="n">211 KB</td></tr>
+</table></div>
+<!-- /tabla -->
+<p>La primera página cuesta lo mismo de las dos maneras (19 lecturas). La página 2.000 con <code>OFFSET</code> ya son 6.860 lecturas y 87 ms; la última, 27.395 lecturas (la tabla entera) y 343 ms. Con keyset la última página cuesta <b>7 lecturas y 1 ms</b>: el servidor hace un seek al id y lee 50 filas, no importa en qué página estés.</p>
+<p>Ordenando por fecha es peor: la página 8.000 con <code>OFFSET</code> hace <b>1.275.897 lecturas</b> y tarda casi un segundo. Como el índice sobre <code>Fecha</code> no tiene las demás columnas, el servidor recorre el índice en orden y por cada una de las 400.000 filas que saltea hace un lookup a la tabla para traerlas enteras (sí, las que va a descartar). El keyset por fecha, con el desempate por id, hace 165 lecturas. Si una pantalla tiene «ir a la página 437», hace falta <code>OFFSET</code>; si tiene «siguiente» y scroll infinito, que es lo que casi todas tienen, keyset.</p>
+<!-- sql:paginacion:6 -->
+<pre class="sql"><code>SELECT TOP(@__p_2) [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]
+FROM [Pedidos] AS [p]
+WHERE [p].[Fecha] &gt; @__f_0 OR ([p].[Fecha] = @__f_0 AND [p].[PedidoId] &gt; @__id_1)
+ORDER BY [p].[Fecha], [p].[PedidoId]</code></pre>
+<!-- /sql -->
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li><code>Skip(n)</code> cuesta en proporción a <code>n</code>. En la página 1 no se nota; en un listado de un año de movimientos, sí.</li>
+<li>Keyset: <code>Where(clave &gt; última).OrderBy(clave).Take(n)</code>. Con un orden que no es único, desempatá con la clave y poné el índice sobre las dos columnas.</li>
+</ul></div>
+
+<h2 id="contains"><small>Capítulo 6</small>Buscar por una lista de ids</h2>
+<p><code>Where(p =&gt; ids.Contains(p.PedidoId))</code> es de las consultas más comunes que hay, y EF Core 8 cambió cómo la traduce. Hasta la 7 mandaba <code>IN (1, 2, 3, …)</code> con los valores pegados en el SQL; desde la 8, en SQL Server 2016 o más nuevo, manda la lista como <b>un parámetro JSON</b> y la abre con <code>OPENJSON</code>. Medimos con 10, 1.000 y 10.000 ids, y las mismas tres con <code>UseCompatibilityLevel(120)</code>, que vuelve al comportamiento viejo:</p>
+<pre><code>int[] ids = …;
+ctx.Pedidos.Where(p =&gt; ids.Contains(p.PedidoId)).Select(p =&gt; p.Total).ToList();
+
+// Para volver a IN (…) con literales:
+options.UseSqlServer(cs, o =&gt; o.UseCompatibilityLevel(120));</code></pre>
+<!-- sql:contains:1 -->
+<pre class="sql"><code>SELECT [p].[Total]
+FROM [Pedidos] AS [p]
+WHERE [p].[PedidoId] IN (
+    SELECT [i].[value]
+    FROM OPENJSON(@__ids_0) WITH ([value] int '$') AS [i]
+)</code></pre>
+<!-- /sql -->
+<!-- sql:contains:3 -->
+<pre class="sql"><code>SELECT [p].[Total]
+FROM [Pedidos] AS [p]
+WHERE [p].[PedidoId] IN (16970, 20905, 146574, 153289, 264376, 270468, 337427, 341985, 348503, 381588)</code></pre>
+<!-- /sql -->
+<!-- tabla:contains -->
+<div class="tabla"><table data-capitulo="contains">
+<tr><th>Variante</th><th class="n">Tiempo</th><th class="n">Contra la base</th><th class="n">Viajes</th><th class="n">Lecturas</th><th class="n">Filas</th><th class="n">Recibido</th><th class="n">Memoria .NET</th></tr>
+<tr><td><code>Where(p =&gt; ids.Contains(p.PedidoId)) con 10 ids, EF Core 8 (OPENJSON)</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:2px"></span>1,47 ms</td><td class="n ">1,0×</td><td class="n">1</td><td class="n">30</td><td class="n">10</td><td class="n">273 B</td><td class="n">105 KB</td></tr>
+<tr><td><code>Where(p =&gt; ids.Contains(p.PedidoId)) con 1.000 ids, EF Core 8 (OPENJSON)</code></td><td class="n"><span class="barra" style="width:3px"></span>5,32 ms</td><td class="n mal">3,6× más lento</td><td class="n">1</td><td class="n">3.000</td><td class="n">1.000</td><td class="n">7,0 KB</td><td class="n">365 KB</td></tr>
+<tr><td><code>Where(p =&gt; ids.Contains(p.PedidoId)) con 10.000 ids, EF Core 8 (OPENJSON)</code></td><td class="n"><span class="barra" style="width:16px"></span>28,0 ms</td><td class="n mal">19× más lento</td><td class="n">1</td><td class="n">30.000</td><td class="n">10.000</td><td class="n">69 KB</td><td class="n">2,92 MB</td></tr>
+<tr><td><code>Where(p =&gt; ids.Contains(p.PedidoId)) con 10 ids, UseCompatibilityLevel(120) (IN con literales)</code></td><td class="n"><span class="barra" style="width:2px"></span>1,52 ms</td><td class="n ">igual</td><td class="n">1</td><td class="n">30</td><td class="n">10</td><td class="n">255 B</td><td class="n">110 KB</td></tr>
+<tr><td><code>Where(p =&gt; ids.Contains(p.PedidoId)) con 1.000 ids, UseCompatibilityLevel(120) (IN con literales)</code></td><td class="n"><span class="barra" style="width:4px"></span>6,69 ms</td><td class="n mal">4,5× más lento</td><td class="n">1</td><td class="n">3.189</td><td class="n">1.000</td><td class="n">7,0 KB</td><td class="n">495 KB</td></tr>
+<tr><td><code>Where(p =&gt; ids.Contains(p.PedidoId)) con 10.000 ids, UseCompatibilityLevel(120) (IN con literales)</code></td><td class="n"><span class="barra" style="width:60px"></span>106,9 ms</td><td class="n mal">73× más lento</td><td class="n">1</td><td class="n">27.395</td><td class="n">10.000</td><td class="n">69 KB</td><td class="n">4,19 MB</td></tr>
+<tr><td><code>Lo mismo con 1.000 ids pero sobre Clientes.Email (texto) en vez de la clave: Where(c =&gt; emails.Contains(c.Email))</code></td><td class="n"><span class="barra" style="width:3px"></span>4,96 ms</td><td class="n mal">3,4× más lento</td><td class="n">1</td><td class="n">3.000</td><td class="n">128</td><td class="n">848 B</td><td class="n">449 KB</td></tr>
+</table></div>
+<!-- /tabla -->
+<p>Con 10 ids da lo mismo. Con 10.000, la versión nueva tarda 28 ms y la vieja 107: el SQL de la vieja mide 70 KB y el servidor tiene que parsearlo y compilar un plan nuevo cada vez que cambia la lista (fijate la columna de tiempo de la primera corrida en <a href="resultados.json">el JSON</a>: un segundo para la primera consulta con 10.000 literales). Con OPENJSON el SQL es siempre el mismo, hay un solo plan en caché y lo que viaja es el parámetro.</p>
+<p>La contra de OPENJSON es que el optimizador no sabe cuántos valores vienen (estima 50) y puede elegir mal el plan cuando la lista es muy grande o muy chica; acá no pasó. Si en una consulta puntual pasa, <code>EF.Constant(ids)</code> fuerza los literales solo ahí. Con listas de texto funciona igual, y hay un detalle que importa: en la última fila la columna del <code>OPENJSON</code> se tipea como <code>varchar(200)</code> porque el modelo dice que <code>Email</code> es varchar; sin eso sería <code>nvarchar</code> y el índice no serviría (capítulo 11). El 128 de la columna de filas es porque solo 128 de esos 1.000 clientes existen.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>En EF Core 8 <code>Contains</code> sobre una lista es un parámetro y un plan. No hace falta hacer nada.</li>
+<li>Si tenés que pasar más de unos pocos miles de ids, lo que hay que pensar es si no deberían ser una consulta o una tabla temporal, no cómo se traducen.</li>
+</ul></div>
+
+<h2 id="demas"><small>Capítulo 7</small>Lo que trae de más</h2>
+<p>Cuatro preguntas sobre los 100.000 pedidos del mayorista: si tiene alguno, cuántos superan los 50.000 pesos, y los 10 más recientes de esos. Cada una escrita con el trabajo en el servidor y con el trabajo en el cliente, que es lo que pasa cuando un <code>ToList()</code> se cuela antes de tiempo:</p>
+<pre><code>var q = ctx.Pedidos.AsNoTracking().Where(p =&gt; p.ClienteId == 1);
+q.Any();   q.Count() &gt; 0;   q.FirstOrDefault() != null;   q.ToList().Any();
+q.Count(p =&gt; p.Total &gt; 50000);                       q.ToList().Count(p =&gt; p.Total &gt; 50000);
+q.Where(p =&gt; p.Total &gt; 50000).OrderByDescending(p =&gt; p.Fecha).Take(10).ToList();
+q.ToList().Where(p =&gt; p.Total &gt; 50000).OrderByDescending(p =&gt; p.Fecha).Take(10).ToList();</code></pre>
+<!-- tabla:demas -->
+<div class="tabla"><table data-capitulo="demas">
+<tr><th>Variante</th><th class="n">Tiempo</th><th class="n">Contra la base</th><th class="n">Viajes</th><th class="n">Lecturas</th><th class="n">Filas</th><th class="n">Recibido</th><th class="n">Memoria .NET</th></tr>
+<tr><td><code>Any()</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:2px"></span>874 µs</td><td class="n ">1,0×</td><td class="n">1</td><td class="n">3</td><td class="n">1</td><td class="n">176 B</td><td class="n">104 KB</td></tr>
+<tr><td><code>Count() &gt; 0</code></td><td class="n"><span class="barra" style="width:2px"></span>7,96 ms</td><td class="n mal">9,1× más lento</td><td class="n">1</td><td class="n">177</td><td class="n">1</td><td class="n">179 B</td><td class="n">104 KB</td></tr>
+<tr><td><code>FirstOrDefault() != null</code></td><td class="n"><span class="barra" style="width:2px"></span>888 µs</td><td class="n ">igual</td><td class="n">1</td><td class="n">4</td><td class="n">1</td><td class="n">797 B</td><td class="n">107 KB</td></tr>
+<tr><td><code>ToList().Any()</code></td><td class="n"><span class="barra" style="width:60px"></span>465,7 ms</td><td class="n mal">533× más lento</td><td class="n">1</td><td class="n">27.396</td><td class="n">100.000</td><td class="n">51,0 MB</td><td class="n">182,3 MB</td></tr>
+<tr><td><code>Count(p =&gt; p.Total &gt; 50000)</code></td><td class="n"><span class="barra" style="width:7px"></span>52,2 ms</td><td class="n mal">60× más lento</td><td class="n">1</td><td class="n">28.773</td><td class="n">1</td><td class="n">179 B</td><td class="n">106 KB</td></tr>
+<tr><td><code>ToList().Count(p =&gt; p.Total &gt; 50000)</code></td><td class="n"><span class="barra" style="width:59px"></span>458,2 ms</td><td class="n mal">524× más lento</td><td class="n">1</td><td class="n">27.396</td><td class="n">100.000</td><td class="n">51,0 MB</td><td class="n">182,3 MB</td></tr>
+<tr><td><code>Where(p =&gt; p.Total &gt; 50000).OrderByDescending(p =&gt; p.Fecha).Take(10).ToList()</code></td><td class="n"><span class="barra" style="width:49px"></span>376,5 ms</td><td class="n mal">431× más lento</td><td class="n">1</td><td class="n">956.959</td><td class="n">10</td><td class="n">5,4 KB</td><td class="n">136 KB</td></tr>
+<tr><td><code>ToList().Where(p =&gt; p.Total &gt; 50000).OrderByDescending(p =&gt; p.Fecha).Take(10).ToList()</code></td><td class="n"><span class="barra" style="width:59px"></span>457,2 ms</td><td class="n mal">523× más lento</td><td class="n">1</td><td class="n">27.396</td><td class="n">100.000</td><td class="n">51,0 MB</td><td class="n">184,7 MB</td></tr>
+<tr><td><code>Where(p =&gt; p.Total &gt; 50000).OrderByDescending(p =&gt; p.Fecha).Take(10).ToList(), con un índice sobre (ClienteId, Fecha) INCLUDE (Total)</code></td><td class="n"><span class="barra" style="width:2px"></span>1,54 ms</td><td class="n medio">1,8× más lento</td><td class="n">1</td><td class="n">36</td><td class="n">10</td><td class="n">5,4 KB</td><td class="n">136 KB</td></tr>
+</table></div>
+<!-- /tabla -->
+<p><code>Any()</code> se traduce a <code>EXISTS</code> y lee 3 páginas. <code>Count() &gt; 0</code> cuenta los 100.000 en el índice más angosto (177 páginas, 8 ms): nueve veces más que <code>Any()</code> para contestar lo mismo, y crece con la cantidad. <code>FirstOrDefault() != null</code> está bien (4 lecturas), aunque trae una fila entera para tirarla. Y <code>ToList().Any()</code> trae los <b>100.000 pedidos con sus notas</b>, 52 MB por la red y 187 MB de objetos, para preguntar si la lista está vacía: medio segundo.</p>
+<p>Las dos del <code>Take(10)</code> son la parte honesta del capítulo. La versión «correcta», con el filtro, el orden y el <code>Take</code> en el servidor, tardó <b>377 ms y 956.959 lecturas</b>: apenas mejor que traer todo. ¿Por qué? Porque el servidor, para devolver los 10 más recientes, eligió recorrer el índice sobre <code>Fecha</code> de atrás para adelante y hacer un lookup por fila hasta juntar 10 del cliente 1 con total mayor a 50.000, y como el cliente 1 es el 25 % de la tabla pero sus pedidos son los más viejos, revisó cientos de miles de filas antes de encontrarlos. La última fila es la misma consulta con un índice sobre <code>(ClienteId, Fecha DESC) INCLUDE (Total)</code>: 36 lecturas y 1,5 ms. <b>EF escribió la consulta bien; el que faltaba era el índice.</b> Esto es lo que mira <a href="../indices-con-cronometro/">el otro escrito</a>.</p>
+<!-- sql:demas:6 -->
+<pre class="sql"><code>SELECT TOP(@__p_0) [p].[PedidoId], [p].[ClienteId], [p].[Estado], [p].[Fecha], [p].[Notas], [p].[Total]
+FROM [Pedidos] AS [p]
+WHERE [p].[ClienteId] = 1 AND [p].[Total] &gt; 50000.0
+ORDER BY [p].[Fecha] DESC</code></pre>
+<!-- /sql -->
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>«¿Hay alguno?» es <code>Any()</code>. No <code>Count() &gt; 0</code>, y nunca <code>ToList().Any()</code>.</li>
+<li>Cuando la consulta está bien escrita y sigue lenta, el problema no está en EF: mirá el plan y el índice.</li>
+</ul></div>
+
+<h2 id="insertar"><small>Capítulo 8</small>Insertar de a muchos</h2>
+<p>Dos mil pedidos nuevos, tres maneras: <code>Add</code> y <code>SaveChanges</code> adentro del bucle (la forma «natural» cuando el código viene de procesar un archivo de a una línea), <code>AddRange</code> y un solo <code>SaveChanges</code>, y <code>SqlBulkCopy</code>. Después lo mismo con 20.000:</p>
+<pre><code>foreach (var p in nuevos) { ctx.Pedidos.Add(p); ctx.SaveChanges(); }     // 1
+
+ctx.Pedidos.AddRange(nuevos); ctx.SaveChanges();                           // 2
+
+using var bulk = new SqlBulkCopy(conexion) { DestinationTableName = "dbo.Pedidos" };
+bulk.WriteToServer(tabla);                                                 // 3: un DataTable con las columnas</code></pre>
+<!-- tabla:insertar -->
+<div class="tabla"><table data-capitulo="insertar">
+<tr><th>Variante</th><th class="n">Tiempo</th><th class="n">Contra la base</th><th class="n">Viajes</th><th class="n">Lecturas</th><th class="n">Filas</th><th class="n">Recibido</th><th class="n">Memoria .NET</th></tr>
+<tr><td><code>2.000 pedidos: Add + SaveChanges adentro del foreach</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:60px"></span>6,40 s</td><td class="n ">1,0×</td><td class="n">2.000</td><td class="n">28.686</td><td class="n">0</td><td class="n">205 KB</td><td class="n">1.732,6 MB</td></tr>
+<tr><td><code>2.000 pedidos: AddRange + un SaveChanges</code></td><td class="n"><span class="barra" style="width:2px"></span>239,8 ms</td><td class="n bien">27× más rápido</td><td class="n">50</td><td class="n">28.939</td><td class="n">0</td><td class="n">23 KB</td><td class="n">25,9 MB</td></tr>
+<tr><td><code>2.000 pedidos: SqlBulkCopy</code></td><td class="n"><span class="barra" style="width:2px"></span>105,8 ms</td><td class="n bien">61× más rápido</td><td class="n">3</td><td class="n">23.928</td><td class="n">7</td><td class="n">808 B</td><td class="n">1,82 MB</td></tr>
+<tr><td><code>20.000 pedidos: AddRange + un SaveChanges</code></td><td class="n"><span class="barra" style="width:19px"></span>2,07 s</td><td class="n bien">3,1× más rápido</td><td class="n">479</td><td class="n">306.488</td><td class="n">0</td><td class="n">226 KB</td><td class="n">260,3 MB</td></tr>
+<tr><td><code>20.000 pedidos: SqlBulkCopy</code></td><td class="n"><span class="barra" style="width:5px"></span>513,7 ms</td><td class="n bien">12× más rápido</td><td class="n">3</td><td class="n">136.810</td><td class="n">7</td><td class="n">808 B</td><td class="n">19,4 MB</td></tr>
+<tr><td><code>20.000 pedidos: AddRange + SaveChanges con AutoDetectChangesEnabled = false</code></td><td class="n"><span class="barra" style="width:18px"></span>1,96 s</td><td class="n bien">3,3× más rápido</td><td class="n">479</td><td class="n">306.478</td><td class="n">0</td><td class="n">226 KB</td><td class="n">243,3 MB</td></tr>
+</table></div>
+<!-- /tabla -->
+<p>El bucle con <code>SaveChanges</code> adentro tarda <b>6,4 segundos</b> y asigna <b>1,7 GB</b>. Los 2.000 viajes explican una parte; el resto es que cada <code>SaveChanges</code> corre <code>DetectChanges</code> sobre todo lo que el contexto tiene rastreado, que crece con cada pedido guardado: el pedido 2.000 se guarda comparando los 1.999 anteriores con sus copias. Es O(n²) en tiempo y memoria, y es la razón por la que «el import tardaba 5 minutos y ahora tarda una hora» sin que nadie haya cambiado nada.</p>
+<p><code>AddRange</code> con un <code>SaveChanges</code> hace 50 viajes: EF agrupa las inserciones en lotes de 42 filas con un <code>MERGE … OUTPUT</code> que devuelve los ids generados, más la transacción. 240 ms. <code>SqlBulkCopy</code> tarda 106 ms, pero no devuelve los ids, no dispara validaciones ni interceptores de EF y hay que armarle un <code>DataTable</code>: es la herramienta para cargas, no para el <code>SaveChanges</code> de todos los días. Con 20.000 filas la relación se mantiene (2,1 s contra 0,5 s) y la memoria de EF es 266 MB contra 20. Apagar <code>AutoDetectChangesEnabled</code> no cambia nada acá porque <code>AddRange</code> ya lo llama una sola vez.</p>
+<!-- sql:insertar:1 -->
+<pre class="sql"><code>SET IMPLICIT_TRANSACTIONS OFF;
+SET NOCOUNT ON;
+MERGE [Pedidos] USING (
+VALUES (@p0, @p1, @p2, @p3, @p4, 0),
+(@p5, @p6, @p7, @p8, @p9, 1),
+(@p10, @p11, @p12, @p13, @p14, 2),
+(@p15, @p16, @p17, @p18, @p19, 3),
+(@p20, @p21, @p22, @p23, @p24, 4),
+(@p25, @p26, @p27, @p28, @p29, 5),
+(@p30, @p31, @p32, @p33, @p34, 6),
+(@p35, @p36, @p37, @p38, @p39, 7),
+(@p40, @p41, @p42, @p43, @p44, 8),
+(@p45, @p46, @p47, @p48, @p49, 9),
+(@p50, @p51, @p52, @p53, @p54, 10),
+(@p55, @p56, @p57, @p58, @p59, 11),
+(@p60, @p61, @p62, @p63, @p64, 12),
+(@p65, @p66, @p67, @p68, @p69, 13),
+(@p70, @p71, @p72, @p73, @p74, 14),
+(@p75, @p76, @p77, @p78, @p79, 15),
+(@p80, @p81, @p82, @p83, @p84, 16),
+(@p85, @p86, @p87, @p88, @p89, 17),
+(@p90, @p91, @p92, @p93, @p94, 18),
+(@p95, @p96, @p97, @p98, @p99, 19),
+(@p100, @p101, @p102, @p103, @p104, 20),
+(@p105, @p106, @p107, @p108, @p109, 21),
+(@p110, @p111, @p112, @p113, @p114, 22),
+(@p115, @p116, @p117, @p118, @p119, 23),
+(@p120, @p121, @p122, @p123, @p124, 24),
+(@p125, @p126, @p127, @p128, @p129, 25),
+(@p130, @p131, @p132, @p133, @p134, 26),
+(@p135, @p136, @p137, @p138, @p139, 27),
+(@p140, @p141, @p142, @p143, @p144, 28),
+(@p145, @p146, @p147, @p148, @p149, 29),
+(@p150, @p151, @p152, @p153, @p154, 30),
+(@p155, @p156, @p157, @p158, @p159, 31),
+(@p160, @p161, @p162, @p163, @p164, 32),
+(@p165, @p166, @p167, @p168, @p169, 33),
+(@p170, @p171, @p172, @p173, @p174, 34),
+(@p175, @p176, @p177, @p178, @p179, 35),
+(@p180, @p181, @p182, @p183, @p184, 36),
+(@p185, @p186, @p187, @p188, @p189, 37),
+(@p190, @p191, @p192, @p193, @p194, 38),
+(@p195, @p196, @p197, @p198, @p199, 39),
+(@p200, @p201, @p202, @p203, @p204, 40),
+(@p205, @p206, @p207, @p208, @p209, 41)) AS i ([ClienteId], [Estado], [Fecha], [Notas], [Total], _Position) ON 1=0
+WHEN NOT MATCHED THEN
+INSERT ([ClienteId], [Estado], [Fecha], [Notas], [Total])
+VALUES (i.[ClienteId], i.[Estado], i.[Fecha], i.[Notas], i.[Total])
+OUTPUT INSERTED.[PedidoId], i._Position;</code></pre>
+<!-- /sql -->
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li><code>SaveChanges</code> adentro de un bucle es cuadrático. Si tiene que ser de a uno (por ejemplo para seguir después de un error), un contexto nuevo por ítem o <code>ChangeTracker.Clear()</code> después de cada guardado.</li>
+<li>Decenas de miles de filas de una carga: <code>SqlBulkCopy</code> (o una librería que lo envuelva). Lo de todos los días: <code>AddRange</code> y un <code>SaveChanges</code>.</li>
+</ul></div>
+
+<h2 id="actualizar"><small>Capítulo 9</small>Actualizar y borrar sin traer las filas</h2>
+<p>Marcar 10.000 pedidos como enviados, y borrar los 40.000 eventos de otros 10.000. La forma clásica carga las entidades, las modifica y guarda; <code>ExecuteUpdate</code> y <code>ExecuteDelete</code> (EF Core 7 y más) lo hacen en una sola sentencia sin traer nada:</p>
+<pre><code>var l = ctx.Pedidos.Where(p =&gt; p.PedidoId &lt;= 10000).ToList();
+foreach (var p in l) p.Estado = "Enviado";
+ctx.SaveChanges();
+
+ctx.Pedidos.Where(p =&gt; p.PedidoId &lt;= 10000).ExecuteUpdate(s =&gt; s.SetProperty(p =&gt; p.Estado, "Enviado"));
+
+var ev = ctx.Eventos.Where(e =&gt; e.PedidoId &gt; 390000).ToList();
+ctx.Eventos.RemoveRange(ev);
+ctx.SaveChanges();
+
+ctx.Eventos.Where(e =&gt; e.PedidoId &gt; 390000).ExecuteDelete();</code></pre>
+<!-- tabla:actualizar -->
+<div class="tabla"><table data-capitulo="actualizar">
+<tr><th>Variante</th><th class="n">Tiempo</th><th class="n">Contra la base</th><th class="n">Viajes</th><th class="n">Lecturas</th><th class="n">Filas</th><th class="n">Recibido</th><th class="n">Memoria .NET</th></tr>
+<tr><td><code>10.000 pedidos: cargar, cambiar Estado en el foreach y SaveChanges</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:16px"></span>554,2 ms</td><td class="n ">1,0×</td><td class="n">242</td><td class="n">40.683</td><td class="n">10.000</td><td class="n">5,37 MB</td><td class="n">111,1 MB</td></tr>
+<tr><td><code>10.000 pedidos: ExecuteUpdate(s =&gt; s.SetProperty(p =&gt; p.Estado, "Enviado"))</code></td><td class="n"><span class="barra" style="width:2px"></span>42,2 ms</td><td class="n bien">13× más rápido</td><td class="n">1</td><td class="n">10.683</td><td class="n">0</td><td class="n">159 B</td><td class="n">104 KB</td></tr>
+<tr><td><code>Borrar los eventos de 10.000 pedidos: cargar, RemoveRange y SaveChanges</code></td><td class="n"><span class="barra" style="width:60px"></span>2,09 s</td><td class="n mal">3,8× más lento</td><td class="n">954</td><td class="n">328.680</td><td class="n">39.937</td><td class="n">2,25 MB</td><td class="n">212,6 MB</td></tr>
+<tr><td><code>Borrar los eventos de 10.000 pedidos: ExecuteDelete()</code></td><td class="n"><span class="barra" style="width:12px"></span>401,1 ms</td><td class="n bien">1,4× más rápido</td><td class="n">1</td><td class="n">340.939</td><td class="n">0</td><td class="n">159 B</td><td class="n">102 KB</td></tr>
+</table></div>
+<!-- /tabla -->
+<p>Cargar y guardar son 242 viajes (uno para leer, 240 lotes de 42 <code>UPDATE</code>, la transacción), 5,5 MB que viajan para volver como un <code>UPDATE</code> por fila, 114 MB de memoria y 554 ms. <code>ExecuteUpdate</code> es <b>un viaje, 42 ms y ningún objeto</b>. Para el borrado la diferencia es de 2,1 segundos y 954 viajes contra 401 ms y uno.</p>
+<!-- sql:actualizar:0:1 -->
+<pre class="sql"><code>SET NOCOUNT ON;
+UPDATE [Pedidos] SET [Estado] = @p0
+OUTPUT 1
+WHERE [PedidoId] = @p1;
+UPDATE [Pedidos] SET [Estado] = @p2
+OUTPUT 1
+WHERE [PedidoId] = @p3;
+UPDATE [Pedidos] SET [Estado] = @p4
+OUTPUT 1
+WHERE [PedidoId] = @p5;
+UPDATE [Pedidos] SET [Estado] = @p6
+OUTPUT 1
+WHERE [PedidoId] = @p7;
+UPDATE [Pedidos] SET [Estado] = @p8
+OUTPUT 1
+WHERE [PedidoId] = @p9;
+UPDATE [Pedidos] SET [Estado] = @p10
+OUTPUT 1
+WHERE [PedidoId] = @p11;
+UPDATE [Pedidos] SET [Estado] = @p12
+OUTPUT 1
+WHERE [PedidoId] = @p13;
+UPDATE [Pedidos] SET [Estado] = @p14
+OUTPUT 1
+WHERE [PedidoId] = @p15;
+UPDATE [Pedidos] SET [Estado] = @p16
+OUTPUT 1
+WHERE [PedidoId] = @p17;
+UPDATE [Pedidos] SET [Estado] = @p18
+OUTPUT 1
+WHERE [PedidoId] = @p19;
+UPDATE [Pedidos] SET [Estado] = @p20
+OUTPUT 1
+WHERE [PedidoId] = @p21;
+UPDATE [Pedidos] SET [Estado] = @p22
+OUTPUT 1
+WHERE [PedidoId] = @p23;
+UPDATE [Pedidos] SET [Estado] = @p24
+OUTPUT 1
+WHERE [PedidoId] = @p25;
+UPDATE [Pedidos] SET [Estado] = @p26
+OUTPUT 1
+WHERE [PedidoId] = @p27;
+UPDATE [Pedidos] SET [Estado] = @p28
+OUTPUT 1
+WHERE [PedidoId] = @p29;
+UPDATE [Pedidos] SET [Estado] = @p30
+OUTPUT 1
+WHERE [PedidoId] = @p31;
+UPDATE [Pedidos] SET [Estado] = @p32
+OUTPUT 1
+WHERE [PedidoId] = @p33;
+UPDATE [Pedidos] SET [Estado] = @p34
+OUTPUT 1
+WHERE [PedidoId] = @p35;
+UPDATE [Pedidos] SET [Estado] = @p36
+OUTPUT 1
+WHERE [PedidoId] = @p37;
+UPDATE [Pedidos] SET [Estado] = @p38
+OUTPUT 1
+WHERE [PedidoId] = @p39;
+UPDATE [Pedidos] SET [Estado] = @p40
+OUTPUT 1
+WHERE [PedidoId] = @p41;
+UPDATE [Pedidos] SET [Estado] = @p42
+OUTPUT 1
+WHERE [PedidoId] = @p43;
+UPDATE [Pedidos] SET [Estado] = @p44
+OUTPUT 1
+WHERE [PedidoId] = @p45;
+UPDATE [Pedidos] SET [Estado] = @p46
+OUTPUT 1
+WHERE [PedidoId] = @p47;
+UPDATE [Pedidos] SET [Estado] = @p48
+OUTPUT 1
+WHERE [PedidoId] = @p49;
+UPDATE [Pedidos] SET [Estado] = @p50
+OUTPUT 1
+WHERE [PedidoId] = @p51;
+UPDATE [Pedidos] SET [Estado] = @p52
+OUTPUT 1
+WHERE [PedidoId] = @p53;
+UPDATE [Pedidos] SET [Estado] = @p54
+OUTPUT 1
+WHERE [PedidoId] = @p55;
+UPDATE [Pedidos] SET [Estado] = @p56
+OUTPUT 1
+WHERE [PedidoId] = @p57;
+UPDATE [Pedidos] SET [Estado] = @p58
+OUTPUT 1
+WHERE [PedidoId] = @p59;
+UPDATE [Pedidos] SET [Estado] = @p60
+OUTPUT 1
+WHERE [PedidoId] = @p61;
+UPDATE [Pedidos] SET [Estado] = @p62
+OUTPUT 1
+WHERE [PedidoId] = @p63;
+UPDATE [Pedidos] SET [Estado] = @p64
+OUTPUT 1
+WHERE [PedidoId] = @p65;
+UPDATE [Pedidos] SET [Estado] = @p66
+OUTPUT 1
+WHERE [PedidoId] = @p67;
+UPDATE [Pedidos] SET [Estado] = @p68
+OUTPUT 1
+WHERE [PedidoId] = @p69;
+UPDATE [Pedidos] SET [Estado] = @p70
+OUTPUT 1
+WHERE [PedidoId] = @p71;
+UPDATE [Pedidos] SET [Estado] = @p72
+OUTPUT 1
+WHERE [PedidoId] = @p73;
+UPDATE [Pedidos] SET [Estado] = @p74
+OUTPUT 1
+WHERE [PedidoId] = @p75;
+UPDATE [Pedidos] SET [Estado] = @p76
+OUTPUT 1
+WHERE [PedidoId] = @p77;
+UPDATE [Pedidos] SET [Estado] = @p78
+OUTPUT 1
+WHERE [PedidoId] = @p79;
+UPDATE [Pedidos] SET [Estado] = @p80
+OUTPUT 1
+WHERE [PedidoId] = @p81;
+UPDATE [Pedidos] SET [Estado] = @p82
+OUTPUT 1
+WHERE [PedidoId] = @p83;</code></pre>
+<!-- /sql -->
+<!-- sql:actualizar:1 -->
+<pre class="sql"><code>UPDATE [p]
+SET [p].[Estado] = 'Enviado'
+FROM [Pedidos] AS [p]
+WHERE [p].[PedidoId] &lt;= 10000</code></pre>
+<!-- /sql -->
+<p>Lo que se pierde con <code>ExecuteUpdate</code>: no pasa por el change tracker (si tenés entidades cargadas quedan desactualizadas), no corre la lógica de las entidades ni los interceptores de <code>SaveChanges</code>, y no participa de la concurrencia optimista. Para «cambiar el estado de estos N», «borrar lo más viejo que tal fecha», «sumarle 1 a un contador», es exactamente lo que hay que usar.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Un cambio uniforme sobre muchas filas que no necesita lógica de dominio por entidad: <code>ExecuteUpdate</code> / <code>ExecuteDelete</code>.</li>
+<li>Cargar para borrar es traer las filas enteras solo para conocer su clave.</li>
+</ul></div>
+
+<h2 id="clave"><small>Capítulo 10</small>Buscar por clave: lo que cuesta EF y lo que cuesta el contexto</h2>
+<p>La operación más chica que hay: traer un pedido por su id. La hacemos 2.000 veces con ids al azar, de doce maneras, para separar lo que cuesta el viaje, lo que cuesta EF y lo que cuesta crear un <code>DbContext</code>. Las primeras cuatro crean un contexto por búsqueda, que es lo que pasa en una API con el contexto <i>scoped</i> por request:</p>
+<pre><code>using var ctx = new TiendaContext(opciones);  ctx.Pedidos.Find(id);
+using var ctx = new TiendaContext(opciones);  ctx.Pedidos.First(p =&gt; p.PedidoId == id);
+using var ctx = new TiendaContext(opciones);  ctx.Pedidos.AsNoTracking().First(p =&gt; p.PedidoId == id);
+var compilada = EF.CompileQuery((TiendaContext c, int id) =&gt; c.Pedidos.First(p =&gt; p.PedidoId == id));
+using var ctx = new TiendaContext(opciones);  compilada(ctx, id);
+using var ctx = fabrica.CreateDbContext();    ctx.Pedidos.First(…);     // PooledDbContextFactory
+
+// Un solo contexto para las 2.000
+ctx.Pedidos.First(…);   ctx.Pedidos.Find(id);
+ctx.Pedidos.Where(p =&gt; ids.Contains(p.PedidoId)).Load();   // y después, con todo ya rastreado:
+ctx.Pedidos.Find(id);   ctx.Pedidos.First(…);   ctx.Pedidos.Local.FirstOrDefault(p =&gt; p.PedidoId == id);
+
+conexion.QueryFirst&lt;decimal&gt;("SELECT Total FROM dbo.Pedidos WHERE PedidoId = @id", new { id });   // Dapper
+new SqlCommand("SELECT Total FROM dbo.Pedidos WHERE PedidoId = @id", conexion) …                   // a mano</code></pre>
+<!-- tabla:clave -->
+<div class="tabla"><table data-capitulo="clave">
+<tr><th>Variante</th><th class="n">Tiempo</th><th class="n">Contra la base</th><th class="n">Viajes</th><th class="n">Lecturas</th><th class="n">Filas</th><th class="n">Recibido</th><th class="n">Memoria .NET</th></tr>
+<tr><td><code>2.000 búsquedas: new TiendaContext + Find(id)</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:20px"></span>1,23 s</td><td class="n ">1,0×</td><td class="n">2.000</td><td class="n">6.000</td><td class="n">2.000</td><td class="n">1,36 MB</td><td class="n">159,7 MB</td></tr>
+<tr><td><code>2.000 búsquedas: new TiendaContext + First(p =&gt; p.PedidoId == id)</code></td><td class="n"><span class="barra" style="width:21px"></span>1,29 s</td><td class="n ">igual</td><td class="n">2.000</td><td class="n">6.000</td><td class="n">2.000</td><td class="n">1,36 MB</td><td class="n">152,5 MB</td></tr>
+<tr><td><code>2.000 búsquedas: new TiendaContext + AsNoTracking().First(…)</code></td><td class="n"><span class="barra" style="width:18px"></span>1,12 s</td><td class="n bien">1,1× más rápido</td><td class="n">2.000</td><td class="n">6.000</td><td class="n">2.000</td><td class="n">1,36 MB</td><td class="n">150,2 MB</td></tr>
+<tr><td><code>2.000 búsquedas: new TiendaContext + consulta compilada (EF.CompileQuery)</code></td><td class="n"><span class="barra" style="width:14px"></span>841,5 ms</td><td class="n bien">1,5× más rápido</td><td class="n">2.000</td><td class="n">6.000</td><td class="n">2.000</td><td class="n">1,36 MB</td><td class="n">141,6 MB</td></tr>
+<tr><td><code>2.000 búsquedas: contexto del pool (PooledDbContextFactory) + First(…)</code></td><td class="n"><span class="barra" style="width:7px"></span>457,0 ms</td><td class="n bien">2,7× más rápido</td><td class="n">2.000</td><td class="n">6.000</td><td class="n">2.000</td><td class="n">1,36 MB</td><td class="n">24,8 MB</td></tr>
+<tr><td><code>2.000 búsquedas: un solo contexto + First(…)</code></td><td class="n"><span class="barra" style="width:7px"></span>461,1 ms</td><td class="n bien">2,7× más rápido</td><td class="n">2.000</td><td class="n">6.000</td><td class="n">2.000</td><td class="n">1,36 MB</td><td class="n">24,7 MB</td></tr>
+<tr><td><code>2.000 búsquedas: un solo contexto + Find(id)</code></td><td class="n"><span class="barra" style="width:9px"></span>575,0 ms</td><td class="n bien">2,1× más rápido</td><td class="n">2.000</td><td class="n">6.000</td><td class="n">2.000</td><td class="n">1,36 MB</td><td class="n">31,7 MB</td></tr>
+<tr><td><code>2.000 búsquedas: un solo contexto, los 2.000 ya rastreados (una consulta con Contains) + Find(id)</code></td><td class="n"><span class="barra" style="width:2px"></span>14,0 ms</td><td class="n bien">88× más rápido</td><td class="n">1</td><td class="n">6.000</td><td class="n">2.000</td><td class="n">1,01 MB</td><td class="n">6,14 MB</td></tr>
+<tr><td><code>2.000 búsquedas: un solo contexto, los 2.000 ya rastreados + First(…) (igual va a la base)</code></td><td class="n"><span class="barra" style="width:8px"></span>491,9 ms</td><td class="n bien">2,5× más rápido</td><td class="n">2.001</td><td class="n">12.000</td><td class="n">4.000</td><td class="n">2,37 MB</td><td class="n">25,3 MB</td></tr>
+<tr><td><code>2.000 búsquedas: un solo contexto, los 2.000 ya rastreados + Local.FirstOrDefault(…) (sin ir a la base)</code></td><td class="n"><span class="barra" style="width:60px"></span>3,73 s</td><td class="n mal">3,0× más lento</td><td class="n">1</td><td class="n">6.000</td><td class="n">2.000</td><td class="n">1,01 MB</td><td class="n">3.394,0 MB</td></tr>
+<tr><td><code>2.000 búsquedas: Dapper QueryFirst</code></td><td class="n"><span class="barra" style="width:5px"></span>308,3 ms</td><td class="n bien">4,0× más rápido</td><td class="n">2.000</td><td class="n">6.000</td><td class="n">2.000</td><td class="n">141 KB</td><td class="n">5,48 MB</td></tr>
+<tr><td><code>2.000 búsquedas: SqlCommand a mano</code></td><td class="n"><span class="barra" style="width:5px"></span>303,0 ms</td><td class="n bien">4,1× más rápido</td><td class="n">2.000</td><td class="n">6.000</td><td class="n">2.000</td><td class="n">141 KB</td><td class="n">3,95 MB</td></tr>
+</table></div>
+<!-- /tabla -->
+<p>Leído de abajo para arriba. <b>El viaje cuesta 0,15 ms</b> (Dapper y el <code>SqlCommand</code> a mano dan lo mismo: 300 ms las 2.000). EF con un contexto ya creado cuesta 0,23 ms por búsqueda: 0,08 ms de traducir la expresión (que está en caché), materializar y rastrear. Es lo que cuesta EF: un 50 % sobre el viaje en la consulta más chica posible, y proporcionalmente nada en cualquier consulta real.</p>
+<p>Lo que sí cuesta es <b>crear el contexto</b>: con uno nuevo por búsqueda son 0,64 ms y 78 KB cada una, el triple de tiempo y seis veces la memoria. <code>AddDbContextPool</code> (o <code>PooledDbContextFactory</code>) reutiliza los contextos y deja la búsqueda en 0,23 ms, igual que con uno solo. Para una API que recibe miles de requests por segundo con una consulta chica cada uno, es la configuración que más cambia. La consulta compilada ahorra un tercio sobre la normal; vale la pena solo en el camino caliente.</p>
+<p><code>Find</code> es un poco más caro que <code>First</code> cuando va a la base (arma una consulta por clave cada vez), y muchísimo más barato cuando no: <b>si la entidad ya está rastreada, no va a la base</b> (14 ms las 2.000: 7 µs cada una), mientras que <code>First</code> va igual aunque la tenga. Y la fila de <code>Local.FirstOrDefault</code> es el susto del capítulo: 3,7 segundos y <b>3,4 GB</b>. Enumerar <code>DbSet.Local</code> llama a <code>DetectChanges</code> cada vez, y con 2.000 entidades rastreadas son 2.000 pasadas por 2.000 entidades. No usés <code>Local</code> para buscar; para eso está <code>Find</code>.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>El costo de EF por consulta es chico. El costo de crear un contexto por request, no: <code>AddDbContextPool</code>.</li>
+<li><code>Find</code> primero mira el contexto. <code>First</code> siempre va al servidor. <code>Local</code> no es un índice.</li>
+</ul></div>
+
+<h2 id="varchar"><small>Capítulo 11</small>Texto, varchar y el índice que no se usa</h2>
+<p><code>Clientes.Email</code> es <code>varchar(200)</code> con un índice único. Buscamos un cliente por su email de ocho maneras, y el SQL es casi el mismo en todas; lo que cambia es si el servidor puede usar el índice:</p>
+<pre><code>ctx.Clientes.Where(c =&gt; c.Email == email)                              // modelo con .IsUnicode(false)
+ctx.Clientes.Where(c =&gt; c.Email == email)                              // modelo sin decir que es varchar
+ctx.Clientes.Where(c =&gt; c.Email.StartsWith("cliente31416@"))
+ctx.Clientes.Where(c =&gt; c.Email.Contains("31416@"))
+ctx.Clientes.Where(c =&gt; c.Email.EndsWith("e31416@ejemplo.com.ar"))
+ctx.Clientes.Where(c =&gt; c.Email.ToLower() == email.ToLower())
+ctx.Clientes.Where(c =&gt; EF.Functions.Like(c.Email, "cliente31416@%"))
+ctx.Clientes.Where(c =&gt; c.Email.Trim() == email)</code></pre>
+<!-- tabla:varchar -->
+<div class="tabla"><table data-capitulo="varchar">
+<tr><th>Variante</th><th class="n">Tiempo</th><th class="n">Contra la base</th><th class="n">Viajes</th><th class="n">Lecturas</th><th class="n">Filas</th><th class="n">Recibido</th><th class="n">Memoria .NET</th></tr>
+<tr><td><code>Where(c =&gt; c.Email == email), con IsUnicode(false) en el modelo (parámetro varchar)</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:2px"></span>994 µs</td><td class="n ">1,0×</td><td class="n">1</td><td class="n">3</td><td class="n">1</td><td class="n">213 B</td><td class="n">106 KB</td></tr>
+<tr><td><code>Where(c =&gt; c.Email == email), sin IsUnicode(false) (parámetro nvarchar contra columna varchar)</code></td><td class="n"><span class="barra" style="width:15px"></span>7,72 ms</td><td class="n mal">7,8× más lento</td><td class="n">1</td><td class="n">257</td><td class="n">1</td><td class="n">213 B</td><td class="n">105 KB</td></tr>
+<tr><td><code>Where(c =&gt; c.Email.StartsWith("cliente31416@"))</code></td><td class="n"><span class="barra" style="width:2px"></span>1,13 ms</td><td class="n medio">1,1× más lento</td><td class="n">1</td><td class="n">3</td><td class="n">1</td><td class="n">195 B</td><td class="n">104 KB</td></tr>
+<tr><td><code>Where(c =&gt; c.Email.Contains("31416@"))</code></td><td class="n"><span class="barra" style="width:44px"></span>22,5 ms</td><td class="n mal">23× más lento</td><td class="n">1</td><td class="n">257</td><td class="n">1</td><td class="n">195 B</td><td class="n">104 KB</td></tr>
+<tr><td><code>Where(c =&gt; c.Email.EndsWith("e31416@ejemplo.com.ar"))</code></td><td class="n"><span class="barra" style="width:60px"></span>30,3 ms</td><td class="n mal">31× más lento</td><td class="n">1</td><td class="n">257</td><td class="n">1</td><td class="n">195 B</td><td class="n">104 KB</td></tr>
+<tr><td><code>Where(c =&gt; c.Email.ToLower() == email.ToLower())</code></td><td class="n"><span class="barra" style="width:27px"></span>13,7 ms</td><td class="n mal">14× más lento</td><td class="n">1</td><td class="n">257</td><td class="n">1</td><td class="n">213 B</td><td class="n">107 KB</td></tr>
+<tr><td><code>Where(c =&gt; EF.Functions.Like(c.Email, "cliente31416@%"))</code></td><td class="n"><span class="barra" style="width:2px"></span>858 µs</td><td class="n bien">1,2× más rápido</td><td class="n">1</td><td class="n">3</td><td class="n">1</td><td class="n">195 B</td><td class="n">105 KB</td></tr>
+<tr><td><code>Where(c =&gt; c.Email.Trim() == email)</code></td><td class="n"><span class="barra" style="width:13px"></span>6,54 ms</td><td class="n mal">6,6× más lento</td><td class="n">1</td><td class="n">257</td><td class="n">1</td><td class="n">213 B</td><td class="n">105 KB</td></tr>
+</table></div>
+<!-- /tabla -->
+<p>Las dos primeras filas mandan exactamente el mismo texto SQL, <code>WHERE [c].[Email] = @__email_0</code>. La diferencia está en algo que no se ve en el SQL: el <b>tipo del parámetro</b>. Si el modelo dice <code>.IsUnicode(false)</code> (o <code>HasColumnType("varchar(200)")</code>), EF declara <code>@__email_0 varchar(200)</code> y el servidor hace un seek: 3 lecturas. Si no lo dice, los <code>string</code> de .NET son <code>nvarchar(4000)</code>, comparar <code>varchar</code> con <code>nvarchar</code> obliga al servidor a convertir <b>cada valor de la columna</b> al tipo del parámetro, y el índice se recorre entero: 257 lecturas, que es el índice completo de 50.000 clientes. Con 5 millones serían 25.000 lecturas por cada login. Es el bug de rendimiento más silencioso que hay en un proyecto EF con una base que viene de antes, porque funciona, devuelve lo correcto y no avisa.</p>
+<p>Las demás son las reglas de sargabilidad de siempre, vistas desde LINQ: <code>StartsWith</code> se traduce a <code>LIKE 'x%'</code> y usa el índice (3 lecturas); <code>Contains</code> y <code>EndsWith</code> son <code>LIKE '%x%'</code> y <code>LIKE '%x'</code> y lo recorren (257); <code>ToLower()</code> y <code>Trim()</code> envuelven la columna en una función y lo mismo. Si la comparación tiene que ser sin distinguir mayúsculas, la respuesta no es <code>ToLower()</code> sino la intercalación de la columna (en SQL Server por defecto ya es <i>case insensitive</i>); si hay que buscar adentro del texto, es un índice de texto completo o un campo normalizado, no un <code>Contains</code>.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Toda columna <code>varchar</code> de la base tiene que estar como <code>IsUnicode(false)</code> en el modelo (o en el <code>HasColumnType</code>). Si no, cada búsqueda por esa columna es un scan.</li>
+<li><code>StartsWith</code> usa el índice; <code>Contains</code>, <code>EndsWith</code>, <code>ToLower()</code>, <code>Trim()</code> y cualquier función sobre la columna, no.</li>
+</ul></div>
+
+<h2 id="constantes"><small>Capítulo 12</small>Parámetros, constantes y la caché de planes</h2>
+<p>SQL Server guarda un plan de ejecución por cada texto SQL distinto. Si el valor que cambia entre consultas viaja como parámetro, hay un texto y un plan; si va pegado en el SQL, hay un texto y un plan por valor. Corremos 300 veces la misma consulta con 300 valores distintos, vaciando la caché antes de cada variante y contando los planes al final:</p>
+<pre><code>ctx.Pedidos.FromSqlRaw($"SELECT TOP 10 * FROM dbo.Pedidos WHERE ClienteId = 1 AND Total &gt; {total}").Count();   // ¡no!
+ctx.Pedidos.FromSql($"SELECT TOP 10 * FROM dbo.Pedidos WHERE ClienteId = 1 AND Total &gt; {total}").Count();      // interpolado: parámetro
+ctx.Pedidos.Where(p =&gt; p.ClienteId == 1 &amp;&amp; p.Total &gt; total).Take(10).Count();                                 // variable capturada
+// Y un árbol de expresión armado a mano con Expression.Constant(total), como hacen algunos «filtros dinámicos»</code></pre>
+<!-- tabla:constantes -->
+<div class="tabla"><table data-capitulo="constantes">
+<tr><th>Variante</th><th class="n">Tiempo</th><th class="n">Contra la base</th><th class="n">Viajes</th><th class="n">Lecturas</th><th class="n">Filas</th><th class="n">Recibido</th><th class="n">Memoria .NET</th></tr>
+<tr><td><code>300 consultas con FromSqlRaw($"… WHERE Total &gt; {total}") (el valor pegado en el SQL)</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:52px"></span>640,3 ms</td><td class="n ">1,0×</td><td class="n">300</td><td class="n">12.923</td><td class="n">300</td><td class="n">12 KB</td><td class="n">3,75 MB</td></tr>
+<tr><td><code>300 consultas con FromSql($"… WHERE Total &gt; {total}") (interpolado: parámetro)</code></td><td class="n"><span class="barra" style="width:7px"></span>91,9 ms</td><td class="n bien">7,0× más rápido</td><td class="n">300</td><td class="n">1.262</td><td class="n">300</td><td class="n">17 KB</td><td class="n">4,12 MB</td></tr>
+<tr><td><code>300 consultas LINQ: Where(p =&gt; p.ClienteId == 1 &amp;&amp; p.Total &gt; total).Take(10).Count()</code></td><td class="n"><span class="barra" style="width:11px"></span>133,0 ms</td><td class="n bien">4,8× más rápido</td><td class="n">300</td><td class="n">1.262</td><td class="n">300</td><td class="n">17 KB</td><td class="n">6,42 MB</td></tr>
+<tr><td><code>300 consultas LINQ armadas con Expression.Constant (el valor como constante del árbol)</code></td><td class="n"><span class="barra" style="width:60px"></span>743,6 ms</td><td class="n medio">1,2× más lento</td><td class="n">300</td><td class="n">12.923</td><td class="n">300</td><td class="n">17 KB</td><td class="n">5,97 MB</td></tr>
+</table></div>
+<!-- /tabla -->
+<!-- sql:constantes:0:1 -->
+<pre class="sql"><code>SELECT COUNT(*)
+FROM (
+    SELECT TOP 10 * FROM dbo.Pedidos WHERE ClienteId = 1 AND Total &gt; 1017
+) AS [e]</code></pre>
+<!-- /sql -->
+<!-- sql:constantes:1 -->
+<pre class="sql"><code>SELECT COUNT(*)
+FROM (
+    SELECT TOP 10 * FROM dbo.Pedidos WHERE ClienteId = 1 AND Total &gt; @p0
+) AS [e]</code></pre>
+<!-- /sql -->
+<p><code>FromSqlRaw</code> con el valor interpolado en el string deja <b>300 planes en caché</b> y tarda siete veces más (640 ms contra 92): cada consulta se compila de cero, y las lecturas suben de 1.262 a 12.923 porque compilar también lee (estadísticas, metadatos). Y es, además, una inyección de SQL esperando que <code>total</code> venga de un usuario. <code>FromSql</code> con la misma cadena interpolada parece lo mismo y es lo contrario: toma los valores de la interpolación y los manda como parámetros. La diferencia entre las dos es una letra en el nombre del método.</p>
+<p>LINQ con una variable capturada hace lo correcto solo: <code>total</code> sale como <code>@__total_0</code>, y <code>Take(10)</code> también va parametrizado. La última fila es el mismo LINQ pero con el valor metido como <code>Expression.Constant</code> en un árbol armado a mano: EF lo trata como constante y lo pega en el SQL (<code>[p].[Total] &gt; 1017.0</code>), con lo cual vuelven los 300 planes, y además EF tampoco encuentra la consulta en su propia caché (el árbol es distinto cada vez) y la compila de nuevo: 744 ms. Si armás filtros dinámicos con la API de expresiones, el valor va en una variable capturada o en <code>EF.Parameter(…)</code>, no en un <code>Constant</code>.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li><code>FromSql</code> (o <code>FromSqlInterpolated</code>), nunca <code>FromSqlRaw</code> con un string armado.</li>
+<li>En LINQ, los valores en variables son parámetros; los literales y los <code>Expression.Constant</code> van pegados en el SQL.</li>
+<li>Si querés saber si tu aplicación hace esto hoy: <code>SELECT COUNT(*) FROM sys.dm_exec_cached_plans WHERE objtype = 'Adhoc'</code>, y que no sean miles.</li>
+</ul></div>
+
+<h2 id="async"><small>Capítulo 13</small>Sincrónico y asincrónico</h2>
+<p>Todo lo anterior se midió con las versiones sincrónicas para que el tiempo fuera comparable. Este capítulo mide la diferencia con <code>ToListAsync()</code> en tres tamaños: 500 documentos de 80 KB (una columna <code>nvarchar(max)</code> con 40.000 caracteres), 20.000 pedidos de medio KB y un pedido:</p>
+<pre><code>ctx.Documentos.ToList();                 await ctx.Documentos.ToListAsync();
+await ctx.Documentos.Select(d =&gt; new { d.DocumentoId, d.Titulo }).ToListAsync();
+ctx.Pedidos.Where(…).ToList();           await ctx.Pedidos.Where(…).ToListAsync();
+ctx.Pedidos.First(…);                    await ctx.Pedidos.FirstAsync(…);</code></pre>
+<!-- tabla:async -->
+<div class="tabla"><table data-capitulo="async">
+<tr><th>Variante</th><th class="n">Tiempo</th><th class="n">Contra la base</th><th class="n">Viajes</th><th class="n">Lecturas</th><th class="n">Filas</th><th class="n">Recibido</th><th class="n">Memoria .NET</th></tr>
+<tr><td><code>500 documentos de 80 KB: ToList()</code> <span class="base">base</span></td><td class="n"><span class="barra" style="width:9px"></span>139,6 ms</td><td class="n ">1,0×</td><td class="n">1</td><td class="n">20.019</td><td class="n">500</td><td class="n">38,2 MB</td><td class="n">114,8 MB</td></tr>
+<tr><td><code>500 documentos de 80 KB: await ToListAsync()</code></td><td class="n"><span class="barra" style="width:60px"></span>892,2 ms</td><td class="n mal">6,4× más lento</td><td class="n">1</td><td class="n">20.019</td><td class="n">500</td><td class="n">38,2 MB</td><td class="n">922,0 MB</td></tr>
+<tr><td><code>500 documentos: await ToListAsync() trayendo solo Titulo</code></td><td class="n"><span class="barra" style="width:2px"></span>2,07 ms</td><td class="n bien">67× más rápido</td><td class="n">1</td><td class="n">7</td><td class="n">500</td><td class="n">16 KB</td><td class="n">267 KB</td></tr>
+<tr><td><code>20.000 pedidos: ToList()</code></td><td class="n"><span class="barra" style="width:3px"></span>45,7 ms</td><td class="n bien">3,1× más rápido</td><td class="n">1</td><td class="n">1.364</td><td class="n">20.000</td><td class="n">10,2 MB</td><td class="n">36,5 MB</td></tr>
+<tr><td><code>20.000 pedidos: await ToListAsync()</code></td><td class="n"><span class="barra" style="width:8px"></span>117,3 ms</td><td class="n bien">1,2× más rápido</td><td class="n">1</td><td class="n">1.364</td><td class="n">20.000</td><td class="n">10,2 MB</td><td class="n">51,3 MB</td></tr>
+<tr><td><code>Un pedido por clave: First(…)</code></td><td class="n"><span class="barra" style="width:2px"></span>965 µs</td><td class="n bien">145× más rápido</td><td class="n">1</td><td class="n">3</td><td class="n">1</td><td class="n">671 B</td><td class="n">104 KB</td></tr>
+<tr><td><code>Un pedido por clave: await FirstAsync(…)</code></td><td class="n"><span class="barra" style="width:2px"></span>1,28 ms</td><td class="n bien">109× más rápido</td><td class="n">1</td><td class="n">3</td><td class="n">1</td><td class="n">671 B</td><td class="n">107 KB</td></tr>
+</table></div>
+<!-- /tabla -->
+<p>Para un pedido, async cuesta 0,3 ms más y no importa. Para 20.000 pedidos cuesta <b>2,6 veces más</b> (117 ms contra 46) y 15 MB más de memoria. Y para los documentos grandes es un desastre: <b>892 ms contra 140, y 944 MB asignados contra 117</b>, para traer 39 MB. Es un problema conocido de Microsoft.Data.SqlClient (<a href="https://github.com/dotnet/SqlClient/issues/593">dotnet/SqlClient#593</a>): cuando un valor no entra en un paquete de red, el lector asincrónico vuelve a procesar lo que ya tenía del valor con cada paquete nuevo, así que leer una columna de N paquetes cuesta N² en vez de N, y cada pasada asigna. Con textos de 8 KB apenas se nota; con 80 KB, 7 veces; con 1 MB, no termina.</p>
+<p>Esto no quiere decir «no usés async». Async es lo que hace que una API no se quede sin hilos mientras espera a la base (está medido en <a href="../../experimentos/thread-pool-en-vivo/">El thread pool en vivo</a>). Quiere decir dos cosas más precisas: no traigas columnas grandes que no necesitás (la tercera fila: solo el título, 2 ms), y si tenés que traer un blob grande, traelo aparte, en una consulta propia, con <code>CommandBehavior.SequentialAccess</code> y un stream, o sincrónica en un <code>Task.Run</code> si no queda otra.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Async en EF tiene un costo fijo chico por consulta y uno grande por cada columna gorda.</li>
+<li>Las columnas <code>nvarchar(max)</code> y <code>varbinary(max)</code> se proyectan afuera salvo cuando se necesitan, y entonces se leen solas.</li>
+</ul></div>
+
+<h2 id="cierre"><small>Conclusión</small>Lo que EF no te va a decir</h2>
+<p>Trece capítulos y en ninguno el problema fue que EF Core traduzca mal. Tradujo bien el N+1, bien la explosión cartesiana, bien el <code>ToList().Any()</code>, bien el <code>Contains</code> sin índice, bien el <code>Local.FirstOrDefault</code>. Hizo lo que se le pidió, con un SQL razonable, en el momento en que se le pidió. El costo estaba en <b>qué</b> se pidió (la entidad entera, todas las filas, un viaje por elemento), en <b>cuándo</b> (antes o después del <code>ToList()</code>), en <b>cómo estaba el modelo</b> (<code>List</code> en vez de <code>HashSet</code>, un <code>string</code> sin <code>IsUnicode(false)</code>) y en lo que había <b>del otro lado</b> (un índice que faltaba).</p>
+<p>La herramienta para ver todo esto sin un escrito como este es la misma que se usó acá: mirar el SQL que sale (<code>LogTo</code> en desarrollo, o un interceptor que cuente comandos por request y grite cuando pasan de diez) y mirar lo que vuelve (filas y bytes). Viajes, lecturas, filas, bytes: si uno de los cuatro es raro, la consulta está mal escrita, y si los cuatro son normales y sigue lenta, el problema no es de EF.</p>
+<h3>Chuleta</h3>
+<div class="tabla"><table style="min-width:600px">
+<tr><th>Si vas a…</th><th>Hacé</th><th>No hagas</th></tr>
+<tr><td>Listar sin modificar</td><td><code>AsNoTracking()</code> y proyectar a un record</td><td>Traer la entidad entera rastreada</td></tr>
+<tr><td>Cargar una colección por elemento</td><td><code>Include</code>, o mejor <code>Select</code> con la colección adentro</td><td>Tocar la navegación en un <code>foreach</code></td></tr>
+<tr><td>Cargar dos colecciones o más</td><td><code>AsSplitQuery()</code></td><td>Dos <code>Include</code> y listo</td></tr>
+<tr><td>Preguntar si hay</td><td><code>Any()</code></td><td><code>Count() &gt; 0</code>, <code>ToList().Any()</code></td></tr>
+<tr><td>Paginar con «siguiente»</td><td>Keyset: <code>Where(clave &gt; última).Take(n)</code></td><td><code>Skip(n)</code> sobre páginas lejanas</td></tr>
+<tr><td>Insertar muchos</td><td><code>AddRange</code> + un <code>SaveChanges</code>; <code>SqlBulkCopy</code> si son decenas de miles</td><td><code>SaveChanges</code> adentro del bucle</td></tr>
+<tr><td>Cambiar o borrar muchos</td><td><code>ExecuteUpdate</code> / <code>ExecuteDelete</code></td><td>Cargar, modificar, guardar</td></tr>
+<tr><td>Buscar por clave en una API</td><td><code>AddDbContextPool</code>; <code>Find</code> si puede estar rastreada</td><td>Un contexto nuevo por request sin pool; <code>Local</code></td></tr>
+<tr><td>Comparar texto</td><td><code>IsUnicode(false)</code> en las columnas varchar; <code>StartsWith</code></td><td><code>Contains</code>, <code>ToLower()</code>, <code>Trim()</code> sobre la columna</td></tr>
+<tr><td>SQL a mano</td><td><code>FromSql($"…{valor}")</code></td><td><code>FromSqlRaw($"…{valor}")</code></td></tr>
+<tr><td>Colecciones de navegación</td><td>Dejarlas en <code>null</code> o <code>HashSet</code></td><td><code>= new List&lt;T&gt;()</code></td></tr>
+<tr><td>Columnas grandes</td><td>Proyectarlas afuera; leerlas solas</td><td>Traerlas en un <code>ToListAsync()</code> con todo lo demás</td></tr>
+</table></div>
+
+<h2 id="apendice"><small>Apéndice</small>Cómo reproducirlo</h2>
+<p>Hace falta un SQL Server (sirve el contenedor de abajo) y el SDK de .NET 8. El proyecto crea la base, la llena con <code>SqlBulkCopy</code> y corre los trece capítulos; con nombres de capítulos como argumento corre solo esos y mezcla el resultado en el JSON que ya había.</p>
+<pre><code>docker run -d --name sql -p 1433:1433 -e ACCEPT_EULA=Y -e "MSSQL_SA_PASSWORD=UnaClaveFuerte1!" mcr.microsoft.com/mssql/server:2022-latest
+
+cd escritos/efcore-con-cronometro/experimentos
+export SQL_CS="Server=127.0.0.1,1433;Database=Tienda;User Id=sa;Password=UnaClaveFuerte1!;TrustServerCertificate=true"
+dotnet run -c Release -- --cargar ../resultados.json            # crea y carga la base, corre todo (unos 10 minutos)
+dotnet run -c Release -- tracking clave ../resultados.json      # solo esos capítulos
+
+cd ../../..
+node escritos/efcore-con-cronometro/tablas.js                   # regenera las tablas y los bloques de SQL de esta página
+node --test escritos/efcore-con-cronometro/tests/               # verifica que el texto coincida con los datos</code></pre>
+<p>Los valores absolutos son de esta máquina: 4 vCPU repartidas entre el programa y el servidor, todo en memoria, red local. Lo que viaja de una máquina a otra son las relaciones entre variantes y las columnas de viajes, lecturas, filas y bytes, que no dependen del hardware. Versiones: EF Core <span id="v-efcore"></span>, Microsoft.Data.SqlClient <span id="v-sqlclient"></span>, Dapper <span id="v-dapper"></span>, SQL Server <span id="v-sqlserver"></span>.</p>
+<p>Fuentes: la documentación de EF Core sobre <a href="https://learn.microsoft.com/ef/core/performance/efficient-querying">consultas eficientes</a>, <a href="https://learn.microsoft.com/ef/core/querying/single-split-queries">consultas únicas y divididas</a>, <a href="https://learn.microsoft.com/ef/core/performance/efficient-updating">actualizaciones eficientes</a>, <a href="https://learn.microsoft.com/ef/core/performance/advanced-performance-topics">temas avanzados de rendimiento</a> (pool de contextos, consultas compiladas, caché de consultas) y <a href="https://learn.microsoft.com/ef/core/change-tracking/">seguimiento de cambios</a>; el anuncio de <a href="https://learn.microsoft.com/ef/core/what-is-new/ef-core-8.0/whatsnew#enhancements-to-contains-and-primitive-collections">OPENJSON para <code>Contains</code> en EF Core 8</a>; y el issue <a href="https://github.com/dotnet/SqlClient/issues/593">dotnet/SqlClient#593</a> sobre la lectura asincrónica de valores grandes.</p>
+</main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+<script>
+(function () {
+  "use strict";
+  const secciones = [...document.querySelectorAll("main h2[id]")];
+  const items = secciones.map((h) => {
+    const titulo = h.childNodes[h.childNodes.length - 1].textContent.trim();
+    const small = h.querySelector("small") ? h.querySelector("small").textContent.replace("Capítulo ", "") : "";
+    const num = /^\d+$/.test(small) ? small : "";
+    return `<li><a href="#${h.id}" data-id="${h.id}"><span class="num">${num}</span>${titulo}</a></li>`;
+  }).join("");
+  document.getElementById("toc-lateral").innerHTML = items;
+  document.getElementById("toc-movil").innerHTML = items;
+  const enlaces = [...document.querySelectorAll("nav.toc a")];
+  const activar = (id) => enlaces.forEach((a) => a.classList.toggle("activo", a.dataset.id === id));
+  let pendiente = false;
+  const calcular = () => {
+    pendiente = false;
+    let actual = secciones[0].id;
+    for (const s of secciones) { if (s.getBoundingClientRect().top <= 120) actual = s.id; else break; }
+    activar(actual);
+  };
+  window.addEventListener("scroll", () => { if (!pendiente) { pendiente = true; requestAnimationFrame(calcular); } }, { passive: true });
+  window.addEventListener("hashchange", () => setTimeout(calcular, 50));
+  calcular();
+  const toast = document.getElementById("toast");
+  for (const pre of document.querySelectorAll("pre")) {
+    const b = document.createElement("button"); b.type = "button"; b.className = "copiar"; b.textContent = "Copiar";
+    b.addEventListener("click", async () => {
+      const texto = pre.querySelector("code").textContent;
+      try { await navigator.clipboard.writeText(texto); } catch (e) { const ta = document.createElement("textarea"); ta.value = texto; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); } catch (e2) { /* nada */ } ta.remove(); }
+      toast.textContent = "Copiado"; toast.classList.add("visible"); setTimeout(() => toast.classList.remove("visible"), 1500);
+    });
+    pre.appendChild(b);
+  }
+  // Versiones, desde el JSON (si no se puede leer, quedan los valores escritos en la página)
+  const versiones = { efcore: "8.0", sqlclient: "5.1", dapper: "2.1", sqlserver: "2022" };
+  for (const [k, v] of Object.entries(versiones)) document.getElementById("v-" + k).textContent = v;
+  fetch("resultados.json").then((r) => r.json()).then((d) => {
+    for (const k of Object.keys(versiones)) if (d.entorno && d.entorno[k]) document.getElementById("v-" + k).textContent = d.entorno[k];
+  }).catch(() => { /* abierto como archivo local: quedan los valores por defecto */ });
+})();
+</script>
+</body>
+</html>
