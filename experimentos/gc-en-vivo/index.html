@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Por qué tu API se traba cada tanto: el GC en vivo</title>
+<style>
+  :root { --bg: #f5f4f0; --card: #fff; --fg: #1f1d1a; --muted: #6b655c; --line: #e3dfd6; --accent: #7c3aed; --accent-fg: #fff; --ok: #2f7d4f; --medio: #b7791f; --mal: #c0392b; --code: #efece6; --g0: #60a5fa; --g1: #f59e0b; --g2: #ef4444; --loh: #a78bfa; --fondo: rgba(239, 68, 68, .10); --suave: rgba(124, 58, 237, .08); }
+  @media (prefers-color-scheme: dark) { :root { --bg: #141311; --card: #1e1c19; --fg: #ece8e1; --muted: #a39d93; --line: #322e29; --accent: #b794f6; --accent-fg: #1a1026; --ok: #7bd39b; --medio: #e4b55a; --mal: #f0867a; --code: #191714; --g0: #7cb6ff; --g1: #fbbf24; --g2: #f87171; --loh: #c4b5fd; --fondo: rgba(248, 113, 113, .14); --suave: rgba(183, 148, 246, .12); } }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.45; }
+  header { padding: 18px 16px 6px; max-width: 1100px; margin: 0 auto; }
+  h1 { margin: 0; font-size: 1.5rem; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  main { max-width: 1100px; margin: 0 auto; padding: 10px 16px 32px; display: grid; gap: 14px; }
+  @media (min-width: 900px) { main { grid-template-columns: 340px 1fr; align-items: start; } .ancho { grid-column: 1 / -1; } }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+  .panel h2 { margin: 0 0 10px; font-size: 1rem; }
+  h3.sub { margin: 12px 0 4px; font-size: .78rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  label.campo { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; font-size: .85rem; margin-top: 6px; }
+  label.campo small { color: var(--muted); font-weight: 400; display: block; font-size: .74rem; }
+  input[type=number] { font: inherit; width: 92px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); text-align: right; min-height: 38px; }
+  input[type=range] { width: 100%; }
+  input[type=checkbox] { width: 20px; height: 20px; }
+  button { font: inherit; font-size: .85rem; min-height: 38px; padding: 6px 12px; border-radius: 999px; cursor: pointer; border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+  button:hover { border-color: var(--accent); }
+  button[aria-pressed="true"], button.primario { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0; }
+  .chips.col { flex-direction: column; align-items: stretch; }
+  .chips.col button { text-align: left; border-radius: 10px; min-height: 34px; padding: 5px 10px; font-size: .82rem; }
+  .cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+  .cifra { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-width: 0; }
+  .cifra small { display: block; color: var(--muted); font-size: .72rem; }
+  .cifra b { font-size: 1.15rem; overflow-wrap: anywhere; }
+  .cifra span.det { display: block; font-size: .76rem; color: var(--muted); }
+  .grafico { overflow-x: auto; }
+  .grafico svg { width: 100%; min-width: 600px; height: auto; display: block; }
+  .leyenda { display: flex; flex-wrap: wrap; gap: 10px; font-size: .78rem; color: var(--muted); margin-top: 4px; }
+  .leyenda i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 4px; }
+  .diag { display: grid; gap: 8px; }
+  .diag .item { border-left: 4px solid var(--medio); border-radius: 8px; padding: 8px 12px; background: var(--suave); }
+  .diag .item.ok { border-left-color: var(--ok); } .diag .item.mal { border-left-color: var(--mal); }
+  .diag .item b { display: block; margin-bottom: 2px; }
+  .diag .item p { margin: 0; font-size: .9rem; }
+  .escenario-texto { font-size: .88rem; color: var(--muted); margin: 6px 0 0; }
+  table { border-collapse: collapse; width: 100%; font-size: .86rem; }
+  th, td { text-align: left; padding: 6px 6px; border-top: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: .74rem; }
+  td.num, th.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .tabla-scroll { overflow-x: auto; }
+  .nota { font-size: .85rem; color: var(--muted); margin: 8px 0 0; }
+  .texto p, .texto li { font-size: .95rem; max-width: 80ch; }
+  .texto h2 { font-size: 1.2rem; margin: 18px 0 6px; }
+  .texto h2:first-child { margin-top: 0; }
+  .texto h3 { font-size: 1rem; margin: 14px 0 4px; }
+  code { background: var(--code); padding: 1px 5px; border-radius: 4px; font-size: .88em; overflow-wrap: anywhere; }
+  pre { background: var(--code); padding: 10px 12px; border-radius: 8px; overflow: auto; font-size: .82rem; margin: 8px 0; }
+  pre code { background: none; padding: 0; }
+  .oculto { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Por qué tu API se traba cada tanto: el GC en vivo</h1>
+  <p>Un modelo del recolector de basura de .NET con reloj de 1 ms: elegís cuánto asignás, cuánto vive, si hay un caché grande o una fuga, workstation o server, con o sin GC de fondo, y ves cada pausa, el heap y lo que sentirían tus pedidos. Contrastado contra un .NET 8 real.</p>
+</header>
+<main>
+  <section class="panel" aria-label="Controles">
+    <h2>Escenarios</h2>
+    <div class="chips col" id="escenarios"></div>
+    <p class="escenario-texto" id="escenarioTexto"></p>
+    <h3 class="sub">Lo que asigna la app</h3>
+    <label class="campo" for="ritmoMBs">Ritmo de asignación <small>MB por segundo, entre todos los hilos</small><input type="number" id="ritmoMBs" min="0" max="5000" step="10"></label>
+    <label class="campo" for="objKB">Tamaño de cada objeto <small>KB; de 85 para arriba va al LOH</small><input type="number" id="objKB" min="0.1" max="10000" step="1"></label>
+    <label class="campo" for="vidaMediaPct">Cuánto sobrevive un rato <small>% de lo asignado que no muere al toque</small><input type="number" id="vidaMediaPct" min="0" max="100" step="5"></label>
+    <label class="campo" for="vidaMediaMs">…y cuánto vive <small>ms antes de soltarse</small><input type="number" id="vidaMediaMs" min="1" max="60000" step="50"></label>
+    <label class="campo" for="cacheMB">Caché vivo para siempre <small>MB en gen2 desde el arranque</small><input type="number" id="cacheMB" min="0" max="8000" step="64"></label>
+    <label class="campo" for="crecerMBs">Fuga <small>MB por segundo que quedan vivos</small><input type="number" id="crecerMBs" min="0" max="500" step="5"></label>
+    <label class="campo" for="finalizadores">Objetos con finalizador<input type="checkbox" id="finalizadores"></label>
+    <label class="campo" for="pool">Buffers grandes con ArrayPool<input type="checkbox" id="pool"></label>
+    <h3 class="sub">El runtime</h3>
+    <label class="campo" for="nucleos">Núcleos<input type="number" id="nucleos" min="1" max="32" step="1"></label>
+    <label class="campo">Modo<span class="chips" id="modo"><button type="button" data-valor="workstation">Workstation</button><button type="button" data-valor="server">Server</button><button type="button" data-valor="datas">Server + DATAS</button></span></label>
+    <label class="campo" for="concurrente">GC concurrente (de fondo)<input type="checkbox" id="concurrente"></label>
+    <label class="campo" for="presupuestoGen0MB">Presupuesto de gen0 <small>MB por heap; 0 = el del modelo</small><input type="number" id="presupuestoGen0MB" min="0" max="2048" step="8"></label>
+    <h3 class="sub">Los pedidos y el tiempo</h3>
+    <label class="campo" for="pedidosPorS">Pedidos por segundo<input type="number" id="pedidosPorS" min="0" max="5000" step="10"></label>
+    <label class="campo" for="servicioMs">Cuánto tarda cada uno <small>ms sin GC</small><input type="number" id="servicioMs" min="0.1" max="1000" step="1"></label>
+    <label class="campo" for="duracionS">Segundos simulados<input type="number" id="duracionS" min="2" max="120" step="5"></label>
+  </section>
+
+  <div style="display: grid; gap: 14px; min-width: 0;">
+    <section class="panel" aria-label="Resultados">
+      <h2>Lo que pasó en <span id="segundos"></span> segundos</h2>
+      <div class="cifras">
+        <div class="cifra"><small>Colecciones</small><b id="cColecciones"></b><span class="det" id="cColeccionesDet"></span></div>
+        <div class="cifra"><small>Tiempo con todo frenado</small><b id="cPausaPct"></b><span class="det" id="cPausaDet"></span></div>
+        <div class="cifra"><small>Pausa más larga</small><b id="cPausaMax"></b><span class="det" id="cPausaMaxDet"></span></div>
+        <div class="cifra"><small>Pedidos: p99</small><b id="cLatP99"></b><span class="det" id="cLatDet"></span></div>
+        <div class="cifra"><small>Heap máximo</small><b id="cHeap"></b><span class="det" id="cHeapDet"></span></div>
+        <div class="cifra"><small>CPU que se lleva el GC</small><b id="cCpu"></b><span class="det" id="cCpuDet"></span></div>
+      </div>
+      <h3 class="sub">Cada pausa</h3>
+      <div class="grafico"><svg id="gPausas" viewBox="0 0 720 150" role="img" aria-label="Pausas del GC en el tiempo"></svg></div>
+      <div class="leyenda"><span><i style="background: var(--g0)"></i>gen0</span><span><i style="background: var(--g1)"></i>gen1</span><span><i style="background: var(--g2)"></i>gen2 bloqueante</span><span><i style="background: var(--g2); opacity: .45"></i>gen2 de fondo (sus dos pausas cortas)</span><span><i style="background: var(--fondo); border: 1px solid var(--g2)"></i>marcado de fondo en curso</span></div>
+      <h3 class="sub">El heap</h3>
+      <div class="grafico"><svg id="gHeap" viewBox="0 0 720 170" role="img" aria-label="Tamaño del heap por generación en el tiempo"></svg></div>
+      <div class="leyenda"><span><i style="background: var(--g2)"></i>gen2 (vivo + caché + fuga)</span><span><i style="background: var(--g1)"></i>gen1</span><span><i style="background: var(--g0)"></i>gen0 (lo asignado desde el último GC)</span><span><i style="background: var(--loh)"></i>LOH</span></div>
+      <h3 class="sub">Las pausas por generación</h3>
+      <div class="tabla-scroll"><table id="tPausas" aria-label="Pausas por generación"><thead><tr><th>Generación</th><th class="num">Cuántas</th><th class="num">Mediana</th><th class="num">p99</th><th class="num">La más larga</th><th class="num">Total</th></tr></thead><tbody></tbody></table></div>
+    </section>
+    <section class="panel" aria-label="Diagnóstico">
+      <h2>Diagnóstico</h2>
+      <div class="diag" id="diagnostico"></div>
+    </section>
+  </div>
+
+  <section class="panel texto ancho" aria-label="El texto">
+    <h2>Cómo funciona el GC de .NET, en cinco párrafos</h2>
+    <p><b>Generaciones.</b> El heap tiene tres generaciones para objetos chicos (gen0, gen1, gen2) y dos heaps aparte: el LOH para objetos de 85.000 bytes o más y el POH para objetos fijados (<i>pinned</i>). Todo objeto nuevo nace en gen0 (salvo los grandes, que nacen en el LOH y se tratan como gen2). La apuesta generacional es que la mayoría de los objetos muere joven: un DTO, un string, la lista de un pedido. Si esa apuesta se cumple, limpiar gen0 es casi gratis, porque el GC solo trabaja con lo que está vivo.</p>
+    <p><b>Presupuestos.</b> Cada generación tiene un presupuesto: cuando lo asignado en gen0 desde el último GC supera el suyo, hay un gen0. El presupuesto de gen0 lo ajusta el runtime según el tamaño del caché del procesador y la tasa de supervivencia (en el .NET 8 que medimos, en 4 vCPU, anduvo por los 85 MB en workstation y el doble en server). Un GC de gen0 marca lo vivo de gen0, lo promueve a gen1 (copiándolo o moviendo la frontera, según cuánto sobrevivió) y listo. Gen1 tiene su presupuesto en bytes promovidos; cuando se pasa, el siguiente GC es de gen1 (que incluye gen0). Gen2 también: cuando lo que entró a gen2 (promociones, LOH, lo que crece) supera una fracción de lo que había, toca un gen2 completo, que recorre todo lo vivo del proceso.</p>
+    <p><b>Lo que cuesta.</b> Un GC cuesta por lo que sobrevive, no por lo que se asignó. Por eso 800 MB/s de objetos que mueren al toque dan pausas de medio milisegundo, y 200 MB/s de objetos que viven medio segundo dan pausas de 15 a 100 ms: hay que marcarlos, promoverlos a gen1, después a gen2, y recién ahí se liberan, en un gen2 que recorre todo. Es la «crisis de la mediana edad» (<i>mid-life crisis</i>): objetos que viven lo justo para ser caros. Y un gen2 cuesta por el tamaño del heap vivo entero, con todos los hilos frenados si es bloqueante.</p>
+    <p><b>GC de fondo.</b> Desde .NET 4 (y por defecto en Core) los gen2 son <i>background</i>: dos pausas cortas (una para arrancar, otra para terminar) y el marcado en un hilo aparte mientras la app sigue corriendo; mientras tanto puede haber gen0 y gen1 «en primer plano», un poco más caros. El costo no desaparece: se muda de la latencia al CPU, y el heap crece un poco más porque lo que se asigna durante el marcado no se puede liberar hasta el próximo. Se apaga con <code>&lt;ConcurrentGarbageCollection&gt;false&lt;/ConcurrentGarbageCollection&gt;</code> o <code>DOTNET_gcConcurrent=0</code>, y el LOH lleno lo dispara igual pero bloqueante.</p>
+    <p><b>Workstation y server.</b> Workstation: un heap, el GC corre en el hilo que disparó la asignación (o uno de fondo). Server: un heap y un hilo de GC dedicado por núcleo; presupuestos más grandes, pausas más cortas porque el trabajo se reparte, más memoria comprometida. ASP.NET Core activa server por defecto si hay más de un núcleo. En contenedores chicos eso puede ser más memoria de la que hay; DATAS (<code>DOTNET_GCDynamicAdaptationMode=1</code>, opcional en .NET 8 y default en .NET 9) ajusta la cantidad de heaps a la carga.</p>
+
+    <h2>Cómo verlo en producción</h2>
+    <ul>
+      <li><code>dotnet-counters monitor --process-id &lt;pid&gt; System.Runtime</code>: «% Time in GC since last GC», «Gen 0/1/2 GC Count», «GC Heap Size», «LOH Size», «Allocation Rate». Es lo primero que se mira.</li>
+      <li>En código, <code>GC.GetGCMemoryInfo()</code> trae <code>PauseTimePercentage</code>, <code>PauseDurations</code> del último GC, el tamaño de cada generación (<code>GenerationInfo</code>), fragmentación y memoria comprometida; <code>GC.GetTotalPauseDuration()</code> acumula las pausas desde que arrancó el proceso; <code>GC.CollectionCount(n)</code> cuenta. Exportarlos a tu métrica de siempre cuesta diez líneas.</li>
+      <li><code>dotnet-trace collect --profile gc-verbose</code> (o <code>gc-collect</code>, más liviano) y mirar en PerfView o en Visual Studio: cada GC con su generación, motivo, pausa y cuánto se promovió. Los mismos eventos se pueden escuchar dentro del proceso con un <code>EventListener</code> sobre <code>Microsoft-Windows-DotNETRuntime</code> con la keyword GC (0x1); así se midió acá.</li>
+      <li><code>dotnet-gcdump collect</code> para saber quién retiene qué cuando el heap no baja: te da el grafo de objetos por tipo y por quién los referencia.</li>
+      <li>La firma de cada problema: muchos gen1 y gen2 con pausas que no bajan → vida media; gen2 muy seguidos con el heap chico → LOH; gen2 cada vez más largos con el heap subiendo → fuga; «% Time in GC» alto con todo gen0 → simplemente estás asignando una barbaridad (y aun así suele ser barato).</li>
+    </ul>
+
+    <h2>Qué hacer</h2>
+    <ul>
+      <li><b>Asignar menos de lo que sobrevive, no menos en general.</b> Las asignaciones que mueren jóvenes son casi gratis; las que viven un rato son las caras. Un objeto que va a vivir «un rato» conviene que viva o muy poco (que muera en gen0) o para siempre (que quede quieto en gen2).</li>
+      <li><b>Pools para lo grande.</b> <code>ArrayPool&lt;T&gt;.Shared</code>, <code>MemoryPool</code>, <code>RecyclableMemoryStream</code>, <code>ObjectPool</code>: un buffer de 100 KB alquilado y devuelto no toca el LOH. Es la diferencia entre 80 gen2 en quince segundos y ninguno.</li>
+      <li><b>Cachés con tope.</b> <code>MemoryCache</code> con <code>SizeLimit</code> y expiración, o algo como <code>BitFaster.Caching</code>; sin tope es una fuga con otro nombre.</li>
+      <li><b>Sin finalizadores.</b> Si solo envuelve un <code>IDisposable</code>, no le pongas <code>~Clase()</code>; si envuelve un handle nativo, <code>SafeHandle</code>. Un finalizador vuelve a todo objeto de vida corta en uno de vida media.</li>
+      <li><b>Elegí el modo según la máquina.</b> Server en una VM con varios núcleos y memoria; workstation (o server con DATAS) en contenedores chicos; <code>GCHeapHardLimit</code> si el contenedor tiene límite de memoria y querés que el GC lo sepa (lo lee solo de cgroups, pero con un margen). <code>GCSettings.LatencyMode = SustainedLowLatency</code> evita gen2 bloqueantes mientras dura una sección crítica, a costa de memoria.</li>
+      <li><b>Medí antes y después.</b> El «% Time in GC» y el p99 de tus pedidos con y sin el cambio; lo demás es fe.</li>
+    </ul>
+
+    <h2>Contrastado contra un .NET 8 de verdad</h2>
+    <p>Para calibrar el modelo se corrió un programa de consola (<code>real/Program.cs</code>) en un .NET 8 real dentro de Docker, en 4 vCPU: cada escenario asigna al ritmo pedido desde dos hilos durante 15 s, un <code>EventListener</code> sobre los eventos del runtime registra cada suspensión del motor (desde <code>GCSuspendEEBegin</code> hasta <code>GCRestartEEEnd</code>: eso es lo que ven todos los hilos como pausa) y un hilo «centinela» que mira el reloj anota cada hueco de más de un milisegundo, que es lo que sentiría un pedido. Cada cifra de la tabla es una corrida; las pausas son la mediana y la más larga.</p>
+    <!-- tabla:real -->
+<div class="tabla-scroll"><table aria-label="Mediciones en .NET 8 real"><thead><tr><th>Escenario</th><th class="num">MB/s</th><th class="num">gen0 / gen1 / gen2</th><th class="num">% en pausa</th><th class="num">gen0 p50 / máx (ms)</th><th class="num">gen1 p50 / máx (ms)</th><th class="num">gen2 p50 / máx (ms)</th><th class="num">Congelamiento p99 (ms)</th><th class="num">Memoria máx (MB)</th></tr></thead><tbody>
+<tr><td>Sin asignar nada (piso de ruido del centinela)</td><td class="num">0</td><td class="num">0 / 0 / 0</td><td class="num">0,00 %</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">3,94</td><td class="num">0</td></tr>
+<tr><td>Vida corta, 100 MB/s</td><td class="num">100</td><td class="num">16 / 1 / 1</td><td class="num">0,09 %</td><td class="num">0,57 / 1,58</td><td class="num">0,99 / 0,99</td><td class="num">2,24 / 2,24</td><td class="num">6,42</td><td class="num">81</td></tr>
+<tr><td>Vida corta, 200 MB/s</td><td class="num">200</td><td class="num">35 / 1 / 1</td><td class="num">0,18 %</td><td class="num">0,47 / 1,92</td><td class="num">1,05 / 1,05</td><td class="num">8,18 / 8,18</td><td class="num">8,25</td><td class="num">81</td></tr>
+<tr><td>Vida corta, 400 MB/s</td><td class="num">400</td><td class="num">73 / 1 / 1</td><td class="num">0,29 %</td><td class="num">0,47 / 1,42</td><td class="num">1,06 / 1,06</td><td class="num">4,05 / 4,05</td><td class="num">5,47</td><td class="num">81</td></tr>
+<tr><td>Vida corta, 800 MB/s</td><td class="num">799</td><td class="num">148 / 1 / 1</td><td class="num">0,56 %</td><td class="num">0,43 / 3,99</td><td class="num">0,85 / 0,85</td><td class="num">5,01 / 5,01</td><td class="num">7,91</td><td class="num">81</td></tr>
+<tr><td>Vida media 100 ms, 200 MB/s</td><td class="num">200</td><td class="num">1 / 35 / 1</td><td class="num">3,88 %</td><td class="num">12,0 / 12,0</td><td class="num">15,9 / 20,5</td><td class="num">17,9 / 17,9</td><td class="num">20,5</td><td class="num">105</td></tr>
+<tr><td>Vida media 500 ms, 200 MB/s</td><td class="num">199</td><td class="num">1 / 36 / 18 (18 f.)</td><td class="num">7,70 %</td><td class="num">11,0 / 11,0</td><td class="num">18,3 / 62,0</td><td class="num">16,0 / 52,0 fondo</td><td class="num">62,0</td><td class="num">233</td></tr>
+<tr><td>Vida media 2 s, 200 MB/s</td><td class="num">200</td><td class="num">0 / 36 / 11 (10 f.)</td><td class="num">5,41 %</td><td class="num">–</td><td class="num">23,0 / 36,5</td><td class="num">10,6 / 10,6 bloq.; 17,8 / 24,9 fondo</td><td class="num">36,6</td><td class="num">859</td></tr>
+<tr><td>Vida media 5 s, 200 MB/s</td><td class="num">200</td><td class="num">0 / 37 / 7 (6 f.)</td><td class="num">6,86 %</td><td class="num">–</td><td class="num">19,8 / 328</td><td class="num">2,32 / 2,32 bloq.; 17,3 / 26,7 fondo</td><td class="num">328</td><td class="num">1.916</td></tr>
+<tr><td>Caché de 256 MB + 200 MB/s de vida corta</td><td class="num">200</td><td class="num">36 / 1 / 0</td><td class="num">0,12 %</td><td class="num">0,45 / 0,95</td><td class="num">0,44 / 0,44</td><td class="num">–</td><td class="num">3,89</td><td class="num">344</td></tr>
+<tr><td>Caché de 1 GB + 200 MB/s</td><td class="num">200</td><td class="num">36 / 1 / 0</td><td class="num">0,15 %</td><td class="num">0,44 / 2,60</td><td class="num">0,48 / 0,48</td><td class="num">–</td><td class="num">7,96</td><td class="num">1.121</td></tr>
+<tr><td>Caché de 2 GB + 200 MB/s</td><td class="num">199</td><td class="num">36 / 1 / 0</td><td class="num">0,15 %</td><td class="num">0,52 / 2,52</td><td class="num">0,48 / 0,48</td><td class="num">–</td><td class="num">37,1</td><td class="num">2.154</td></tr>
+<tr><td>Caché de 1 GB, GC concurrente apagado</td><td class="num">200</td><td class="num">37 / 0 / 0</td><td class="num">0,12 %</td><td class="num">0,43 / 1,63</td><td class="num">–</td><td class="num">–</td><td class="num">4,59</td><td class="num">1.165</td></tr>
+<tr><td>Caché de 1 GB, SustainedLowLatency</td><td class="num">200</td><td class="num">36 / 1 / 0</td><td class="num">0,12 %</td><td class="num">0,44 / 1,89</td><td class="num">0,43 / 0,43</td><td class="num">122 / 122</td><td class="num">5,12</td><td class="num">1.121</td></tr>
+<tr><td>Caché de 1 GB + vida media 500 ms</td><td class="num">199</td><td class="num">1 / 36 / 1 (1 f.)</td><td class="num">9,76 %</td><td class="num">10,3 / 10,3</td><td class="num">17,0 / 178</td><td class="num">16,8 / 16,8 fondo</td><td class="num">178</td><td class="num">1.874</td></tr>
+<tr><td>Caché de 2 GB + vida media 500 ms</td><td class="num">199</td><td class="num">1 / 36 / 0</td><td class="num">10,63 %</td><td class="num">43,9 / 43,9</td><td class="num">18,3 / 147</td><td class="num">–</td><td class="num">138</td><td class="num">2.953</td></tr>
+<tr><td>Caché de 1 GB + vida media, SustainedLowLatency</td><td class="num">199</td><td class="num">1 / 36 / 1 (1 f.)</td><td class="num">8,98 %</td><td class="num">27,4 / 27,4</td><td class="num">19,7 / 114</td><td class="num">21,8 / 21,8 fondo</td><td class="num">102</td><td class="num">1.869</td></tr>
+<tr><td>Caché de 1 GB + vida media, GC concurrente apagado</td><td class="num">199</td><td class="num">2 / 21 / 0</td><td class="num">7,12 %</td><td class="num">14,7 / 14,7</td><td class="num">47,6 / 93,6</td><td class="num">–</td><td class="num">93,7</td><td class="num">1.386</td></tr>
+<tr><td>Vida media 500 ms, GC concurrente apagado</td><td class="num">199</td><td class="num">1 / 21 / 1</td><td class="num">7,53 %</td><td class="num">10,6 / 10,6</td><td class="num">48,8 / 65,8</td><td class="num">46,5 / 46,5</td><td class="num">65,9</td><td class="num">233</td></tr>
+<tr><td>Server GC: caché de 1 GB + vida media</td><td class="num">200</td><td class="num">4 / 0 / 0</td><td class="num">0,56 %</td><td class="num">14,9 / 42,7</td><td class="num">–</td><td class="num">–</td><td class="num">42,7</td><td class="num">1.971</td></tr>
+<tr><td>Buffers de 100 KB, 200 MB/s (LOH)</td><td class="num">200</td><td class="num">0 / 0 / 990</td><td class="num">3,63 %</td><td class="num">–</td><td class="num">–</td><td class="num">0,44 / 60,6</td><td class="num">60,7</td><td class="num">4</td></tr>
+<tr><td>Buffers de 80 KB, 200 MB/s (no LOH)</td><td class="num">200</td><td class="num">35 / 1 / 1</td><td class="num">0,15 %</td><td class="num">0,50 / 1,51</td><td class="num">1,14 / 1,14</td><td class="num">0,80 / 0,80</td><td class="num">4,82</td><td class="num">82</td></tr>
+<tr><td>Buffers de 100 KB con ArrayPool</td><td class="num">0</td><td class="num">0 / 0 / 0</td><td class="num">0,00 %</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">3,33</td><td class="num">0</td></tr>
+<tr><td>Objetos de 1 KB con finalizador, 200 MB/s</td><td class="num">204</td><td class="num">1 / 37 / 1</td><td class="num">13,45 %</td><td class="num">17,2 / 17,2</td><td class="num">53,9 / 73,9</td><td class="num">56,3 / 56,3</td><td class="num">69,9</td><td class="num">184</td></tr>
+<tr><td>Fuga de 25 MB/s durante 20 s</td><td class="num">25</td><td class="num">1 / 4 / 3 (2 f.)</td><td class="num">0,60 %</td><td class="num">16,8 / 16,8</td><td class="num">22,4 / 22,4</td><td class="num">19,8 / 19,8 bloq.; 20,2 / 21,0 fondo</td><td class="num">22,8</td><td class="num">491</td></tr>
+<tr><td>Fuga de 25 MB/s, GC concurrente apagado</td><td class="num">25</td><td class="num">3 / 1 / 2</td><td class="num">0,64 %</td><td class="num">11,9 / 12,1</td><td class="num">34,7 / 34,7</td><td class="num">38,8 / 38,8</td><td class="num">38,8</td><td class="num">508</td></tr>
+<tr><td>Server GC: vida corta, 200 MB/s</td><td class="num">199</td><td class="num">3 / 1 / 0</td><td class="num">0,03 %</td><td class="num">1,24 / 1,87</td><td class="num">1,16 / 1,16</td><td class="num">–</td><td class="num">43,1</td><td class="num">645</td></tr>
+<tr><td>Server GC: vida media 500 ms</td><td class="num">200</td><td class="num">1 / 3 / 1 (1 f.)</td><td class="num">0,40 %</td><td class="num">15,8 / 15,8</td><td class="num">13,9 / 13,9</td><td class="num">19,0 / 19,0 fondo</td><td class="num">19,0</td><td class="num">746</td></tr>
+<tr><td>Server GC: caché de 1 GB</td><td class="num">200</td><td class="num">4 / 0 / 0</td><td class="num">0,03 %</td><td class="num">1,11 / 2,21</td><td class="num">–</td><td class="num">–</td><td class="num">4,81</td><td class="num">1.695</td></tr>
+<tr><td>Server GC: fuga de 25 MB/s</td><td class="num">25</td><td class="num">0 / 0 / 0</td><td class="num">0,00 %</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">6,15</td><td class="num">0</td></tr>
+<tr><td>Server + DATAS: vida corta</td><td class="num">200</td><td class="num">1209 / 1 / 0</td><td class="num">2,57 %</td><td class="num">0,26 / 4,99</td><td class="num">0,71 / 0,71</td><td class="num">–</td><td class="num">5,01</td><td class="num">3</td></tr>
+<tr><td>Server + DATAS: vida media 500 ms</td><td class="num">199</td><td class="num">150 / 38 / 36 (36 f.)</td><td class="num">8,36 %</td><td class="num">3,47 / 11,7</td><td class="num">22,1 / 35,1</td><td class="num">1,02 / 6,71 fondo</td><td class="num">30,6</td><td class="num">269</td></tr>
+<tr><td>gen0 de 4 MB: vida corta</td><td class="num">200</td><td class="num">753 / 1 / 1</td><td class="num">1,64 %</td><td class="num">0,27 / 3,40</td><td class="num">1,00 / 1,00</td><td class="num">1,27 / 1,27</td><td class="num">5,38</td><td class="num">6</td></tr>
+<tr><td>gen0 de 4 MB: vida media 500 ms</td><td class="num">200</td><td class="num">252 / 251 / 43 (42 f.)</td><td class="num">14,36 %</td><td class="num">0,74 / 4,37</td><td class="num">7,19 / 22,8</td><td class="num">5,82 / 5,82 bloq.; 1,67 / 13,8 fondo</td><td class="num">14,5</td><td class="num">205</td></tr>
+<tr><td>gen0 de 256 MB: vida corta</td><td class="num">200</td><td class="num">21 / 1 / 1</td><td class="num">0,17 %</td><td class="num">0,55 / 1,59</td><td class="num">1,10 / 1,10</td><td class="num">10,7 / 10,7</td><td class="num">10,8</td><td class="num">129</td></tr>
+<tr><td>gen0 de 256 MB: vida media 500 ms</td><td class="num">199</td><td class="num">1 / 21 / 1</td><td class="num">8,08 %</td><td class="num">23,5 / 23,5</td><td class="num">54,6 / 65,1</td><td class="num">49,7 / 49,7</td><td class="num">63,1</td><td class="num">233</td></tr>
+</tbody></table></div>
+<!-- /tabla -->
+    <p>Lo que salió, y que el modelo copia:</p>
+    <ul>
+      <li><b>Asignar mucho es barato si muere joven.</b> De 100 a 800 MB/s de objetos de 1 KB: gen0 de 0,45 ms de mediana, uno cada ~86 MB (ése es el presupuesto de gen0 que eligió el runtime en 4 vCPU), menos del 0,6 % del tiempo en pausa incluso a 800 MB/s.</li>
+      <li><b>Lo caro es lo que sobrevive un rato.</b> Los mismos 200 MB/s viviendo 100 ms, 500 ms, 2 s o 5 s: el runtime pasa a hacer gen1 casi siempre (36 gen1 por 1 gen0), de 16 a 23 ms cada uno, con gen2 de fondo cada dos (su primera pausa, que trae un gen1 adentro, de 16 ms de mediana y hasta 50 o 60), y entre 4 y 8 % del tiempo frenado. Con 5 s de vida el heap sube a 1,3 GB y aparece una pausa de más de 300 ms. La pausa crece poco con los MB que sobreviven (de 20 a 80 MB, de 16 a 18 ms): cuando sobrevive mucho el GC barre en vez de copiar, pero igual tiene que recorrer todo el gen0.</li>
+      <li><b>Un caché grande que nadie toca no cuesta nada.</b> Con 256 MB, 1 GB o 2 GB vivos en gen2 y churn de vida corta: cero gen2 en 15 s y gen0 de 0,45 ms, igual que sin caché. El tamaño del heap no cuesta por sí mismo; cuesta cuando hay que recorrerlo.</li>
+      <li><b>…hasta que se promueve.</b> El mismo caché de 1 o 2 GB más objetos de vida media: uno de cada dos gen1 pasa de 17 a 110–180 ms y el tiempo en pausa se va al 10 %. <code>SustainedLowLatency</code> no cambia gran cosa (9 %).</li>
+      <li><b>El LOH.</b> Buffers de 100 KB a 200 MB/s: 990 gen2 en 15 s (uno cada ~3 MB de LOH), 3,6 % en pausa aunque cada uno dure medio milisegundo porque no hay nada vivo. Los mismos buffers de 80 KB son gen0 comunes; con <code>ArrayPool</code>, cero GC.</li>
+      <li><b>Finalizadores.</b> Objetos de 1 KB con <code>~Clase()</code>: gen1 de 54 ms en vez de gen0 de 0,45, 13,5 % del tiempo en pausa. Unos 0,5 µs por objeto solo por anotarlo en la cola de finalización.</li>
+      <li><b>Server GC</b> en 4 vCPU: cuatro heaps con un presupuesto de gen0 de unos 250 MB cada uno. Con vida corta, 3 gen0 en 15 s (de 1,2 ms: no más cortos, pero muchos menos) y 645 MB comprometidos en vez de 81. Con vida media de 500 ms, 5 GC en total y 0,4 % en pausa contra 7,7 % en workstation: con un gen0 de 1 GB, a los objetos les da tiempo de morir antes de que los mire el GC. Con la fuga de 25 MB/s, ni un GC en 20 s. <b>DATAS</b> arranca con un heap y gen0 de 2,5 MB (1.209 gen0 de 0,26 ms con vida corta; 150 gen0, 38 gen1 y 36 gen2 con vida media, 8,4 % en pausa) y 3 MB comprometidos con vida corta.</li>
+      <li><b>El presupuesto de gen0 manda.</b> <code>DOTNET_GCgen0size</code> de 4 MB: 753 gen0 con vida corta (1,6 % en pausa) y 14,4 % con vida media, porque ahora casi nada muere antes del GC. De 256 MB: 21 gen0 en vez de 35, y con vida media gen1 de 55 ms (más del doble, hay más que recorrer) pero 8,1 % en pausa en vez de 7,7.</li>
+      <li><b>El centinela ve lo mismo que los eventos</b> (p99 de congelamientos igual a la pausa más larga en casi todas las corridas) y además lo que no es GC: el piso de ruido sin asignar nada fue de 4 ms en el p99, y en alguna corrida apareció un hueco de 30 a 45 ms sin ninguna pausa de GC detrás (el sistema operativo, memoria que se compromete). En producción, no todo congelamiento es el GC.</li>
+    </ul>
+
+    <h2>Qué es y qué no es este modelo</h2>
+    <ul>
+      <li>Es un modelo con tres generaciones, presupuestos, promoción por supervivencia, LOH, GC de fondo y heaps por núcleo, con reloj de 1 ms. Los presupuestos y los costos por MB están ajustados a mano para que los escenarios de arriba den números parecidos a los medidos (ver la tabla).</li>
+      <li>No es el GC: no hay card table, ni decisión de compactar o barrer (el real barre cuando sobrevive mucho, y por eso sus pausas crecen menos que linealmente con lo que sobrevive; el modelo copia esa curva), ni ajuste dinámico del presupuesto de gen0 según la supervivencia, ni regiones, ni <i>pinning</i>, ni la cola de finalización de verdad. Las vidas de los objetos son todas iguales (un porcentaje muere al toque y el resto vive exactamente lo que dice el control).</li>
+      <li>Los pedidos son pedidos de tiempo fijo que arrancan a intervalos regulares; su latencia es ese tiempo más las pausas que les caen encima. No hay cola ni thread pool: para eso está <a href="../thread-pool-en-vivo/">el thread pool en vivo</a>.</li>
+    </ul>
+
+    <h2>Fuentes</h2>
+    <ul>
+      <li>Microsoft Learn, <a href="https://learn.microsoft.com/dotnet/standard/garbage-collection/fundamentals">Fundamentals of garbage collection</a>: generaciones, presupuestos, promoción, fases de un GC.</li>
+      <li>Microsoft Learn, <a href="https://learn.microsoft.com/dotnet/standard/garbage-collection/workstation-server-gc">Workstation and server garbage collection</a> y <a href="https://learn.microsoft.com/dotnet/standard/garbage-collection/background-gc">Background garbage collection</a>.</li>
+      <li>Microsoft Learn, <a href="https://learn.microsoft.com/dotnet/standard/garbage-collection/large-object-heap">The large object heap on Windows systems</a> y <a href="https://learn.microsoft.com/dotnet/core/runtime-config/garbage-collector">Runtime configuration options for garbage collection</a> (<code>gcServer</code>, <code>gcConcurrent</code>, <code>GCgen0size</code>, <code>GCHeapHardLimit</code>, DATAS).</li>
+      <li>Maoni Stephens, <a href="https://github.com/dotnet/runtime/blob/main/docs/design/coreclr/botr/garbage-collection.md">Garbage Collection Design</a> (Book of the Runtime) y su blog <a href="https://maoni0.medium.com/">maoni0.medium.com</a>, en particular lo que escribió sobre el mid-life crisis y sobre DATAS.</li>
+      <li>Microsoft Learn, <a href="https://learn.microsoft.com/dotnet/core/diagnostics/dotnet-counters">dotnet-counters</a>, <a href="https://learn.microsoft.com/dotnet/core/diagnostics/dotnet-trace">dotnet-trace</a>, <a href="https://learn.microsoft.com/dotnet/core/diagnostics/dotnet-gcdump">dotnet-gcdump</a> y <a href="https://learn.microsoft.com/dotnet/fundamentals/diagnostics/runtime-garbage-collection-events">Garbage collection ETW events</a>.</li>
+    </ul>
+  </section>
+</main>
+<script src="logica.js"></script>
+<script>
+(function () {
+  "use strict";
+  const G = window.GcEnVivo;
+  const $ = (id) => document.getElementById(id);
+  const fmt = (x, d) => new Intl.NumberFormat("es-AR", { minimumFractionDigits: d == null ? 0 : d, maximumFractionDigits: d == null ? 0 : d }).format(x);
+  const ms = (x) => x >= 100 ? fmt(x, 0) + " ms" : x >= 10 ? fmt(x, 1) + " ms" : fmt(x, 2) + " ms";
+  const CAMPOS = ["ritmoMBs", "objKB", "vidaMediaPct", "vidaMediaMs", "cacheMB", "crecerMBs", "nucleos", "presupuestoGen0MB", "pedidosPorS", "servicioMs", "duracionS"];
+  const CHECKS = ["finalizadores", "pool", "concurrente"];
+  let estado = Object.assign({}, G.defaults);
+  let escenario = "corta";
+  try { const g = JSON.parse(localStorage.getItem("gc-en-vivo") || "null"); if (g && g.estado) { estado = Object.assign({}, G.defaults, g.estado); escenario = g.escenario || ""; } } catch (e) { /* sin memoria */ }
+  if (escenario && !G.ESCENARIOS.some((e) => e.clave === escenario)) escenario = "";
+
+  // Escenarios.
+  for (const e of G.ESCENARIOS) { const b = document.createElement("button"); b.type = "button"; b.textContent = e.nombre; b.dataset.clave = e.clave; b.addEventListener("click", () => { escenario = e.clave; estado = Object.assign({}, G.defaults, e.opts); pintar(); correr(); }); $("escenarios").appendChild(b); }
+
+  function pintar() {
+    for (const k of CAMPOS) $(k).value = estado[k];
+    for (const k of CHECKS) $(k).checked = !!estado[k];
+    for (const b of document.querySelectorAll("#modo button")) b.setAttribute("aria-pressed", String(b.dataset.valor === estado.modo));
+    for (const b of document.querySelectorAll("#escenarios button")) b.setAttribute("aria-pressed", String(b.dataset.clave === escenario));
+    const e = G.ESCENARIOS.find((x) => x.clave === escenario);
+    $("escenarioTexto").textContent = e ? e.texto : "Escenario a medida.";
+  }
+  function leer() {
+    for (const k of CAMPOS) { const v = +$(k).value; if (!Number.isNaN(v) && $(k).value !== "") estado[k] = v; }
+    for (const k of CHECKS) estado[k] = $(k).checked;
+    escenario = ""; const e = G.ESCENARIOS.find((x) => JSON.stringify(Object.assign({}, G.defaults, x.opts)) === JSON.stringify(estado)); if (e) escenario = e.clave;
+    pintar(); correr();
+  }
+  for (const k of CAMPOS) $(k).addEventListener("change", leer);
+  for (const k of CHECKS) $(k).addEventListener("change", leer);
+  $("modo").addEventListener("click", (ev) => { const b = ev.target.closest("button"); if (!b) return; estado.modo = b.dataset.valor; escenario = ""; pintar(); correr(); });
+
+  function correr() {
+    try { localStorage.setItem("gc-en-vivo", JSON.stringify({ estado, escenario })); } catch (e) { /* sin memoria */ }
+    const r = G.simular(estado);
+    const o = r.opciones, c = r.colecciones;
+    $("segundos").textContent = o.duracionS;
+    $("cColecciones").textContent = c.gen0 + " / " + c.gen1 + " / " + c.gen2;
+    $("cColeccionesDet").textContent = "gen0 / gen1 / gen2" + (c.gen2Fondo ? " (" + c.gen2Fondo + " de fondo)" : "");
+    $("cPausaPct").textContent = fmt(r.pausaPct, 2) + " %";
+    $("cPausaDet").textContent = ms(r.pausaTotalMs) + " en " + r.eventos.length + " pausas";
+    $("cPausaMax").textContent = ms(r.pausaMaxMs);
+    $("cPausaMaxDet").textContent = "p99 de las pausas: " + ms(r.pausaP99Ms);
+    $("cLatP99").textContent = ms(r.latencia.p99);
+    $("cLatDet").textContent = "p50 " + ms(r.latencia.p50) + " · máx " + ms(r.latencia.max) + " · " + r.latencia.afectados + " de " + r.latencia.n + " con pausa";
+    $("cHeap").textContent = fmt(r.heapMaxMB) + " MB";
+    $("cHeapDet").textContent = "vivo al final " + fmt(r.vivoFinalMB) + " MB · gen0 de " + fmt(r.presupuestos.gen0MB) + " MB" + (r.presupuestos.heaps > 1 ? " en " + r.presupuestos.heaps + " heaps" : "");
+    $("cCpu").textContent = fmt(r.cpuGcPct, 1) + " %";
+    $("cCpuDet").textContent = "pausas" + (r.trabajoFondoMs > 0 ? " + " + ms(r.trabajoFondoMs) + " de marcado de fondo" : "") + ", sobre " + o.nucleos + " núcleos";
+    const filas = [["gen0", r.pausas.gen0], ["gen1", r.pausas.gen1], ["gen2 bloqueante", r.pausas.gen2Bloqueante], ["gen2 de fondo (pausas)", r.pausas.gen2Fondo]];
+    $("tPausas").querySelector("tbody").innerHTML = filas.map(([n, p]) => "<tr><td>" + n + "</td><td class=\"num\">" + p.n + "</td><td class=\"num\">" + (p.n ? ms(p.p50Ms) : "–") + "</td><td class=\"num\">" + (p.n ? ms(p.p99Ms) : "–") + "</td><td class=\"num\">" + (p.n ? ms(p.maxMs) : "–") + "</td><td class=\"num\">" + (p.n ? ms(p.sumMs) : "–") + "</td></tr>").join("");
+    dibujarPausas(r); dibujarHeap(r);
+    $("diagnostico").innerHTML = G.diagnosticar(r).map((d) => "<div class=\"item " + d.nivel + "\"><b>" + d.titulo + "</b><p>" + esc(d.texto).replace(/`([^`]+)`/g, "<code>$1</code>") + "</p></div>").join("");
+  }
+  function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+  const color = (e) => e.gen === 0 ? "var(--g0)" : e.gen === 1 ? "var(--g1)" : "var(--g2)";
+  function dibujarPausas(r) {
+    const W = 720, H = 150, L = 44, R = 8, T = 10, B = 26, fin = r.opciones.duracionS * 1000;
+    const maxMs = Math.max(1, ...r.eventos.map((e) => e.ms));
+    const escalaY = (v) => T + (H - T - B) * (1 - Math.log10(1 + v) / Math.log10(1 + maxMs));
+    const escalaX = (t) => L + (W - L - R) * t / fin;
+    let s = "";
+    // sombra del marcado de fondo
+    let inicio = null;
+    for (const m of r.muestras) { if (m.fondo && inicio == null) inicio = m.t; if (!m.fondo && inicio != null) { s += `<rect x="${escalaX(inicio)}" y="${T}" width="${Math.max(1, escalaX(m.t) - escalaX(inicio))}" height="${H - T - B}" fill="var(--fondo)"/>`; inicio = null; } }
+    if (inicio != null) s += `<rect x="${escalaX(inicio)}" y="${T}" width="${Math.max(1, escalaX(fin) - escalaX(inicio))}" height="${H - T - B}" fill="var(--fondo)"/>`;
+    for (const v of [0.5, 1, 5, 10, 50, 100, 500, 1000]) if (v <= maxMs * 1.1) s += `<line x1="${L}" x2="${W - R}" y1="${escalaY(v)}" y2="${escalaY(v)}" stroke="var(--line)"/><text x="${L - 4}" y="${escalaY(v) + 3}" font-size="9" text-anchor="end" fill="var(--muted)">${v} ms</text>`;
+    const y0 = escalaY(0);
+    for (const e of r.eventos) s += `<line x1="${escalaX(e.t)}" x2="${escalaX(e.t)}" y1="${y0}" y2="${escalaY(e.ms)}" stroke="${color(e)}" stroke-width="${e.gen === 2 ? 2.5 : 1.5}" opacity="${e.tipo === 1 ? .55 : 1}"/><circle cx="${escalaX(e.t)}" cy="${escalaY(e.ms)}" r="${e.gen === 2 ? 3 : 2}" fill="${color(e)}" opacity="${e.tipo === 1 ? .55 : 1}"/>`;
+    for (let t = 0; t <= fin; t += fin / 5) s += `<text x="${escalaX(t)}" y="${H - 10}" font-size="9" text-anchor="middle" fill="var(--muted)">${fmt(t / 1000)} s</text>`;
+    s += `<line x1="${L}" x2="${W - R}" y1="${y0}" y2="${y0}" stroke="var(--line)"/>`;
+    $("gPausas").innerHTML = s;
+  }
+  function dibujarHeap(r) {
+    const W = 720, H = 170, L = 50, R = 8, T = 10, B = 26, fin = r.opciones.duracionS * 1000;
+    const total = (m) => m.gen0 + m.gen1 + m.gen2 + m.loh;
+    const maxMB = Math.max(1, ...r.muestras.map(total)) * 1.08;
+    const escalaY = (v) => T + (H - T - B) * (1 - v / maxMB);
+    const escalaX = (t) => L + (W - L - R) * t / fin;
+    const capas = [["gen2", "var(--g2)"], ["gen1", "var(--g1)"], ["gen0", "var(--g0)"], ["loh", "var(--loh)"]];
+    let s = "";
+    const base = r.muestras.map(() => 0);
+    for (const [k, col] of capas) {
+      let arriba = "", abajo = "";
+      r.muestras.forEach((m, i) => { const y0 = base[i]; const y1 = y0 + m[k]; arriba += `${i ? "L" : "M"}${escalaX(m.t).toFixed(1)},${escalaY(y1).toFixed(1)} `; abajo = `L${escalaX(m.t).toFixed(1)},${escalaY(y0).toFixed(1)} ` + abajo; base[i] = y1; });
+      s += `<path d="${arriba}${abajo}Z" fill="${col}" opacity=".85"/>`;
+    }
+    const pasoY = maxMB > 2000 ? 1000 : maxMB > 800 ? 250 : maxMB > 300 ? 100 : maxMB > 120 ? 50 : maxMB > 40 ? 20 : 5;
+    for (let v = 0; v <= maxMB; v += pasoY) s += `<line x1="${L}" x2="${W - R}" y1="${escalaY(v)}" y2="${escalaY(v)}" stroke="var(--line)" opacity=".6"/><text x="${L - 4}" y="${escalaY(v) + 3}" font-size="9" text-anchor="end" fill="var(--muted)">${fmt(v)} MB</text>`;
+    for (let t = 0; t <= fin; t += fin / 5) s += `<text x="${escalaX(t)}" y="${H - 10}" font-size="9" text-anchor="middle" fill="var(--muted)">${fmt(t / 1000)} s</text>`;
+    $("gHeap").innerHTML = s;
+  }
+  pintar(); correr();
+})();
+</script>
+</body>
+</html>

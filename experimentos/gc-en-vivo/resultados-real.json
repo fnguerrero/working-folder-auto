@@ -1,0 +1,3128 @@
+[
+ {
+  "clave": "nada",
+  "nombre": "Sin asignar nada (piso de ruido del centinela)",
+  "escenario": "nada",
+  "args": {
+   "escenario": "nada",
+   "dur": "10"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 10.01,
+  "asignadoMBs": 0,
+  "colecciones": {
+   "gen0": 0,
+   "gen1": 0,
+   "gen2": 0
+  },
+  "pausaTotalMs": 0,
+  "pausaPct": 0,
+  "cpuMs": 10410,
+  "pausas": {
+   "gen0": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen1": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Bloqueante": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 1,
+    "sumMs": 0.01,
+    "maxMs": 0.01,
+    "p50Ms": 0.01,
+    "p99Ms": 0.01
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 45,
+   "sumMs": 82.35,
+   "maxMs": 3.94,
+   "p50Ms": 1.74,
+   "p99Ms": 3.94
+  },
+  "heap": {
+   "committedMaxMB": 0,
+   "heapMB": 0,
+   "gen0MB": 0,
+   "gen1MB": 0,
+   "gen2MB": 0,
+   "lohMB": 0,
+   "pohMB": 0,
+   "fragmentadoMB": 0,
+   "pausaPctRuntime": 0
+  },
+  "cacheObjetos": 0
+ },
+ {
+  "clave": "corta-100",
+  "nombre": "Vida corta, 100 MB/s",
+  "escenario": "corta",
+  "args": {
+   "escenario": "corta",
+   "dur": "15",
+   "rate": "100"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.01,
+  "asignadoMBs": 99.9,
+  "colecciones": {
+   "gen0": 16,
+   "gen1": 1,
+   "gen2": 1
+  },
+  "pausaTotalMs": 14.1,
+  "pausaPct": 0.09,
+  "cpuMs": 16210,
+  "pausas": {
+   "gen0": {
+    "n": 16,
+    "sumMs": 10.4,
+    "maxMs": 1.58,
+    "p50Ms": 0.57,
+    "p99Ms": 1.58
+   },
+   "gen1": {
+    "n": 1,
+    "sumMs": 0.99,
+    "maxMs": 0.99,
+    "p50Ms": 0.99,
+    "p99Ms": 0.99
+   },
+   "gen2Bloqueante": {
+    "n": 1,
+    "sumMs": 2.24,
+    "maxMs": 2.24,
+    "p50Ms": 2.24,
+    "p99Ms": 2.24
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 19,
+    "sumMs": 13.64,
+    "maxMs": 2.24,
+    "p50Ms": 0.57,
+    "p99Ms": 2.24
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 38,
+   "sumMs": 75.06,
+   "maxMs": 6.42,
+   "p50Ms": 1.71,
+   "p99Ms": 6.42
+  },
+  "heap": {
+   "committedMaxMB": 80.7,
+   "heapMB": 0.3,
+   "gen0MB": 0,
+   "gen1MB": 0,
+   "gen2MB": 0.3,
+   "lohMB": 0,
+   "pohMB": 0.03,
+   "fragmentadoMB": 0,
+   "pausaPctRuntime": 0.09
+  },
+  "cacheObjetos": 0
+ },
+ {
+  "clave": "corta-200",
+  "nombre": "Vida corta, 200 MB/s",
+  "escenario": "corta",
+  "args": {
+   "escenario": "corta",
+   "dur": "15",
+   "rate": "200"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.02,
+  "asignadoMBs": 199.7,
+  "colecciones": {
+   "gen0": 35,
+   "gen1": 1,
+   "gen2": 1
+  },
+  "pausaTotalMs": 27.6,
+  "pausaPct": 0.18,
+  "cpuMs": 16500,
+  "pausas": {
+   "gen0": {
+    "n": 35,
+    "sumMs": 18.11,
+    "maxMs": 1.92,
+    "p50Ms": 0.47,
+    "p99Ms": 1.92
+   },
+   "gen1": {
+    "n": 1,
+    "sumMs": 1.05,
+    "maxMs": 1.05,
+    "p50Ms": 1.05,
+    "p99Ms": 1.05
+   },
+   "gen2Bloqueante": {
+    "n": 1,
+    "sumMs": 8.18,
+    "maxMs": 8.18,
+    "p50Ms": 8.18,
+    "p99Ms": 8.18
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 38,
+    "sumMs": 27.35,
+    "maxMs": 8.18,
+    "p50Ms": 0.47,
+    "p99Ms": 8.18
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 59,
+   "sumMs": 126.95,
+   "maxMs": 8.25,
+   "p50Ms": 1.95,
+   "p99Ms": 8.25
+  },
+  "heap": {
+   "committedMaxMB": 80.7,
+   "heapMB": 0.3,
+   "gen0MB": 0,
+   "gen1MB": 0.01,
+   "gen2MB": 0.3,
+   "lohMB": 0,
+   "pohMB": 0.03,
+   "fragmentadoMB": 0,
+   "pausaPctRuntime": 0.18
+  },
+  "cacheObjetos": 0
+ },
+ {
+  "clave": "corta-400",
+  "nombre": "Vida corta, 400 MB/s",
+  "escenario": "corta",
+  "args": {
+   "escenario": "corta",
+   "dur": "15",
+   "rate": "400"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.01,
+  "asignadoMBs": 399.7,
+  "colecciones": {
+   "gen0": 73,
+   "gen1": 1,
+   "gen2": 1
+  },
+  "pausaTotalMs": 43.5,
+  "pausaPct": 0.29,
+  "cpuMs": 17280,
+  "pausas": {
+   "gen0": {
+    "n": 73,
+    "sumMs": 38.03,
+    "maxMs": 1.42,
+    "p50Ms": 0.47,
+    "p99Ms": 1.42
+   },
+   "gen1": {
+    "n": 1,
+    "sumMs": 1.06,
+    "maxMs": 1.06,
+    "p50Ms": 1.06,
+    "p99Ms": 1.06
+   },
+   "gen2Bloqueante": {
+    "n": 1,
+    "sumMs": 4.05,
+    "maxMs": 4.05,
+    "p50Ms": 4.05,
+    "p99Ms": 4.05
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 76,
+    "sumMs": 43.15,
+    "maxMs": 4.05,
+    "p50Ms": 0.47,
+    "p99Ms": 4.05
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 53,
+   "sumMs": 96.54,
+   "maxMs": 5.47,
+   "p50Ms": 1.66,
+   "p99Ms": 5.47
+  },
+  "heap": {
+   "committedMaxMB": 80.7,
+   "heapMB": 0.3,
+   "gen0MB": 0,
+   "gen1MB": 0.01,
+   "gen2MB": 0.3,
+   "lohMB": 0,
+   "pohMB": 0.03,
+   "fragmentadoMB": 0,
+   "pausaPctRuntime": 0.28
+  },
+  "cacheObjetos": 0
+ },
+ {
+  "clave": "corta-800",
+  "nombre": "Vida corta, 800 MB/s",
+  "escenario": "corta",
+  "args": {
+   "escenario": "corta",
+   "dur": "15",
+   "rate": "800"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.01,
+  "asignadoMBs": 799.3,
+  "colecciones": {
+   "gen0": 148,
+   "gen1": 1,
+   "gen2": 1
+  },
+  "pausaTotalMs": 83.4,
+  "pausaPct": 0.56,
+  "cpuMs": 18760,
+  "pausas": {
+   "gen0": {
+    "n": 148,
+    "sumMs": 77.05,
+    "maxMs": 3.99,
+    "p50Ms": 0.43,
+    "p99Ms": 3.46
+   },
+   "gen1": {
+    "n": 1,
+    "sumMs": 0.85,
+    "maxMs": 0.85,
+    "p50Ms": 0.85,
+    "p99Ms": 0.85
+   },
+   "gen2Bloqueante": {
+    "n": 1,
+    "sumMs": 5.01,
+    "maxMs": 5.01,
+    "p50Ms": 5.01,
+    "p99Ms": 5.01
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 151,
+    "sumMs": 82.93,
+    "maxMs": 5.01,
+    "p50Ms": 0.43,
+    "p99Ms": 3.99
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 62,
+   "sumMs": 134.42,
+   "maxMs": 7.91,
+   "p50Ms": 1.83,
+   "p99Ms": 7.91
+  },
+  "heap": {
+   "committedMaxMB": 80.7,
+   "heapMB": 0.3,
+   "gen0MB": 0,
+   "gen1MB": 0.02,
+   "gen2MB": 0.3,
+   "lohMB": 0,
+   "pohMB": 0.03,
+   "fragmentadoMB": 0,
+   "pausaPctRuntime": 0.55
+  },
+  "cacheObjetos": 0
+ },
+ {
+  "clave": "media-100",
+  "nombre": "Vida media 100 ms, 200 MB/s",
+  "escenario": "media",
+  "args": {
+   "escenario": "media",
+   "dur": "15",
+   "rate": "200",
+   "vida": "100"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.02,
+  "asignadoMBs": 199.8,
+  "colecciones": {
+   "gen0": 1,
+   "gen1": 35,
+   "gen2": 1
+  },
+  "pausaTotalMs": 583.3,
+  "pausaPct": 3.88,
+  "cpuMs": 16490,
+  "pausas": {
+   "gen0": {
+    "n": 1,
+    "sumMs": 12,
+    "maxMs": 12,
+    "p50Ms": 12,
+    "p99Ms": 12
+   },
+   "gen1": {
+    "n": 35,
+    "sumMs": 554.37,
+    "maxMs": 20.48,
+    "p50Ms": 15.93,
+    "p99Ms": 20.48
+   },
+   "gen2Bloqueante": {
+    "n": 1,
+    "sumMs": 17.86,
+    "maxMs": 17.86,
+    "p50Ms": 17.86,
+    "p99Ms": 17.86
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 38,
+    "sumMs": 584.24,
+    "maxMs": 20.48,
+    "p50Ms": 15.93,
+    "p99Ms": 20.48
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 97,
+   "sumMs": 700.21,
+   "maxMs": 20.48,
+   "p50Ms": 2.28,
+   "p99Ms": 20.48
+  },
+  "heap": {
+   "committedMaxMB": 104.5,
+   "heapMB": 20.4,
+   "gen0MB": 0,
+   "gen1MB": 19.98,
+   "gen2MB": 0.4,
+   "lohMB": 0,
+   "pohMB": 0.03,
+   "fragmentadoMB": 0.1,
+   "pausaPctRuntime": 3.94
+  },
+  "cacheObjetos": 0
+ },
+ {
+  "clave": "media-500",
+  "nombre": "Vida media 500 ms, 200 MB/s",
+  "escenario": "media",
+  "args": {
+   "escenario": "media",
+   "dur": "15",
+   "rate": "200",
+   "vida": "500"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.06,
+  "asignadoMBs": 199.3,
+  "colecciones": {
+   "gen0": 1,
+   "gen1": 36,
+   "gen2": 18
+  },
+  "pausaTotalMs": 1159.7,
+  "pausaPct": 7.7,
+  "cpuMs": 16860,
+  "pausas": {
+   "gen0": {
+    "n": 1,
+    "sumMs": 10.98,
+    "maxMs": 10.98,
+    "p50Ms": 10.98,
+    "p99Ms": 10.98
+   },
+   "gen1": {
+    "n": 18,
+    "sumMs": 545.32,
+    "maxMs": 61.96,
+    "p50Ms": 18.25,
+    "p99Ms": 61.96
+   },
+   "gen2Bloqueante": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Fondo": {
+    "n": 36,
+    "sumMs": 605.76,
+    "maxMs": 51.98,
+    "p50Ms": 15.97,
+    "p99Ms": 51.98
+   },
+   "todas": {
+    "n": 56,
+    "sumMs": 1162.08,
+    "maxMs": 61.96,
+    "p50Ms": 17.32,
+    "p99Ms": 61.96
+   },
+   "gen2FondoCount": 18
+  },
+  "congelamientos": {
+   "n": 90,
+   "sumMs": 1260.53,
+   "maxMs": 62.03,
+   "p50Ms": 2.16,
+   "p99Ms": 62.03
+  },
+  "heap": {
+   "committedMaxMB": 232.9,
+   "heapMB": 109.5,
+   "gen0MB": 4,
+   "gen1MB": 80,
+   "gen2MB": 24.7,
+   "lohMB": 0.8,
+   "pohMB": 0.03,
+   "fragmentadoMB": 7,
+   "pausaPctRuntime": 7.83
+  },
+  "cacheObjetos": 0
+ },
+ {
+  "clave": "media-2000",
+  "nombre": "Vida media 2 s, 200 MB/s",
+  "escenario": "media",
+  "args": {
+   "escenario": "media",
+   "dur": "15",
+   "rate": "200",
+   "vida": "2000"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.02,
+  "asignadoMBs": 199.9,
+  "colecciones": {
+   "gen0": 0,
+   "gen1": 36,
+   "gen2": 11
+  },
+  "pausaTotalMs": 813.5,
+  "pausaPct": 5.41,
+  "cpuMs": 18340,
+  "pausas": {
+   "gen0": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen1": {
+    "n": 26,
+    "sumMs": 593.37,
+    "maxMs": 36.47,
+    "p50Ms": 22.97,
+    "p99Ms": 36.47
+   },
+   "gen2Bloqueante": {
+    "n": 1,
+    "sumMs": 10.61,
+    "maxMs": 10.61,
+    "p50Ms": 10.61,
+    "p99Ms": 10.61
+   },
+   "gen2Fondo": {
+    "n": 20,
+    "sumMs": 211.26,
+    "maxMs": 24.85,
+    "p50Ms": 17.78,
+    "p99Ms": 24.85
+   },
+   "todas": {
+    "n": 48,
+    "sumMs": 815.26,
+    "maxMs": 36.47,
+    "p50Ms": 20.62,
+    "p99Ms": 36.47
+   },
+   "gen2FondoCount": 10
+  },
+  "congelamientos": {
+   "n": 80,
+   "sumMs": 889.83,
+   "maxMs": 36.57,
+   "p50Ms": 2.65,
+   "p99Ms": 36.57
+  },
+  "heap": {
+   "committedMaxMB": 859.2,
+   "heapMB": 566.2,
+   "gen0MB": 0,
+   "gen1MB": 80,
+   "gen2MB": 483.1,
+   "lohMB": 3.1,
+   "pohMB": 0.03,
+   "fragmentadoMB": 11.5,
+   "pausaPctRuntime": 5.5
+  },
+  "cacheObjetos": 0
+ },
+ {
+  "clave": "media-5000",
+  "nombre": "Vida media 5 s, 200 MB/s",
+  "escenario": "media",
+  "args": {
+   "escenario": "media",
+   "dur": "15",
+   "rate": "200",
+   "vida": "5000"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.03,
+  "asignadoMBs": 200.1,
+  "colecciones": {
+   "gen0": 0,
+   "gen1": 37,
+   "gen2": 7
+  },
+  "pausaTotalMs": 1031.6,
+  "pausaPct": 6.86,
+  "cpuMs": 23600,
+  "pausas": {
+   "gen0": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen1": {
+    "n": 31,
+    "sumMs": 908.79,
+    "maxMs": 327.52,
+    "p50Ms": 19.82,
+    "p99Ms": 327.52
+   },
+   "gen2Bloqueante": {
+    "n": 1,
+    "sumMs": 2.32,
+    "maxMs": 2.32,
+    "p50Ms": 2.32,
+    "p99Ms": 2.32
+   },
+   "gen2Fondo": {
+    "n": 12,
+    "sumMs": 121.71,
+    "maxMs": 26.67,
+    "p50Ms": 17.3,
+    "p99Ms": 26.67
+   },
+   "todas": {
+    "n": 45,
+    "sumMs": 1032.84,
+    "maxMs": 327.52,
+    "p50Ms": 19.02,
+    "p99Ms": 327.52
+   },
+   "gen2FondoCount": 6
+  },
+  "congelamientos": {
+   "n": 97,
+   "sumMs": 1155.2,
+   "maxMs": 327.63,
+   "p50Ms": 2.47,
+   "p99Ms": 327.63
+  },
+  "heap": {
+   "committedMaxMB": 1915.9,
+   "heapMB": 1347.2,
+   "gen0MB": 0,
+   "gen1MB": 80,
+   "gen2MB": 1259.4,
+   "lohMB": 7.8,
+   "pohMB": 0.03,
+   "fragmentadoMB": 32,
+   "pausaPctRuntime": 6.99
+  },
+  "cacheObjetos": 0
+ },
+ {
+  "clave": "cache-256",
+  "nombre": "Caché de 256 MB + 200 MB/s de vida corta",
+  "escenario": "cache",
+  "args": {
+   "escenario": "cache",
+   "dur": "15",
+   "rate": "200",
+   "cache": "256"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.01,
+  "asignadoMBs": 199.9,
+  "colecciones": {
+   "gen0": 36,
+   "gen1": 1,
+   "gen2": 0
+  },
+  "pausaTotalMs": 17.8,
+  "pausaPct": 0.12,
+  "cpuMs": 16480,
+  "pausas": {
+   "gen0": {
+    "n": 36,
+    "sumMs": 17.23,
+    "maxMs": 0.95,
+    "p50Ms": 0.45,
+    "p99Ms": 0.95
+   },
+   "gen1": {
+    "n": 1,
+    "sumMs": 0.44,
+    "maxMs": 0.44,
+    "p50Ms": 0.44,
+    "p99Ms": 0.44
+   },
+   "gen2Bloqueante": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 38,
+    "sumMs": 17.67,
+    "maxMs": 0.95,
+    "p50Ms": 0.45,
+    "p99Ms": 0.95
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 50,
+   "sumMs": 93.72,
+   "maxMs": 3.89,
+   "p50Ms": 1.88,
+   "p99Ms": 3.89
+  },
+  "heap": {
+   "committedMaxMB": 344.1,
+   "heapMB": 259.6,
+   "gen0MB": 0,
+   "gen1MB": 0.02,
+   "gen2MB": 257.5,
+   "lohMB": 2,
+   "pohMB": 0.03,
+   "fragmentadoMB": 1.3,
+   "pausaPctRuntime": 0.56
+  },
+  "cacheObjetos": 262144
+ },
+ {
+  "clave": "cache-1024",
+  "nombre": "Caché de 1 GB + 200 MB/s",
+  "escenario": "cache",
+  "args": {
+   "escenario": "cache",
+   "dur": "15",
+   "rate": "200",
+   "cache": "1024"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.02,
+  "asignadoMBs": 199.8,
+  "colecciones": {
+   "gen0": 36,
+   "gen1": 1,
+   "gen2": 0
+  },
+  "pausaTotalMs": 22.5,
+  "pausaPct": 0.15,
+  "cpuMs": 16860,
+  "pausas": {
+   "gen0": {
+    "n": 36,
+    "sumMs": 21.26,
+    "maxMs": 2.6,
+    "p50Ms": 0.44,
+    "p99Ms": 2.6
+   },
+   "gen1": {
+    "n": 1,
+    "sumMs": 0.48,
+    "maxMs": 0.48,
+    "p50Ms": 0.48,
+    "p99Ms": 0.48
+   },
+   "gen2Bloqueante": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 38,
+    "sumMs": 21.76,
+    "maxMs": 2.6,
+    "p50Ms": 0.44,
+    "p99Ms": 2.6
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 56,
+   "sumMs": 113.6,
+   "maxMs": 7.96,
+   "p50Ms": 1.83,
+   "p99Ms": 7.96
+  },
+  "heap": {
+   "committedMaxMB": 1121.4,
+   "heapMB": 1036,
+   "gen0MB": 0,
+   "gen1MB": 0.02,
+   "gen2MB": 1028,
+   "lohMB": 8,
+   "pohMB": 0.03,
+   "fragmentadoMB": 3.7,
+   "pausaPctRuntime": 2.68
+  },
+  "cacheObjetos": 1048576
+ },
+ {
+  "clave": "cache-2048",
+  "nombre": "Caché de 2 GB + 200 MB/s",
+  "escenario": "cache",
+  "args": {
+   "escenario": "cache",
+   "dur": "15",
+   "rate": "200",
+   "cache": "2048"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.06,
+  "asignadoMBs": 199.2,
+  "colecciones": {
+   "gen0": 36,
+   "gen1": 1,
+   "gen2": 0
+  },
+  "pausaTotalMs": 22.2,
+  "pausaPct": 0.15,
+  "cpuMs": 16900,
+  "pausas": {
+   "gen0": {
+    "n": 36,
+    "sumMs": 21.33,
+    "maxMs": 2.52,
+    "p50Ms": 0.52,
+    "p99Ms": 2.52
+   },
+   "gen1": {
+    "n": 1,
+    "sumMs": 0.48,
+    "maxMs": 0.48,
+    "p50Ms": 0.48,
+    "p99Ms": 0.48
+   },
+   "gen2Bloqueante": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 38,
+    "sumMs": 21.83,
+    "maxMs": 2.52,
+    "p50Ms": 0.49,
+    "p99Ms": 2.52
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 82,
+   "sumMs": 229.31,
+   "maxMs": 37.09,
+   "p50Ms": 1.69,
+   "p99Ms": 37.09
+  },
+  "heap": {
+   "committedMaxMB": 2154.4,
+   "heapMB": 2071.2,
+   "gen0MB": 0,
+   "gen1MB": 0.02,
+   "gen2MB": 2055.2,
+   "lohMB": 16,
+   "pohMB": 0.03,
+   "fragmentadoMB": 6.9,
+   "pausaPctRuntime": 4.29
+  },
+  "cacheObjetos": 2097152
+ },
+ {
+  "clave": "noconc-cache-1024",
+  "nombre": "Caché de 1 GB, GC concurrente apagado",
+  "escenario": "cache",
+  "args": {
+   "escenario": "cache",
+   "dur": "15",
+   "rate": "200",
+   "cache": "1024"
+  },
+  "config": {
+   "server": false,
+   "concurrente": false,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Batch",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.02,
+  "asignadoMBs": 199.8,
+  "colecciones": {
+   "gen0": 37,
+   "gen1": 0,
+   "gen2": 0
+  },
+  "pausaTotalMs": 18.6,
+  "pausaPct": 0.12,
+  "cpuMs": 16510,
+  "pausas": {
+   "gen0": {
+    "n": 37,
+    "sumMs": 18.84,
+    "maxMs": 1.63,
+    "p50Ms": 0.43,
+    "p99Ms": 1.63
+   },
+   "gen1": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Bloqueante": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 38,
+    "sumMs": 18.88,
+    "maxMs": 1.63,
+    "p50Ms": 0.43,
+    "p99Ms": 1.63
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 61,
+   "sumMs": 109.46,
+   "maxMs": 4.59,
+   "p50Ms": 1.7,
+   "p99Ms": 4.59
+  },
+  "heap": {
+   "committedMaxMB": 1165.4,
+   "heapMB": 1036,
+   "gen0MB": 0,
+   "gen1MB": 0.03,
+   "gen2MB": 1027.9,
+   "lohMB": 8,
+   "pohMB": 0.03,
+   "fragmentadoMB": 3.7,
+   "pausaPctRuntime": 3.43
+  },
+  "cacheObjetos": 1048576
+ },
+ {
+  "clave": "sustained-1024",
+  "nombre": "Caché de 1 GB, SustainedLowLatency",
+  "escenario": "cache",
+  "args": {
+   "escenario": "cache",
+   "dur": "15",
+   "rate": "200",
+   "cache": "1024",
+   "latencia": "sustained"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "SustainedLowLatency",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.02,
+  "asignadoMBs": 199.7,
+  "colecciones": {
+   "gen0": 36,
+   "gen1": 1,
+   "gen2": 0
+  },
+  "pausaTotalMs": 18.5,
+  "pausaPct": 0.12,
+  "cpuMs": 16990,
+  "pausas": {
+   "gen0": {
+    "n": 36,
+    "sumMs": 17.72,
+    "maxMs": 1.89,
+    "p50Ms": 0.44,
+    "p99Ms": 1.89
+   },
+   "gen1": {
+    "n": 1,
+    "sumMs": 0.43,
+    "maxMs": 0.43,
+    "p50Ms": 0.43,
+    "p99Ms": 0.43
+   },
+   "gen2Bloqueante": {
+    "n": 1,
+    "sumMs": 121.93,
+    "maxMs": 121.93,
+    "p50Ms": 121.93,
+    "p99Ms": 121.93
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 39,
+    "sumMs": 140.99,
+    "maxMs": 121.93,
+    "p50Ms": 0.44,
+    "p99Ms": 121.93
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 49,
+   "sumMs": 89.11,
+   "maxMs": 5.12,
+   "p50Ms": 1.83,
+   "p99Ms": 5.12
+  },
+  "heap": {
+   "committedMaxMB": 1121.4,
+   "heapMB": 1036,
+   "gen0MB": 0,
+   "gen1MB": 0.02,
+   "gen2MB": 1028,
+   "lohMB": 8,
+   "pohMB": 0.03,
+   "fragmentadoMB": 3.7,
+   "pausaPctRuntime": 2.89
+  },
+  "cacheObjetos": 1048576
+ },
+ {
+  "clave": "cache-media-1024",
+  "nombre": "Caché de 1 GB + vida media 500 ms",
+  "escenario": "cache-media",
+  "args": {
+   "escenario": "cache-media",
+   "dur": "15",
+   "rate": "200",
+   "cache": "1024",
+   "vida": "500"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.06,
+  "asignadoMBs": 199.2,
+  "colecciones": {
+   "gen0": 1,
+   "gen1": 36,
+   "gen2": 1
+  },
+  "pausaTotalMs": 1470.1,
+  "pausaPct": 9.76,
+  "cpuMs": 20640,
+  "pausas": {
+   "gen0": {
+    "n": 1,
+    "sumMs": 10.34,
+    "maxMs": 10.34,
+    "p50Ms": 10.34,
+    "p99Ms": 10.34
+   },
+   "gen1": {
+    "n": 35,
+    "sumMs": 1443.56,
+    "maxMs": 178.02,
+    "p50Ms": 16.97,
+    "p99Ms": 178.02
+   },
+   "gen2Bloqueante": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Fondo": {
+    "n": 2,
+    "sumMs": 17.21,
+    "maxMs": 16.79,
+    "p50Ms": 16.79,
+    "p99Ms": 16.79
+   },
+   "todas": {
+    "n": 39,
+    "sumMs": 1471.15,
+    "maxMs": 178.02,
+    "p50Ms": 16.79,
+    "p99Ms": 178.02
+   },
+   "gen2FondoCount": 1
+  },
+  "congelamientos": {
+   "n": 84,
+   "sumMs": 1556.01,
+   "maxMs": 178.1,
+   "p50Ms": 2.81,
+   "p99Ms": 178.1
+  },
+  "heap": {
+   "committedMaxMB": 1873.9,
+   "heapMB": 1193,
+   "gen0MB": 0,
+   "gen1MB": 79.9,
+   "gen2MB": 1104.3,
+   "lohMB": 8.8,
+   "pohMB": 0.03,
+   "fragmentadoMB": 4,
+   "pausaPctRuntime": 11.77
+  },
+  "cacheObjetos": 1048576
+ },
+ {
+  "clave": "cache-media-2048",
+  "nombre": "Caché de 2 GB + vida media 500 ms",
+  "escenario": "cache-media",
+  "args": {
+   "escenario": "cache-media",
+   "dur": "15",
+   "rate": "200",
+   "cache": "2048",
+   "vida": "500"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.05,
+  "asignadoMBs": 199.4,
+  "colecciones": {
+   "gen0": 1,
+   "gen1": 36,
+   "gen2": 0
+  },
+  "pausaTotalMs": 1599.6,
+  "pausaPct": 10.63,
+  "cpuMs": 20670,
+  "pausas": {
+   "gen0": {
+    "n": 1,
+    "sumMs": 43.91,
+    "maxMs": 43.91,
+    "p50Ms": 43.91,
+    "p99Ms": 43.91
+   },
+   "gen1": {
+    "n": 36,
+    "sumMs": 1556.9,
+    "maxMs": 147.14,
+    "p50Ms": 18.29,
+    "p99Ms": 147.14
+   },
+   "gen2Bloqueante": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 38,
+    "sumMs": 1600.83,
+    "maxMs": 147.14,
+    "p50Ms": 18.29,
+    "p99Ms": 147.14
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 103,
+   "sumMs": 1722.63,
+   "maxMs": 147.17,
+   "p50Ms": 2.08,
+   "p99Ms": 137.79
+  },
+  "heap": {
+   "committedMaxMB": 2952.9,
+   "heapMB": 2887.8,
+   "gen0MB": 0,
+   "gen1MB": 80,
+   "gen2MB": 2791,
+   "lohMB": 16.8,
+   "pohMB": 0.03,
+   "fragmentadoMB": 19.1,
+   "pausaPctRuntime": 13.38
+  },
+  "cacheObjetos": 2097152
+ },
+ {
+  "clave": "sustained-media-1024",
+  "nombre": "Caché de 1 GB + vida media, SustainedLowLatency",
+  "escenario": "cache-media",
+  "args": {
+   "escenario": "cache-media",
+   "dur": "15",
+   "rate": "200",
+   "cache": "1024",
+   "vida": "500",
+   "latencia": "sustained"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "SustainedLowLatency",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.07,
+  "asignadoMBs": 199.2,
+  "colecciones": {
+   "gen0": 1,
+   "gen1": 36,
+   "gen2": 1
+  },
+  "pausaTotalMs": 1353.6,
+  "pausaPct": 8.98,
+  "cpuMs": 19250,
+  "pausas": {
+   "gen0": {
+    "n": 1,
+    "sumMs": 27.37,
+    "maxMs": 27.37,
+    "p50Ms": 27.37,
+    "p99Ms": 27.37
+   },
+   "gen1": {
+    "n": 35,
+    "sumMs": 1305.4,
+    "maxMs": 114,
+    "p50Ms": 19.69,
+    "p99Ms": 114
+   },
+   "gen2Bloqueante": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Fondo": {
+    "n": 2,
+    "sumMs": 22.16,
+    "maxMs": 21.76,
+    "p50Ms": 21.76,
+    "p99Ms": 21.76
+   },
+   "todas": {
+    "n": 39,
+    "sumMs": 1354.97,
+    "maxMs": 114,
+    "p50Ms": 19.69,
+    "p99Ms": 114
+   },
+   "gen2FondoCount": 1
+  },
+  "congelamientos": {
+   "n": 109,
+   "sumMs": 1498.19,
+   "maxMs": 114.17,
+   "p50Ms": 2.38,
+   "p99Ms": 102.37
+  },
+  "heap": {
+   "committedMaxMB": 1869.4,
+   "heapMB": 1192.5,
+   "gen0MB": 0,
+   "gen1MB": 79.9,
+   "gen2MB": 1103.8,
+   "lohMB": 8.8,
+   "pohMB": 0.03,
+   "fragmentadoMB": 3.9,
+   "pausaPctRuntime": 10.92
+  },
+  "cacheObjetos": 1048576
+ },
+ {
+  "clave": "noconc-cache-media-1024",
+  "nombre": "Caché de 1 GB + vida media, GC concurrente apagado",
+  "escenario": "cache-media",
+  "args": {
+   "escenario": "cache-media",
+   "dur": "15",
+   "rate": "200",
+   "cache": "1024",
+   "vida": "500"
+  },
+  "config": {
+   "server": false,
+   "concurrente": false,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Batch",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.11,
+  "asignadoMBs": 198.6,
+  "colecciones": {
+   "gen0": 2,
+   "gen1": 21,
+   "gen2": 0
+  },
+  "pausaTotalMs": 1076.3,
+  "pausaPct": 7.12,
+  "cpuMs": 17710,
+  "pausas": {
+   "gen0": {
+    "n": 2,
+    "sumMs": 25.91,
+    "maxMs": 14.67,
+    "p50Ms": 14.67,
+    "p99Ms": 14.67
+   },
+   "gen1": {
+    "n": 21,
+    "sumMs": 1050.84,
+    "maxMs": 93.59,
+    "p50Ms": 47.61,
+    "p99Ms": 93.59
+   },
+   "gen2Bloqueante": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 24,
+    "sumMs": 1076.77,
+    "maxMs": 93.59,
+    "p50Ms": 46.01,
+    "p99Ms": 93.59
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 99,
+   "sumMs": 1229.07,
+   "maxMs": 93.67,
+   "p50Ms": 2.08,
+   "p99Ms": 93.67
+  },
+  "heap": {
+   "committedMaxMB": 1386.1,
+   "heapMB": 1136.6,
+   "gen0MB": 0,
+   "gen1MB": 99.9,
+   "gen2MB": 1027.9,
+   "lohMB": 8.8,
+   "pohMB": 0.03,
+   "fragmentadoMB": 4,
+   "pausaPctRuntime": 10.19
+  },
+  "cacheObjetos": 1048576
+ },
+ {
+  "clave": "noconc-media-500",
+  "nombre": "Vida media 500 ms, GC concurrente apagado",
+  "escenario": "media",
+  "args": {
+   "escenario": "media",
+   "dur": "15",
+   "rate": "200",
+   "vida": "500"
+  },
+  "config": {
+   "server": false,
+   "concurrente": false,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Batch",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.06,
+  "asignadoMBs": 199.2,
+  "colecciones": {
+   "gen0": 1,
+   "gen1": 21,
+   "gen2": 1
+  },
+  "pausaTotalMs": 1134.2,
+  "pausaPct": 7.53,
+  "cpuMs": 16550,
+  "pausas": {
+   "gen0": {
+    "n": 1,
+    "sumMs": 10.62,
+    "maxMs": 10.62,
+    "p50Ms": 10.62,
+    "p99Ms": 10.62
+   },
+   "gen1": {
+    "n": 21,
+    "sumMs": 1077.68,
+    "maxMs": 65.77,
+    "p50Ms": 48.77,
+    "p99Ms": 65.77
+   },
+   "gen2Bloqueante": {
+    "n": 1,
+    "sumMs": 46.54,
+    "maxMs": 46.54,
+    "p50Ms": 46.54,
+    "p99Ms": 46.54
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 24,
+    "sumMs": 1134.86,
+    "maxMs": 65.77,
+    "p50Ms": 48.62,
+    "p99Ms": 65.77
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 94,
+   "sumMs": 1276.13,
+   "maxMs": 65.85,
+   "p50Ms": 1.96,
+   "p99Ms": 65.85
+  },
+  "heap": {
+   "committedMaxMB": 233.2,
+   "heapMB": 101,
+   "gen0MB": 0,
+   "gen1MB": 99.9,
+   "gen2MB": 0.3,
+   "lohMB": 0.8,
+   "pohMB": 0.03,
+   "fragmentadoMB": 0.3,
+   "pausaPctRuntime": 7.82
+  },
+  "cacheObjetos": 0
+ },
+ {
+  "clave": "server-cache-media-1024",
+  "nombre": "Server GC: caché de 1 GB + vida media",
+  "escenario": "cache-media",
+  "args": {
+   "escenario": "cache-media",
+   "dur": "15",
+   "rate": "200",
+   "cache": "1024",
+   "vida": "500"
+  },
+  "config": {
+   "server": true,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.02,
+  "asignadoMBs": 199.8,
+  "colecciones": {
+   "gen0": 4,
+   "gen1": 0,
+   "gen2": 0
+  },
+  "pausaTotalMs": 83.8,
+  "pausaPct": 0.56,
+  "cpuMs": 21580,
+  "pausas": {
+   "gen0": {
+    "n": 4,
+    "sumMs": 84.19,
+    "maxMs": 42.65,
+    "p50Ms": 14.9,
+    "p99Ms": 42.65
+   },
+   "gen1": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Bloqueante": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 5,
+    "sumMs": 84.21,
+    "maxMs": 42.65,
+    "p50Ms": 14.24,
+    "p99Ms": 42.65
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 73,
+   "sumMs": 209.2,
+   "maxMs": 42.66,
+   "p50Ms": 1.67,
+   "p99Ms": 42.66
+  },
+  "heap": {
+   "committedMaxMB": 1971,
+   "heapMB": 1436.5,
+   "gen0MB": 0,
+   "gen1MB": 399.62,
+   "gen2MB": 1028,
+   "lohMB": 8.8,
+   "pohMB": 0.03,
+   "fragmentadoMB": 5,
+   "pausaPctRuntime": 1.62
+  },
+  "cacheObjetos": 1048576
+ },
+ {
+  "clave": "loh",
+  "nombre": "Buffers de 100 KB, 200 MB/s (LOH)",
+  "escenario": "loh",
+  "args": {
+   "escenario": "loh",
+   "dur": "15",
+   "rate": "200",
+   "obj": "102400"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.01,
+  "asignadoMBs": 200.3,
+  "colecciones": {
+   "gen0": 0,
+   "gen1": 0,
+   "gen2": 990
+  },
+  "pausaTotalMs": 544.7,
+  "pausaPct": 3.63,
+  "cpuMs": 16460,
+  "pausas": {
+   "gen0": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen1": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Bloqueante": {
+    "n": 990,
+    "sumMs": 548.52,
+    "maxMs": 60.55,
+    "p50Ms": 0.44,
+    "p99Ms": 1.73
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 991,
+    "sumMs": 548.54,
+    "maxMs": 60.55,
+    "p50Ms": 0.44,
+    "p99Ms": 1.73
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 92,
+   "sumMs": 224.07,
+   "maxMs": 60.67,
+   "p50Ms": 1.37,
+   "p99Ms": 60.67
+  },
+  "heap": {
+   "committedMaxMB": 4.3,
+   "heapMB": 0.4,
+   "gen0MB": 0,
+   "gen1MB": 0,
+   "gen2MB": 0.4,
+   "lohMB": 0,
+   "pohMB": 0.03,
+   "fragmentadoMB": 0.1,
+   "pausaPctRuntime": 3.62
+  },
+  "cacheObjetos": 0
+ },
+ {
+  "clave": "loh-chico",
+  "nombre": "Buffers de 80 KB, 200 MB/s (no LOH)",
+  "escenario": "loh",
+  "args": {
+   "escenario": "loh",
+   "dur": "15",
+   "rate": "200",
+   "obj": "81920"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.01,
+  "asignadoMBs": 199.9,
+  "colecciones": {
+   "gen0": 35,
+   "gen1": 1,
+   "gen2": 1
+  },
+  "pausaTotalMs": 22,
+  "pausaPct": 0.15,
+  "cpuMs": 16220,
+  "pausas": {
+   "gen0": {
+    "n": 35,
+    "sumMs": 20.08,
+    "maxMs": 1.51,
+    "p50Ms": 0.5,
+    "p99Ms": 1.51
+   },
+   "gen1": {
+    "n": 1,
+    "sumMs": 1.14,
+    "maxMs": 1.14,
+    "p50Ms": 1.14,
+    "p99Ms": 1.14
+   },
+   "gen2Bloqueante": {
+    "n": 1,
+    "sumMs": 0.8,
+    "maxMs": 0.8,
+    "p50Ms": 0.8,
+    "p99Ms": 0.8
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 38,
+    "sumMs": 22.04,
+    "maxMs": 1.51,
+    "p50Ms": 0.5,
+    "p99Ms": 1.51
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 52,
+   "sumMs": 97.18,
+   "maxMs": 4.82,
+   "p50Ms": 1.7,
+   "p99Ms": 4.82
+  },
+  "heap": {
+   "committedMaxMB": 82,
+   "heapMB": 0.3,
+   "gen0MB": 0,
+   "gen1MB": 0.01,
+   "gen2MB": 0.3,
+   "lohMB": 0,
+   "pohMB": 0.03,
+   "fragmentadoMB": 0,
+   "pausaPctRuntime": 0.14
+  },
+  "cacheObjetos": 0
+ },
+ {
+  "clave": "loh-pool",
+  "nombre": "Buffers de 100 KB con ArrayPool",
+  "escenario": "loh-pool",
+  "args": {
+   "escenario": "loh-pool",
+   "dur": "15",
+   "rate": "200",
+   "obj": "102400"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.02,
+  "asignadoMBs": 0,
+  "colecciones": {
+   "gen0": 0,
+   "gen1": 0,
+   "gen2": 0
+  },
+  "pausaTotalMs": 0,
+  "pausaPct": 0,
+  "cpuMs": 15720,
+  "pausas": {
+   "gen0": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen1": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Bloqueante": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 1,
+    "sumMs": 0.01,
+    "maxMs": 0.01,
+    "p50Ms": 0.01,
+    "p99Ms": 0.01
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 54,
+   "sumMs": 87.77,
+   "maxMs": 3.33,
+   "p50Ms": 1.58,
+   "p99Ms": 3.33
+  },
+  "heap": {
+   "committedMaxMB": 0,
+   "heapMB": 0,
+   "gen0MB": 0,
+   "gen1MB": 0,
+   "gen2MB": 0,
+   "lohMB": 0,
+   "pohMB": 0,
+   "fragmentadoMB": 0,
+   "pausaPctRuntime": 0
+  },
+  "cacheObjetos": 0
+ },
+ {
+  "clave": "finalizador",
+  "nombre": "Objetos de 1 KB con finalizador, 200 MB/s",
+  "escenario": "finalizador",
+  "args": {
+   "escenario": "finalizador",
+   "dur": "15",
+   "rate": "200",
+   "obj": "1024"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.07,
+  "asignadoMBs": 203.8,
+  "colecciones": {
+   "gen0": 1,
+   "gen1": 37,
+   "gen2": 1
+  },
+  "pausaTotalMs": 2027,
+  "pausaPct": 13.45,
+  "cpuMs": 17160,
+  "pausas": {
+   "gen0": {
+    "n": 1,
+    "sumMs": 17.2,
+    "maxMs": 17.2,
+    "p50Ms": 17.2,
+    "p99Ms": 17.2
+   },
+   "gen1": {
+    "n": 37,
+    "sumMs": 1955.54,
+    "maxMs": 73.92,
+    "p50Ms": 53.91,
+    "p99Ms": 73.92
+   },
+   "gen2Bloqueante": {
+    "n": 1,
+    "sumMs": 56.25,
+    "maxMs": 56.25,
+    "p50Ms": 56.25,
+    "p99Ms": 56.25
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 40,
+    "sumMs": 2029,
+    "maxMs": 73.92,
+    "p50Ms": 53.91,
+    "p99Ms": 73.92
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 126,
+   "sumMs": 2233.82,
+   "maxMs": 74.87,
+   "p50Ms": 2.33,
+   "p99Ms": 69.85
+  },
+  "heap": {
+   "committedMaxMB": 184.4,
+   "heapMB": 90.2,
+   "gen0MB": 0,
+   "gen1MB": 78.72,
+   "gen2MB": 11.4,
+   "lohMB": 0,
+   "pohMB": 0.03,
+   "fragmentadoMB": 11.4,
+   "pausaPctRuntime": 13.45
+  },
+  "cacheObjetos": 0
+ },
+ {
+  "clave": "crecer",
+  "nombre": "Fuga de 25 MB/s durante 20 s",
+  "escenario": "crecer",
+  "args": {
+   "escenario": "crecer",
+   "dur": "20",
+   "rate": "25"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 20.02,
+  "asignadoMBs": 25.4,
+  "colecciones": {
+   "gen0": 1,
+   "gen1": 4,
+   "gen2": 3
+  },
+  "pausaTotalMs": 120.3,
+  "pausaPct": 0.6,
+  "cpuMs": 21710,
+  "pausas": {
+   "gen0": {
+    "n": 1,
+    "sumMs": 16.77,
+    "maxMs": 16.77,
+    "p50Ms": 16.77,
+    "p99Ms": 16.77
+   },
+   "gen1": {
+    "n": 2,
+    "sumMs": 42.25,
+    "maxMs": 22.37,
+    "p50Ms": 22.37,
+    "p99Ms": 22.37
+   },
+   "gen2Bloqueante": {
+    "n": 1,
+    "sumMs": 19.77,
+    "maxMs": 19.77,
+    "p50Ms": 19.77,
+    "p99Ms": 19.77
+   },
+   "gen2Fondo": {
+    "n": 4,
+    "sumMs": 41.76,
+    "maxMs": 21.04,
+    "p50Ms": 20.2,
+    "p99Ms": 21.04
+   },
+   "todas": {
+    "n": 9,
+    "sumMs": 120.56,
+    "maxMs": 22.37,
+    "p50Ms": 19.77,
+    "p99Ms": 22.37
+   },
+   "gen2FondoCount": 2
+  },
+  "congelamientos": {
+   "n": 96,
+   "sumMs": 284.33,
+   "maxMs": 22.81,
+   "p50Ms": 1.71,
+   "p99Ms": 22.81
+  },
+  "heap": {
+   "committedMaxMB": 490.9,
+   "heapMB": 489.1,
+   "gen0MB": 1.46,
+   "gen1MB": 79.99,
+   "gen2MB": 399.9,
+   "lohMB": 7.8,
+   "pohMB": 0.03,
+   "fragmentadoMB": 12.1,
+   "pausaPctRuntime": 0.63
+  },
+  "cacheObjetos": 0
+ },
+ {
+  "clave": "noconc-crecer",
+  "nombre": "Fuga de 25 MB/s, GC concurrente apagado",
+  "escenario": "crecer",
+  "args": {
+   "escenario": "crecer",
+   "dur": "20",
+   "rate": "25"
+  },
+  "config": {
+   "server": false,
+   "concurrente": false,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Batch",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 20.02,
+  "asignadoMBs": 25.4,
+  "colecciones": {
+   "gen0": 3,
+   "gen1": 1,
+   "gen2": 2
+  },
+  "pausaTotalMs": 128.1,
+  "pausaPct": 0.64,
+  "cpuMs": 21640,
+  "pausas": {
+   "gen0": {
+    "n": 3,
+    "sumMs": 34.9,
+    "maxMs": 12.12,
+    "p50Ms": 11.87,
+    "p99Ms": 12.12
+   },
+   "gen1": {
+    "n": 1,
+    "sumMs": 34.67,
+    "maxMs": 34.67,
+    "p50Ms": 34.67,
+    "p99Ms": 34.67
+   },
+   "gen2Bloqueante": {
+    "n": 2,
+    "sumMs": 58.94,
+    "maxMs": 38.79,
+    "p50Ms": 38.79,
+    "p99Ms": 38.79
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 7,
+    "sumMs": 128.53,
+    "maxMs": 38.79,
+    "p50Ms": 12.12,
+    "p99Ms": 38.79
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 91,
+   "sumMs": 282.16,
+   "maxMs": 38.84,
+   "p50Ms": 1.7,
+   "p99Ms": 38.84
+  },
+  "heap": {
+   "committedMaxMB": 507.8,
+   "heapMB": 487.7,
+   "gen0MB": 0,
+   "gen1MB": 79.99,
+   "gen2MB": 399.9,
+   "lohMB": 7.8,
+   "pohMB": 0.03,
+   "fragmentadoMB": 12.3,
+   "pausaPctRuntime": 0.67
+  },
+  "cacheObjetos": 0
+ },
+ {
+  "clave": "server-corta-200",
+  "nombre": "Server GC: vida corta, 200 MB/s",
+  "escenario": "corta",
+  "args": {
+   "escenario": "corta",
+   "dur": "15",
+   "rate": "200"
+  },
+  "config": {
+   "server": true,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.05,
+  "asignadoMBs": 199.3,
+  "colecciones": {
+   "gen0": 3,
+   "gen1": 1,
+   "gen2": 0
+  },
+  "pausaTotalMs": 5.2,
+  "pausaPct": 0.03,
+  "cpuMs": 16800,
+  "pausas": {
+   "gen0": {
+    "n": 3,
+    "sumMs": 4.03,
+    "maxMs": 1.87,
+    "p50Ms": 1.24,
+    "p99Ms": 1.87
+   },
+   "gen1": {
+    "n": 1,
+    "sumMs": 1.16,
+    "maxMs": 1.16,
+    "p50Ms": 1.16,
+    "p99Ms": 1.16
+   },
+   "gen2Bloqueante": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 5,
+    "sumMs": 5.2,
+    "maxMs": 1.87,
+    "p50Ms": 1.16,
+    "p99Ms": 1.87
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 50,
+   "sumMs": 182.98,
+   "maxMs": 43.14,
+   "p50Ms": 1.74,
+   "p99Ms": 43.14
+  },
+  "heap": {
+   "committedMaxMB": 645.3,
+   "heapMB": 0.3,
+   "gen0MB": 0,
+   "gen1MB": 0,
+   "gen2MB": 0.3,
+   "lohMB": 0,
+   "pohMB": 0.03,
+   "fragmentadoMB": 0,
+   "pausaPctRuntime": 0.04
+  },
+  "cacheObjetos": 0
+ },
+ {
+  "clave": "server-media-500",
+  "nombre": "Server GC: vida media 500 ms",
+  "escenario": "media",
+  "args": {
+   "escenario": "media",
+   "dur": "15",
+   "rate": "200",
+   "vida": "500"
+  },
+  "config": {
+   "server": true,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.01,
+  "asignadoMBs": 199.9,
+  "colecciones": {
+   "gen0": 1,
+   "gen1": 3,
+   "gen2": 1
+  },
+  "pausaTotalMs": 59.9,
+  "pausaPct": 0.4,
+  "cpuMs": 17010,
+  "pausas": {
+   "gen0": {
+    "n": 1,
+    "sumMs": 15.82,
+    "maxMs": 15.82,
+    "p50Ms": 15.82,
+    "p99Ms": 15.82
+   },
+   "gen1": {
+    "n": 2,
+    "sumMs": 26.12,
+    "maxMs": 13.9,
+    "p50Ms": 13.9,
+    "p99Ms": 13.9
+   },
+   "gen2Bloqueante": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Fondo": {
+    "n": 2,
+    "sumMs": 19.19,
+    "maxMs": 18.96,
+    "p50Ms": 18.96,
+    "p99Ms": 18.96
+   },
+   "todas": {
+    "n": 6,
+    "sumMs": 61.14,
+    "maxMs": 18.96,
+    "p50Ms": 13.9,
+    "p99Ms": 18.96
+   },
+   "gen2FondoCount": 1
+  },
+  "congelamientos": {
+   "n": 68,
+   "sumMs": 178.27,
+   "maxMs": 19.02,
+   "p50Ms": 1.7,
+   "p99Ms": 19.02
+  },
+  "heap": {
+   "committedMaxMB": 745.6,
+   "heapMB": 101,
+   "gen0MB": 0,
+   "gen1MB": 99.9,
+   "gen2MB": 0.3,
+   "lohMB": 0.8,
+   "pohMB": 0.03,
+   "fragmentadoMB": 0.3,
+   "pausaPctRuntime": 0.47
+  },
+  "cacheObjetos": 0
+ },
+ {
+  "clave": "server-cache-1024",
+  "nombre": "Server GC: caché de 1 GB",
+  "escenario": "cache",
+  "args": {
+   "escenario": "cache",
+   "dur": "15",
+   "rate": "200",
+   "cache": "1024"
+  },
+  "config": {
+   "server": true,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.01,
+  "asignadoMBs": 199.8,
+  "colecciones": {
+   "gen0": 4,
+   "gen1": 0,
+   "gen2": 0
+  },
+  "pausaTotalMs": 5.1,
+  "pausaPct": 0.03,
+  "cpuMs": 19550,
+  "pausas": {
+   "gen0": {
+    "n": 4,
+    "sumMs": 5.31,
+    "maxMs": 2.21,
+    "p50Ms": 1.11,
+    "p99Ms": 2.21
+   },
+   "gen1": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Bloqueante": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 5,
+    "sumMs": 5.32,
+    "maxMs": 2.21,
+    "p50Ms": 1.01,
+    "p99Ms": 2.21
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 69,
+   "sumMs": 123.12,
+   "maxMs": 4.81,
+   "p50Ms": 1.55,
+   "p99Ms": 4.81
+  },
+  "heap": {
+   "committedMaxMB": 1694.9,
+   "heapMB": 1036.1,
+   "gen0MB": 0,
+   "gen1MB": 0.01,
+   "gen2MB": 1028,
+   "lohMB": 8,
+   "pohMB": 0.03,
+   "fragmentadoMB": 3.8,
+   "pausaPctRuntime": 0.95
+  },
+  "cacheObjetos": 1048576
+ },
+ {
+  "clave": "server-crecer",
+  "nombre": "Server GC: fuga de 25 MB/s",
+  "escenario": "crecer",
+  "args": {
+   "escenario": "crecer",
+   "dur": "20",
+   "rate": "25"
+  },
+  "config": {
+   "server": true,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 20.02,
+  "asignadoMBs": 25.4,
+  "colecciones": {
+   "gen0": 0,
+   "gen1": 0,
+   "gen2": 0
+  },
+  "pausaTotalMs": 0,
+  "pausaPct": 0,
+  "cpuMs": 21620,
+  "pausas": {
+   "gen0": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen1": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Bloqueante": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 1,
+    "sumMs": 0.04,
+    "maxMs": 0.04,
+    "p50Ms": 0.04,
+    "p99Ms": 0.04
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 74,
+   "sumMs": 141.47,
+   "maxMs": 6.15,
+   "p50Ms": 1.76,
+   "p99Ms": 6.15
+  },
+  "heap": {
+   "committedMaxMB": 0,
+   "heapMB": 0,
+   "gen0MB": 0,
+   "gen1MB": 0,
+   "gen2MB": 0,
+   "lohMB": 0,
+   "pohMB": 0,
+   "fragmentadoMB": 0,
+   "pausaPctRuntime": 0
+  },
+  "cacheObjetos": 0
+ },
+ {
+  "clave": "datas-corta-200",
+  "nombre": "Server + DATAS: vida corta",
+  "escenario": "corta",
+  "args": {
+   "escenario": "corta",
+   "dur": "15",
+   "rate": "200"
+  },
+  "config": {
+   "server": true,
+   "concurrente": true,
+   "datas": true,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.01,
+  "asignadoMBs": 200.4,
+  "colecciones": {
+   "gen0": 1209,
+   "gen1": 1,
+   "gen2": 0
+  },
+  "pausaTotalMs": 385.4,
+  "pausaPct": 2.57,
+  "cpuMs": 16550,
+  "pausas": {
+   "gen0": {
+    "n": 1209,
+    "sumMs": 367.4,
+    "maxMs": 4.99,
+    "p50Ms": 0.26,
+    "p99Ms": 1.38
+   },
+   "gen1": {
+    "n": 1,
+    "sumMs": 0.71,
+    "maxMs": 0.71,
+    "p50Ms": 0.71,
+    "p99Ms": 0.71
+   },
+   "gen2Bloqueante": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 1211,
+    "sumMs": 368.12,
+    "maxMs": 4.99,
+    "p50Ms": 0.26,
+    "p99Ms": 1.38
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 102,
+   "sumMs": 192.66,
+   "maxMs": 5.05,
+   "p50Ms": 1.68,
+   "p99Ms": 5.01
+  },
+  "heap": {
+   "committedMaxMB": 3.2,
+   "heapMB": 0.6,
+   "gen0MB": 0,
+   "gen1MB": 0.28,
+   "gen2MB": 0.3,
+   "lohMB": 0,
+   "pohMB": 0.03,
+   "fragmentadoMB": 0,
+   "pausaPctRuntime": 2.56
+  },
+  "cacheObjetos": 0
+ },
+ {
+  "clave": "datas-media-500",
+  "nombre": "Server + DATAS: vida media 500 ms",
+  "escenario": "media",
+  "args": {
+   "escenario": "media",
+   "dur": "15",
+   "rate": "200",
+   "vida": "500"
+  },
+  "config": {
+   "server": true,
+   "concurrente": true,
+   "datas": true,
+   "gen0size": null,
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.07,
+  "asignadoMBs": 199.3,
+  "colecciones": {
+   "gen0": 150,
+   "gen1": 38,
+   "gen2": 36
+  },
+  "pausaTotalMs": 1260.2,
+  "pausaPct": 8.36,
+  "cpuMs": 18810,
+  "pausas": {
+   "gen0": {
+    "n": 115,
+    "sumMs": 388.62,
+    "maxMs": 11.7,
+    "p50Ms": 3.47,
+    "p99Ms": 7.99
+   },
+   "gen1": {
+    "n": 38,
+    "sumMs": 751.98,
+    "maxMs": 35.12,
+    "p50Ms": 22.14,
+    "p99Ms": 35.12
+   },
+   "gen2Bloqueante": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "gen2Fondo": {
+    "n": 73,
+    "sumMs": 123.62,
+    "maxMs": 6.71,
+    "p50Ms": 1.02,
+    "p99Ms": 6.71
+   },
+   "todas": {
+    "n": 227,
+    "sumMs": 1264.24,
+    "maxMs": 35.12,
+    "p50Ms": 3.24,
+    "p99Ms": 28.17
+   },
+   "gen2FondoCount": 36
+  },
+  "congelamientos": {
+   "n": 279,
+   "sumMs": 1535.99,
+   "maxMs": 49.44,
+   "p50Ms": 2.83,
+   "p99Ms": 30.59
+  },
+  "heap": {
+   "committedMaxMB": 268.9,
+   "heapMB": 150.6,
+   "gen0MB": 0,
+   "gen1MB": 50.59,
+   "gen2MB": 99.2,
+   "lohMB": 0.8,
+   "pohMB": 0.03,
+   "fragmentadoMB": 0.2,
+   "pausaPctRuntime": 8.38
+  },
+  "cacheObjetos": 0
+ },
+ {
+  "clave": "gen0-4mb-corta",
+  "nombre": "gen0 de 4 MB: vida corta",
+  "escenario": "corta",
+  "args": {
+   "escenario": "corta",
+   "dur": "15",
+   "rate": "200"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": "0x400000",
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.02,
+  "asignadoMBs": 200.1,
+  "colecciones": {
+   "gen0": 753,
+   "gen1": 1,
+   "gen2": 1
+  },
+  "pausaTotalMs": 247,
+  "pausaPct": 1.64,
+  "cpuMs": 16480,
+  "pausas": {
+   "gen0": {
+    "n": 753,
+    "sumMs": 236.2,
+    "maxMs": 3.4,
+    "p50Ms": 0.27,
+    "p99Ms": 1.32
+   },
+   "gen1": {
+    "n": 1,
+    "sumMs": 1,
+    "maxMs": 1,
+    "p50Ms": 1,
+    "p99Ms": 1
+   },
+   "gen2Bloqueante": {
+    "n": 1,
+    "sumMs": 1.27,
+    "maxMs": 1.27,
+    "p50Ms": 1.27,
+    "p99Ms": 1.27
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 756,
+    "sumMs": 238.49,
+    "maxMs": 3.4,
+    "p50Ms": 0.27,
+    "p99Ms": 1.32
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 96,
+   "sumMs": 184.01,
+   "maxMs": 5.38,
+   "p50Ms": 1.71,
+   "p99Ms": 5.38
+  },
+  "heap": {
+   "committedMaxMB": 5.9,
+   "heapMB": 0.4,
+   "gen0MB": 0,
+   "gen1MB": 0.07,
+   "gen2MB": 0.3,
+   "lohMB": 0,
+   "pohMB": 0.03,
+   "fragmentadoMB": 0,
+   "pausaPctRuntime": 1.63
+  },
+  "cacheObjetos": 0
+ },
+ {
+  "clave": "gen0-4mb-media",
+  "nombre": "gen0 de 4 MB: vida media 500 ms",
+  "escenario": "media",
+  "args": {
+   "escenario": "media",
+   "dur": "15",
+   "rate": "200",
+   "vida": "500"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": "0x400000",
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.04,
+  "asignadoMBs": 199.7,
+  "colecciones": {
+   "gen0": 252,
+   "gen1": 251,
+   "gen2": 43
+  },
+  "pausaTotalMs": 2160.4,
+  "pausaPct": 14.36,
+  "cpuMs": 17620,
+  "pausas": {
+   "gen0": {
+    "n": 252,
+    "sumMs": 232.61,
+    "maxMs": 4.37,
+    "p50Ms": 0.74,
+    "p99Ms": 4.08
+   },
+   "gen1": {
+    "n": 209,
+    "sumMs": 1672.61,
+    "maxMs": 22.76,
+    "p50Ms": 7.19,
+    "p99Ms": 15.61
+   },
+   "gen2Bloqueante": {
+    "n": 1,
+    "sumMs": 5.82,
+    "maxMs": 5.82,
+    "p50Ms": 5.82,
+    "p99Ms": 5.82
+   },
+   "gen2Fondo": {
+    "n": 84,
+    "sumMs": 260.14,
+    "maxMs": 13.78,
+    "p50Ms": 1.67,
+    "p99Ms": 13.78
+   },
+   "todas": {
+    "n": 547,
+    "sumMs": 2171.2,
+    "maxMs": 22.76,
+    "p50Ms": 1.47,
+    "p99Ms": 14.32
+   },
+   "gen2FondoCount": 42
+  },
+  "congelamientos": {
+   "n": 419,
+   "sumMs": 2254.26,
+   "maxMs": 22.97,
+   "p50Ms": 3.96,
+   "p99Ms": 14.53
+  },
+  "heap": {
+   "committedMaxMB": 204.8,
+   "heapMB": 136.2,
+   "gen0MB": 0,
+   "gen1MB": 5.98,
+   "gen2MB": 129.4,
+   "lohMB": 0.8,
+   "pohMB": 0.03,
+   "fragmentadoMB": 12.6,
+   "pausaPctRuntime": 14.33
+  },
+  "cacheObjetos": 0
+ },
+ {
+  "clave": "gen0-256mb-corta",
+  "nombre": "gen0 de 256 MB: vida corta",
+  "escenario": "corta",
+  "args": {
+   "escenario": "corta",
+   "dur": "15",
+   "rate": "200"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": "0x10000000",
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.01,
+  "asignadoMBs": 199.8,
+  "colecciones": {
+   "gen0": 21,
+   "gen1": 1,
+   "gen2": 1
+  },
+  "pausaTotalMs": 24.8,
+  "pausaPct": 0.17,
+  "cpuMs": 16630,
+  "pausas": {
+   "gen0": {
+    "n": 21,
+    "sumMs": 12.9,
+    "maxMs": 1.59,
+    "p50Ms": 0.55,
+    "p99Ms": 1.59
+   },
+   "gen1": {
+    "n": 1,
+    "sumMs": 1.1,
+    "maxMs": 1.1,
+    "p50Ms": 1.1,
+    "p99Ms": 1.1
+   },
+   "gen2Bloqueante": {
+    "n": 1,
+    "sumMs": 10.69,
+    "maxMs": 10.69,
+    "p50Ms": 10.69,
+    "p99Ms": 10.69
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 24,
+    "sumMs": 24.71,
+    "maxMs": 10.69,
+    "p50Ms": 0.55,
+    "p99Ms": 10.69
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 86,
+   "sumMs": 164.07,
+   "maxMs": 10.78,
+   "p50Ms": 1.74,
+   "p99Ms": 10.78
+  },
+  "heap": {
+   "committedMaxMB": 128.7,
+   "heapMB": 0.3,
+   "gen0MB": 0,
+   "gen1MB": 0,
+   "gen2MB": 0.3,
+   "lohMB": 0,
+   "pohMB": 0.03,
+   "fragmentadoMB": 0,
+   "pausaPctRuntime": 0.16
+  },
+  "cacheObjetos": 0
+ },
+ {
+  "clave": "gen0-256mb-media",
+  "nombre": "gen0 de 256 MB: vida media 500 ms",
+  "escenario": "media",
+  "args": {
+   "escenario": "media",
+   "dur": "15",
+   "rate": "200",
+   "vida": "500"
+  },
+  "config": {
+   "server": false,
+   "concurrente": true,
+   "datas": false,
+   "gen0size": "0x10000000",
+   "latencia": "Interactive",
+   "cores": 4,
+   "version": "8.0.32"
+  },
+  "segundos": 15.1,
+  "asignadoMBs": 198.7,
+  "colecciones": {
+   "gen0": 1,
+   "gen1": 21,
+   "gen2": 1
+  },
+  "pausaTotalMs": 1220.7,
+  "pausaPct": 8.08,
+  "cpuMs": 16630,
+  "pausas": {
+   "gen0": {
+    "n": 1,
+    "sumMs": 23.46,
+    "maxMs": 23.46,
+    "p50Ms": 23.46,
+    "p99Ms": 23.46
+   },
+   "gen1": {
+    "n": 21,
+    "sumMs": 1148.33,
+    "maxMs": 65.12,
+    "p50Ms": 54.58,
+    "p99Ms": 65.12
+   },
+   "gen2Bloqueante": {
+    "n": 1,
+    "sumMs": 49.73,
+    "maxMs": 49.73,
+    "p50Ms": 49.73,
+    "p99Ms": 49.73
+   },
+   "gen2Fondo": {
+    "n": 0,
+    "sumMs": 0,
+    "maxMs": 0,
+    "p50Ms": 0,
+    "p99Ms": 0
+   },
+   "todas": {
+    "n": 24,
+    "sumMs": 1221.54,
+    "maxMs": 65.12,
+    "p50Ms": 52.23,
+    "p99Ms": 65.12
+   },
+   "gen2FondoCount": 0
+  },
+  "congelamientos": {
+   "n": 112,
+   "sumMs": 1412.79,
+   "maxMs": 65.18,
+   "p50Ms": 1.86,
+   "p99Ms": 63.08
+  },
+  "heap": {
+   "committedMaxMB": 233.2,
+   "heapMB": 101,
+   "gen0MB": 0,
+   "gen1MB": 99.9,
+   "gen2MB": 0.3,
+   "lohMB": 0.8,
+   "pohMB": 0.03,
+   "fragmentadoMB": 0.3,
+   "pausaPctRuntime": 8.26
+  },
+  "cacheObjetos": 0
+ }
+]

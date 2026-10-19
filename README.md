@@ -35,5 +35,6 @@ Trabaja directo sobre `main`. Si algo no te gusta, se mueve a `_archivo/`.
 | Cohete | juegos | Tocás el cohete y despega hasta la Luna, que sonríe y canta, y vuelve en paracaídas; estrellas que suenan, planetas, ovnis y cometas. Para Valentín. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/juegos/cohete/) |
 | EF Core con el cronómetro en la mano | escritos | Trece experimentos sobre lo que EF Core manda al servidor y lo que trae, medidos contra SQL Server: N+1, Include, tracking, paginación, Contains, inserciones, ExecuteUpdate, varchar, planes, async. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/escritos/efcore-con-cronometro/) |
 | ¿Cuotas o contado? | apps | Qué tasa esconden las cuotas, cuánto valen en plata de hoy y qué conviene según qué hacés con la plata: rendir, quieta o sueldo. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/apps/cuotas-o-contado/) |
+| El GC en vivo | experimentos | Simulador del GC de .NET: generaciones, LOH, GC de fondo, server y DATAS, con cada pausa, el heap y el p99 de los pedidos; contrastado contra un .NET 8 real. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/experimentos/gc-en-vivo/) |
 
 Las convenciones de estructura y trabajo están en [CLAUDE.md](CLAUDE.md).

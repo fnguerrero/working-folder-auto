@@ -187,5 +187,14 @@
     "estado": "terminado",
     "probar": "apps/cuotas-o-contado/",
     "desde": "2026-10-19"
+  },
+  {
+    "slug": "gc-en-vivo",
+    "nombre": "El GC en vivo",
+    "categoria": "experimentos",
+    "descripcion": "Modelo del recolector de basura de .NET: cuánto asignás, cuánto sobrevive, caché, fuga, LOH, server o workstation, y cada pausa que sentirían tus pedidos. Contrastado contra un .NET 8 real.",
+    "estado": "terminado",
+    "probar": "experimentos/gc-en-vivo/",
+    "desde": "2026-10-19"
   }
 ]

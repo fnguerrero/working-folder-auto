@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <TieredPGO>true</TieredPGO>
+    <!-- Workstation/Server, concurrente, DATAS, etc. se eligen con variables DOTNET_* desde escenarios.sh,
+         para que el mismo binario sirva para todas las corridas. -->
+  </PropertyGroup>
+</Project>
