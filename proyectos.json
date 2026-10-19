@@ -178,5 +178,14 @@
     "estado": "terminado",
     "probar": "escritos/efcore-con-cronometro/",
     "desde": "2026-10-18"
+  },
+  {
+    "slug": "cuotas-o-contado",
+    "nombre": "¿Cuotas o contado?",
+    "categoria": "apps",
+    "descripcion": "Ponés el contado y el plan de cuotas y te dice qué tasa esconden, cuánto valen en plata de hoy y qué conviene según si la plata rinde, queda quieta o pagás con el sueldo.",
+    "estado": "terminado",
+    "probar": "apps/cuotas-o-contado/",
+    "desde": "2026-10-19"
   }
 ]

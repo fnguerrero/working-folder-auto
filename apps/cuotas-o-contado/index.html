@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>¿Cuotas o contado?</title>
+<style>
+  :root { --bg: #f4f6f3; --card: #fff; --fg: #1d2420; --muted: #66706a; --line: #dfe5e0; --accent: #1f6f4a; --accent-fg: #fff; --ok: #1f6f4a; --mal: #b3372b; --neutro: #8a6d1f; --code: #eef2ee; --suave: rgba(31, 111, 74, .08); }
+  @media (prefers-color-scheme: dark) { :root { --bg: #121613; --card: #1b211c; --fg: #e9eee9; --muted: #9ba59d; --line: #2d352f; --accent: #5fc893; --accent-fg: #0f1a13; --ok: #5fc893; --mal: #f08a7c; --neutro: #e0b64a; --code: #151a16; --suave: rgba(95, 200, 147, .12); } }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.45; }
+  header { padding: 18px 16px 6px; max-width: 980px; margin: 0 auto; }
+  h1 { margin: 0; font-size: 1.5rem; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  main { max-width: 980px; margin: 0 auto; padding: 10px 16px 32px; display: grid; gap: 14px; }
+  @media (min-width: 860px) { main { grid-template-columns: 380px 1fr; align-items: start; } .ancho { grid-column: 1 / -1; } }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+  .panel h2 { margin: 0 0 10px; font-size: 1rem; }
+  h3.sub { margin: 14px 0 4px; font-size: .8rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  label.campo { display: block; font-size: .85rem; font-weight: 600; margin-top: 10px; }
+  label.campo small { display: block; font-weight: 400; color: var(--muted); font-size: .78rem; }
+  .entrada { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+  .entrada span.pre, .entrada span.post { color: var(--muted); font-size: .9rem; white-space: nowrap; }
+  input[type=number] { font: inherit; width: 100%; max-width: 180px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); text-align: right; min-height: 40px; }
+  input[type=number].chico { max-width: 90px; }
+  button { font: inherit; font-size: .85rem; min-height: 40px; padding: 6px 12px; border-radius: 999px; cursor: pointer; border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+  button:hover { border-color: var(--accent); }
+  button[aria-pressed="true"], button.primario { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0; }
+  .chips button { min-height: 36px; padding: 4px 12px; }
+  .chips.col { flex-direction: column; align-items: stretch; }
+  .chips.col button { text-align: left; border-radius: 10px; }
+  .veredicto { border-radius: 10px; padding: 12px 14px; background: var(--suave); border-left: 5px solid var(--neutro); }
+  .veredicto.cuotas { border-left-color: var(--ok); }
+  .veredicto.contado { border-left-color: var(--mal); }
+  .veredicto b.titulo { display: block; font-size: 1.35rem; margin-bottom: 2px; }
+  .veredicto p { margin: 0; }
+  .cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 12px; }
+  .cifra { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-width: 0; }
+  .cifra small { display: block; color: var(--muted); font-size: .75rem; }
+  .cifra b { font-size: 1.1rem; overflow-wrap: anywhere; }
+  .cifra span.det { display: block; font-size: .78rem; color: var(--muted); }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  th, td { text-align: left; padding: 7px 6px; border-top: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: .76rem; }
+  td.num, th.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  tr.elegida td { background: var(--suave); font-weight: 600; }
+  tr.elegida td:first-child { border-left: 3px solid var(--accent); }
+  .tabla-scroll { overflow-x: auto; }
+  .nota { font-size: .85rem; color: var(--muted); margin: 8px 0 0; }
+  .texto p, .texto li { font-size: .95rem; max-width: 76ch; }
+  .texto h2 { font-size: 1.15rem; margin: 16px 0 6px; }
+  .texto h2:first-child { margin-top: 0; }
+  .texto code, code { background: var(--code); padding: 1px 5px; border-radius: 4px; font-size: .88em; }
+  .barras { display: grid; gap: 4px; margin-top: 10px; }
+  .barra { display: grid; grid-template-columns: 54px 1fr 110px; align-items: center; gap: 8px; font-size: .8rem; }
+  .barra .pista { height: 14px; background: var(--code); border-radius: 7px; overflow: hidden; }
+  .barra .lleno { height: 100%; background: var(--accent); border-radius: 7px; }
+  .barra .val { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .oculto { display: none !important; }
+  details { margin-top: 8px; }
+  summary { cursor: pointer; font-size: .9rem; font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <h1>¿Cuotas o contado?</h1>
+  <p>Ponés el precio de contado y el plan de cuotas, y te dice qué tasa esconden las cuotas, cuánto valen en plata de hoy y qué conviene según qué harías con la plata: ponerla a rendir, dejarla quieta o pagar cada cuota con el sueldo.</p>
+</header>
+<main>
+  <section class="panel" aria-label="Los datos">
+    <h2>Los datos</h2>
+    <label class="campo" for="contado">Precio de contado <small>Lo que pagás hoy, ya con el descuento si te lo hacen.</small></label>
+    <div class="entrada"><span class="pre">$</span><input type="number" id="contado" min="0" step="1000" inputmode="decimal"></div>
+
+    <h3 class="sub">El plan de cuotas</h3>
+    <div class="chips" id="modoCuotas">
+      <button type="button" data-modo="cuota" aria-pressed="true">Sé el valor de la cuota</button>
+      <button type="button" data-modo="total" aria-pressed="false">Sé el total financiado</button>
+    </div>
+    <label class="campo" for="n">Cantidad de cuotas</label>
+    <div class="entrada"><input type="number" id="n" class="chico" min="1" max="60" step="1" inputmode="numeric"><div class="chips" id="atajosN"></div></div>
+    <label class="campo" for="cuota" id="lblCuota">Valor de cada cuota</label>
+    <div class="entrada" id="filaCuota"><span class="pre">$</span><input type="number" id="cuota" min="0" step="100" inputmode="decimal"></div>
+    <label class="campo oculto" for="total" id="lblTotal">Total financiado <small>Lo que suma el plan; la cuota sale de dividirlo.</small></label>
+    <div class="entrada oculto" id="filaTotal"><span class="pre">$</span><input type="number" id="total" min="0" step="1000" inputmode="decimal"></div>
+    <label class="campo">La primera cuota <small>Con tarjeta se paga en el resumen que viene, más o menos a los 30 días.</small></label>
+    <div class="chips" id="primera">
+      <button type="button" data-valor="1" aria-pressed="true">a los 30 días (tarjeta)</button>
+      <button type="button" data-valor="0" aria-pressed="false">hoy</button>
+    </div>
+
+    <h3 class="sub">Qué harías con la plata del contado</h3>
+    <div class="chips col" id="situacion">
+      <button type="button" data-valor="rinde" aria-pressed="true">La tengo y la pondría a rendir (plazo fijo, FCI)</button>
+      <button type="button" data-valor="quieta" aria-pressed="false">La tengo, pero quedaría quieta en la cuenta</button>
+      <button type="button" data-valor="sueldo" aria-pressed="false">No la tengo: pagaría cada cuota con el sueldo del mes</button>
+    </div>
+
+    <h3 class="sub">Los supuestos</h3>
+    <label class="campo" for="inflacion">Inflación mensual esperada <small>Septiembre 2026 (INDEC): 1,9 %. Cambiala si creés otra cosa.</small></label>
+    <div class="entrada"><input type="number" id="inflacion" class="chico" min="-5" max="100" step="0.1" inputmode="decimal"><span class="post">% por mes</span></div>
+    <label class="campo" for="tna">Lo que rinde la plata <small>TNA del plazo fijo o del FCI. Octubre 2026: entre 16 y 23 % según el banco.</small></label>
+    <div class="entrada"><input type="number" id="tna" class="chico" min="0" max="500" step="0.5" inputmode="decimal"><span class="post">% TNA = <b id="temRinde"></b> cada 30 días</span></div>
+    <p class="nota">Todo queda en tu navegador: los datos se guardan con <code>localStorage</code> y nada se manda a ningún lado.</p>
+  </section>
+
+  <div style="display: grid; gap: 14px; min-width: 0;">
+    <section class="panel" aria-label="El veredicto">
+      <div class="veredicto" id="veredicto"><b class="titulo" id="vTitulo"></b><p id="vDetalle"></p></div>
+      <div class="cifras">
+        <div class="cifra"><small>Tasa escondida en las cuotas</small><b id="cTem"></b><span class="det" id="cTemDet"></span></div>
+        <div class="cifra"><small>Total en cuotas</small><b id="cTotal"></b><span class="det" id="cTotalDet"></span></div>
+        <div class="cifra"><small>Las cuotas en plata de hoy</small><b id="cHoy"></b><span class="det" id="cHoyDet"></span></div>
+        <div class="cifra"><small>Si ponés la plata a rendir</small><b id="cRinde"></b><span class="det" id="cRindeDet"></span></div>
+      </div>
+      <p class="nota" id="equilibrio"></p>
+    </section>
+
+    <section class="panel" aria-label="Las tres formas de mirarlo">
+      <h2>Las tres formas de mirarlo</h2>
+      <div class="tabla-scroll"><table id="lentes" aria-label="Comparación según qué hacés con la plata"><thead><tr><th>Si la plata del contado…</th><th>Contra qué se compara la tasa de las cuotas</th><th class="num">Las cuotas te cuestan</th><th class="num">Diferencia</th></tr></thead><tbody></tbody></table></div>
+      <p class="nota">La fila marcada es la situación que elegiste. «Diferencia» positiva: las cuotas salen más baratas que el contado.</p>
+    </section>
+
+    <section class="panel" aria-label="Cuota por cuota">
+      <h2>Cuota por cuota</h2>
+      <div class="tabla-scroll"><table id="cuotas" aria-label="Detalle por cuota"><thead><tr><th>#</th><th>Mes</th><th class="num">Cuota</th><th class="num">En plata de hoy</th><th class="num">Pagado</th><th class="num">Plata invertida que queda</th></tr></thead><tbody></tbody></table></div>
+      <div class="barras" id="barras" aria-label="Cada cuota en plata de hoy"></div>
+      <p class="nota">«En plata de hoy» descuenta cada cuota por la inflación que pusiste. «Plata invertida que queda» es lo que tendrías si en vez de pagar contado pusieras esa plata a rendir y fueras pagando cada cuota de ahí.</p>
+    </section>
+  </div>
+
+  <section class="panel texto ancho" aria-label="Cómo se hace la cuenta">
+    <h2>Cómo se hace la cuenta</h2>
+    <ul>
+      <li><b>La tasa escondida</b> es la tasa mensual que hace que las cuotas, traídas a hoy, valgan lo mismo que el contado: <code>contado = Σ cuota / (1 + i)^mes</code>. Se busca por bisección. Es la TEM del plan; se muestra también como TNA (× 365/30) y TEA (capitalizando 12 meses). «12 cuotas sin interés» con 10 % de descuento por pagar contado es un plan con tasa: si no te hacen el descuento, te la están cobrando igual.</li>
+      <li><b>En plata de hoy:</b> cada cuota se descuenta por la inflación esperada, <code>cuota / (1 + inflación)^mes</code>. Es lo que vale la cuota medida en lo que compra hoy. Esto es la cuenta de la intuición argentina («en cuotas pagás con plata devaluada») y vale cuando pagás con el sueldo y el sueldo más o menos sigue a la inflación.</li>
+      <li><b>Si la plata rinde:</b> se simula mes a mes qué pasa si no pagás contado, ponés esa plata a la tasa que indicaste y vas pagando cada cuota de ahí. Lo que sobra al final (o lo que falta) es lo que ganás (o perdés) por ir en cuotas. Es equivalente a comparar la tasa escondida con lo que rinde la plata: si las cuotas cobran menos que lo que te paga el plazo fijo, conviene en cuotas.</li>
+      <li><b>Si la plata queda quieta:</b> la comparación es nominal, peso contra peso: la inflación le pega igual a la plata que tenés en la cuenta y a las cuotas, así que lo único que cambia es lo que las cuotas suman de más. En ese caso, cualquier plan con interés mayor a cero sale más caro; la jugada es, en todo caso, pasar a la situación de arriba y ponerla a rendir.</li>
+      <li><b>La TNA</b> se convierte a tasa de 30 días como la liquida un plazo fijo: <code>TNA × 30 / 365</code>. Un 20 % de TNA son 1,64 % cada 30 días. Si tu FCI te dice el rendimiento mensual directo, cargá ese número como TNA multiplicado por 12,17 o, más fácil, cargá el que figure en la app del banco como TNA.</li>
+      <li><b>Lo que no entra:</b> los impuestos que pudieran tocarle a los intereses del plazo fijo, los costos de la tarjeta (anual, seguros), el riesgo de que la inflación o la tasa cambien en el camino y lo que vale para vos tener el producto hoy y no en seis meses. Las cuotas son una apuesta a que la inflación y las tasas siguen como pensás; si creés que bajan, bajá los supuestos y mirá qué pasa.</li>
+    </ul>
+    <p>Las tres situaciones son la misma cuenta con una tasa de referencia distinta (la del plazo fijo, cero o la inflación): la diferencia entre ellas es la plata que tenés o no tenés hoy y qué harías con ella. Cambiá la situación y mirá cómo se da vuelta el veredicto; ésa es la gracia.</p>
+  </section>
+</main>
+<script src="logica.js"></script>
+<script>
+(function () {
+  "use strict";
+  const C = window.CuotasOContado;
+  const $ = (id) => document.getElementById(id);
+  const CLAVE = "cuotas-o-contado";
+  const defaults = { contado: 900000, n: 12, cuota: 83333, total: 1000000, modo: "cuota", primeraEn: 1, situacion: "rinde", inflacion: 1.9, tna: 20 };
+  let estado = Object.assign({}, defaults);
+  try { const g = JSON.parse(localStorage.getItem(CLAVE) || "null"); if (g && typeof g === "object") estado = Object.assign({}, defaults, g); } catch (e) { /* sin memoria */ }
+  function guardar() { try { localStorage.setItem(CLAVE, JSON.stringify(estado)); } catch (e) { /* sin memoria */ } }
+
+  const fmtN = (x, dec) => new Intl.NumberFormat("es-AR", { minimumFractionDigits: dec == null ? 0 : dec, maximumFractionDigits: dec == null ? 0 : dec }).format(x);
+  const pct = (x, dec) => C.fmtPct(x, dec);
+  const pesos = C.pesos;
+  const signo = (x) => (x > 0 ? "+" : x < 0 ? "−" : "") + pesos(Math.abs(x));
+
+  // Atajos de cantidad de cuotas.
+  for (const k of [3, 6, 12, 18, 24]) { const b = document.createElement("button"); b.type = "button"; b.textContent = k; b.dataset.n = k; b.addEventListener("click", () => { estado.n = k; $("n").value = k; recalcular(); }); $("atajosN").appendChild(b); }
+
+  function cuotaActual() { return estado.modo === "total" ? (+estado.total || 0) / Math.max(1, +estado.n || 1) : +estado.cuota || 0; }
+
+  function pintarEntradas() {
+    $("contado").value = estado.contado; $("n").value = estado.n; $("cuota").value = estado.modo === "total" ? Math.round(cuotaActual()) : estado.cuota; $("total").value = estado.total;
+    $("inflacion").value = estado.inflacion; $("tna").value = estado.tna;
+    for (const b of document.querySelectorAll("#modoCuotas button")) b.setAttribute("aria-pressed", String(b.dataset.modo === estado.modo));
+    for (const b of document.querySelectorAll("#primera button")) b.setAttribute("aria-pressed", String(+b.dataset.valor === +estado.primeraEn));
+    for (const b of document.querySelectorAll("#situacion button")) b.setAttribute("aria-pressed", String(b.dataset.valor === estado.situacion));
+    for (const b of document.querySelectorAll("#atajosN button")) b.setAttribute("aria-pressed", String(+b.dataset.n === +estado.n));
+    const esTotal = estado.modo === "total";
+    $("lblTotal").classList.toggle("oculto", !esTotal); $("filaTotal").classList.toggle("oculto", !esTotal);
+    $("lblCuota").classList.toggle("oculto", esTotal); $("filaCuota").classList.toggle("oculto", esTotal);
+  }
+
+  function recalcular() {
+    guardar();
+    const tem = C.temDesdeTna(+estado.tna || 0, 30);
+    $("temRinde").textContent = pct(tem * 100, 2);
+    const contado = +estado.contado || 0, cuota = cuotaActual(), n = Math.max(1, Math.round(+estado.n || 1));
+    if (!(contado > 0) || !(cuota > 0)) {
+      $("veredicto").className = "veredicto"; $("vTitulo").textContent = "Faltan datos"; $("vDetalle").textContent = "Poné el precio de contado y el valor de la cuota (o el total del plan).";
+      for (const id of ["cTem", "cTotal", "cHoy", "cRinde", "cTemDet", "cTotalDet", "cHoyDet", "cRindeDet", "equilibrio"]) $(id).textContent = "";
+      $("lentes").querySelector("tbody").innerHTML = ""; $("cuotas").querySelector("tbody").innerHTML = ""; $("barras").innerHTML = "";
+      return;
+    }
+    const c = C.comparar({ contado, cuota, n, primeraEn: +estado.primeraEn, inflacion: +estado.inflacion || 0, rendimiento: tem * 100, situacion: estado.situacion });
+    const v = C.veredicto(c);
+    $("veredicto").className = "veredicto " + (c.gana === "empate" ? "" : c.gana);
+    $("vTitulo").textContent = v.titulo; $("vDetalle").textContent = v.detalle;
+
+    if (c.implicita) {
+      $("cTem").textContent = pct(c.implicita.tem * 100, 2) + " mensual";
+      $("cTemDet").textContent = "TNA " + pct(c.implicita.tna) + " · TEA " + pct(c.implicita.tea) + (c.sinInteres ? " · sin interés de verdad" : c.implicita.tem < c.inflacion ? " · menos que la inflación" : " · más que la inflación");
+    } else { $("cTem").textContent = "no hay"; $("cTemDet").textContent = n === 1 ? "es pagar hoy contra pagar hoy" : "no hay tasa que cierre"; }
+    $("cTotal").textContent = pesos(c.total);
+    $("cTotalDet").textContent = c.sinInteres ? "lo mismo que el contado" : (c.extraNominal > 0 ? pesos(c.extraNominal) + " más que el contado (" + pct(c.extraPct) + ")" : pesos(-c.extraNominal) + " menos que el contado");
+    $("cHoy").textContent = pesos(c.vpInflacion);
+    $("cHoyDet").textContent = "con " + pct(c.inflacion * 100) + " mensual: " + (c.ahorroReal >= 0 ? pesos(c.ahorroReal) + " menos que el contado" : pesos(-c.ahorroReal) + " más que el contado");
+    $("cRinde").textContent = (c.sobraNominal >= 0 ? "te sobran " : "te faltan ") + pesos(Math.abs(c.sobraNominal));
+    $("cRindeDet").textContent = "al final, al " + pct(c.rendimiento * 100, 2) + " mensual (" + pesos(Math.abs(c.sobraReal)) + " en plata de hoy)";
+    const ref = pct(c.referencia * 100, 2);
+    $("equilibrio").textContent = c.gana === "contado"
+      ? "Para que convenga en cuotas con esa referencia (" + ref + " mensual) la cuota tendría que ser de " + pesos(c.cuotaEquilibrio) + " (" + pesos(c.totalEquilibrio) + " en total), o el contado tendría que costar más de " + pesos(c.contadoEquilibrio) + "."
+      : c.gana === "cuotas"
+        ? "Las cuotas convienen hasta " + pesos(c.cuotaEquilibrio) + " cada una (" + pesos(c.totalEquilibrio) + " en total); de ahí para arriba, contado. O si te hacen el contado por menos de " + pesos(c.contadoEquilibrio) + "."
+        : "La cuota de equilibrio es " + pesos(c.cuotaEquilibrio) + ": justo la que te ofrecen.";
+
+    // Las tres lentes.
+    const lentes = [
+      { clave: "rinde", que: "la pongo a rendir", contra: "lo que rinde: " + pct(c.rendimiento * 100, 2) + " mensual", costo: c.vpRendimiento },
+      { clave: "quieta", que: "queda quieta en la cuenta", contra: "nada: peso contra peso", costo: c.total },
+      { clave: "sueldo", que: "no la tengo, pago con el sueldo", contra: "la inflación: " + pct(c.inflacion * 100) + " mensual", costo: c.vpInflacion },
+    ];
+    $("lentes").querySelector("tbody").innerHTML = lentes.map((l) => {
+      const dif = c.contado - l.costo;
+      return "<tr" + (l.clave === c.situacion ? " class=\"elegida\"" : "") + "><td>" + l.que + "</td><td>" + l.contra + "</td><td class=\"num\">" + pesos(l.costo) + "</td><td class=\"num\" style=\"color: " + (dif > 1 ? "var(--ok)" : dif < -1 ? "var(--mal)" : "inherit") + "\">" + signo(dif) + "</td></tr>";
+    }).join("");
+
+    // Cuota por cuota.
+    $("cuotas").querySelector("tbody").innerHTML = c.filas.map((f) => "<tr><td>" + f.numero + "</td><td>" + (f.mes === 0 ? "hoy" : "+" + f.mes) + "</td><td class=\"num\">" + pesos(f.nominal) + "</td><td class=\"num\">" + pesos(f.enPlataDeHoy) + "</td><td class=\"num\">" + pesos(f.acumulado) + "</td><td class=\"num\" style=\"color: " + (f.saldoInvertido < 0 ? "var(--mal)" : "inherit") + "\">" + signo(f.saldoInvertido) + "</td></tr>").join("");
+    const max = c.cuota;
+    $("barras").innerHTML = c.filas.map((f) => "<div class=\"barra\"><span>cuota " + f.numero + "</span><div class=\"pista\"><div class=\"lleno\" style=\"width: " + (f.enPlataDeHoy / max * 100).toFixed(1) + "%\"></div></div><span class=\"val\">" + pesos(f.enPlataDeHoy) + "</span></div>").join("");
+  }
+
+  // Eventos.
+  for (const id of ["contado", "n", "cuota", "total", "inflacion", "tna"]) $(id).addEventListener("input", () => { const v = $(id).value; estado[id] = v === "" ? "" : +v; if (id === "n") pintarEntradas(); recalcular(); });
+  $("modoCuotas").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; if (b.dataset.modo === "total" && estado.modo !== "total") estado.total = Math.round((+estado.cuota || 0) * (+estado.n || 1)); if (b.dataset.modo === "cuota" && estado.modo !== "cuota") estado.cuota = Math.round(cuotaActual()); estado.modo = b.dataset.modo; pintarEntradas(); recalcular(); });
+  $("primera").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; estado.primeraEn = +b.dataset.valor; pintarEntradas(); recalcular(); });
+  $("situacion").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; estado.situacion = b.dataset.valor; pintarEntradas(); recalcular(); });
+  pintarEntradas(); recalcular();
+})();
+</script>
+</body>
+</html>
