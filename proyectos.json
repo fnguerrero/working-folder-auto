@@ -196,5 +196,14 @@
     "estado": "terminado",
     "probar": "experimentos/gc-en-vivo/",
     "desde": "2026-10-19"
+  },
+  {
+    "slug": "regex-en-criollo",
+    "nombre": "Regex en criollo",
+    "categoria": "herramientas",
+    "descripcion": "Pegás una expresión regular de .NET y te la explica paso a paso en castellano, la probás contra un texto con la semántica de .NET, te avisa de las trampas y te da el C# con GeneratedRegex.",
+    "estado": "terminado",
+    "probar": "herramientas/regex-en-criollo/",
+    "desde": "2026-10-19"
   }
 ]

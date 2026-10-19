@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Regex en criollo</title>
+<style>
+  :root { --bg: #f4f4f1; --card: #fff; --fg: #1e1f1c; --muted: #6a6c64; --line: #e1e2db; --accent: #0f6e8c; --accent-fg: #fff; --ok: #2f7d4f; --medio: #b7791f; --mal: #c0392b; --code: #eceee8; --suave: rgba(15, 110, 140, .08); --m1: rgba(15, 110, 140, .22); --m2: rgba(183, 121, 31, .28); }
+  @media (prefers-color-scheme: dark) { :root { --bg: #131412; --card: #1c1e1a; --fg: #ebece6; --muted: #a0a398; --line: #30332c; --accent: #5cc4e4; --accent-fg: #0b1a20; --ok: #7bd39b; --medio: #e4b55a; --mal: #f0867a; --code: #171915; --suave: rgba(92, 196, 228, .12); --m1: rgba(92, 196, 228, .3); --m2: rgba(228, 181, 90, .32); } }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.45; }
+  header { padding: 18px 16px 6px; max-width: 1100px; margin: 0 auto; }
+  h1 { margin: 0; font-size: 1.5rem; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  main { max-width: 1100px; margin: 0 auto; padding: 10px 16px 32px; display: grid; gap: 14px; }
+  @media (min-width: 900px) { main { grid-template-columns: 400px 1fr; align-items: start; } .ancho { grid-column: 1 / -1; } }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+  .panel h2 { margin: 0 0 10px; font-size: 1rem; }
+  h3.sub { margin: 12px 0 4px; font-size: .78rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  textarea { font: inherit; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .92rem; width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); resize: vertical; min-height: 64px; }
+  textarea#patron { min-height: 56px; font-size: 1rem; }
+  textarea#texto { min-height: 120px; }
+  .error { color: var(--mal); font-size: .88rem; margin: 6px 0 0; font-family: ui-monospace, monospace; white-space: pre-wrap; }
+  .opciones { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 4px 10px; font-size: .85rem; }
+  .opciones label { display: flex; gap: 6px; align-items: center; min-height: 32px; min-width: 0; }
+  .opciones code { overflow-wrap: anywhere; }
+  .opciones input { width: 18px; height: 18px; }
+  .opciones code { font-size: .8em; }
+  button { font: inherit; font-size: .85rem; min-height: 38px; padding: 6px 12px; border-radius: 999px; cursor: pointer; border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+  button:hover { border-color: var(--accent); }
+  button[aria-pressed="true"], button.primario { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0; }
+  .chips button { min-height: 32px; padding: 4px 10px; font-size: .8rem; }
+  .avisos { display: grid; gap: 8px; }
+  .aviso { border-left: 4px solid var(--medio); border-radius: 8px; padding: 8px 12px; background: var(--suave); }
+  .aviso.mal { border-left-color: var(--mal); } .aviso.info { border-left-color: var(--accent); } .aviso.ok { border-left-color: var(--ok); }
+  .aviso b { display: block; margin-bottom: 2px; }
+  .aviso p { margin: 0; font-size: .88rem; }
+  ul.arbol, ul.arbol ul { list-style: none; margin: 0; padding-left: 0; }
+  ul.arbol ul { padding-left: 16px; border-left: 2px solid var(--line); margin-left: 6px; }
+  ul.arbol li { padding: 3px 0; font-size: .92rem; min-width: 0; overflow-wrap: anywhere; }
+  ul.arbol code { background: var(--code); padding: 1px 6px; border-radius: 4px; font-size: .84em; margin-right: 6px; color: var(--accent); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .resultado { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9rem; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; max-height: 320px; overflow: auto; }
+  mark { background: var(--m1); color: inherit; border-radius: 3px; padding: 1px 0; }
+  mark.par { background: var(--m2); }
+  table { border-collapse: collapse; width: 100%; font-size: .86rem; margin-top: 8px; }
+  th, td { text-align: left; padding: 5px 6px; border-top: 1px solid var(--line); vertical-align: top; font-family: ui-monospace, monospace; }
+  th { color: var(--muted); font-weight: 600; font-size: .74rem; font-family: system-ui, sans-serif; }
+  td.num { text-align: right; white-space: nowrap; }
+  td.val { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .tabla-scroll { overflow-x: auto; }
+  .resumen { font-size: .9rem; margin: 0 0 6px; }
+  .resumen b { color: var(--accent); }
+  pre { background: var(--code); padding: 10px 12px; border-radius: 8px; overflow: auto; font-size: .82rem; margin: 8px 0 0; white-space: pre; }
+  .fila { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+  .copiado { color: var(--ok); font-size: .82rem; }
+  .nota { font-size: .85rem; color: var(--muted); margin: 8px 0 0; }
+  .texto p, .texto li { font-size: .95rem; max-width: 80ch; }
+  .texto h2 { font-size: 1.15rem; margin: 16px 0 6px; }
+  .texto h2:first-child { margin-top: 0; }
+  .texto code, .nota code, .aviso code { background: var(--code); padding: 1px 5px; border-radius: 4px; font-size: .88em; overflow-wrap: anywhere; }
+  .oculto { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Regex en criollo</h1>
+  <p>Pegás una expresión regular de .NET y te la explica en castellano, paso a paso. La probás contra un texto (con la semántica de .NET: <code>$</code>, <code>\d</code>, <code>\b</code>, <code>\z</code>, grupos atómicos), te avisa de las trampas y te deja el C# con <code>GeneratedRegex</code>. Nada sale del navegador.</p>
+</header>
+<main>
+  <section class="panel" aria-label="La expresión">
+    <h2>La expresión</h2>
+    <textarea id="patron" spellcheck="false" aria-label="Expresión regular" placeholder="^(?<anio>\d{4})-(?<mes>\d{2})$"></textarea>
+    <p class="error oculto" id="error"></p>
+    <h3 class="sub">RegexOptions</h3>
+    <div class="opciones" id="opciones">
+      <label><input type="checkbox" data-op="ignoreCase"> <code>IgnoreCase</code></label>
+      <label><input type="checkbox" data-op="multiline"> <code>Multiline</code></label>
+      <label><input type="checkbox" data-op="singleline"> <code>Singleline</code></label>
+      <label><input type="checkbox" data-op="ignoreWhitespace"> <code>IgnorePatternWhitespace</code></label>
+      <label><input type="checkbox" data-op="explicitCapture"> <code>ExplicitCapture</code></label>
+      <label><input type="checkbox" data-op="ecmaScript"> <code>ECMAScript</code></label>
+      <label><input type="checkbox" data-op="cultureInvariant"> <code>CultureInvariant</code></label>
+    </div>
+    <h3 class="sub">Ejemplos</h3>
+    <div class="chips" id="ejemplos"></div>
+    <p class="nota oculto" id="ejemploNota"></p>
+    <h3 class="sub">Texto para probar</h3>
+    <textarea id="texto" spellcheck="false" aria-label="Texto de prueba"></textarea>
+    <p class="nota">Todo queda en tu navegador: se guarda lo último que escribiste con <code>localStorage</code>.</p>
+  </section>
+
+  <div style="display: grid; gap: 14px; min-width: 0;">
+    <section class="panel" aria-label="Avisos">
+      <h2>Avisos</h2>
+      <div class="avisos" id="avisos"></div>
+    </section>
+    <section class="panel" aria-label="Qué dice">
+      <h2>Qué dice, paso a paso</h2>
+      <ul class="arbol" id="arbol"></ul>
+    </section>
+    <section class="panel" aria-label="Qué matchea">
+      <h2>Qué matchea</h2>
+      <p class="resumen" id="resumen"></p>
+      <div class="resultado" id="marcado"></div>
+      <div class="tabla-scroll"><table id="matches" class="oculto" aria-label="Matches y grupos"><thead><tr><th>#</th><th>Dónde</th><th>Match</th><th>Grupos</th></tr></thead><tbody></tbody></table></div>
+      <p class="nota" id="notaJs"></p>
+    </section>
+    <section class="panel" aria-label="El C#">
+      <h2>El C#</h2>
+      <div class="chips" id="modoCs"><button type="button" data-modo="generado" aria-pressed="true">GeneratedRegex (.NET 7+)</button><button type="button" data-modo="clasico" aria-pressed="false">new Regex con timeout</button></div>
+      <pre id="cs"></pre>
+      <div class="fila"><button type="button" class="primario" id="copiar">Copiar</button><span class="copiado oculto" id="copiado">copiado</span></div>
+    </section>
+  </div>
+
+  <section class="panel texto ancho" aria-label="Lo que conviene saber">
+    <h2>Lo que conviene saber de las regex en .NET</h2>
+    <ul>
+      <li><b>Una instancia, no una por llamada.</b> <code>new Regex(...)</code> adentro de un método que se llama mil veces es parsear y compilar mil veces (22 veces más lento y 6 KB por llamada, medido en <a href="../../escritos/cuanto-cuesta-dotnet/">Cuánto cuesta cada cosa</a>). <code>static readonly</code>, o mejor <code>[GeneratedRegex]</code> en .NET 7+: genera el código en compilación, sin reflexión ni <code>RegexOptions.Compiled</code>, y funciona con AOT. Los métodos estáticos <code>Regex.IsMatch(texto, patron)</code> usan un caché de 15 entradas: sirven para scripts, no para servidores.</li>
+      <li><b>Timeout siempre.</b> Un regex con backtracking catastrófico contra un texto que viene del usuario es un ataque de denegación de servicio (ReDoS) gratis. <code>new Regex(patron, opciones, TimeSpan.FromSeconds(1))</code> tira <code>RegexMatchTimeoutException</code>; o <code>AppContext.SetSwitch("REGEX_DEFAULT_MATCH_TIMEOUT", ...)</code> para todo el proceso. Con <code>RegexOptions.NonBacktracking</code> (.NET 7+) el tiempo es lineal, garantizado, a cambio de no tener backreferences, lookarounds ni grupos atómicos.</li>
+      <li><b><code>$</code> no es el fin del texto.</b> Sin Multiline, <code>$</code> matchea al final o justo antes de un <code>\n</code> final: <code>^\d+$</code> acepta <code>"123\n"</code>. Para validar, <code>\A…\z</code>. Y <code>IsMatch</code> busca en cualquier parte: sin anclas, <code>\d{4}</code> acepta «abc1234def».</li>
+      <li><b><code>\d</code>, <code>\w</code> y <code>\s</code> son Unicode.</b> <code>\d</code> matchea los dígitos de cualquier escritura (y después <code>int.Parse</code> explota), <code>\w</code> incluye letras con tilde y ñ (lo cual suele ser lo que querés en castellano). <code>[0-9]</code> o <code>RegexOptions.ECMAScript</code> si querés solo ASCII.</li>
+      <li><b>Los grupos se numeran raro.</b> Primero los sin nombre, de izquierda a derecha, y después los con nombre. Si mezclás, <code>m.Groups[1]</code> no es el primer paréntesis que ves. Usá nombres (<code>(?&lt;anio&gt;…)</code> y <code>m.Groups["anio"]</code>) o <code>RegexOptions.ExplicitCapture</code> para que los paréntesis sin nombre no capturen.</li>
+      <li><b>IgnoreCase y la cultura.</b> Con la cultura del hilo en turco, <code>i</code> e <code>I</code> no son el mismo carácter. Si el patrón es técnico (un formato, un protocolo), <code>RegexOptions.CultureInvariant</code>.</li>
+      <li><b>Lo que .NET tiene y otros no:</b> grupos atómicos <code>(?&gt;…)</code>, lookbehind de largo variable, grupos de balanceo <code>(?&lt;a-b&gt;…)</code> para contar paréntesis, condicionales <code>(?(1)sí|no)</code>, resta de clases <code>[a-z-[aeiou]]</code>, <code>\G</code>, y <code>RegexOptions.RightToLeft</code>. Y lo que no tiene: cuantificadores posesivos (<code>a*+</code>), se escriben <code>(?&gt;a*)</code>.</li>
+      <li><b>Para probar acá</b> el patrón se traduce a JavaScript respetando la semántica de .NET (<code>$</code>, <code>\d</code>, <code>\b</code>, <code>\A \Z \z</code>, el punto, las clases con resta, los grupos atómicos vía un lookahead con captura, las opciones inline). Lo que no se puede traducir (balanceo, condicionales, <code>\G</code>) se explica igual pero no se prueba. La prueba corre en un hilo aparte y se corta a los 2 segundos: si se corta, ya sabés qué le va a pasar a tu servidor.</li>
+    </ul>
+    <p>Fuentes: <a href="https://learn.microsoft.com/dotnet/standard/base-types/regular-expression-language-quick-reference">Regular expression language quick reference</a>, <a href="https://learn.microsoft.com/dotnet/standard/base-types/regular-expression-options">Regular expression options</a>, <a href="https://learn.microsoft.com/dotnet/standard/base-types/regular-expression-source-generators">Regular expression source generators</a>, <a href="https://learn.microsoft.com/dotnet/standard/base-types/best-practices-regex">Best practices for regular expressions in .NET</a> y <a href="https://devblogs.microsoft.com/dotnet/regular-expression-improvements-in-dotnet-7/">Regular expression improvements in .NET 7</a> (Stephen Toub).</p>
+  </section>
+</main>
+<script src="logica.js"></script>
+<script>
+(function () {
+  "use strict";
+  const R = window.RegexEnCriollo;
+  const $ = (id) => document.getElementById(id);
+  const CLAVE = "regex-en-criollo";
+  let estado = { patron: R.EJEMPLOS[2].patron, texto: R.EJEMPLOS[2].texto, opciones: {}, modoCs: "generado" };
+  try { const g = JSON.parse(localStorage.getItem(CLAVE) || "null"); if (g && typeof g.patron === "string") estado = Object.assign(estado, g); } catch (e) { /* sin memoria */ }
+  function guardar() { try { localStorage.setItem(CLAVE, JSON.stringify(estado)); } catch (e) { /* sin memoria */ } }
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const conCodigo = (s) => esc(s).replace(/`([^`]+)`/g, "<code>$1</code>");
+
+  for (const e of R.EJEMPLOS) { const b = document.createElement("button"); b.type = "button"; b.textContent = e.nombre; b.addEventListener("click", () => { estado.patron = e.patron; estado.texto = e.texto; estado.opciones = Object.assign({}, e.opciones || {}); $("ejemploNota").textContent = e.nota || ""; $("ejemploNota").classList.toggle("oculto", !e.nota); pintarEntradas(); actualizar(); }); $("ejemplos").appendChild(b); }
+
+  function pintarEntradas() {
+    $("patron").value = estado.patron; $("texto").value = estado.texto;
+    for (const cb of document.querySelectorAll("#opciones input")) cb.checked = !!estado.opciones[cb.dataset.op];
+    for (const b of document.querySelectorAll("#modoCs button")) b.setAttribute("aria-pressed", String(b.dataset.modo === estado.modoCs));
+  }
+
+  // Prueba en un worker con corte a los 2 segundos; si no hay workers (abierto desde un archivo), en el hilo principal.
+  let worker = null, timer = null, serie = 0;
+  function crearWorker() { try { const w = new Worker("worker.js"); w.onerror = () => { worker = null; }; return w; } catch (e) { return null; } }
+  function probar(patron, opciones, texto, cb) {
+    const mi = ++serie;
+    if (worker === null) worker = crearWorker();
+    if (!worker) { try { const p = R.parsear(patron, opciones); const t0 = Date.now(); const r = R.probar(p, texto); cb(Object.assign({ ok: true, ms: Date.now() - t0 }, r)); } catch (err) { cb({ ok: false, error: err.message }); } return; }
+    clearTimeout(timer);
+    worker.onmessage = (e) => { if (mi !== serie) return; clearTimeout(timer); cb(e.data); };
+    worker.onerror = () => { if (mi !== serie) return; clearTimeout(timer); worker.terminate(); worker = null; probar(patron, opciones, texto, cb); };
+    timer = setTimeout(() => { if (mi !== serie) return; worker.terminate(); worker = null; cb({ ok: true, cortado: true, matches: [], problemas: [] }); }, 2000);
+    worker.postMessage({ patron, opciones, texto });
+  }
+
+  function pintarArbol(nodo) {
+    const li = document.createElement("li");
+    if (nodo.raw) { const c = document.createElement("code"); c.textContent = nodo.raw.length > 40 ? nodo.raw.slice(0, 38) + "…" : nodo.raw; li.appendChild(c); }
+    li.appendChild(document.createTextNode(nodo.texto));
+    if (nodo.hijos && nodo.hijos.length) { const ul = document.createElement("ul"); for (const h of nodo.hijos) ul.appendChild(pintarArbol(h)); li.appendChild(ul); }
+    return li;
+  }
+
+  function actualizar() {
+    guardar();
+    const patron = estado.patron, opciones = estado.opciones;
+    $("arbol").innerHTML = ""; $("avisos").innerHTML = ""; $("marcado").innerHTML = ""; $("matches").classList.add("oculto"); $("notaJs").textContent = "";
+    if (!patron) { $("error").classList.add("oculto"); $("resumen").textContent = "Escribí una expresión."; $("cs").textContent = ""; return; }
+    let parseado;
+    try { parseado = R.parsear(patron, opciones); $("error").classList.add("oculto"); }
+    catch (err) {
+      $("error").textContent = "No se puede leer: " + err.message + (typeof err.pos === "number" ? "\n" + patron + "\n" + " ".repeat(Math.min(err.pos, patron.length)) + "^ acá" : "");
+      $("error").classList.remove("oculto"); $("resumen").textContent = ""; $("cs").textContent = "";
+      return;
+    }
+    // Avisos.
+    const avisos = R.avisos(parseado, patron);
+    $("avisos").innerHTML = avisos.length ? avisos.map((a) => "<div class=\"aviso " + a.nivel + "\"><b>" + esc(a.titulo) + "</b><p>" + conCodigo(a.texto) + "</p></div>").join("") : "<div class=\"aviso ok\"><b>Nada que avisar</b><p>Anclada, sin trampas conocidas.</p></div>";
+    // Explicación.
+    $("arbol").appendChild(pintarArbol(R.explicar(parseado)));
+    // C#.
+    const cs = R.snippetCs(patron, parseado);
+    $("cs").textContent = estado.modoCs === "generado" ? cs.generado : cs.clasico;
+    // Prueba.
+    $("resumen").textContent = "Probando…";
+    probar(patron, opciones, estado.texto, (r) => {
+      if (!r.ok) { $("resumen").textContent = "No se pudo probar: " + r.error; return; }
+      if (r.cortado) { $("resumen").innerHTML = "<b>Se cortó a los 2 segundos.</b> Eso es backtracking catastrófico: en el servidor sería un hilo clavado (y con un texto un poco más largo, para siempre). Ponele timeout, reescribila o usá RegexOptions.NonBacktracking."; $("marcado").textContent = estado.texto; return; }
+      if (r.error) { $("resumen").textContent = r.error; $("marcado").textContent = estado.texto; return; }
+      const noSePuede = (r.problemas || []).filter((p) => p.nivel === "no");
+      if (noSePuede.length) { $("resumen").textContent = "Esta no se puede probar en el navegador."; $("notaJs").textContent = noSePuede.map((p) => p.texto).join(" "); $("marcado").textContent = estado.texto; return; }
+      const ms = r.matches;
+      $("resumen").innerHTML = ms.length ? "<b>" + ms.length + (ms.length === 1 ? " match" : " matches") + "</b>" + (ms.length >= 500 ? " (se muestran los primeros 500)" : "") + " en " + r.ms + " ms." : "<b>No matchea</b> nada del texto.";
+      // Texto marcado.
+      let html = "", pos = 0; const t = estado.texto;
+      ms.forEach((m, k) => { html += esc(t.slice(pos, m.indice)); html += "<mark" + (k % 2 ? " class=\"par\"" : "") + ">" + (m.largo ? esc(t.slice(m.indice, m.indice + m.largo)) : "∅") + "</mark>"; pos = m.indice + m.largo; });
+      html += esc(t.slice(pos));
+      $("marcado").innerHTML = html || "<i>(texto vacío)</i>";
+      if (ms.length) {
+        $("matches").classList.remove("oculto");
+        $("matches").querySelector("tbody").innerHTML = ms.slice(0, 200).map((m, k) => "<tr><td class=\"num\">" + (k + 1) + "</td><td class=\"num\">" + m.indice + " (" + m.largo + ")</td><td class=\"val\">" + esc(m.valor) + "</td><td class=\"val\">" + m.grupos.map((g) => (g.nombre ? g.nombre : g.numero) + " = " + (g.valor == null ? "<i>(no capturó)</i>" : esc(g.valor))).join("<br>") + "</td></tr>").join("");
+      }
+      const infos = (r.problemas || []).filter((p) => p.nivel === "info");
+      $("notaJs").textContent = infos.map((p) => p.texto).join(" ");
+    });
+  }
+
+  $("patron").addEventListener("input", () => { estado.patron = $("patron").value; $("ejemploNota").classList.add("oculto"); actualizar(); });
+  $("texto").addEventListener("input", () => { estado.texto = $("texto").value; actualizar(); });
+  $("opciones").addEventListener("change", () => { for (const cb of document.querySelectorAll("#opciones input")) estado.opciones[cb.dataset.op] = cb.checked; actualizar(); });
+  $("modoCs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; estado.modoCs = b.dataset.modo; pintarEntradas(); actualizar(); });
+  $("copiar").addEventListener("click", async () => { try { await navigator.clipboard.writeText($("cs").textContent); } catch (e) { const r = document.createRange(); r.selectNodeContents($("cs")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); document.execCommand("copy"); } $("copiado").classList.remove("oculto"); setTimeout(() => $("copiado").classList.add("oculto"), 1500); });
+  pintarEntradas(); actualizar();
+})();
+</script>
+</body>
+</html>
