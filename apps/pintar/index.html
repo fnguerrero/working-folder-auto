@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Para pintar</title>
+<style>
+  :root { --bg: #f5f3ee; --card: #fff; --fg: #1f1e1a; --muted: #6b6960; --line: #e2dfd6; --accent: #c2602a; --accent-fg: #fff; --ok: #2f7d4f; --code: #efece4; --suave: rgba(194, 96, 42, .08); }
+  @media (prefers-color-scheme: dark) { :root { --bg: #15140f; --card: #1e1d17; --fg: #ece9e0; --muted: #a39f93; --line: #33312a; --accent: #f0945f; --accent-fg: #26130a; --ok: #7bd39b; --code: #191814; --suave: rgba(240, 148, 95, .12); } }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.45; }
+  header { padding: 18px 16px 6px; max-width: 1100px; margin: 0 auto; }
+  h1 { margin: 0; font-size: 1.5rem; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  main { max-width: 1100px; margin: 0 auto; padding: 10px 16px 32px; display: grid; gap: 14px; }
+  @media (min-width: 900px) { main { grid-template-columns: 440px 1fr; align-items: start; } .ancho { grid-column: 1 / -1; } }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+  .panel h2 { margin: 0 0 10px; font-size: 1rem; }
+  h3.sub { margin: 12px 0 4px; font-size: .78rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  input, select { font: inherit; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); min-height: 36px; max-width: 100%; }
+  input[type=number] { width: 78px; }
+  input[type=checkbox] { width: 18px; height: 18px; min-height: 0; }
+  button { font: inherit; font-size: .85rem; min-height: 38px; padding: 6px 12px; border-radius: 999px; cursor: pointer; border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+  button:hover { border-color: var(--accent); }
+  button.primario { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  button.chico { min-height: 30px; padding: 2px 10px; font-size: .78rem; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0; }
+  .ambiente { border: 1px solid var(--line); border-radius: 10px; padding: 10px; margin-bottom: 10px; background: var(--suave); }
+  .ambiente .cab { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .ambiente .cab input[type=text] { flex: 1; min-width: 0; font-weight: 600; }
+  .medidas { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: .85rem; }
+  .medidas label { display: flex; flex-direction: column; gap: 2px; }
+  .medidas label span { color: var(--muted); font-size: .74rem; }
+  .opciones { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; margin-top: 8px; font-size: .85rem; }
+  .opciones label { display: flex; align-items: center; gap: 6px; min-height: 30px; }
+  .opciones label.largo { grid-column: 1 / -1; }
+  .opciones select { flex: 1; min-width: 0; }
+  .m2 { font-size: .78rem; color: var(--muted); margin: 6px 0 0; }
+  details { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 8px; }
+  summary { cursor: pointer; font-weight: 600; font-size: .9rem; }
+  .grilla { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-size: .84rem; margin-top: 8px; }
+  .grilla label { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+  .grilla label.largo { grid-column: 1 / -1; }
+  table { border-collapse: collapse; width: 100%; font-size: .86rem; }
+  th, td { text-align: left; padding: 6px 6px; border-top: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: .74rem; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  td .detalle { display: block; font-size: .76rem; color: var(--muted); }
+  td input[type=number] { width: 92px; text-align: right; }
+  tfoot td { font-weight: 700; border-top: 2px solid var(--line); }
+  .tabla-scroll { overflow-x: auto; }
+  .total { font-size: 1.05rem; margin: 10px 0 0; }
+  .total b { color: var(--accent); }
+  .fila { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+  .copiado { color: var(--ok); font-size: .82rem; }
+  .nota { font-size: .85rem; color: var(--muted); margin: 8px 0 0; }
+  ol.pasos { padding-left: 20px; margin: 6px 0 0; } ol.pasos li { margin-bottom: 4px; font-size: .92rem; }
+  .texto p, .texto li { font-size: .95rem; max-width: 80ch; }
+  .texto h2 { font-size: 1.15rem; margin: 16px 0 6px; } .texto h2:first-child { margin-top: 0; }
+  .oculto { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Para pintar</h1>
+  <p>Cargás los ambientes (medidas, puertas y ventanas, qué se pinta) y te dice cuántos litros de látex, cielorraso, fijador, enduido y sintético comprar y en qué latas conviene, el piso con su pegamento y pastina si lo cambiás, los zócalos, los rodillos y la cinta, cuánto sale con los precios de tu pinturería y cuánto tiempo lleva. Todo queda en tu navegador.</p>
+</header>
+<main>
+  <section class="panel" aria-label="Ambientes">
+    <h2>Los ambientes</h2>
+    <div id="ambientes"></div>
+    <div class="chips"><button id="agregar" class="primario">+ Agregar ambiente</button><button class="chico" data-preset="mono">Monoambiente</button><button class="chico" data-preset="dos">Depto de 2 ambientes</button><button class="chico" data-preset="casa">Casa de 3 dormitorios</button></div>
+    <details id="supuestos">
+      <summary>Supuestos (rendimientos, manos, latas, piso)</summary>
+      <div class="grilla" id="cfg">
+        <label>Látex interior, m²/L por mano <input type="number" data-cfg="rendimiento.latexInterior" min="4" max="20" step="0.5"></label>
+        <label>Látex exterior, m²/L por mano <input type="number" data-cfg="rendimiento.latexExterior" min="4" max="20" step="0.5"></label>
+        <label>Cielorraso, m²/L por mano <input type="number" data-cfg="rendimiento.cielorraso" min="4" max="20" step="0.5"></label>
+        <label>Fijador, m²/L <input type="number" data-cfg="rendimiento.fijador" min="4" max="25" step="0.5"></label>
+        <label>Sintético, m²/L por mano <input type="number" data-cfg="rendimiento.sintetico" min="4" max="20" step="0.5"></label>
+        <label>Enduido, kg/m² <input type="number" data-cfg="rendimiento.enduido" min="0.2" max="3" step="0.1"></label>
+        <label>Manos sobre color claro <input type="number" data-cfg="manos.clara" min="1" max="4" step="1"></label>
+        <label>Manos sobre color oscuro <input type="number" data-cfg="manos.oscura" min="1" max="5" step="1"></label>
+        <label>Manos en revoque nuevo <input type="number" data-cfg="manos.nueva" min="1" max="4" step="1"></label>
+        <label>Manos en cielorraso <input type="number" data-cfg="manos.cielorraso" min="1" max="4" step="1"></label>
+        <label>Margen por las dudas, % <input type="number" data-cfg="margen" data-pct="1" min="0" max="50" step="5"></label>
+        <label>Una persona pinta, m²/h <input type="number" data-cfg="ritmo.m2PorHora" min="3" max="40" step="1"></label>
+        <label>Puerta, ancho m <input type="number" data-cfg="puerta.ancho" min="0.5" max="2" step="0.05"></label>
+        <label>Puerta, alto m <input type="number" data-cfg="puerta.alto" min="1.5" max="3" step="0.05"></label>
+        <label>Ventana, ancho m <input type="number" data-cfg="ventana.ancho" min="0.3" max="4" step="0.1"></label>
+        <label>Ventana, alto m <input type="number" data-cfg="ventana.alto" min="0.3" max="3" step="0.1"></label>
+        <label class="largo">Piso <select data-cfg="piso.tipo"><option value="ceramico">cerámico (pegamento 4 kg/m²)</option><option value="porcelanato">porcelanato (pegamento 5 kg/m²)</option></select></label>
+        <label>Pieza, largo cm <input type="number" data-cfg="piso.largoCm" min="5" max="200" step="1"></label>
+        <label>Pieza, ancho cm <input type="number" data-cfg="piso.anchoCm" min="5" max="200" step="1"></label>
+        <label>m² por caja <input type="number" data-cfg="piso.m2PorCaja" min="0.2" max="5" step="0.01"></label>
+        <label>Junta, mm <input type="number" data-cfg="piso.juntaMm" min="1" max="15" step="0.5"></label>
+        <label>Espesor de la pieza, mm <input type="number" data-cfg="piso.espesorMm" min="4" max="20" step="1"></label>
+        <label>Colocación en diagonal <input type="checkbox" data-cfg="piso.diagonal"></label>
+      </div>
+      <p class="nota">Rendimientos típicos de las latas argentinas (látex interior 10 a 12 m²/L por mano, exterior 8, sintético 12, fijador 12; enduido 1 kg/m² en dos capas finas). Si la lata dice otra cosa, cambiá acá.</p>
+    </details>
+  </section>
+
+  <section class="panel" aria-label="Qué comprar">
+    <h2>Qué comprar</h2>
+    <p class="nota" id="superficies"></p>
+    <div class="tabla-scroll"><table id="lista"><thead><tr><th>Qué</th><th class="num">Cuánto</th><th class="num">$ por unidad</th><th class="num">Subtotal</th></tr></thead><tbody></tbody></table></div>
+    <p class="total" id="total"></p>
+    <div class="fila"><button id="copiar" class="primario">Copiar la lista</button><span class="copiado oculto" id="copiado">Copiada.</span></div>
+    <p class="nota" id="tiempo"></p>
+    <h3 class="sub">Por ambiente</h3>
+    <div class="tabla-scroll"><table id="porAmbiente"><thead><tr><th>Ambiente</th><th class="num">Paredes m²</th><th class="num">Techo m²</th><th class="num">Látex L</th><th class="num">Piso m²</th><th class="num">Horas</th></tr></thead><tbody></tbody></table></div>
+    <h3 class="sub">En qué orden</h3>
+    <ol class="pasos" id="orden"></ol>
+  </section>
+
+  <section class="panel ancho texto" aria-label="De dónde salen los números">
+    <h2>De dónde salen los números</h2>
+    <p><strong>Superficies.</strong> Paredes: perímetro × alto, menos las puertas (0,80 × 2,05 m) y las ventanas (1,20 × 1,10 m); si las tuyas son otras, cambialo en los supuestos. Techo: largo × ancho. Carpintería: 4 m² por puerta (dos caras y marco) y 2 m² por ventana (marco y hojas, las dos caras).</p>
+    <p><strong>Pintura.</strong> Litros = m² × manos ÷ rendimiento. Dos manos sobre un color claro, tres sobre uno oscuro (o dos de una cubritiva, que sale lo mismo). Revoque nuevo: enduido (1 kg/m²), fijador al agua (12 m²/L) y dos manos. Al total se le suma un 10 % por las dudas: siempre falta un poco, y de la misma partida (el color cambia entre lotes). Las latas se eligen con el precio por litro típico de cada envase (la de 20 L sale menos por litro que la de 10, y mucho menos que la de 1): a veces conviene comprar 20 L aunque hagan falta 17.</p>
+    <p><strong>Piso.</strong> m² más 10 % de desperdicio (15 % en diagonal), en cajas enteras. Pegamento: 4 kg/m² para cerámico y 5 para porcelanato con llana dentada (bolsas de 30 kg). Pastina: metros de junta por m² × junta × espesor × 1,7 kg/dm³, más 15 % que queda en la esponja; con piezas de 45 × 45 y junta de 3 mm son unos 0,2 kg/m². Zócalo: perímetro menos puertas, más 5 %.</p>
+    <p><strong>Tiempo.</strong> Una persona con rodillo pinta unos 12 m² por hora por mano (el techo, un 30 % más lento), a pincel 4 m²/h, y coloca 2 m² de piso por hora. La cuenta no incluye el secado: 4 h entre manos de látex, 12 entre manos de sintético, 24 h el pegamento del piso antes de tomar las juntas. Las jornadas son de 6 horas efectivas, que es lo que aguanta un fin de semana.</p>
+    <p><strong>Lo que no entra.</strong> Humedad (hay que arreglarla antes, no pintarla), paredes muy absorbentes o con hongos, pintura para muebles, pisos sobre piso viejo (necesita otro pegamento) y la mano de obra si la contratás. Los precios los ponés vos y quedan guardados en tu navegador.</p>
+  </section>
+</main>
+<script src="logica.js"></script>
+<script>
+(function () {
+  "use strict";
+  const P = window.Pintar; const $ = (s) => document.querySelector(s);
+  const el = { ambientes: $("#ambientes"), agregar: $("#agregar"), cfg: $("#cfg"), lista: $("#lista tbody"), total: $("#total"), copiar: $("#copiar"), copiado: $("#copiado"), tiempo: $("#tiempo"), porAmbiente: $("#porAmbiente tbody"), orden: $("#orden"), superficies: $("#superficies") };
+  const guardar = (k, v) => { try { localStorage.setItem("pintar:" + k, JSON.stringify(v)); } catch { /* sin memoria */ } };
+  const leer = (k, d) => { try { const v = localStorage.getItem("pintar:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } };
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const num = (x, d) => (+x).toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: d == null ? 1 : d });
+  const pesos = (x) => "$" + Math.round(x).toLocaleString("es-AR");
+  const PRESETS = {
+    mono: () => [Object.assign(P.ambienteNuevo("Monoambiente"), { largo: 5, ancho: 3.5, ventanas: 1, puertas: 2 }), Object.assign(P.ambienteNuevo("Baño"), { largo: 2, ancho: 1.5, alto: 2.4, ventanas: 1, puertas: 1 }), Object.assign(P.ambienteNuevo("Cocina"), { largo: 3, ancho: 2, ventanas: 1, puertas: 1 })],
+    dos: () => [Object.assign(P.ambienteNuevo("Living comedor"), { largo: 5.5, ancho: 3.5, ventanas: 2, puertas: 3 }), Object.assign(P.ambienteNuevo("Dormitorio"), { largo: 3.5, ancho: 3, ventanas: 1, puertas: 2 }), Object.assign(P.ambienteNuevo("Cocina"), { largo: 3, ancho: 2.2, ventanas: 1, puertas: 1 }), Object.assign(P.ambienteNuevo("Baño"), { largo: 2.2, ancho: 1.6, alto: 2.4, ventanas: 1, puertas: 1 }), Object.assign(P.ambienteNuevo("Pasillo"), { largo: 3, ancho: 1.1, puertas: 4, ventanas: 0 })],
+    casa: () => [Object.assign(P.ambienteNuevo("Living comedor"), { largo: 7, ancho: 4, alto: 2.7, ventanas: 3, puertas: 3 }), Object.assign(P.ambienteNuevo("Dormitorio principal"), { largo: 4, ancho: 3.5, alto: 2.7, ventanas: 1, puertas: 2 }), Object.assign(P.ambienteNuevo("Dormitorio 2"), { largo: 3.5, ancho: 3, alto: 2.7, ventanas: 1, puertas: 2 }), Object.assign(P.ambienteNuevo("Dormitorio 3"), { largo: 3.2, ancho: 3, alto: 2.7, ventanas: 1, puertas: 2 }), Object.assign(P.ambienteNuevo("Cocina"), { largo: 4, ancho: 3, alto: 2.7, ventanas: 1, puertas: 2 }), Object.assign(P.ambienteNuevo("Baño"), { largo: 2.5, ancho: 1.8, alto: 2.5, ventanas: 1, puertas: 1 }), Object.assign(P.ambienteNuevo("Toilette"), { largo: 1.6, ancho: 1.2, alto: 2.5, ventanas: 0, puertas: 1 }), Object.assign(P.ambienteNuevo("Pasillo"), { largo: 4, ancho: 1.2, alto: 2.7, puertas: 5, ventanas: 0 }), Object.assign(P.ambienteNuevo("Frente (exterior)"), { largo: 10, ancho: 0, alto: 3, puertas: 1, ventanas: 3, techo: false, exterior: true })],
+  };
+  let ambientes = leer("ambientes", null) || PRESETS.dos();
+  let cfg = P.mezclar(P.DEFAULTS, leer("cfg", {}));
+  let precios = leer("precios", {});
+  const getPath = (o, p) => p.split(".").reduce((a, k) => (a == null ? a : a[k]), o);
+  const setPath = (o, p, v) => { const ks = p.split("."); let a = o; for (const k of ks.slice(0, -1)) a = a[k]; a[ks[ks.length - 1]] = v; };
+
+  function pintarAmbientes() {
+    el.ambientes.innerHTML = ambientes.map((a, i) => `<div class="ambiente" data-i="${i}">
+      <div class="cab"><input type="text" data-k="nombre" value="${esc(a.nombre)}" aria-label="Nombre del ambiente"><button class="chico" data-accion="duplicar" title="Duplicar">⧉</button><button class="chico" data-accion="quitar" title="Quitar" aria-label="Quitar ${esc(a.nombre)}">✕</button></div>
+      <div class="medidas">
+        <label><span>Largo m</span><input type="number" data-k="largo" value="${a.largo}" min="0" step="0.1"></label>
+        <label><span>Ancho m (0: una sola pared)</span><input type="number" data-k="ancho" value="${a.ancho}" min="0" step="0.1"></label>
+        <label><span>Alto m</span><input type="number" data-k="alto" value="${a.alto}" min="0" step="0.05"></label>
+        <label><span>Puertas</span><input type="number" data-k="puertas" value="${a.puertas}" min="0" step="1"></label>
+        <label><span>Ventanas</span><input type="number" data-k="ventanas" value="${a.ventanas}" min="0" step="1"></label>
+      </div>
+      <div class="opciones">
+        <label class="largo">Paredes <select data-k="paredes"><option value="clara"${a.paredes === "clara" ? " selected" : ""}>repintar, color claro (2 manos)</option><option value="oscura"${a.paredes === "oscura" ? " selected" : ""}>repintar, color oscuro o cambio fuerte (3 manos)</option><option value="nueva"${a.paredes === "nueva" ? " selected" : ""}>revoque nuevo (enduido + fijador + 2 manos)</option><option value="no"${a.paredes === "no" ? " selected" : ""}>no se pintan</option></select></label>
+        <label><input type="checkbox" data-k="techo"${a.techo ? " checked" : ""}> Techo</label>
+        <label><input type="checkbox" data-k="exterior"${a.exterior ? " checked" : ""}> Es exterior</label>
+        <label><input type="checkbox" data-k="aberturas"${a.aberturas ? " checked" : ""}> Puertas y ventanas (sintético)</label>
+        <label><input type="checkbox" data-k="zocalo"${a.zocalo ? " checked" : ""}> Zócalo nuevo</label>
+        <label><input type="checkbox" data-k="piso"${a.piso ? " checked" : ""}> Piso nuevo</label>
+      </div>
+      <p class="m2" data-m2></p></div>`).join("") || '<p class="nota">Sin ambientes. Agregá uno o elegí un modelo.</p>';
+  }
+  function pintarCfg() {
+    for (const inp of el.cfg.querySelectorAll("[data-cfg]")) { const v = getPath(cfg, inp.dataset.cfg); if (inp.type === "checkbox") inp.checked = !!v; else inp.value = inp.dataset.pct ? Math.round(v * 100) : v; }
+  }
+  function calcular() {
+    const r = P.calcular(ambientes, cfg, precios);
+    for (const div of el.ambientes.querySelectorAll(".ambiente")) { const a = r.porAmbiente[+div.dataset.i]; if (!a) continue; const partes = []; if (a.paredes) partes.push(`${num(a.paredes)} m² de pared`); if (a.techo) partes.push(`${num(a.techo)} m² de techo`); if (a.carpinteria) partes.push(`${num(a.carpinteria)} m² de carpintería`); if (a.piso) partes.push(`${num(a.piso)} m² de piso`); if (a.zocalo) partes.push(`${num(a.zocalo)} m de zócalo`); const lit = Object.keys(a.litros).map((k) => `${num(a.litros[k])} L ${P.NOMBRES[k][0].toLowerCase().replace("látex ", "")}`).join(", "); div.querySelector("[data-m2]").textContent = partes.length ? partes.join(" · ") + (lit ? " → " + lit : "") + ` · ${num(a.horas)} h` : "Nada que hacer acá."; }
+    el.superficies.textContent = r.lista.length ? `${num(r.superficies.paredes)} m² de paredes, ${num(r.superficies.techo)} m² de techo${r.superficies.carpinteria ? `, ${num(r.superficies.carpinteria)} m² de carpintería` : ""}${r.superficies.piso ? `, ${num(r.superficies.piso)} m² de piso` : ""}${r.superficies.zocalo ? `, ${num(r.superficies.zocalo)} m de zócalo` : ""}.` : "Nada para comprar todavía.";
+    el.lista.innerHTML = r.lista.map((i) => `<tr><td>${esc(i.nombre)}${i.detalle ? `<span class="detalle">${esc(i.detalle)}</span>` : ""}</td><td class="num">${num(i.cantidad, 2)} ${esc(i.unidad)}</td><td class="num"><input type="number" data-precio="${i.clave}" value="${precios[i.clave] || ""}" min="0" step="1" placeholder="por ${esc(i.unidad.replace(/^bolsas de /, "bolsa de ").replace(/^cajas$/, "caja").replace(/^rollos$/, "rollo").replace(/^pliegos$/, "pliego"))}" aria-label="Precio de ${esc(i.nombre)}"></td><td class="num">${i.subtotal ? pesos(i.subtotal) : ""}</td></tr>`).join("");
+    el.total.innerHTML = r.costo ? `Total: <b>${pesos(r.costo)}</b>${r.conPrecio < r.lista.length ? ` <span class="nota">(faltan precios en ${r.lista.length - r.conPrecio} ${r.lista.length - r.conPrecio === 1 ? "renglón" : "renglones"})</span>` : ""}` : (r.lista.length ? '<span class="nota">Poné los precios de tu pinturería para ver cuánto sale.</span>' : "");
+    el.tiempo.textContent = r.horas ? `Unas ${num(r.horas)} horas de trabajo para una persona: ${r.jornadas} ${r.jornadas === 1 ? "jornada" : "jornadas"} de 6 h, sin contar el secado. Entre dos, la mitad.` : "";
+    el.porAmbiente.innerHTML = r.porAmbiente.map((a) => `<tr><td>${esc(a.nombre)}</td><td class="num">${num(a.paredes)}</td><td class="num">${num(a.techo)}</td><td class="num">${num((a.litros.latexInterior || 0) + (a.litros.latexExterior || 0) + (a.litros.cielorraso || 0))}</td><td class="num">${a.piso ? num(a.piso) : "–"}</td><td class="num">${num(a.horas)}</td></tr>`).join("");
+    el.orden.innerHTML = r.lista.length ? P.orden(r).map((p) => `<li>${esc(p)}</li>`).join("") : "";
+    return r;
+  }
+  function todo() { pintarAmbientes(); calcular(); }
+  el.ambientes.addEventListener("input", (ev) => {
+    const div = ev.target.closest(".ambiente"); if (!div) return; const a = ambientes[+div.dataset.i]; const k = ev.target.dataset.k; if (!k) return;
+    a[k] = ev.target.type === "checkbox" ? ev.target.checked : ev.target.type === "number" ? +ev.target.value : ev.target.value;
+    guardar("ambientes", ambientes); calcular();
+  });
+  el.ambientes.addEventListener("click", (ev) => {
+    const b = ev.target.closest("button[data-accion]"); if (!b) return; const i = +b.closest(".ambiente").dataset.i;
+    if (b.dataset.accion === "quitar") ambientes.splice(i, 1); else ambientes.splice(i + 1, 0, Object.assign({}, ambientes[i], { nombre: ambientes[i].nombre + " (copia)" }));
+    guardar("ambientes", ambientes); todo();
+  });
+  el.agregar.addEventListener("click", () => { ambientes.push(P.ambienteNuevo("Ambiente " + (ambientes.length + 1))); guardar("ambientes", ambientes); todo(); el.ambientes.lastElementChild.querySelector("input[type=text]").focus(); });
+  document.querySelector(".chips").addEventListener("click", (ev) => { const b = ev.target.closest("button[data-preset]"); if (!b) return; ambientes = PRESETS[b.dataset.preset](); guardar("ambientes", ambientes); todo(); });
+  el.cfg.addEventListener("input", (ev) => { const inp = ev.target; if (!inp.dataset.cfg) return; let v = inp.type === "checkbox" ? inp.checked : inp.tagName === "SELECT" ? inp.value : +inp.value; if (inp.dataset.pct) v = v / 100; if (typeof v === "number" && !isFinite(v)) return; setPath(cfg, inp.dataset.cfg, v); guardar("cfg", cfg); calcular(); });
+  el.lista.addEventListener("input", (ev) => { const inp = ev.target; if (!inp.dataset.precio) return; const v = +inp.value; if (v > 0) precios[inp.dataset.precio] = v; else delete precios[inp.dataset.precio]; guardar("precios", precios); const r = P.calcular(ambientes, cfg, precios); for (const tr of el.lista.querySelectorAll("tr")) { const clave = tr.querySelector("[data-precio]").dataset.precio; const item = r.lista.find((x) => x.clave === clave); tr.lastElementChild.textContent = item && item.subtotal ? pesos(item.subtotal) : ""; } el.total.innerHTML = r.costo ? `Total: <b>${pesos(r.costo)}</b>${r.conPrecio < r.lista.length ? ` <span class="nota">(faltan precios en ${r.lista.length - r.conPrecio} ${r.lista.length - r.conPrecio === 1 ? "renglón" : "renglones"})</span>` : ""}` : '<span class="nota">Poné los precios de tu pinturería para ver cuánto sale.</span>'; });
+  el.copiar.addEventListener("click", async () => { const texto = P.listaTexto(P.calcular(ambientes, cfg, precios), "Para pintar: " + ambientes.map((a) => a.nombre).join(", ")); try { await navigator.clipboard.writeText(texto); } catch { const ta = document.createElement("textarea"); ta.value = texto; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); } catch { /* nada */ } ta.remove(); } el.copiado.classList.remove("oculto"); setTimeout(() => el.copiado.classList.add("oculto"), 1500); });
+  pintarCfg(); todo();
+})();
+</script>
+</body>
+</html>

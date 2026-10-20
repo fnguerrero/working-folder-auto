@@ -214,5 +214,14 @@
   "estado": "terminado",
   "probar": "herramientas/jwt-en-criollo/",
   "desde": "2026-10-20"
+ },
+ {
+  "slug": "pintar",
+  "nombre": "Para pintar",
+  "categoria": "apps",
+  "descripcion": "Cargás los ambientes y te dice cuánta pintura comprar y en qué latas, el piso con pegamento y pastina, zócalos y accesorios, cuánto sale con tus precios, cuánto tiempo lleva y en qué orden se hace.",
+  "estado": "terminado",
+  "probar": "apps/pintar/",
+  "desde": "2026-10-20"
  }
 ]
