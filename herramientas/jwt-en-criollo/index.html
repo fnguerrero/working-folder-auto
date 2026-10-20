@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>JWT en criollo</title>
+<style>
+  :root { --bg: #f4f4f1; --card: #fff; --fg: #1e1f1c; --muted: #6a6c64; --line: #e1e2db; --accent: #6b3fa0; --accent-fg: #fff; --ok: #2f7d4f; --medio: #b7791f; --mal: #c0392b; --code: #eceee8; --suave: rgba(107, 63, 160, .08); --h: #c0392b; --p: #6b3fa0; --f: #0f6e8c; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #131412; --card: #1c1e1a; --fg: #ebece6; --muted: #a0a398; --line: #30332c; --accent: #c1a1ee; --accent-fg: #1a0f2a; --ok: #7bd39b; --medio: #e4b55a; --mal: #f0867a; --code: #171915; --suave: rgba(193, 161, 238, .12); --h: #f0867a; --p: #c1a1ee; --f: #5cc4e4; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.45; }
+  header { padding: 18px 16px 6px; max-width: 1100px; margin: 0 auto; }
+  h1 { margin: 0; font-size: 1.5rem; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  main { max-width: 1100px; margin: 0 auto; padding: 10px 16px 32px; display: grid; gap: 14px; }
+  @media (min-width: 900px) { main { grid-template-columns: 420px 1fr; align-items: start; } .ancho { grid-column: 1 / -1; } }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+  .panel h2 { margin: 0 0 10px; font-size: 1rem; }
+  h3.sub { margin: 12px 0 4px; font-size: .78rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  textarea, select, input[type=text] { font: inherit; width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
+  textarea { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .85rem; resize: vertical; min-height: 64px; overflow-wrap: anywhere; }
+  textarea#token { min-height: 150px; }
+  textarea#clave { min-height: 70px; }
+  #token.coloreado { color: transparent; caret-color: var(--fg); }
+  .partes { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .85rem; overflow-wrap: anywhere; word-break: break-all; margin: 6px 0 0; line-height: 1.4; }
+  .partes .h { color: var(--h); } .partes .p { color: var(--p); } .partes .f { color: var(--f); } .partes .punto { color: var(--muted); }
+  .error { color: var(--mal); font-size: .88rem; margin: 6px 0 0; white-space: pre-wrap; }
+  button { font: inherit; font-size: .85rem; min-height: 38px; padding: 6px 12px; border-radius: 999px; cursor: pointer; border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+  button:hover { border-color: var(--accent); }
+  button[aria-pressed="true"], button.primario { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0; }
+  .chips button { min-height: 32px; padding: 4px 10px; font-size: .8rem; }
+  .estado { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  .sello { display: inline-block; font-weight: 700; padding: 4px 12px; border-radius: 999px; font-size: .9rem; border: 2px solid var(--line); }
+  .sello.vigente, .sello.ok { border-color: var(--ok); color: var(--ok); } .sello.vencido, .sello.mal, .sello.ms { border-color: var(--mal); color: var(--mal); } .sello.gracia, .sello.medio, .sello.pronto, .sello.todavia-no, .sello.sin-exp { border-color: var(--medio); color: var(--medio); } .sello.jwe { border-color: var(--accent); color: var(--accent); }
+  .estado p { margin: 0; font-size: .9rem; flex: 1 1 200px; overflow-wrap: anywhere; }
+  .claims { display: grid; gap: 6px; }
+  .claim { border-left: 4px solid var(--line); border-radius: 8px; padding: 6px 10px; background: var(--suave); min-width: 0; }
+  .claim.mal { border-left-color: var(--mal); } .claim.medio { border-left-color: var(--medio); } .claim.ok { border-left-color: var(--ok); }
+  .claim .k { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 700; font-size: .88rem; overflow-wrap: anywhere; }
+  .claim .v { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .82rem; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--accent); margin: 2px 0; }
+  .claim .t { font-size: .86rem; margin: 0; overflow-wrap: anywhere; }
+  .claim .net { font-size: .78rem; color: var(--muted); margin: 2px 0 0; }
+  .claim .net code { font-size: .95em; }
+  .avisos { display: grid; gap: 8px; }
+  .aviso { border-left: 4px solid var(--medio); border-radius: 8px; padding: 8px 12px; background: var(--suave); }
+  .aviso.mal { border-left-color: var(--mal); } .aviso.info { border-left-color: var(--accent); } .aviso.ok { border-left-color: var(--ok); }
+  .aviso b { display: block; margin-bottom: 2px; }
+  .aviso p { margin: 0; font-size: .88rem; overflow-wrap: anywhere; }
+  pre { background: var(--code); padding: 10px 12px; border-radius: 8px; overflow: auto; font-size: .8rem; margin: 8px 0 0; white-space: pre; }
+  .fila { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+  .fila select { width: auto; min-height: 38px; }
+  .copiado { color: var(--ok); font-size: .82rem; }
+  .nota { font-size: .85rem; color: var(--muted); margin: 8px 0 0; }
+  .firma { margin-top: 8px; padding: 8px 12px; border-radius: 8px; border-left: 4px solid var(--line); background: var(--suave); font-size: .9rem; }
+  .firma.ok { border-left-color: var(--ok); } .firma.mal { border-left-color: var(--mal); } .firma.medio { border-left-color: var(--medio); }
+  .texto p, .texto li { font-size: .95rem; max-width: 80ch; }
+  .texto h2 { font-size: 1.15rem; margin: 16px 0 6px; }
+  .texto h2:first-child { margin-top: 0; }
+  .texto code, .nota code, .aviso code, .claim code, .estado code, .firma code { background: var(--code); padding: 1px 5px; border-radius: 4px; font-size: .88em; overflow-wrap: anywhere; }
+  table { border-collapse: collapse; width: 100%; font-size: .86rem; margin-top: 8px; }
+  th, td { text-align: left; padding: 5px 6px; border-top: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: .74rem; }
+  td code { white-space: nowrap; }
+  .oculto { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>JWT en criollo</h1>
+  <p>Pegás un token (con el <code>Bearer</code>, las comillas o el JSON alrededor, da igual) y te dice qué tiene adentro, claim por claim y en castellano, con las fechas en hora argentina. Te avisa de las trampas, verifica la firma si le das la clave y te deja el C# para validarlo o emitir uno igual. Nada sale del navegador.</p>
+</header>
+<main>
+  <section class="panel" aria-label="El token">
+    <h2>El token</h2>
+    <textarea id="token" spellcheck="false" aria-label="Token" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMDQyIn0.…"></textarea>
+    <p class="error oculto" id="error"></p>
+    <p class="partes" id="partes" aria-hidden="true"></p>
+    <p class="nota" id="tamanio"></p>
+    <h3 class="sub">Ejemplos</h3>
+    <div class="chips" id="ejemplos"></div>
+    <p class="nota" id="descEjemplo"></p>
+    <h3 class="sub">La firma</h3>
+    <p class="nota" id="firmaIntro">Para verificarla pegá el secreto (HS*) o la clave pública (PEM, certificado, JWK o JWKS) del emisor. Las claves no se guardan.</p>
+    <textarea id="clave" spellcheck="false" aria-label="Clave o secreto" placeholder="secreto, -----BEGIN PUBLIC KEY-----, -----BEGIN CERTIFICATE-----, {&quot;kty&quot;:…} o {&quot;keys&quot;:[…]}"></textarea>
+    <div class="fila">
+      <select id="codificacion" aria-label="Codificación del secreto"><option value="utf8">secreto como texto (UTF-8)</option><option value="base64">secreto en base64</option><option value="base64url">secreto en base64url</option><option value="hex">secreto en hexadecimal</option></select>
+      <button id="verificar" class="primario">Verificar</button>
+      <button id="usarEjemplo" class="oculto">Usar la clave del ejemplo</button>
+      <button id="usarX5c" class="oculto">Probar con el x5c del header</button>
+    </div>
+    <div class="firma oculto" id="firma"></div>
+  </section>
+
+  <section class="panel" aria-label="Qué dice">
+    <h2>Qué dice</h2>
+    <div class="estado" id="estado"></div>
+    <h3 class="sub">Header</h3>
+    <div class="claims" id="header"></div>
+    <h3 class="sub" id="tituloPayload">Payload</h3>
+    <div class="claims" id="claims"></div>
+    <h3 class="sub">Avisos</h3>
+    <div class="avisos" id="avisos"></div>
+  </section>
+
+  <section class="panel ancho" aria-label="C#">
+    <h2>El C#</h2>
+    <div class="chips" id="modoCs"><button data-modo="validar" aria-pressed="true">Validarlo en ASP.NET Core</button><button data-modo="emitir" aria-pressed="false">Emitir uno igual</button></div>
+    <pre id="cs"></pre>
+    <div class="fila"><button id="copiar">Copiar</button><span class="copiado oculto" id="copiado">Copiado.</span></div>
+  </section>
+
+  <section class="panel ancho texto" aria-label="Cómo funciona">
+    <h2>Qué es un JWT, en cinco párrafos</h2>
+    <p>Un JWT son tres pedazos de base64url separados por punto: <span class="partes"><span class="h">header</span><span class="punto">.</span><span class="p">payload</span><span class="punto">.</span><span class="f">firma</span></span>. El header dice con qué algoritmo está firmado y, a veces, con qué clave (<code>kid</code>). El payload es un JSON con <em>claims</em>: afirmaciones sobre alguien (<code>sub</code> es quién, <code>iss</code> quién lo dice, <code>aud</code> para quién, <code>exp</code> hasta cuándo). La firma es lo único que lo hace valer.</p>
+    <p><strong>No está cifrado.</strong> Base64 no es cifrado: cualquiera que tenga el token lo lee con esta página. Por eso no van contraseñas, ni DNI, ni nada que no haga falta en cada request. La firma garantiza que nadie lo <em>cambió</em>, no que nadie lo <em>lea</em>. Si de verdad hay que esconder el contenido, existe el JWE (cinco partes), que casi nunca necesitás.</p>
+    <p><strong>La firma vale según quién tenga la clave.</strong> Con <code>HS256</code> hay un secreto y lo tienen tanto el que emite como el que valida: sirve cuando los dos son tu API. Con <code>RS256</code> o <code>ES256</code> el emisor firma con su clave privada y todos validan con la pública, que se baja de su JWKS (<code>/.well-known/openid-configuration</code>): así trabajan Entra ID, Keycloak, Auth0, Google. Un validador tiene que fijar el algoritmo que espera (<code>ValidAlgorithms</code>): si deja que el token elija, lo engañan con <code>none</code> o con <code>HS256</code> firmado con la clave pública.</p>
+    <p><strong>Validar es más que verificar la firma.</strong> Hay que chequear que <code>iss</code> sea el emisor que vos esperás, que <code>aud</code> sea tu API (un token válido para <em>otra</em> API del mismo emisor no sirve), que no esté vencido (<code>exp</code>) ni sea de antes de tiempo (<code>nbf</code>). ASP.NET hace todo eso en <code>AddJwtBearer</code> con <code>TokenValidationParameters</code>, con 5 minutos de tolerancia de reloj (<code>ClockSkew</code>) que casi nadie sabe que existen.</p>
+    <p><strong>Un JWT no se revoca.</strong> Hasta que vence, vale. Por eso un access token dura minutos (5 a 60) y lo que dura días es el refresh token, que vive en el emisor y sí se puede matar. Si tu token dura un mes, cuando se filtre vas a tener que rotar la clave y desloguear a todo el mundo.</p>
+    <h2>Lo que .NET hace con los nombres</h2>
+    <p>Cuando un token entra a ASP.NET, <code>Microsoft.IdentityModel</code> renombra claims (<code>MapInboundClaims = true</code> por defecto): <code>sub</code> pasa a ser <code>ClaimTypes.NameIdentifier</code> (la URI <code>http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier</code>), <code>role</code> y <code>roles</code> a <code>ClaimTypes.Role</code>, <code>email</code> a <code>ClaimTypes.Email</code>, <code>unique_name</code> a <code>ClaimTypes.Name</code>. Dos consecuencias que se llevan horas: <code>User.FindFirst("sub")</code> devuelve <code>null</code>, y <code>User.Identity.Name</code> también, porque el claim que casi todos mandan es <code>name</code>, que no está en el mapa. La solución limpia es <code>MapInboundClaims = false</code> más <code>NameClaimType = "name"</code> y <code>RoleClaimType = "roles"</code>.</p>
+    <p>Al revés pasa otra cosa: si emitís con <code>JsonWebTokenHandler</code> (el handler nuevo, default desde .NET 8) y armás los claims con <code>ClaimTypes.*</code>, el token sale con las URIs largas, y cualquier cliente que no sea .NET las ve así. Emití con nombres cortos (<code>JwtRegisteredClaimNames.Sub</code>, <code>"role"</code>, <code>"name"</code>).</p>
+    <h2>Qué es y qué no es esta página</h2>
+    <p>Decodifica, explica, verifica firmas con WebCrypto (HS256/384/512, RS*, PS*, ES256/384/512; EdDSA si el navegador lo trae) y arma el C#. No baja JWKS de ningún lado ni manda nada: la clave la pegás vos. Las explicaciones de claims de Entra, Keycloak, Auth0 y Google siguen su documentación; los claims propios de cada emisor se marcan como tales. El estado (vigente, vencido, en gracia) se calcula con el reloj de tu compu y el <code>ClockSkew</code> de 5 minutos que usa ASP.NET por defecto. Los ejemplos son de juguete: los HS256 se firman en el momento con el secreto que ves, los RS/PS/ES con claves generadas para esta página; no hay ningún token real.</p>
+  </section>
+</main>
+<script src="logica.js"></script>
+<script src="ejemplos.js"></script>
+<script>
+(function () {
+  "use strict";
+  const J = window.JwtCriollo; const E = window.JwtEjemplos;
+  const $ = (s) => document.querySelector(s);
+  const el = { token: $("#token"), error: $("#error"), partes: $("#partes"), tamanio: $("#tamanio"), ejemplos: $("#ejemplos"), descEjemplo: $("#descEjemplo"), clave: $("#clave"), codificacion: $("#codificacion"), verificar: $("#verificar"), usarEjemplo: $("#usarEjemplo"), usarX5c: $("#usarX5c"), firma: $("#firma"), estado: $("#estado"), header: $("#header"), claims: $("#claims"), avisos: $("#avisos"), cs: $("#cs"), copiar: $("#copiar"), copiado: $("#copiado"), modoCs: $("#modoCs"), tituloPayload: $("#tituloPayload") };
+  const SKEW = 300;
+  const parametros = new URLSearchParams(location.search);
+  const ahoraFijo = parametros.get("ahora") ? parseInt(parametros.get("ahora"), 10) : null;
+  const ahora = () => ahoraFijo || Math.floor(Date.now() / 1000);
+  let dec = null, modo = "validar", ejemploActual = null, temporizador = null;
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const guardar = (k, v) => { try { localStorage.setItem("jwt-criollo:" + k, v); } catch { /* sin memoria */ } };
+  const leer = (k) => { try { return localStorage.getItem("jwt-criollo:" + k); } catch { return null; } };
+
+  function valorBonito(clave, v) {
+    if (typeof v === "number" && ["exp", "nbf", "iat", "auth_time", "updated_at"].includes(clave) && v < 1e11 && v > 946684800) return `${v}  →  ${J.formatearFecha(v)}`;
+    if (typeof v === "string") return v;
+    return JSON.stringify(v, null, Array.isArray(v) && v.every((x) => typeof x !== "object") ? 0 : 1);
+  }
+  function pintarClaims(cont, lista) {
+    cont.innerHTML = lista.map((c) => `<div class="claim ${c.nivel}"><div class="k">${esc(c.clave)}</div><div class="v">${esc(valorBonito(c.clave, c.valor))}</div><p class="t">${esc(c.texto)}</p>${c.netMapeado ? `<p class="net">En ASP.NET (con el mapeo por defecto) llega como <code>${esc(c.netMapeado)}</code>.</p>` : ""}</div>`).join("") || '<p class="nota">Nada.</p>';
+  }
+  function pintar() {
+    const crudo = el.token.value;
+    el.firma.classList.add("oculto"); el.usarX5c.classList.add("oculto");
+    try { dec = J.decodificar(crudo); el.error.classList.add("oculto"); }
+    catch (e) {
+      dec = null; el.error.textContent = e.message; el.error.classList.toggle("oculto", !crudo.trim()); el.partes.innerHTML = ""; el.tamanio.textContent = "";
+      el.estado.innerHTML = crudo.trim() ? "" : '<p class="nota">Pegá un token o elegí un ejemplo.</p>'; el.header.innerHTML = ""; el.claims.innerHTML = ""; el.avisos.innerHTML = ""; el.cs.textContent = ""; return;
+    }
+    const partes = dec.partes;
+    el.partes.innerHTML = dec.tipo === "JWS" ? `<span class="h">${esc(partes[0])}</span><span class="punto">.</span><span class="p">${esc(partes[1])}</span><span class="punto">.</span><span class="f">${esc(partes[2]) || "<i>(sin firma)</i>"}</span>` : partes.map((p, i) => `<span class="${["h", "p", "p", "p", "f"][i]}">${esc(p)}</span>`).join('<span class="punto">.</span>');
+    el.tamanio.textContent = `${dec.bytes} caracteres${dec.tipo === "JWS" ? `: header ${partes[0].length}, payload ${partes[1].length}, firma ${partes[2].length}` : ", cifrado (JWE)"}.`;
+    const t = ahora();
+    if (dec.tipo === "JWE") {
+      el.estado.innerHTML = `<span class="sello jwe">JWE: cifrado</span><p>No se puede leer sin la clave privada del destinatario. Solo se ve el header.</p>`;
+      el.tituloPayload.textContent = "Contenido";
+      el.claims.innerHTML = `<div class="claim"><div class="k">clave cifrada</div><div class="v">${esc(partes[1])}</div><p class="t">La clave de contenido, cifrada con ${esc(dec.header.alg || "?")} para el destinatario.</p></div><div class="claim"><div class="k">iv</div><div class="v">${esc(partes[2])}</div><p class="t">Vector de inicialización.</p></div><div class="claim"><div class="k">texto cifrado</div><div class="v">${esc(partes[3])}</div><p class="t">Los claims, cifrados con ${esc(dec.header.enc || "?")}.</p></div><div class="claim"><div class="k">tag</div><div class="v">${esc(partes[4])}</div><p class="t">Etiqueta de autenticación: detecta si alguien tocó el cifrado.</p></div>`;
+    } else {
+      el.tituloPayload.textContent = "Payload";
+      const e = J.estado(dec.payload, t, SKEW);
+      const nombre = { vigente: "Vigente", vencido: "Vencido", gracia: "Vencido, en gracia", "todavia-no": "Todavía no vale", pronto: "Empieza enseguida", "sin-exp": "Sin vencimiento", ms: "No vence nunca" }[e.estado] || e.estado;
+      el.estado.innerHTML = dec.payloadEsJson ? `<span class="sello ${e.estado}">${nombre}</span><p>${esc(e.texto)}${e.vida != null ? ` Dura ${esc(J.duracion(e.vida))}.` : ""}</p>` : `<span class="sello medio">Payload que no es JSON</span><p>Decodifica a: «${esc(dec.payloadRaw.slice(0, 200))}».</p>`;
+      pintarClaims(el.claims, dec.payloadEsJson ? J.explicarClaims(dec.payload, { ahora: t }) : []);
+      if (dec.header.x5c && dec.header.alg !== "none") el.usarX5c.classList.remove("oculto");
+    }
+    pintarClaims(el.header, J.explicarHeader(dec.header, dec.tipo));
+    const avisos = J.avisos(dec, { ahora: t, skew: SKEW });
+    el.avisos.innerHTML = avisos.map((a) => `<div class="aviso ${a.nivel}"><b>${esc(a.titulo)}</b><p>${esc(a.texto)}</p></div>`).join("") || '<p class="nota">Nada que avisar.</p>';
+    el.cs.textContent = dec.tipo === "JWS" ? J.snippetCs(dec, modo, { ahora: t }) : "// Un JWE no se valida: se descifra con la clave privada del destinatario.\n// o.TokenValidationParameters.TokenDecryptionKey = new X509SecurityKey(certificadoConPrivada);";
+    if (el.clave.value.trim() && dec.tipo === "JWS" && dec.header.alg !== "none") verificar();
+  }
+  async function verificar() {
+    if (!dec) return;
+    el.firma.classList.remove("oculto");
+    try {
+      if (!el.clave.value.trim()) { el.firma.className = "firma medio"; el.firma.textContent = "Pegá el secreto o la clave pública para verificar."; return; }
+      const r = await J.verificar(dec, el.clave.value, { codificacion: el.codificacion.value });
+      el.firma.className = "firma " + (r.valida ? "ok" : "mal");
+      el.firma.textContent = (r.valida ? "✔ " : "✘ ") + r.detalle;
+    } catch (e) { el.firma.className = "firma medio"; el.firma.textContent = "No se pudo verificar: " + e.message; }
+  }
+  function pintarEjemplos() {
+    el.ejemplos.innerHTML = E.EJEMPLOS.map((e) => `<button data-id="${e.id}" aria-pressed="false">${esc(e.nombre)}</button>`).join("");
+    el.ejemplos.addEventListener("click", async (ev) => { const b = ev.target.closest("button"); if (b) await cargarEjemplo(b.dataset.id); });
+  }
+  async function cargarEjemplo(id) {
+    const e = E.EJEMPLOS.find((x) => x.id === id); if (!e) return;
+    ejemploActual = e;
+    const token = e.vivo ? await J.firmarHS(e.header, e.payload(ahora()), e.secreto, e.alg) : e.token;
+    el.token.value = token; el.clave.value = ""; el.codificacion.value = "utf8";
+    for (const b of el.ejemplos.querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.id === id));
+    el.descEjemplo.textContent = e.descripcion + (e.vivo && e.alg !== "none" ? ` Secreto: «${e.secreto}».` : e.notaClave ? " " + e.notaClave : "");
+    el.usarEjemplo.classList.toggle("oculto", !(e.clave || (e.vivo && e.alg !== "none")));
+    guardar("token", token); guardar("ejemplo", id);
+    pintar();
+  }
+  el.token.addEventListener("input", () => { ejemploActual = null; el.descEjemplo.textContent = ""; el.usarEjemplo.classList.add("oculto"); for (const b of el.ejemplos.querySelectorAll("button")) b.setAttribute("aria-pressed", "false"); guardar("token", el.token.value); guardar("ejemplo", ""); pintar(); });
+  el.clave.addEventListener("input", () => { clearTimeout(temporizador); temporizador = setTimeout(verificar, 250); });
+  el.codificacion.addEventListener("change", verificar);
+  el.verificar.addEventListener("click", verificar);
+  el.usarEjemplo.addEventListener("click", () => { if (!ejemploActual) return; el.clave.value = ejemploActual.vivo ? ejemploActual.secreto : ejemploActual.clave; el.codificacion.value = "utf8"; verificar(); });
+  el.usarX5c.addEventListener("click", () => { if (!dec || !dec.header.x5c) return; el.clave.value = "-----BEGIN CERTIFICATE-----\n" + (Array.isArray(dec.header.x5c) ? dec.header.x5c[0] : dec.header.x5c) + "\n-----END CERTIFICATE-----"; verificar(); });
+  el.modoCs.addEventListener("click", (ev) => { const b = ev.target.closest("button"); if (!b) return; modo = b.dataset.modo; for (const x of el.modoCs.querySelectorAll("button")) x.setAttribute("aria-pressed", String(x === b)); guardar("modo", modo); if (dec) el.cs.textContent = dec.tipo === "JWS" ? J.snippetCs(dec, modo, { ahora: ahora() }) : el.cs.textContent; });
+  el.copiar.addEventListener("click", async () => { try { await navigator.clipboard.writeText(el.cs.textContent); } catch { const r = document.createRange(); r.selectNodeContents(el.cs); const s = getSelection(); s.removeAllRanges(); s.addRange(r); try { document.execCommand("copy"); } catch { /* nada */ } } el.copiado.classList.remove("oculto"); setTimeout(() => el.copiado.classList.add("oculto"), 1500); });
+  pintarEjemplos();
+  const modoGuardado = leer("modo"); if (modoGuardado === "emitir") { modo = "emitir"; for (const x of el.modoCs.querySelectorAll("button")) x.setAttribute("aria-pressed", String(x.dataset.modo === modo)); }
+  const guardado = leer("token"); const ejemploGuardado = leer("ejemplo");
+  if (ejemploGuardado && E.EJEMPLOS.some((x) => x.id === ejemploGuardado)) cargarEjemplo(ejemploGuardado);
+  else if (guardado) { el.token.value = guardado; pintar(); }
+  else cargarEjemplo("api");
+  if (!ahoraFijo) setInterval(() => { if (dec && dec.tipo === "JWS" && dec.payload && dec.payload.exp != null) pintar(); }, 30000);
+})();
+</script>
+</body>
+</html>

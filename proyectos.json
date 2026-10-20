@@ -1,209 +1,218 @@
 [
-  {
-    "slug": "simon",
-    "nombre": "Simón dice",
-    "categoria": "juegos",
-    "descripcion": "Cuatro colores con sonido y una secuencia que crece cada ronda. Guarda el récord.",
-    "estado": "terminado",
-    "probar": "juegos/simon/",
-    "desde": "2026-10-08"
-  },
-  {
-    "slug": "globos",
-    "nombre": "Globos",
-    "categoria": "juegos",
-    "descripcion": "Reventar globos con el dedo: modo tranqui sin perder y desafío de 60 segundos.",
-    "estado": "terminado",
-    "probar": "juegos/globos/",
-    "desde": "2026-10-09"
-  },
-  {
-    "slug": "cuotas-en-curso",
-    "nombre": "Cuotas en curso",
-    "categoria": "apps",
-    "descripcion": "Cuánto tenés comprometido en cuotas por mes y tarjeta, cuándo te liberás y un simulador antes de comprar.",
-    "estado": "terminado",
-    "probar": "apps/cuotas-en-curso/",
-    "desde": "2026-10-09"
-  },
-  {
-    "slug": "json-a-csharp",
-    "nombre": "JSON a C#",
-    "categoria": "herramientas",
-    "descripcion": "Pegás un JSON y salen las clases o records de C# para System.Text.Json o Newtonsoft, con tipos inferidos. También interfaces TypeScript.",
-    "estado": "terminado",
-    "probar": "herramientas/json-a-csharp/",
-    "desde": "2026-10-10"
-  },
-  {
-    "slug": "colas-p99",
-    "nombre": "Por qué explota el p99",
-    "categoria": "experimentos",
-    "descripcion": "Simulador de colas para backend: workers, pedidos por segundo y variabilidad contra Erlang C, Kingman y Little. Con diagnóstico y qué hacer.",
-    "estado": "terminado",
-    "probar": "experimentos/colas-p99/",
-    "desde": "2026-10-11"
-  },
-  {
-    "slug": "cron-en-criollo",
-    "nombre": "Cron en criollo",
-    "categoria": "herramientas",
-    "descripcion": "Pegás una expresión cron (estándar o Quartz.NET) y te dice en castellano cuándo corre, con las próximas ejecuciones en hora argentina y el código para Hangfire o Quartz.",
-    "estado": "terminado",
-    "probar": "herramientas/cron-en-criollo/",
-    "desde": "2026-10-11"
-  },
-  {
-    "slug": "xilofon",
-    "nombre": "Xilofón",
-    "categoria": "juegos",
-    "descripcion": "Ocho láminas de colores que suenan con los dedos, con bichos que saltan y canciones que se tocan solas. Para Valentín: sin puntaje ni perder.",
-    "estado": "terminado",
-    "probar": "juegos/xilofon/",
-    "desde": "2026-10-12"
-  },
-  {
-    "slug": "postgres-desde-sqlserver",
-    "nombre": "PostgreSQL para los que vienen de SQL Server",
-    "categoria": "escritos",
-    "descripcion": "Guía de 17 capítulos para pasar de T-SQL y SSMS a PostgreSQL desde .NET: tipos, fechas, transacciones, índices, jsonb, Npgsql y EF Core. Todos los ejemplos ejecutados contra Postgres 16.",
-    "estado": "terminado",
-    "probar": "escritos/postgres-desde-sqlserver/",
-    "desde": "2026-10-12"
-  },
-  {
-    "slug": "lo-que-te-corresponde",
-    "nombre": "Lo que te corresponde",
-    "categoria": "apps",
-    "descripcion": "Calculadora laboral argentina: liquidación final por despido o renuncia, aguinaldo y vacaciones, con la fórmula de cada concepto y el artículo de la ley.",
-    "estado": "terminado",
-    "probar": "apps/lo-que-te-corresponde/",
-    "desde": "2026-10-13"
-  },
-  {
-    "slug": "guid-vs-identity",
-    "nombre": "GUID o identity: qué le pasa al índice",
-    "categoria": "experimentos",
-    "descripcion": "Un B+tree en el navegador al que se le insertan claves int identity, GUID aleatorios, GUID v7 y secuenciales, para medir divisiones, llenado, fragmentación y páginas calientes. Con qué hacer y fuentes.",
-    "estado": "terminado",
-    "probar": "experimentos/guid-vs-identity/",
-    "desde": "2026-10-13"
-  },
-  {
-    "slug": "plan-en-criollo",
-    "nombre": "Plan en criollo",
-    "categoria": "herramientas",
-    "descripcion": "Pegás un plan de ejecución de SQL Server (.sqlplan) y te dice en castellano qué pasa, dónde se va el tiempo y qué hacer: índices que faltan, lookups, conversiones implícitas, parameter sniffing, spills. Con 12 planes reales de ejemplo.",
-    "estado": "terminado",
-    "probar": "herramientas/plan-en-criollo/",
-    "desde": "2026-10-14"
-  },
-  {
-    "slug": "indices-con-cronometro",
-    "nombre": "Índices con el cronómetro en la mano",
-    "categoria": "escritos",
-    "descripcion": "Trece experimentos sobre índices de SQL Server medidos en páginas leídas contra un servidor real: heap, clave agrupada, selectividad, cubrientes, orden de columnas, sargabilidad, paginación, filtrados, estadísticas, escritura y columnstore. Con chuleta y qué cambia en .NET.",
-    "estado": "terminado",
-    "probar": "escritos/indices-con-cronometro/",
-    "desde": "2026-10-14"
-  },
-  {
-    "slug": "pecera",
-    "nombre": "Pecera",
-    "categoria": "juegos",
-    "descripcion": "Peces que nadan solos y vienen a comer cuando tocás el agua, con un cangrejo, una tortuga y burbujas para reventar. Para Valentín: sin puntaje ni perder.",
-    "estado": "terminado",
-    "probar": "juegos/pecera/",
-    "desde": "2026-10-15"
-  },
-  {
-    "slug": "thread-pool-en-vivo",
-    "nombre": "Por qué se cuelga tu API: el thread pool en vivo",
-    "categoria": "experimentos",
-    "descripcion": "Simulador del thread pool de .NET: hilos, bloqueados, cola y latencia según hagas await, .Result o I/O sincrónica, contrastado contra un .NET 8 real. Con diagnóstico, las cuentas y qué hacer.",
-    "estado": "terminado",
-    "probar": "experimentos/thread-pool-en-vivo/",
-    "desde": "2026-10-15"
-  },
-  {
-    "slug": "connection-string-en-criollo",
-    "nombre": "Connection string en criollo",
-    "categoria": "herramientas",
-    "descripcion": "Pegás una cadena de conexión de SQL Server, PostgreSQL, MySQL o Redis y te dice qué significa cada clave, qué es peligroso y dónde guardarla. Nada sale del navegador.",
-    "estado": "terminado",
-    "probar": "herramientas/connection-string-en-criollo/",
-    "desde": "2026-10-15"
-  },
-  {
-    "slug": "cuanto-cuesta-dotnet",
-    "nombre": "Cuánto cuesta cada cosa en .NET 8",
-    "categoria": "escritos",
-    "descripcion": "129 microbenchmarks medidos con BenchmarkDotNet sobre las discusiones de todos los días: strings, LINQ, excepciones, regex, JSON, async, lock, logging. Con el código, la tabla y qué hacer con eso.",
-    "estado": "terminado",
-    "probar": "escritos/cuanto-cuesta-dotnet/",
-    "desde": "2026-10-16"
-  },
-  {
-    "slug": "stack-trace-en-criollo",
-    "nombre": "Stack trace en criollo",
-    "categoria": "herramientas",
-    "descripcion": "Pegás una excepción de .NET como salió en el log y te dice qué pasó, dónde fue en tu código y qué suele significar: cadena de internas, async, lambdas, SQL Server, Postgres, EF Core, HttpClient. Nada sale del navegador.",
-    "estado": "terminado",
-    "probar": "herramientas/stack-trace-en-criollo/",
-    "desde": "2026-10-17"
-  },
-  {
-    "slug": "asado",
-    "nombre": "Asado para cuántos",
-    "categoria": "apps",
-    "descripcion": "Decís cuántos vienen y qué va a la parrilla, y te dice cuánto comprar de cada cosa, cuánto carbón, a qué hora prender y en qué orden poner los cortes. Con la lista para el grupo y cuánto pone cada uno.",
-    "estado": "terminado",
-    "probar": "apps/asado/",
-    "desde": "2026-10-17"
-  },
-  {
-    "slug": "cohete",
-    "nombre": "Cohete",
-    "categoria": "juegos",
-    "descripcion": "Tocás el cohete y despega hasta la Luna, que sonríe y canta, y vuelve en paracaídas; las estrellas suenan al tocarlas, los planetas rebotan y pasan ovnis y cometas. Para Valentín: sin puntaje ni perder.",
-    "estado": "terminado",
-    "probar": "juegos/cohete/",
-    "desde": "2026-10-18"
-  },
-  {
-    "slug": "efcore-con-cronometro",
-    "nombre": "EF Core con el cronómetro en la mano",
-    "categoria": "escritos",
-    "descripcion": "Trece experimentos sobre lo que Entity Framework Core manda al servidor y lo que trae de vuelta, medidos contra un SQL Server real: N+1, Include, tracking, proyección, paginación, Contains, Any, inserciones, ExecuteUpdate, búsquedas por clave, varchar, caché de planes y async. Con el SQL que mandó EF y qué hacer.",
-    "estado": "terminado",
-    "probar": "escritos/efcore-con-cronometro/",
-    "desde": "2026-10-18"
-  },
-  {
-    "slug": "cuotas-o-contado",
-    "nombre": "¿Cuotas o contado?",
-    "categoria": "apps",
-    "descripcion": "Ponés el contado y el plan de cuotas y te dice qué tasa esconden, cuánto valen en plata de hoy y qué conviene según si la plata rinde, queda quieta o pagás con el sueldo.",
-    "estado": "terminado",
-    "probar": "apps/cuotas-o-contado/",
-    "desde": "2026-10-19"
-  },
-  {
-    "slug": "gc-en-vivo",
-    "nombre": "El GC en vivo",
-    "categoria": "experimentos",
-    "descripcion": "Modelo del recolector de basura de .NET: cuánto asignás, cuánto sobrevive, caché, fuga, LOH, server o workstation, y cada pausa que sentirían tus pedidos. Contrastado contra un .NET 8 real.",
-    "estado": "terminado",
-    "probar": "experimentos/gc-en-vivo/",
-    "desde": "2026-10-19"
-  },
-  {
-    "slug": "regex-en-criollo",
-    "nombre": "Regex en criollo",
-    "categoria": "herramientas",
-    "descripcion": "Pegás una expresión regular de .NET y te la explica paso a paso en castellano, la probás contra un texto con la semántica de .NET, te avisa de las trampas y te da el C# con GeneratedRegex.",
-    "estado": "terminado",
-    "probar": "herramientas/regex-en-criollo/",
-    "desde": "2026-10-19"
-  }
+ {
+  "slug": "simon",
+  "nombre": "Simón dice",
+  "categoria": "juegos",
+  "descripcion": "Cuatro colores con sonido y una secuencia que crece cada ronda. Guarda el récord.",
+  "estado": "terminado",
+  "probar": "juegos/simon/",
+  "desde": "2026-10-08"
+ },
+ {
+  "slug": "globos",
+  "nombre": "Globos",
+  "categoria": "juegos",
+  "descripcion": "Reventar globos con el dedo: modo tranqui sin perder y desafío de 60 segundos.",
+  "estado": "terminado",
+  "probar": "juegos/globos/",
+  "desde": "2026-10-09"
+ },
+ {
+  "slug": "cuotas-en-curso",
+  "nombre": "Cuotas en curso",
+  "categoria": "apps",
+  "descripcion": "Cuánto tenés comprometido en cuotas por mes y tarjeta, cuándo te liberás y un simulador antes de comprar.",
+  "estado": "terminado",
+  "probar": "apps/cuotas-en-curso/",
+  "desde": "2026-10-09"
+ },
+ {
+  "slug": "json-a-csharp",
+  "nombre": "JSON a C#",
+  "categoria": "herramientas",
+  "descripcion": "Pegás un JSON y salen las clases o records de C# para System.Text.Json o Newtonsoft, con tipos inferidos. También interfaces TypeScript.",
+  "estado": "terminado",
+  "probar": "herramientas/json-a-csharp/",
+  "desde": "2026-10-10"
+ },
+ {
+  "slug": "colas-p99",
+  "nombre": "Por qué explota el p99",
+  "categoria": "experimentos",
+  "descripcion": "Simulador de colas para backend: workers, pedidos por segundo y variabilidad contra Erlang C, Kingman y Little. Con diagnóstico y qué hacer.",
+  "estado": "terminado",
+  "probar": "experimentos/colas-p99/",
+  "desde": "2026-10-11"
+ },
+ {
+  "slug": "cron-en-criollo",
+  "nombre": "Cron en criollo",
+  "categoria": "herramientas",
+  "descripcion": "Pegás una expresión cron (estándar o Quartz.NET) y te dice en castellano cuándo corre, con las próximas ejecuciones en hora argentina y el código para Hangfire o Quartz.",
+  "estado": "terminado",
+  "probar": "herramientas/cron-en-criollo/",
+  "desde": "2026-10-11"
+ },
+ {
+  "slug": "xilofon",
+  "nombre": "Xilofón",
+  "categoria": "juegos",
+  "descripcion": "Ocho láminas de colores que suenan con los dedos, con bichos que saltan y canciones que se tocan solas. Para Valentín: sin puntaje ni perder.",
+  "estado": "terminado",
+  "probar": "juegos/xilofon/",
+  "desde": "2026-10-12"
+ },
+ {
+  "slug": "postgres-desde-sqlserver",
+  "nombre": "PostgreSQL para los que vienen de SQL Server",
+  "categoria": "escritos",
+  "descripcion": "Guía de 17 capítulos para pasar de T-SQL y SSMS a PostgreSQL desde .NET: tipos, fechas, transacciones, índices, jsonb, Npgsql y EF Core. Todos los ejemplos ejecutados contra Postgres 16.",
+  "estado": "terminado",
+  "probar": "escritos/postgres-desde-sqlserver/",
+  "desde": "2026-10-12"
+ },
+ {
+  "slug": "lo-que-te-corresponde",
+  "nombre": "Lo que te corresponde",
+  "categoria": "apps",
+  "descripcion": "Calculadora laboral argentina: liquidación final por despido o renuncia, aguinaldo y vacaciones, con la fórmula de cada concepto y el artículo de la ley.",
+  "estado": "terminado",
+  "probar": "apps/lo-que-te-corresponde/",
+  "desde": "2026-10-13"
+ },
+ {
+  "slug": "guid-vs-identity",
+  "nombre": "GUID o identity: qué le pasa al índice",
+  "categoria": "experimentos",
+  "descripcion": "Un B+tree en el navegador al que se le insertan claves int identity, GUID aleatorios, GUID v7 y secuenciales, para medir divisiones, llenado, fragmentación y páginas calientes. Con qué hacer y fuentes.",
+  "estado": "terminado",
+  "probar": "experimentos/guid-vs-identity/",
+  "desde": "2026-10-13"
+ },
+ {
+  "slug": "plan-en-criollo",
+  "nombre": "Plan en criollo",
+  "categoria": "herramientas",
+  "descripcion": "Pegás un plan de ejecución de SQL Server (.sqlplan) y te dice en castellano qué pasa, dónde se va el tiempo y qué hacer: índices que faltan, lookups, conversiones implícitas, parameter sniffing, spills. Con 12 planes reales de ejemplo.",
+  "estado": "terminado",
+  "probar": "herramientas/plan-en-criollo/",
+  "desde": "2026-10-14"
+ },
+ {
+  "slug": "indices-con-cronometro",
+  "nombre": "Índices con el cronómetro en la mano",
+  "categoria": "escritos",
+  "descripcion": "Trece experimentos sobre índices de SQL Server medidos en páginas leídas contra un servidor real: heap, clave agrupada, selectividad, cubrientes, orden de columnas, sargabilidad, paginación, filtrados, estadísticas, escritura y columnstore. Con chuleta y qué cambia en .NET.",
+  "estado": "terminado",
+  "probar": "escritos/indices-con-cronometro/",
+  "desde": "2026-10-14"
+ },
+ {
+  "slug": "pecera",
+  "nombre": "Pecera",
+  "categoria": "juegos",
+  "descripcion": "Peces que nadan solos y vienen a comer cuando tocás el agua, con un cangrejo, una tortuga y burbujas para reventar. Para Valentín: sin puntaje ni perder.",
+  "estado": "terminado",
+  "probar": "juegos/pecera/",
+  "desde": "2026-10-15"
+ },
+ {
+  "slug": "thread-pool-en-vivo",
+  "nombre": "Por qué se cuelga tu API: el thread pool en vivo",
+  "categoria": "experimentos",
+  "descripcion": "Simulador del thread pool de .NET: hilos, bloqueados, cola y latencia según hagas await, .Result o I/O sincrónica, contrastado contra un .NET 8 real. Con diagnóstico, las cuentas y qué hacer.",
+  "estado": "terminado",
+  "probar": "experimentos/thread-pool-en-vivo/",
+  "desde": "2026-10-15"
+ },
+ {
+  "slug": "connection-string-en-criollo",
+  "nombre": "Connection string en criollo",
+  "categoria": "herramientas",
+  "descripcion": "Pegás una cadena de conexión de SQL Server, PostgreSQL, MySQL o Redis y te dice qué significa cada clave, qué es peligroso y dónde guardarla. Nada sale del navegador.",
+  "estado": "terminado",
+  "probar": "herramientas/connection-string-en-criollo/",
+  "desde": "2026-10-15"
+ },
+ {
+  "slug": "cuanto-cuesta-dotnet",
+  "nombre": "Cuánto cuesta cada cosa en .NET 8",
+  "categoria": "escritos",
+  "descripcion": "129 microbenchmarks medidos con BenchmarkDotNet sobre las discusiones de todos los días: strings, LINQ, excepciones, regex, JSON, async, lock, logging. Con el código, la tabla y qué hacer con eso.",
+  "estado": "terminado",
+  "probar": "escritos/cuanto-cuesta-dotnet/",
+  "desde": "2026-10-16"
+ },
+ {
+  "slug": "stack-trace-en-criollo",
+  "nombre": "Stack trace en criollo",
+  "categoria": "herramientas",
+  "descripcion": "Pegás una excepción de .NET como salió en el log y te dice qué pasó, dónde fue en tu código y qué suele significar: cadena de internas, async, lambdas, SQL Server, Postgres, EF Core, HttpClient. Nada sale del navegador.",
+  "estado": "terminado",
+  "probar": "herramientas/stack-trace-en-criollo/",
+  "desde": "2026-10-17"
+ },
+ {
+  "slug": "asado",
+  "nombre": "Asado para cuántos",
+  "categoria": "apps",
+  "descripcion": "Decís cuántos vienen y qué va a la parrilla, y te dice cuánto comprar de cada cosa, cuánto carbón, a qué hora prender y en qué orden poner los cortes. Con la lista para el grupo y cuánto pone cada uno.",
+  "estado": "terminado",
+  "probar": "apps/asado/",
+  "desde": "2026-10-17"
+ },
+ {
+  "slug": "cohete",
+  "nombre": "Cohete",
+  "categoria": "juegos",
+  "descripcion": "Tocás el cohete y despega hasta la Luna, que sonríe y canta, y vuelve en paracaídas; las estrellas suenan al tocarlas, los planetas rebotan y pasan ovnis y cometas. Para Valentín: sin puntaje ni perder.",
+  "estado": "terminado",
+  "probar": "juegos/cohete/",
+  "desde": "2026-10-18"
+ },
+ {
+  "slug": "efcore-con-cronometro",
+  "nombre": "EF Core con el cronómetro en la mano",
+  "categoria": "escritos",
+  "descripcion": "Trece experimentos sobre lo que Entity Framework Core manda al servidor y lo que trae de vuelta, medidos contra un SQL Server real: N+1, Include, tracking, proyección, paginación, Contains, Any, inserciones, ExecuteUpdate, búsquedas por clave, varchar, caché de planes y async. Con el SQL que mandó EF y qué hacer.",
+  "estado": "terminado",
+  "probar": "escritos/efcore-con-cronometro/",
+  "desde": "2026-10-18"
+ },
+ {
+  "slug": "cuotas-o-contado",
+  "nombre": "¿Cuotas o contado?",
+  "categoria": "apps",
+  "descripcion": "Ponés el contado y el plan de cuotas y te dice qué tasa esconden, cuánto valen en plata de hoy y qué conviene según si la plata rinde, queda quieta o pagás con el sueldo.",
+  "estado": "terminado",
+  "probar": "apps/cuotas-o-contado/",
+  "desde": "2026-10-19"
+ },
+ {
+  "slug": "gc-en-vivo",
+  "nombre": "El GC en vivo",
+  "categoria": "experimentos",
+  "descripcion": "Modelo del recolector de basura de .NET: cuánto asignás, cuánto sobrevive, caché, fuga, LOH, server o workstation, y cada pausa que sentirían tus pedidos. Contrastado contra un .NET 8 real.",
+  "estado": "terminado",
+  "probar": "experimentos/gc-en-vivo/",
+  "desde": "2026-10-19"
+ },
+ {
+  "slug": "regex-en-criollo",
+  "nombre": "Regex en criollo",
+  "categoria": "herramientas",
+  "descripcion": "Pegás una expresión regular de .NET y te la explica paso a paso en castellano, la probás contra un texto con la semántica de .NET, te avisa de las trampas y te da el C# con GeneratedRegex.",
+  "estado": "terminado",
+  "probar": "herramientas/regex-en-criollo/",
+  "desde": "2026-10-19"
+ },
+ {
+  "slug": "jwt-en-criollo",
+  "nombre": "JWT en criollo",
+  "categoria": "herramientas",
+  "descripcion": "Pegás un JWT y te explica cada claim en castellano con las fechas en hora argentina, te avisa de las trampas, verifica la firma con la clave que le des y te deja el C# para validarlo o emitir uno igual.",
+  "estado": "terminado",
+  "probar": "herramientas/jwt-en-criollo/",
+  "desde": "2026-10-20"
+ }
 ]

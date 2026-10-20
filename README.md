@@ -37,5 +37,6 @@ Trabaja directo sobre `main`. Si algo no te gusta, se mueve a `_archivo/`.
 | ¿Cuotas o contado? | apps | Qué tasa esconden las cuotas, cuánto valen en plata de hoy y qué conviene según qué hacés con la plata: rendir, quieta o sueldo. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/apps/cuotas-o-contado/) |
 | El GC en vivo | experimentos | Simulador del GC de .NET: generaciones, LOH, GC de fondo, server y DATAS, con cada pausa, el heap y el p99 de los pedidos; contrastado contra un .NET 8 real. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/experimentos/gc-en-vivo/) |
 | Regex en criollo | herramientas | Explica una expresión regular de .NET en castellano, la prueba con la semántica de .NET, avisa de las trampas y da el C# con GeneratedRegex. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/herramientas/regex-en-criollo/) |
+| JWT en criollo | herramientas | Decodifica un JWT, explica cada claim en castellano con hora argentina, avisa de las trampas, verifica la firma y da el C# de validación y emisión. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/herramientas/jwt-en-criollo/) |
 
 Las convenciones de estructura y trabajo están en [CLAUDE.md](CLAUDE.md).
