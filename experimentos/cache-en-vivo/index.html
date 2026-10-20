@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>El caché en vivo</title>
+<style>
+  :root { --bg: #f3f4f2; --card: #fff; --fg: #1c1e1b; --muted: #676a62; --line: #dfe2dc; --grid: #ecefe9; --accent: #1f7a5c; --accent-fg: #fff; --verde: #2f7d4f; --amarillo: #b7791f; --rojo: #c0392b; --code: #e9ece6; --suave: rgba(31, 122, 92, .08);
+    --c-lru: #1f7a5c; --c-lfu: #c2602a; --c-fifo: #8a7f2a; --c-aleatorio: #7c6aa6; --c-redis: #b23a48; --c-memorycache: #2a6fa8; --c-belady: #444; --c-che: #999; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #121412; --card: #1b1e1b; --fg: #e9ebe6; --muted: #9fa39b; --line: #2f332e; --grid: #242824; --accent: #5fcf9f; --accent-fg: #0a1f16; --verde: #7bd39b; --amarillo: #e4b55a; --rojo: #f0867a; --code: #161916; --suave: rgba(95, 207, 159, .12);
+    --c-lru: #5fcf9f; --c-lfu: #f0945f; --c-fifo: #d6c85a; --c-aleatorio: #b9a6e6; --c-redis: #f07a8a; --c-memorycache: #6fb3ef; --c-belady: #ddd; --c-che: #777; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.45; }
+  header { padding: 18px 16px 6px; max-width: 1100px; margin: 0 auto; }
+  h1 { margin: 0; font-size: 1.5rem; } header p { margin: 4px 0 0; color: var(--muted); }
+  main { max-width: 1100px; margin: 0 auto; padding: 10px 16px 32px; display: grid; gap: 14px; }
+  @media (min-width: 900px) { main { grid-template-columns: 380px 1fr; align-items: start; } .ancho { grid-column: 1 / -1; } }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+  .panel h2 { margin: 0 0 10px; font-size: 1rem; }
+  h3.sub { margin: 12px 0 4px; font-size: .78rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .campos { display: grid; gap: 8px 12px; grid-template-columns: 1fr 1fr; font-size: .85rem; }
+  .campos label { display: flex; flex-direction: column; gap: 2px; min-width: 0; } .campos label span { color: var(--muted); font-size: .76rem; }
+  .campos label.largo { grid-column: 1 / -1; }
+  input, select { font: inherit; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); min-height: 36px; width: 100%; }
+  input[type=range] { padding: 0; min-height: 30px; }
+  button { font: inherit; font-size: .85rem; min-height: 38px; padding: 6px 12px; border-radius: 999px; cursor: pointer; border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+  button:hover { border-color: var(--accent); } button.primario { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0; } .chips button { min-height: 32px; padding: 4px 10px; font-size: .8rem; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+  .tile { background: var(--suave); border-radius: 10px; padding: 8px 10px; } .tile .v { font-size: 1.35rem; font-weight: 700; color: var(--accent); } .tile .k { font-size: .76rem; color: var(--muted); }
+  table { border-collapse: collapse; width: 100%; font-size: .86rem; } th, td { text-align: left; padding: 5px 6px; border-top: 1px solid var(--line); } th { color: var(--muted); font-weight: 600; font-size: .74rem; } td.num, th.num { text-align: right; white-space: nowrap; }
+  td i.sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+  .barra { height: 8px; border-radius: 4px; background: var(--grid); overflow: hidden; margin-top: 3px; } .barra b { display: block; height: 100%; }
+  .diag { display: grid; gap: 8px; margin-top: 8px; } .aviso { border-left: 4px solid var(--accent); border-radius: 8px; padding: 8px 12px; background: var(--suave); } .aviso b { display: block; margin-bottom: 2px; } .aviso p { margin: 0; font-size: .88rem; }
+  .graficos { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .grafico canvas { width: 100%; height: 240px; display: block; touch-action: pan-y; } .grafico .pie { font-size: .8rem; color: var(--muted); margin: 6px 0 0; }
+  .leyenda { display: flex; gap: 10px; flex-wrap: wrap; font-size: .78rem; color: var(--muted); margin: 0 0 6px; } .leyenda i { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 4px; border-radius: 2px; }
+  .estado { font-size: .82rem; color: var(--muted); min-height: 1.2em; margin: 6px 0 0; }
+  .texto p, .texto li { font-size: .95rem; max-width: 80ch; } .texto h2 { font-size: 1.15rem; margin: 16px 0 6px; } .texto h2:first-child { margin-top: 0; }
+  .texto code, .aviso code, .nota code, td code { background: var(--code); padding: 1px 5px; border-radius: 4px; font-size: .88em; }
+  .nota { font-size: .85rem; color: var(--muted); margin: 8px 0 0; }
+  .oculto { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>El caché en vivo</h1>
+  <p>Por qué el 90 % de aciertos no alcanza, cuánto caché hace falta de verdad y por qué se te cae la base cuando vence una clave caliente. Un simulador de caché con tráfico Zipf: elegís el catálogo, el tamaño y la política, y ves el hit rate medido contra la fórmula, el costo de cada miss y la estampida con y sin protección.</p>
+</header>
+<main>
+  <section class="panel" aria-label="Escenario">
+    <h2>El escenario</h2>
+    <div class="chips" id="presets"></div>
+    <div class="campos" style="margin-top:10px">
+      <label><span>Claves del catálogo (N)</span><select data-k="N"><option value="10000">10.000</option><option value="100000">100.000</option><option value="1000000">1.000.000</option></select></label>
+      <label><span>Entradas del caché (C)</span><input type="number" data-k="C" min="10" max="2000000" step="100"></label>
+      <label class="largo"><span>Concentración de la popularidad (Zipf α): <b id="alfaV"></b></span><input type="range" data-k="alfa" min="0" max="1.3" step="0.05"></label>
+      <label><span>Claves de una sola vez (scan, bots) %</span><input type="number" data-k="novedadesPct" min="0" max="90" step="5"></label>
+      <label><span>La popularidad rota cada</span><select data-k="rotacion"><option value="0">nunca</option><option value="20000">20.000 pedidos</option><option value="5000">5.000 pedidos</option><option value="1000">1.000 pedidos</option></select></label>
+      <label><span>Pedidos por segundo</span><input type="number" data-k="rps" min="1" max="100000" step="100"></label>
+      <label><span>Pedidos a simular</span><select data-k="M"><option value="50000">50.000</option><option value="100000">100.000</option><option value="200000">200.000</option></select></label>
+      <label><span>TTL (segundos, 0 = sin TTL)</span><input type="number" data-k="ttlSeg" min="0" max="86400" step="1"></label>
+      <label><span>Expiración</span><select data-k="expiracion"><option value="absoluta">absoluta (AbsoluteExpiration)</option><option value="deslizante">deslizante (SlidingExpiration)</option></select></label>
+      <label><span>Latencia de un hit (ms)</span><input type="number" data-k="latHit" min="0" max="100" step="0.1"></label>
+      <label><span>Latencia de un miss (ms)</span><input type="number" data-k="latMiss" min="1" max="5000" step="1"></label>
+    </div>
+    <div class="chips" style="margin-top:10px"><button id="otra">Otra tirada</button></div>
+    <p class="estado" id="estado"></p>
+  </section>
+
+  <section class="panel" aria-label="Resultados">
+    <h2>Qué pasa</h2>
+    <div class="tiles" id="tiles"></div>
+    <h3 class="sub">Por política (mismo tráfico, mismo tamaño)</h3>
+    <div style="overflow-x:auto"><table id="politicas"><thead><tr><th>Política</th><th class="num">Hit rate</th><th class="num">Al backend (req/s)</th><th class="num">Lat. media</th></tr></thead><tbody></tbody></table></div>
+    <h3 class="sub">Diagnóstico</h3>
+    <div class="diag" id="diag"></div>
+  </section>
+
+  <section class="panel ancho" aria-label="Gráficos">
+    <div class="graficos">
+      <div class="grafico"><h2>Hit rate según el tamaño del caché</h2><div class="leyenda"><span><i style="background:var(--c-lru)"></i>LRU</span><span><i style="background:var(--c-lfu)"></i>LFU</span><span><i style="background:var(--c-belady)"></i>Óptimo</span><span><i style="background:var(--c-che)"></i>Fórmula de Che (LRU)</span></div><canvas id="g-curva" role="img" aria-label="Hit rate en función del tamaño del caché"></canvas><p class="pie">Eje horizontal logarítmico, de 0,1 % a 50 % del catálogo. El punto es el tamaño elegido.</p></div>
+      <div class="grafico"><h2>Hit rate a lo largo de la simulación (LRU)</h2><canvas id="g-serie" role="img" aria-label="Hit rate por ventana de pedidos"></canvas><p class="pie">Arranca vacío (todo miss) y se va llenando; con rotación de popularidad se ven los escalones.</p></div>
+    </div>
+  </section>
+
+  <section class="panel ancho" aria-label="Estampida">
+    <h2>La estampida: cuando vence una clave caliente</h2>
+    <p class="nota">Unas pocas claves muy pedidas, cargadas juntas, vencen juntas. Entre que vence y que vuelve el backend, todos los pedidos son miss y todos van a la base.</p>
+    <div class="campos" style="margin-top:10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr))">
+      <label><span>Claves calientes</span><input type="number" data-e="claves" min="1" max="200" step="1"></label>
+      <label><span>Pedidos/s por clave</span><input type="number" data-e="rps" min="1" max="5000" step="10"></label>
+      <label><span>TTL (s)</span><input type="number" data-e="ttlSeg" min="1" max="600" step="1"></label>
+      <label><span>Latencia del backend (ms)</span><input type="number" data-e="latenciaMs" min="1" max="5000" step="10"></label>
+      <label><span>Protección</span><select data-e="proteccion"><option value="ninguna">ninguna (GetOrCreateAsync pelado)</option><option value="singleflight">single flight (un solo vuelo por clave)</option><option value="temprano">refresco temprano (al 80 % del TTL)</option><option value="jitter">TTL con jitter (±20 %)</option></select></label>
+    </div>
+    <div class="tiles" id="tilesEst" style="margin-top:10px"></div>
+    <div class="graficos" style="margin-top:10px">
+      <div class="grafico"><div class="leyenda"><span><i style="background:var(--c-lfu)"></i>Sin protección</span><span><i style="background:var(--c-lru)"></i>Con la protección elegida</span></div><canvas id="g-est" role="img" aria-label="Llamadas al backend cada 100 ms"></canvas><p class="pie">Llamadas al backend cada 100 ms durante 30 segundos.</p></div>
+      <div class="grafico"><canvas id="g-vuelo" role="img" aria-label="Pedidos en vuelo al backend"></canvas><p class="pie">Pedidos esperando al backend al mismo tiempo (pico por cada 100 ms). Con la base lenta, esto es lo que la tumba.</p></div>
+    </div>
+    <div class="diag" id="diagEst"></div>
+  </section>
+
+  <section class="panel ancho texto" aria-label="Cómo funciona">
+    <h2>Cómo funciona un caché, en cinco párrafos</h2>
+    <p><strong>El tráfico no es parejo.</strong> En casi cualquier catálogo (productos, usuarios, artículos) unas pocas claves se llevan la mayor parte de los pedidos: la popularidad sigue una ley de Zipf, la clave número <em>i</em> se pide en proporción a 1/<em>i</em><sup>α</sup>. Con α cerca de 1 (lo típico en la web), el 1 % de las claves se lleva más de la mitad del tráfico. Eso es lo que hace que un caché chico rinda: no hace falta guardar todo, hace falta guardar lo caliente. Con α cerca de 0 (sesiones, ids al azar) cada entrada de caché vale lo mismo y el hit rate es, simplemente, C/N.</p>
+    <p><strong>El hit rate se puede calcular.</strong> Para LRU con tráfico estacionario existe la aproximación de Che (2002): cada entrada sobrevive un «tiempo característico» T sin que la pidan, el mismo para todas, que sale de que la suma de ocupaciones sea el tamaño del caché; la probabilidad de acierto de la clave <em>i</em> es 1 − e<sup>−p<sub>i</sub>T</sup>. Es sorprendentemente exacta: compará la línea gris con la verde. Sirve para la pregunta de siempre, «¿cuánto caché necesito para el 95 %?», sin levantar nada.</p>
+    <p><strong>Un miss cuesta más que un hit por mil.</strong> Con 95 % de aciertos y un miss de 40 ms, la latencia media es 2 ms pero el p99 sigue siendo 40 ms: uno de cada veinte pedidos paga el miss entero. Para que el p99 lo ponga el caché hay que pasar el 99 %. Y el backend recibe el 5 % del tráfico: si el caché se vacía (deploy, reinicio de Redis), recibe el 100 % de golpe, veinte veces más. Eso es lo que hay que dimensionar.</p>
+    <p><strong>La política importa menos que el tamaño, salvo en dos casos.</strong> LRU, el muestreo de Redis y la compactación de MemoryCache dan casi lo mismo. LFU gana cuando hay claves de una sola vez (un scan, un bot, un reporte) que en LRU desplazan a las calientes; pierde cuando la popularidad rota, porque se queda con lo que fue popular. Belady, que conoce el futuro, es el techo: si estás a tres puntos, cambiar de política no te da nada.</p>
+    <p><strong>El TTL no es para la memoria, es para la frescura.</strong> Un TTL corto baja el hit rate aunque el caché esté vacío: una clave con tasa p y TTL τ acierta p·τ/(1 + p·τ) de las veces. Si el dato cambia poco, TTL largo e invalidar al escribir; si no se puede invalidar, el TTL es cuánta antigüedad tolerás, no otra cosa. La expiración deslizante (se renueva al acceder) rinde más para lo caliente pero puede mostrar un dato viejo para siempre.</p>
+    <h2>La estampida</h2>
+    <p>Diez claves calientes a 200 pedidos por segundo cada una, TTL de 10 s, backend de 80 ms. Cuando vence una, en los 80 ms hasta que vuelve la base llegan 16 pedidos y los 16 van a la base por el mismo dato; si las diez claves se cargaron juntas (al arrancar, después de un deploy) vencen juntas y son 160 consultas iguales en 80 ms. La base se pone más lenta, el hueco se agranda, entran más misses. <strong>Single flight</strong> (un solo vuelo por clave, los demás esperan ese resultado) lo corta de raíz: una llamada por clave por vencimiento. <strong>Refresco temprano</strong> vuelve a pedir el dato antes de que venza, mientras sigue sirviendo el viejo: nadie espera. <strong>Jitter</strong> en el TTL no reduce las llamadas pero desarma el pico: las claves vencen desparejas.</p>
+    <h2>En .NET</h2>
+    <p><code>IMemoryCache.GetOrCreateAsync</code> no es atómico: dos pedidos que llegan en el mismo miss ejecutan la fábrica los dos. Para single flight, un <code>Lazy&lt;Task&lt;T&gt;&gt;</code> guardado en el caché, un <code>SemaphoreSlim</code> por clave, o directamente <code>HybridCache</code> (.NET 9), que trae protección contra la estampida de fábrica, cache local más distribuido y serialización. <code>MemoryCache</code> sin <code>SizeLimit</code> no desaloja nunca: crece hasta que la memoria dice basta. Con <code>SizeLimit</code> cada entrada tiene que declarar su <code>Size</code>, y cuando se pasa, compacta en segundo plano el 5 % (<code>CompactionPercentage</code>) por prioridad y después por último acceso; mientras tanto, <strong>las entradas nuevas se descartan sin avisar</strong> (el <code>Set</code> no tira, pero no guarda). Las entradas vencidas quedan en memoria hasta que alguien las toca o pasa el escaneo (<code>ExpirationScanFrequency</code>, un minuto). Redis desaloja con <code>maxmemory-policy</code>: <code>allkeys-lru</code> muestrea 5 claves (<code>maxmemory-samples</code>) y saca la menos usada, que es lo que simula «LRU muestreado»; <code>allkeys-lfu</code> con decaimiento es la opción cuando hay scans. Para un caché en memoria con admisión por frecuencia (W-TinyLFU), BitFaster.Caching.</p>
+    <h2>Qué es y qué no es</h2>
+    <p>Es una simulación de pedidos independientes con popularidad fija (más claves de una sola vez y rotación opcional) sobre políticas de reemplazo implementadas tal cual: LRU y FIFO exactos, LFU exacto con desempate LRU, aleatorio, LRU muestreado de a 5 como Redis, compactación del 5 % por último acceso como MemoryCache, y Belady con la traza entera. La fórmula de Che y la del TTL absoluto se calculan con las mismas probabilidades. La estampida es un modelo de a milisegundo con llegadas Poisson y un backend de latencia fija (en la vida real la latencia sube con la concurrencia, así que el pico es peor). No modela tamaños distintos por entrada, ni cachés jerárquicos, ni la red, ni lo que cuesta serializar. No se contrastó contra un MemoryCache o un Redis de verdad: los detalles de cada uno (el 5 %, las 5 muestras, el escaneo) salen de su código y su documentación.</p>
+  </section>
+</main>
+<script src="logica.js"></script>
+<script>
+(function () {
+  "use strict";
+  const K = window.CacheVivo; const $ = (s) => document.querySelector(s);
+  const guardar = (k, v) => { try { localStorage.setItem("cache-vivo:" + k, JSON.stringify(v)); } catch { /* sin memoria */ } };
+  const leer = (k, d) => { try { const v = localStorage.getItem("cache-vivo:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } };
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const fmt = (x, d) => (+x).toLocaleString("es-AR", { maximumFractionDigits: d == null ? 0 : d });
+  const pct = (x) => (x * 100).toLocaleString("es-AR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " %";
+  const PRESETS = {
+    catalogo: { nombre: "Catálogo de productos", v: { N: 100000, C: 5000, alfa: 0.9, novedadesPct: 0, rotacion: 0, rps: 2000, M: 100000, ttlSeg: 0, expiracion: "absoluta", latHit: 0.5, latMiss: 40 } },
+    sesiones: { nombre: "Sesiones (parejo)", v: { N: 100000, C: 20000, alfa: 0.2, novedadesPct: 0, rotacion: 0, rps: 2000, M: 100000, ttlSeg: 0, expiracion: "deslizante", latHit: 0.5, latMiss: 15 } },
+    scan: { nombre: "Con un scan de bots", v: { N: 100000, C: 5000, alfa: 0.9, novedadesPct: 30, rotacion: 0, rps: 2000, M: 100000, ttlSeg: 0, expiracion: "absoluta", latHit: 0.5, latMiss: 40 } },
+    trending: { nombre: "Trending que rota", v: { N: 100000, C: 5000, alfa: 1.0, novedadesPct: 0, rotacion: 5000, rps: 2000, M: 100000, ttlSeg: 0, expiracion: "absoluta", latHit: 0.5, latMiss: 40 } },
+    ttl: { nombre: "TTL de 30 segundos", v: { N: 100000, C: 20000, alfa: 0.9, novedadesPct: 0, rotacion: 0, rps: 2000, M: 100000, ttlSeg: 30, expiracion: "absoluta", latHit: 0.5, latMiss: 40 } },
+    chico: { nombre: "Caché chico, catálogo enorme", v: { N: 1000000, C: 2000, alfa: 0.8, novedadesPct: 0, rotacion: 0, rps: 5000, M: 100000, ttlSeg: 0, expiracion: "absoluta", latHit: 0.5, latMiss: 60 } },
+  };
+  let v = Object.assign({}, PRESETS.catalogo.v, leer("v", {})); let semilla = 1;
+  let est = Object.assign({ claves: 10, rps: 200, ttlSeg: 10, latenciaMs: 80, proteccion: "singleflight" }, leer("est", {}));
+  const el = { presets: $("#presets"), estado: $("#estado"), tiles: $("#tiles"), politicas: $("#politicas tbody"), diag: $("#diag"), tilesEst: $("#tilesEst"), diagEst: $("#diagEst"), alfaV: $("#alfaV") };
+  el.presets.innerHTML = Object.keys(PRESETS).map((k) => `<button data-preset="${k}">${esc(PRESETS[k].nombre)}</button>`).join("");
+  function pintarControles() { for (const inp of document.querySelectorAll("[data-k]")) inp.value = v[inp.dataset.k]; for (const inp of document.querySelectorAll("[data-e]")) inp.value = est[inp.dataset.e]; el.alfaV.textContent = (+v.alfa).toFixed(2) + (v.alfa < 0.3 ? " (parejo)" : v.alfa < 0.7 ? " (algo concentrado)" : v.alfa <= 1.05 ? " (típico de la web)" : " (muy concentrado)"); }
+
+  // ---------- worker con fallback ----------
+  let worker = null, pendiente = null, corriendo = false, ultimoId = 0;
+  try { if (location.protocol !== "file:" && window.Worker) { worker = new Worker("worker.js"); worker.onmessage = (ev) => { const { id, resultado, error } = ev.data; if (id !== ultimoId) return; corriendo = false; if (error) el.estado.textContent = "Falló la simulación: " + error; else recibir(resultado); if (pendiente) { const p = pendiente; pendiente = null; lanzar(p); } }; worker.onerror = () => { worker = null; }; } } catch { worker = null; }
+  function pedido() {
+    const N = +v.N, C = Math.min(+v.C, N * 2); const ttl = +v.ttlSeg > 0 ? Math.max(1, Math.round(+v.ttlSeg * +v.rps)) : 0;
+    const tam = []; for (let f = 0.001; f <= 0.5001; f *= Math.sqrt(10)) tam.push(Math.max(10, Math.round(N * f)));
+    return { N, alfa: +v.alfa, M: +v.M, novedades: +v.novedadesPct / 100, rotacion: +v.rotacion, semilla, C, ttl, expiracion: v.expiracion, curva: { tamanios: tam, politicas: ["lru", "lfu", "belady"], M: Math.min(+v.M, 50000) } };
+  }
+  function lanzar(p) {
+    ultimoId++; const id = ultimoId; el.estado.textContent = "Simulando…"; corriendo = true;
+    if (worker) { worker.postMessage({ id, pedido: p }); return; }
+    setTimeout(() => { try { const r = K.correrTodo(p); corriendo = false; if (id === ultimoId) recibir(r); } catch (e) { corriendo = false; el.estado.textContent = "Falló la simulación: " + e.message; } if (pendiente) { const q = pendiente; pendiente = null; lanzar(q); } }, 20);
+  }
+  function correr() { const p = pedido(); if (corriendo) { pendiente = p; return; } lanzar(p); }
+  let ultimo = null;
+  function recibir(r) {
+    ultimo = r; const p = pedido(); const rps = +v.rps, latHit = +v.latHit, latMiss = +v.latMiss;
+    const lru = r.resultados.lru; const h = lru.hitRate;
+    const lat = (hr) => hr * latHit + (1 - hr) * latMiss;
+    el.estado.textContent = `${fmt(p.M)} pedidos simulados sobre ${fmt(p.N)} claves, caché de ${fmt(p.C)} entradas${p.ttl ? `, TTL de ${v.ttlSeg} s (${fmt(p.ttl)} pedidos)` : ""}.`;
+    el.tiles.innerHTML = [[pct(h), "hit rate LRU"], [pct(r.cheLru.h), "según la fórmula"], [fmt(rps * (1 - h)) + " req/s", "llegan al backend"], [lat(h).toFixed(1) + " ms", "latencia media"], [(h >= 0.99 ? latHit : latMiss) + " ms", "p99"], [r.para.h95 ? fmt(r.para.h95) : "no llega", "entradas para el 95 %"]].map(([a, b]) => `<div class="tile"><div class="v">${a}</div><div class="k">${b}</div></div>`).join("");
+    el.politicas.innerHTML = Object.keys(K.POLITICAS).map((k) => { const x = r.resultados[k]; return `<tr><td><i class="sw" style="background:var(--c-${k})"></i>${esc(K.POLITICAS[k])}<div class="barra"><b style="width:${(x.hitRate * 100).toFixed(1)}%;background:var(--c-${k})"></b></div></td><td class="num">${pct(x.hitRate)}</td><td class="num">${fmt(rps * (1 - x.hitRate))}</td><td class="num">${lat(x.hitRate).toFixed(1)} ms</td></tr>`; }).join("");
+    el.diag.innerHTML = K.diagnostico({ resultados: r.resultados, cheLru: r.cheLru, p: null, o: Object.assign({}, p, { para: r.para }), rps, latHit, latMiss }).map((d) => `<div class="aviso"><b>${esc(d.titulo)}</b><p>${esc(d.texto)}</p></div>`).join("");
+    pintarCurva(r, p); pintarSerie(r, p);
+  }
+
+  // ---------- gráficos ----------
+  function lienzo(id) { const c = $(id); const dpr = window.devicePixelRatio || 1; const w = c.clientWidth || 300, h = c.clientHeight || 240; if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); } const ctx = c.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); ctx.font = "11px system-ui, sans-serif"; return { ctx, w, h }; }
+  const color = (nombre) => getComputedStyle(document.documentElement).getPropertyValue(nombre).trim();
+  const M = { izq: 44, der: 10, arr: 8, aba: 26 };
+  function ejes(ctx, w, h, xTicks, yTicks, xTexto, yTexto) {
+    ctx.strokeStyle = color("--grid"); ctx.fillStyle = color("--muted"); ctx.lineWidth = 1; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    for (const [y, t] of yTicks) { ctx.beginPath(); ctx.moveTo(M.izq, y); ctx.lineTo(w - M.der, y); ctx.stroke(); ctx.fillText(t, M.izq - 6, y); }
+    ctx.textAlign = "center"; ctx.textBaseline = "top"; for (const [x, t] of xTicks) ctx.fillText(t, x, h - M.aba + 6);
+    ctx.strokeStyle = color("--line"); ctx.beginPath(); ctx.moveTo(M.izq, M.arr); ctx.lineTo(M.izq, h - M.aba); ctx.lineTo(w - M.der, h - M.aba); ctx.stroke();
+    if (xTexto) { ctx.textAlign = "right"; ctx.fillText(xTexto, w - M.der, h - M.aba + 6); } if (yTexto) { ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText(yTexto, M.izq + 4, M.arr); }
+  }
+  function linea(ctx, puntos, col, ancho, punteada) { ctx.strokeStyle = col; ctx.lineWidth = ancho || 2; ctx.setLineDash(punteada ? [5, 4] : []); ctx.beginPath(); puntos.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); ctx.setLineDash([]); }
+  function pintarCurva(r, p) {
+    const { ctx, w, h } = lienzo("#g-curva"); const tam = r.curva.tamanios; if (!tam.length) return;
+    const x0 = Math.log10(tam[0]), x1 = Math.log10(tam[tam.length - 1]); const X = (t) => M.izq + ((Math.log10(t) - x0) / (x1 - x0)) * (w - M.izq - M.der); const Y = (v) => h - M.aba - v * (h - M.arr - M.aba);
+    ejes(ctx, w, h, tam.filter((_, i) => i % 2 === 0).map((t) => [X(t), fmt(t)]), [0, 0.25, 0.5, 0.75, 1].map((v) => [Y(v), Math.round(v * 100) + " %"]), "entradas", "hit rate");
+    linea(ctx, tam.map((t, i) => [X(t), Y(r.curva.che[i])]), color("--c-che"), 2, true);
+    for (const pol of ["lru", "lfu", "belady"]) linea(ctx, tam.map((t, i) => [X(t), Y(r.curva.series[pol][i])]), color("--c-" + pol), pol === "belady" ? 1.5 : 2);
+    const cx = Math.min(Math.max(p.C, tam[0]), tam[tam.length - 1]); ctx.fillStyle = color("--c-lru"); ctx.beginPath(); ctx.arc(X(cx), Y(r.resultados.lru.hitRate), 5, 0, Math.PI * 2); ctx.fill();
+  }
+  function pintarSerie(r, p) {
+    const { ctx, w, h } = lienzo("#g-serie"); const s = r.resultados.lru.serie; if (!s.length) return;
+    const X = (i) => M.izq + (i / (s.length - 1)) * (w - M.izq - M.der); const Y = (v) => h - M.aba - v * (h - M.arr - M.aba);
+    ejes(ctx, w, h, [0, 0.25, 0.5, 0.75].map((f) => [X(f * (s.length - 1)), fmt(f * p.M)]), [0, 0.25, 0.5, 0.75, 1].map((v) => [Y(v), Math.round(v * 100) + " %"]), "pedidos", "hit rate");
+    linea(ctx, s.map((v, i) => [X(i), Y(v)]), color("--c-lru"));
+    linea(ctx, [[M.izq, Y(r.cheLru.h)], [w - M.der, Y(r.cheLru.h)]], color("--c-che"), 1.5, true);
+  }
+  function correrEstampida() {
+    const o = { claves: +est.claves, rps: +est.rps, ttlSeg: +est.ttlSeg, latenciaMs: +est.latenciaMs, proteccion: est.proteccion, segundos: 30, semilla };
+    const sin = K.estampida(Object.assign({}, o, { proteccion: "ninguna" })); const con = est.proteccion === "ninguna" ? sin : K.estampida(o);
+    el.tilesEst.innerHTML = [[fmt(sin.llamadas), "consultas al backend sin protección"], [fmt(con.llamadas), "con la protección"], [fmt(sin.maxEnVuelo), "pico en vuelo sin protección"], [fmt(con.maxEnVuelo), "pico con protección"], [pct(con.hitRate), "hit rate"], [fmt(con.p99Miss) + " ms", "p99 de espera en un miss"]].map(([a, b]) => `<div class="tile"><div class="v">${a}</div><div class="k">${b}</div></div>`).join("");
+    const ideal = o.claves * Math.floor(30 / o.ttlSeg);
+    const textos = {
+      ninguna: `Sin protección, cada vencimiento manda al backend todos los pedidos que llegan durante la latencia: ${o.rps} × ${o.latenciaMs} ms ≈ ${Math.round(o.rps * o.latenciaMs / 1000)} consultas iguales por clave, ${fmt(sin.llamadas)} en 30 s cuando con una por vencimiento alcanzaban ${fmt(ideal)}. Y las ${o.claves} claves vencen juntas: ${fmt(sin.maxEnVuelo)} consultas en vuelo al mismo tiempo.`,
+      singleflight: `Single flight: una sola consulta por clave por vencimiento (${fmt(con.llamadas)} en 30 s); los demás esperan ese vuelo, por eso el p99 de un miss sigue siendo la latencia del backend. En .NET: HybridCache lo hace solo; con IMemoryCache, un Lazy<Task<T>> en la entrada o un SemaphoreSlim por clave.`,
+      temprano: `Refresco temprano: al 80 % del TTL se vuelve a pedir el dato en segundo plano mientras se sigue sirviendo el viejo. Nadie espera (hit rate ${pct(con.hitRate)}) a cambio de algunas consultas de más (${fmt(con.llamadas)}). Es lo que hace un «stale-while-revalidate».`,
+      jitter: `Jitter: el TTL de cada clave varía ±20 %, así que no vencen todas juntas y el pico en vuelo baja de ${fmt(sin.maxEnVuelo)} a ${fmt(con.maxEnVuelo)}. Pero cada vencimiento sigue mandando ${Math.round(o.rps * o.latenciaMs / 1000)} consultas por clave: el jitter se combina con single flight, no lo reemplaza.`,
+    };
+    el.diagEst.innerHTML = `<div class="aviso"><b>${esc({ ninguna: "Sin protección", singleflight: "Single flight", temprano: "Refresco temprano", jitter: "TTL con jitter" }[est.proteccion])}</b><p>${esc(textos[est.proteccion])}</p></div>`;
+    const { ctx, w, h } = lienzo("#g-est"); const n = sin.backend.length; const max = Math.max(1, ...sin.backend, ...con.backend);
+    const X = (i) => M.izq + (i / (n - 1)) * (w - M.izq - M.der); const Y = (v) => h - M.aba - (v / max) * (h - M.arr - M.aba);
+    ejes(ctx, w, h, [0, 10, 20, 30].map((s) => [X(s * 10), s + " s"]), [0, 0.5, 1].map((f) => [Y(f * max), fmt(f * max)]), "", "consultas / 100 ms");
+    linea(ctx, sin.backend.map((v, i) => [X(i), Y(v)]), color("--c-lfu"), 1.5); if (con !== sin) linea(ctx, con.backend.map((v, i) => [X(i), Y(v)]), color("--c-lru"), 2);
+    const g2 = lienzo("#g-vuelo"); const max2 = Math.max(1, ...sin.concurrencia, ...con.concurrencia); const Y2 = (v) => g2.h - M.aba - (v / max2) * (g2.h - M.arr - M.aba); const X2 = (i) => M.izq + (i / (n - 1)) * (g2.w - M.izq - M.der);
+    ejes(g2.ctx, g2.w, g2.h, [0, 10, 20, 30].map((s) => [X2(s * 10), s + " s"]), [0, 0.5, 1].map((f) => [Y2(f * max2), fmt(f * max2)]), "", "en vuelo");
+    linea(g2.ctx, sin.concurrencia.map((v, i) => [X2(i), Y2(v)]), color("--c-lfu"), 1.5); if (con !== sin) linea(g2.ctx, con.concurrencia.map((v, i) => [X2(i), Y2(v)]), color("--c-lru"), 2);
+  }
+
+  // ---------- eventos ----------
+  let temporizador = null;
+  document.querySelector(".campos").addEventListener("input", (ev) => { const k = ev.target.dataset.k; if (!k) return; v[k] = ev.target.value; guardar("v", v); pintarControles(); clearTimeout(temporizador); temporizador = setTimeout(correr, 300); });
+  el.presets.addEventListener("click", (ev) => { const b = ev.target.closest("button[data-preset]"); if (!b) return; v = Object.assign({}, PRESETS[b.dataset.preset].v); guardar("v", v); pintarControles(); correr(); });
+  $("#otra").addEventListener("click", () => { semilla = Math.floor(Math.random() * 1e6) + 1; correr(); correrEstampida(); });
+  for (const inp of document.querySelectorAll("[data-e]")) inp.addEventListener("input", () => { est[inp.dataset.e] = inp.value; guardar("est", est); clearTimeout(temporizador); temporizador = setTimeout(correrEstampida, 200); });
+  window.addEventListener("resize", () => { if (ultimo) { pintarCurva(ultimo, pedido()); pintarSerie(ultimo, pedido()); } correrEstampida(); });
+  pintarControles(); correr(); correrEstampida();
+})();
+</script>
+</body>
+</html>

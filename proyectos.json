@@ -223,5 +223,14 @@
   "estado": "terminado",
   "probar": "apps/pintar/",
   "desde": "2026-10-20"
+ },
+ {
+  "slug": "cache-en-vivo",
+  "nombre": "El caché en vivo",
+  "categoria": "experimentos",
+  "descripcion": "Simulador de caché con tráfico Zipf: siete políticas (LRU, LFU, Redis, MemoryCache, Belady), hit rate contra la fórmula de Che, cuánto caché hace falta, TTL absoluto o deslizante y la estampida cuando vence una clave caliente.",
+  "estado": "terminado",
+  "probar": "experimentos/cache-en-vivo/",
+  "desde": "2026-10-20"
  }
 ]
