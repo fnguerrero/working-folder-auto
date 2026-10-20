@@ -4,83 +4,144 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
 <title>Working Folder Auto</title>
 <style>
-  :root { --bg: #f6f5f1; --card: #fff; --fg: #1d1d1f; --muted: #6b6b70; --line: #e4e2dc; --accent: #5b4fd6; }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #111114; --card: #1b1b20; --fg: #ececf1; --muted: #9a9aa3; --line: #2a2a31; --accent: #9d93ff; }
-  }
+  :root { --bg: #f6f5f1; --card: #fff; --fg: #1d1d1f; --muted: #6b6b70; --line: #e4e2dc; --accent: #5b4fd6; --accent-fg: #fff; --suave: rgba(91, 79, 214, .09); --lateral: #efede7;
+    --c-juegos: #f28c28; --c-apps: #2e9e6b; --c-herramientas: #2b7fd1; --c-escritos: #8a5cd6; --c-experimentos: #d64f6a; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #111114; --card: #1b1b20; --fg: #ececf1; --muted: #9a9aa3; --line: #2a2a31; --accent: #9d93ff; --accent-fg: #15122e; --suave: rgba(157, 147, 255, .14); --lateral: #16161a; } }
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); padding: 24px 16px 48px; }
-  main { max-width: 880px; margin: 0 auto; }
-  h1 { margin: 0 0 4px; font-size: 1.6rem; }
-  .sub { margin: 0 0 24px; color: var(--muted); }
-  .filtros { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
-  .filtros button { font: inherit; padding: 8px 14px; min-height: 40px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--fg); cursor: pointer; }
-  .filtros button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
-  a.tarjeta { display: flex; flex-direction: column; gap: 6px; padding: 16px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); color: inherit; text-decoration: none; }
-  a.tarjeta:hover, a.tarjeta:focus-visible { border-color: var(--accent); outline: none; }
-  .tarjeta h2 { margin: 0; font-size: 1.05rem; }
-  .tarjeta p { margin: 0; color: var(--muted); font-size: .92rem; line-height: 1.4; }
-  .meta { display: flex; gap: 6px; font-size: .78rem; margin-top: auto; padding-top: 6px; }
-  .chip { padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
-  .chip.en-curso { border-color: var(--accent); color: var(--accent); }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.45; }
+  .marco { display: grid; grid-template-columns: 250px 1fr; min-height: 100vh; }
+  aside { background: var(--lateral); border-right: 1px solid var(--line); padding: 22px 16px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+  h1 { margin: 0 0 2px; font-size: 1.2rem; }
+  .sub { margin: 0 0 18px; color: var(--muted); font-size: .86rem; }
+  .buscar { width: 100%; font: inherit; font-size: .9rem; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--fg); margin-bottom: 14px; }
+  .grupo h2 { margin: 12px 0 4px; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+  nav button { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; font: inherit; font-size: .93rem; padding: 8px 10px; min-height: 38px; border-radius: 8px; border: 0; background: transparent; color: var(--fg); cursor: pointer; }
+  nav button:hover { background: var(--suave); }
+  nav button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+  nav button .n { margin-left: auto; font-size: .76rem; opacity: .7; }
+  nav button i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .pie { margin-top: 20px; font-size: .78rem; color: var(--muted); }
+  .pie a { color: var(--accent); }
+  main { padding: 26px 28px 48px; min-width: 0; }
+  main h2.seccion { margin: 0 0 4px; font-size: 1.25rem; }
+  main .explica { margin: 0 0 16px; color: var(--muted); font-size: .92rem; max-width: 70ch; }
+  .grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin-bottom: 30px; }
+  .grilla.destacados { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+  .tarjeta { display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); min-width: 0; }
+  .tarjeta:hover { border-color: var(--accent); }
+  .cab { display: flex; gap: 12px; align-items: center; }
+  .icono { flex: none; width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; font-size: 28px; background: var(--suave); }
+  .destacados .icono { width: 64px; height: 64px; font-size: 36px; }
+  .icono.juegos { background: color-mix(in srgb, var(--c-juegos) 18%, transparent); } .icono.apps { background: color-mix(in srgb, var(--c-apps) 18%, transparent); } .icono.herramientas { background: color-mix(in srgb, var(--c-herramientas) 18%, transparent); } .icono.escritos { background: color-mix(in srgb, var(--c-escritos) 18%, transparent); } .icono.experimentos { background: color-mix(in srgb, var(--c-experimentos) 18%, transparent); }
+  .tarjeta h3 { margin: 0; font-size: 1.05rem; line-height: 1.25; }
+  .tarjeta h3 a { color: inherit; text-decoration: none; } .tarjeta h3 a:hover { color: var(--accent); }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+  .chip { font-size: .74rem; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+  .chip.cat { border-color: transparent; color: #fff; }
+  .chip.juegos { background: var(--c-juegos); } .chip.apps { background: var(--c-apps); } .chip.herramientas { background: var(--c-herramientas); } .chip.escritos { background: var(--c-escritos); } .chip.experimentos { background: var(--c-experimentos); }
+  .chip.edad { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .chip.en-curso { border-color: var(--c-juegos); color: var(--c-juegos); }
+  .tarjeta p { margin: 0; color: var(--muted); font-size: .92rem; }
+  .tarjeta details { font-size: .9rem; } .tarjeta summary { cursor: pointer; color: var(--accent); font-size: .86rem; list-style: none; } .tarjeta summary::-webkit-details-marker { display: none; } .tarjeta summary::before { content: "+ "; } .tarjeta details[open] summary::before { content: "– "; }
+  .tarjeta details p { margin: 6px 0 0; color: var(--fg); }
+  .acciones { margin-top: auto; padding-top: 6px; }
+  .probar { display: inline-flex; align-items: center; min-height: 36px; padding: 6px 14px; border-radius: 999px; background: var(--accent); color: var(--accent-fg); text-decoration: none; font-size: .88rem; font-weight: 600; }
+  .probar:hover { filter: brightness(1.1); }
   .vacio { color: var(--muted); }
+  .menu-movil { display: none; }
+  @media (max-width: 820px) {
+    .marco { grid-template-columns: 1fr; }
+    aside { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 16px; }
+    .grupo h2 { margin-top: 10px; }
+    nav { display: flex; flex-wrap: wrap; gap: 4px; } nav button { width: auto; min-height: 34px; padding: 5px 10px; font-size: .86rem; border: 1px solid var(--line); border-radius: 999px; } nav button .n { margin-left: 4px; }
+    main { padding: 18px 16px 40px; }
+    .grilla, .grilla.destacados { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
-<main>
-  <h1>Working Folder Auto</h1>
-  <p class="sub">Lo que arma el Programador nocturno.</p>
-  <div class="filtros" id="filtros"></div>
-  <div class="grilla" id="grilla"><p class="vacio">Cargando…</p></div>
-</main>
+<div class="marco">
+  <aside>
+    <h1>Working Folder Auto</h1>
+    <p class="sub">Lo que arma el Programador nocturno, todas las noches a las 3.</p>
+    <input class="buscar" id="buscar" type="search" placeholder="Buscar…" aria-label="Buscar proyectos">
+    <div class="grupo"><h2>Categorías</h2><nav id="categorias" aria-label="Categorías"></nav></div>
+    <div class="grupo"><h2>Para quién</h2><nav id="publicos" aria-label="Para quién"></nav></div>
+    <p class="pie"><span id="cuenta"></span><br><a href="https://github.com/fnguerrero/working-folder-auto">El repo</a> · <a href="https://github.com/fnguerrero/working-folder-auto/blob/main/BITACORA.md">La bitácora</a></p>
+  </aside>
+  <main>
+    <section id="secDestacados"><h2 class="seccion">Lo más copado</h2><p class="explica">Por donde conviene empezar.</p><div class="grilla destacados" id="destacados"></div></section>
+    <section><h2 class="seccion" id="tituloTodos">Todo</h2><p class="explica" id="explicaTodos"></p><div class="grilla" id="grilla"><p class="vacio">Cargando…</p></div></section>
+  </main>
+</div>
 <script>
+(function () {
+  "use strict";
   const CATEGORIAS = { todo: "Todo", juegos: "Juegos", apps: "Apps", herramientas: "Herramientas", escritos: "Escritos", experimentos: "Experimentos" };
-  let proyectos = [];
-  let filtro = "todo";
-
-  function pintarFiltros() {
-    const usadas = new Set(proyectos.map(p => p.categoria));
-    const el = document.getElementById("filtros");
-    el.innerHTML = "";
+  const EXPLICA = { todo: "Juegos para Valentín, apps para la vida argentina, herramientas y experimentos para el que programa en .NET.", juegos: "Para tocar en el celu. Los que dicen «desde 1 año» no tienen puntaje ni derrota: son para mirar y hacer ruido.", apps: "Cuentas de todos los días, hechas para Argentina: cuotas, asado, pintura, lo que te corresponde.", herramientas: "Pegás algo (un JSON, una regex, un JWT, un plan, un stack trace) y te lo explica en castellano, con el C# listo.", escritos: "Guías y experimentos largos, medidos contra servidores de verdad, para leer con tiempo.", experimentos: "Simuladores que corren en el navegador para entender por qué el backend se porta como se porta." };
+  const PUBLICOS = { todos: ["Todos", ""], "1+": ["Desde 1 año", "Para Valentín: sin puntaje ni derrota"], "3+": ["Desde 3 años", "Chicos que ya siguen una consigna"], cualquiera: ["Para cualquiera", "Cuentas de todos los días"], devs: ["Para devs .NET", "Herramientas, guías y simuladores"] };
+  const EDAD = { "1+": "Desde 1 año", "3+": "Desde 3 años", todos: "Para cualquiera", devs: "Para devs .NET" };
+  const $ = (s) => document.querySelector(s);
+  let proyectos = []; let categoria = "todo"; let publico = "todos"; let busqueda = "";
+  const leerHash = () => { const h = new URLSearchParams(location.hash.replace(/^#/, "")); if (h.get("cat") && CATEGORIAS[h.get("cat")]) categoria = h.get("cat"); if (h.get("para") && PUBLICOS[h.get("para")]) publico = h.get("para"); };
+  const escribirHash = () => { const h = new URLSearchParams(); if (categoria !== "todo") h.set("cat", categoria); if (publico !== "todos") h.set("para", publico); history.replaceState(null, "", h.toString() ? "#" + h.toString() : location.pathname); };
+  const claveDePublico = (p) => (p.para === "todos" ? "cualquiera" : p.para);
+  const visibles = () => proyectos.filter((p) => p.estado !== "archivado");
+  function pintarNav() {
+    const vis = visibles();
+    const cat = $("#categorias"); cat.innerHTML = "";
     for (const [clave, nombre] of Object.entries(CATEGORIAS)) {
-      if (clave !== "todo" && !usadas.has(clave)) continue;
-      const b = document.createElement("button");
-      b.textContent = nombre;
-      b.setAttribute("aria-pressed", String(clave === filtro));
-      b.onclick = () => { filtro = clave; pintarFiltros(); pintar(); };
-      el.appendChild(b);
+      const n = clave === "todo" ? vis.length : vis.filter((p) => p.categoria === clave).length; if (!n) continue;
+      const b = document.createElement("button"); b.dataset.cat = clave; b.setAttribute("aria-pressed", String(clave === categoria));
+      b.innerHTML = `${clave === "todo" ? "" : `<i style="background:var(--c-${clave})"></i>`}<span>${nombre}</span><span class="n">${n}</span>`;
+      b.onclick = () => { categoria = clave; escribirHash(); pintarNav(); pintar(); }; cat.appendChild(b);
     }
+    const pub = $("#publicos"); pub.innerHTML = "";
+    for (const [clave, [nombre]] of Object.entries(PUBLICOS)) {
+      const n = clave === "todos" ? vis.length : vis.filter((p) => claveDePublico(p) === clave).length; if (!n) continue;
+      const b = document.createElement("button"); b.dataset.para = clave; b.setAttribute("aria-pressed", String(clave === publico));
+      b.innerHTML = `<span>${nombre}</span><span class="n">${n}</span>`;
+      b.onclick = () => { publico = clave; escribirHash(); pintarNav(); pintar(); }; pub.appendChild(b);
+    }
+    $("#cuenta").textContent = `${vis.length} proyectos, ${vis.filter((p) => p.estado === "terminado").length} terminados.`;
   }
-
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  function tarjeta(p) {
+    const a = document.createElement("article"); a.className = "tarjeta"; a.dataset.slug = p.slug;
+    a.innerHTML = `<div class="cab"><div class="icono ${esc(p.categoria)}" aria-hidden="true">${esc(p.icono || "✨")}</div><div><h3><a href="${esc(p.probar)}">${esc(p.nombre)}</a></h3><div class="chips"><span class="chip cat ${esc(p.categoria)}">${esc(CATEGORIAS[p.categoria] || p.categoria)}</span><span class="chip edad">${esc(EDAD[p.para] || "")}</span>${p.estado !== "terminado" ? `<span class="chip en-curso">${esc(p.estado)}</span>` : ""}</div></div></div>
+      <p>${esc(p.descripcion)}</p>
+      ${p.detalle ? `<details><summary>Qué es, un poco más</summary><p>${esc(p.detalle)}</p></details>` : ""}
+      <div class="acciones"><a class="probar" href="${esc(p.probar)}">Probar →</a></div>`;
+    return a;
+  }
+  function filtrar(lista) {
+    const q = busqueda.trim().toLowerCase();
+    return lista.filter((p) => (categoria === "todo" || p.categoria === categoria) && (publico === "todos" || claveDePublico(p) === publico) && (!q || (p.nombre + " " + p.descripcion + " " + (p.detalle || "")).toLowerCase().includes(q)));
+  }
   function pintar() {
-    const el = document.getElementById("grilla");
-    el.innerHTML = "";
-    const lista = proyectos
-      .filter(p => p.estado !== "archivado" && (filtro === "todo" || p.categoria === filtro))
-      .sort((a, b) => (b.desde || "").localeCompare(a.desde || ""));
+    const vis = visibles(); const ordenados = vis.slice().sort((a, b) => (b.desde || "").localeCompare(a.desde || ""));
+    const sinFiltro = categoria === "todo" && publico === "todos" && !busqueda.trim();
+    const dest = $("#destacados"); dest.innerHTML = "";
+    const destacados = ordenados.filter((p) => p.destacado);
+    $("#secDestacados").hidden = !(sinFiltro && destacados.length);
+    if (sinFiltro) for (const p of destacados) dest.appendChild(tarjeta(p));
+    const lista = filtrar(ordenados); const el = $("#grilla"); el.innerHTML = "";
+    $("#tituloTodos").textContent = busqueda.trim() ? `Resultados para «${busqueda.trim()}»` : categoria === "todo" && publico === "todos" ? "Todo, lo más nuevo primero" : [categoria !== "todo" ? CATEGORIAS[categoria] : "", publico !== "todos" ? PUBLICOS[publico][0] : ""].filter(Boolean).join(" · ");
+    $("#explicaTodos").textContent = busqueda.trim() ? `${lista.length} ${lista.length === 1 ? "proyecto" : "proyectos"}.` : publico !== "todos" && categoria === "todo" ? PUBLICOS[publico][1] : EXPLICA[categoria];
     if (!lista.length) { el.innerHTML = '<p class="vacio">Nada por acá todavía.</p>'; return; }
-    for (const p of lista) {
-      const a = document.createElement("a");
-      a.className = "tarjeta";
-      a.href = p.probar;
-      const h = document.createElement("h2"); h.textContent = p.nombre;
-      const d = document.createElement("p"); d.textContent = p.descripcion;
-      const m = document.createElement("div"); m.className = "meta";
-      const c = document.createElement("span"); c.className = "chip"; c.textContent = CATEGORIAS[p.categoria] || p.categoria;
-      const e = document.createElement("span"); e.className = "chip" + (p.estado === "en curso" ? " en-curso" : ""); e.textContent = p.estado;
-      m.append(c, e);
-      a.append(h, d, m);
-      el.appendChild(a);
-    }
+    for (const p of lista) el.appendChild(tarjeta(p));
   }
-
+  $("#buscar").addEventListener("input", (ev) => { busqueda = ev.target.value; pintar(); });
+  window.addEventListener("hashchange", () => { leerHash(); pintarNav(); pintar(); });
+  leerHash();
   fetch("proyectos.json", { cache: "no-cache" })
-    .then(r => r.json())
-    .then(data => { proyectos = data; pintarFiltros(); pintar(); })
-    .catch(() => { document.getElementById("grilla").innerHTML = '<p class="vacio">No se pudo cargar la lista. Si lo abriste como archivo local, serví la carpeta con un servidor estático.</p>'; });
+    .then((r) => r.json())
+    .then((data) => { proyectos = data; pintarNav(); pintar(); })
+    .catch(() => { $("#grilla").innerHTML = '<p class="vacio">No se pudo cargar la lista. Si lo abriste como archivo local, serví la carpeta con un servidor estático.</p>'; });
+})();
 </script>
 </body>
 </html>
