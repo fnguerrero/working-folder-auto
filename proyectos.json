@@ -232,5 +232,14 @@
   "estado": "terminado",
   "probar": "experimentos/cache-en-vivo/",
   "desde": "2026-10-20"
+ },
+ {
+  "slug": "tren",
+  "nombre": "El tren",
+  "categoria": "juegos",
+  "descripcion": "Un tren que anda por el campo y silba cuando lo tocás, con túnel, barrera con campana, nubes que llueven, sol que se ríe, vacas que mugen y flores que brotan. Para Valentín.",
+  "estado": "terminado",
+  "probar": "juegos/tren/",
+  "desde": "2026-10-20"
  }
 ]

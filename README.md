@@ -40,5 +40,6 @@ Trabaja directo sobre `main`. Si algo no te gusta, se mueve a `_archivo/`.
 | JWT en criollo | herramientas | Decodifica un JWT, explica cada claim en castellano con hora argentina, avisa de las trampas, verifica la firma y da el C# de validación y emisión. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/herramientas/jwt-en-criollo/) |
 | Para pintar | apps | Cuánta pintura comprar y en qué latas según los ambientes, piso con pegamento y pastina, zócalos, accesorios, precios, tiempo y orden de trabajo. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/apps/pintar/) |
 | El caché en vivo | experimentos | Simulador de caché con tráfico Zipf: siete políticas, hit rate contra la fórmula de Che, cuánto caché hace falta, TTL y la estampida cuando vence una clave caliente. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/experimentos/cache-en-vivo/) |
+| El tren | juegos | Un tren que silba cuando lo tocás, con túnel, barrera, nubes que llueven, sol, vacas y flores. Para Valentín. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/juegos/tren/) |
 
 Las convenciones de estructura y trabajo están en [CLAUDE.md](CLAUDE.md).

@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="color-scheme" content="light">
+<title>El tren</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #8fd3f4; touch-action: none; -webkit-user-select: none; user-select: none; font-family: system-ui, sans-serif; }
+  canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
+  #inicio { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(143, 211, 244, .92); }
+  #inicio button { font: inherit; font-size: 1.6rem; font-weight: 700; padding: 18px 36px; border-radius: 999px; border: 0; background: #e5533d; color: #fff; box-shadow: 0 6px 0 #a63a2a; cursor: pointer; }
+  #inicio button:active { transform: translateY(4px); box-shadow: 0 2px 0 #a63a2a; }
+  .oculto { display: none !important; }
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="El tren: tocá el tren, las nubes, el sol, las vacas y las flores" role="img"></canvas>
+<div id="inicio"><button id="jugar">¡Chu chuuu!</button></div>
+<script>
+(function () {
+  "use strict";
+  const canvas = document.getElementById("c"); const ctx = canvas.getContext("2d");
+  let W = 0, H = 0, dpr = 1, t0 = performance.now(), ultimo = t0;
+  const PARAMS = new URLSearchParams(location.search); const RAPIDO = PARAMS.has("rapido");
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  function medir() { dpr = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight; canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); armar(); }
+
+  // ---------- sonido ----------
+  let ac = null;
+  function audio() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch { ac = null; } } if (ac && ac.state === "suspended") ac.resume(); return ac; }
+  function tono(f, dur, tipo, vol, destino, desliz) {
+    const a = audio(); if (!a) return; const o = a.createOscillator(); const g = a.createGain(); o.type = tipo || "sine"; o.frequency.setValueAtTime(f, a.currentTime);
+    if (desliz) o.frequency.exponentialRampToValueAtTime(desliz, a.currentTime + dur);
+    g.gain.setValueAtTime(0.0001, a.currentTime); g.gain.exponentialRampToValueAtTime(vol || 0.2, a.currentTime + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
+    o.connect(g); g.connect(destino || a.destination); o.start(); o.stop(a.currentTime + dur + 0.05);
+  }
+  function silbato() { const a = audio(); if (!a) return; for (const f of [440, 554, 659]) { tono(f, 0.9, "triangle", 0.12); } tono(880, 0.9, "sine", 0.05); setTimeout(() => { for (const f of [440, 554, 659]) tono(f, 1.3, "triangle", 0.12); }, 350); }
+  function chucu() { const a = audio(); if (!a) return; const buf = a.createBuffer(1, a.sampleRate * 0.08, a.sampleRate); const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length); const s = a.createBufferSource(); s.buffer = buf; const g = a.createGain(); g.gain.value = 0.08; const fl = a.createBiquadFilter(); fl.type = "lowpass"; fl.frequency.value = 900; s.connect(fl); fl.connect(g); g.connect(a.destination); s.start(); }
+  function campana() { const a = audio(); if (!a) return; tono(1760, 0.5, "sine", 0.15); tono(2640, 0.3, "sine", 0.05); }
+  function mugido() { const a = audio(); if (!a) return; const fl = a.createBiquadFilter(); fl.type = "lowpass"; fl.frequency.value = 500; fl.connect(a.destination); tono(150, 0.9, "sawtooth", 0.25, fl, 110); tono(300, 0.9, "sawtooth", 0.08, fl, 220); }
+  function pajaro() { const a = audio(); if (!a) return; const base = rnd(1500, 2500); tono(base, 0.12, "sine", 0.12, null, base * 1.5); setTimeout(() => tono(base * 1.2, 0.15, "sine", 0.12, null, base * 0.9), 150); setTimeout(() => tono(base * 1.4, 0.1, "sine", 0.1, null, base * 1.8), 320); }
+  function lluvia() { const a = audio(); if (!a) return; const buf = a.createBuffer(1, a.sampleRate * 2.5, a.sampleRate); const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.5; const s = a.createBufferSource(); s.buffer = buf; const fl = a.createBiquadFilter(); fl.type = "highpass"; fl.frequency.value = 3000; const g = a.createGain(); g.gain.setValueAtTime(0.0001, a.currentTime); g.gain.exponentialRampToValueAtTime(0.08, a.currentTime + 0.3); g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + 2.4); s.connect(fl); fl.connect(g); g.connect(a.destination); s.start(); }
+  function pop() { tono(rnd(500, 900), 0.15, "sine", 0.15, null, 1400); }
+  function solRisa() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tono(f, 0.25, "triangle", 0.12), i * 110)); }
+
+  // ---------- mundo ----------
+  const nubes = [], vacas = [], flores = [], humos = [], gotas = [], pajaros = [], chispas = [];
+  let tren, suelo, tunel, barrera, sol, colinas = [];
+  function armar() {
+    suelo = H * 0.74; const via = suelo;
+    nubes.length = 0; for (let i = 0; i < 4; i++) nubes.push({ x: rnd(0, W), y: rnd(H * 0.08, H * 0.3), r: rnd(22, 40) * Math.min(1, W / 500), v: rnd(6, 14), llueve: 0, cara: 0 });
+    colinas = [{ x: W * 0.25, r: W * 0.35, c: "#8fcf72" }, { x: W * 0.75, r: W * 0.4, c: "#7cc266" }, { x: W * 0.5, r: W * 0.3, c: "#9ad87e" }];
+    vacas.length = 0; for (let i = 0; i < 3; i++) vacas.push({ x: W * [0.12, 0.38, 0.6][i] + rnd(-10, 10), y: suelo - 18 - i * 6, e: 1 - i * 0.15, habla: 0, lado: i % 2 ? -1 : 1 });
+    flores.length = 0; for (let i = 0; i < 9; i++) flores.push({ x: rnd(10, W - 10), y: suelo + rnd(14, H * 0.22), c: ["#ff6b9d", "#ffd93d", "#ff8c42", "#c77dff", "#ff4d6d"][i % 5], s: 1, salta: 0 });
+    tren = { x: -200, v: (RAPIDO ? 260 : 70) * Math.max(0.7, Math.min(1.4, W / 600)), y: via, w: 60, silba: 0, chucu: 0, pasa: 0 };
+    tunel = { x: W * 0.68, w: Math.min(140, W * 0.28), h: 70 };
+    barrera = { x: W * 0.3, baja: 0, ding: 0 };
+    sol = { x: W * 0.85, y: H * 0.14, r: Math.min(42, W * 0.08), risa: 0, giro: 0 };
+    pajaros.length = 0;
+  }
+  function humo(x, y) { humos.push({ x, y, r: 6, vy: -30, vx: -15, vida: 1 }); }
+
+  // ---------- dibujo ----------
+  function rect(x, y, w, h, c, r) { ctx.fillStyle = c; if (r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); } else ctx.fillRect(x, y, w, h); }
+  function circ(x, y, r, c) { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+  function dibujarSol(tiempo) {
+    const s = sol; const rr = s.r * (1 + 0.12 * Math.sin(s.risa * 8) * Math.min(1, s.risa));
+    ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(tiempo * 0.1 + s.giro);
+    ctx.strokeStyle = "#ffd93d"; ctx.lineWidth = 5; for (let i = 0; i < 12; i++) { ctx.beginPath(); ctx.moveTo(rr * 1.2, 0); ctx.lineTo(rr * 1.55, 0); ctx.stroke(); ctx.rotate(Math.PI / 6); }
+    ctx.restore(); circ(s.x, s.y, rr, "#ffdd57");
+    circ(s.x - rr * 0.35, s.y - rr * 0.15, rr * 0.1, "#333"); circ(s.x + rr * 0.35, s.y - rr * 0.15, rr * 0.1, "#333");
+    ctx.strokeStyle = "#333"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(s.x, s.y + rr * 0.1, rr * (s.risa > 0 ? 0.5 : 0.38), 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+    if (s.risa > 0) { circ(s.x - rr * 0.55, s.y + rr * 0.2, rr * 0.14, "#ffb3b3"); circ(s.x + rr * 0.55, s.y + rr * 0.2, rr * 0.14, "#ffb3b3"); }
+  }
+  function dibujarNube(n) {
+    const c = n.llueve > 0 ? "#b8c4d0" : "#fff";
+    circ(n.x, n.y, n.r, c); circ(n.x - n.r * 0.9, n.y + n.r * 0.2, n.r * 0.75, c); circ(n.x + n.r * 0.9, n.y + n.r * 0.2, n.r * 0.8, c); circ(n.x + n.r * 0.2, n.y - n.r * 0.5, n.r * 0.7, c);
+    if (n.cara > 0) { circ(n.x - n.r * 0.3, n.y, n.r * 0.08, "#555"); circ(n.x + n.r * 0.3, n.y, n.r * 0.08, "#555"); ctx.strokeStyle = "#555"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(n.x, n.y + n.r * 0.15, n.r * 0.25, 0.2 * Math.PI, 0.8 * Math.PI); ctx.stroke(); }
+  }
+  function dibujarVaca(v, tiempo) {
+    ctx.save(); ctx.translate(v.x, v.y); ctx.scale(v.e * v.lado, v.e);
+    const abre = v.habla > 0 ? Math.abs(Math.sin(tiempo * 14)) * 6 : 0;
+    rect(-26, -22, 52, 30, "#fff", 10); circ(-12, -12, 7, "#333"); circ(10, -4, 6, "#333");
+    rect(-24, 6, 8, 14, "#fff"); rect(-6, 6, 8, 14, "#fff"); rect(8, 6, 8, 14, "#fff"); rect(18, 6, 8, 14, "#fff");
+    rect(22, -34, 24, 22, "#fff", 8); circ(28, -30, 2.5, "#222"); circ(40, -30, 2.5, "#222");
+    rect(26, -20 + abre * 0.3, 18, 9 + abre, "#f7a8b8", 5); circ(31, -15 + abre * 0.4, 1.5, "#c0507a"); circ(39, -15 + abre * 0.4, 1.5, "#c0507a");
+    ctx.strokeStyle = "#e8c48a"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(26, -34); ctx.lineTo(24, -42); ctx.moveTo(42, -34); ctx.lineTo(44, -42); ctx.stroke();
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-26, -16); ctx.quadraticCurveTo(-36, -10 + Math.sin(tiempo * 3) * 4, -30, 2); ctx.stroke();
+    ctx.restore();
+  }
+  function dibujarFlor(f, tiempo) {
+    const s = f.s * (1 + 0.3 * Math.max(0, f.salta) * Math.sin(f.salta * 10)); ctx.save(); ctx.translate(f.x, f.y); ctx.scale(s, s);
+    ctx.strokeStyle = "#3f9b3a"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -14); ctx.stroke();
+    for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2 + tiempo * 0.5; circ(Math.cos(a) * 5, -14 + Math.sin(a) * 5, 3.5, f.c); } circ(0, -14, 2.5, "#fff"); ctx.restore();
+  }
+  function dibujarTren(tiempo) {
+    const t = tren; const y = t.y; const rueda = (tiempo * t.v) / 12;
+    const vagon = (x, w, c, animal) => {
+      rect(x, y - 38, w, 30, c, 6); rect(x + 6, y - 32, w - 12, 14, "#fff5d6", 3);
+      for (const rx of [x + 12, x + w - 12]) { circ(rx, y - 6, 8, "#333"); circ(rx, y - 6, 3, "#999"); ctx.strokeStyle = "#ddd"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(rx, y - 6); ctx.lineTo(rx + Math.cos(rueda) * 6, y - 6 + Math.sin(rueda) * 6); ctx.stroke(); }
+      if (animal) { ctx.font = `${Math.round(w * 0.45)}px system-ui`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(animal, x + w / 2, y - 26 + Math.sin(tiempo * 6 + x) * 2); }
+    };
+    const w = 64; const g = 10;
+    vagon(t.x - 3 * (w + g), w, "#4ea8de", "🐑"); vagon(t.x - 2 * (w + g), w, "#ffd166", "🐷"); vagon(t.x - (w + g), w, "#8ac926", "🐔");
+    // locomotora
+    const x = t.x; rect(x, y - 36, 70, 28, "#e5533d", 6); rect(x + 44, y - 58, 26, 22, "#e5533d", 4); rect(x + 48, y - 54, 18, 10, "#bfe9ff", 2);
+    rect(x + 10, y - 56, 14, 20, "#333", 3); rect(x + 6, y - 60, 22, 6, "#333", 2); circ(x + 72, y - 22, 6, "#ffd93d");
+    rect(x - 4, y - 14, 10, 8, "#333"); for (const rx of [x + 14, x + 34, x + 56]) { circ(rx, y - 6, 9, "#333"); circ(rx, y - 6, 3.5, "#999"); ctx.strokeStyle = "#ddd"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(rx, y - 6); ctx.lineTo(rx + Math.cos(rueda) * 7, y - 6 + Math.sin(rueda) * 7); ctx.stroke(); }
+    ctx.strokeStyle = "#ddd"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x + 14 + Math.cos(rueda) * 7, y - 6 + Math.sin(rueda) * 7); ctx.lineTo(x + 56 + Math.cos(rueda) * 7, y - 6 + Math.sin(rueda) * 7); ctx.stroke();
+    // cara en la ventana
+    circ(x + 57, y - 49, 4, "#f4c2a1"); circ(x + 55.5, y - 50, 0.8, "#222"); circ(x + 58.5, y - 50, 0.8, "#222");
+    // conductor saluda cuando silba
+    if (t.silba > 0) { ctx.strokeStyle = "#f4c2a1"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x + 66, y - 50); ctx.lineTo(x + 76, y - 62 + Math.sin(tiempo * 15) * 4); ctx.stroke(); }
+  }
+  function dibujar(tiempo) {
+    // cielo
+    const cielo = ctx.createLinearGradient(0, 0, 0, suelo); cielo.addColorStop(0, "#6fc3f0"); cielo.addColorStop(1, "#c9eeff"); ctx.fillStyle = cielo; ctx.fillRect(0, 0, W, H);
+    dibujarSol(tiempo);
+    for (const c of colinas) circ(c.x, suelo + c.r * 0.72, c.r, c.c);
+    for (const n of nubes) dibujarNube(n);
+    for (const p of pajaros) { ctx.strokeStyle = "#333"; ctx.lineWidth = 2; ctx.beginPath(); const f = Math.sin(tiempo * 12 + p.x) * 5; ctx.moveTo(p.x - 10, p.y); ctx.quadraticCurveTo(p.x - 5, p.y - 6 - f, p.x, p.y); ctx.quadraticCurveTo(p.x + 5, p.y - 6 - f, p.x + 10, p.y); ctx.stroke(); }
+    // suelo
+    rect(0, suelo, W, H - suelo, "#7cc266"); rect(0, suelo - 2, W, 4, "#6ab057");
+    for (const v of vacas) dibujarVaca(v, tiempo);
+    // vía
+    for (let x = -10; x < W; x += 22) rect(x, suelo - 1, 10, 6, "#8b5a2b");
+    rect(0, suelo - 2, W, 2, "#777"); rect(0, suelo + 3, W, 2, "#777");
+    // barrera
+    const b = barrera; rect(b.x - 4, suelo - 64, 8, 64, "#999"); circ(b.x, suelo - 70, 8, b.ding > 0 && Math.sin(tiempo * 20) > 0 ? "#ff4d4d" : "#ffe08a");
+    ctx.save(); ctx.translate(b.x + 4, suelo - 56); ctx.rotate(-Math.PI / 2 * (1 - b.baja)); for (let i = 0; i < 5; i++) rect(i * 16, -4, 16, 8, i % 2 ? "#fff" : "#e5533d"); ctx.restore();
+    // humo
+    for (const h of humos) circ(h.x, h.y, h.r, `rgba(240,240,240,${h.vida * 0.8})`);
+    dibujarTren(tiempo);
+    // túnel (adelante del tren)
+    const tu = tunel; circ(tu.x + tu.w / 2, suelo + 10, tu.w / 2 + 14, "#6ab057"); ctx.fillStyle = "#6ab057"; ctx.fillRect(tu.x - 14, suelo - 10, tu.w + 28, 20);
+    ctx.fillStyle = "#4a3b2a"; ctx.beginPath(); ctx.moveTo(tu.x, suelo + 8); ctx.lineTo(tu.x, suelo - tu.h + 30); ctx.arc(tu.x + tu.w / 2, suelo - tu.h + 30, tu.w / 2, Math.PI, 0); ctx.lineTo(tu.x + tu.w, suelo + 8); ctx.fill();
+    ctx.fillStyle = "#1a140e"; ctx.beginPath(); ctx.moveTo(tu.x + 10, suelo + 8); ctx.lineTo(tu.x + 10, suelo - tu.h + 30); ctx.arc(tu.x + tu.w / 2, suelo - tu.h + 30, tu.w / 2 - 10, Math.PI, 0); ctx.lineTo(tu.x + tu.w - 10, suelo + 8); ctx.fill();
+    for (const f of flores) dibujarFlor(f, tiempo);
+    for (const g of gotas) { ctx.strokeStyle = "#5aa9e6"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(g.x, g.y); ctx.lineTo(g.x, g.y + 8); ctx.stroke(); }
+    for (const s of chispas) circ(s.x, s.y, s.r * s.vida, s.c);
+  }
+
+  // ---------- animación ----------
+  function paso(ahora) {
+    const dt = Math.min(0.05, (ahora - ultimo) / 1000); ultimo = ahora; const tiempo = (ahora - t0) / 1000;
+    const t = tren; t.x += t.v * dt; if (t.x > W + 300) t.x = -320;
+    t.chucu -= dt; if (t.chucu <= 0) { t.chucu = 0.45 * (70 / t.v); if (t.x > -150 && t.x < W + 50 && sonando) chucu(); humo(t.x + 17, t.y - 60); }
+    t.silba = Math.max(0, t.silba - dt);
+    const cerca = Math.abs(t.x + 20 - barrera.x) < 180;
+    if (cerca && barrera.baja < 1) { barrera.baja = Math.min(1, barrera.baja + dt * 2); if (barrera.ding <= 0) { barrera.ding = 0.6; if (sonando) campana(); } }
+    if (!cerca) barrera.baja = Math.max(0, barrera.baja - dt * 2);
+    if (cerca) { barrera.ding -= dt; if (barrera.ding <= 0) { barrera.ding = 0.6; if (sonando) campana(); } } else barrera.ding = 0;
+    for (const n of nubes) { n.x += n.v * dt; if (n.x > W + 60) n.x = -60; n.llueve = Math.max(0, n.llueve - dt); n.cara = Math.max(0, n.cara - dt); if (n.llueve > 0 && Math.random() < 0.5) gotas.push({ x: n.x + rnd(-n.r * 1.5, n.r * 1.5), y: n.y + n.r * 0.6, vy: rnd(250, 350) }); }
+    for (let i = gotas.length - 1; i >= 0; i--) { const g = gotas[i]; g.y += g.vy * dt; if (g.y > suelo + rnd(0, H * 0.2)) { gotas.splice(i, 1); } }
+    for (let i = humos.length - 1; i >= 0; i--) { const h = humos[i]; h.x += h.vx * dt; h.y += h.vy * dt; h.r += 12 * dt; h.vida -= dt * 0.5; if (h.vida <= 0) humos.splice(i, 1); }
+    for (const v of vacas) v.habla = Math.max(0, v.habla - dt);
+    for (const f of flores) { f.salta = Math.max(0, f.salta - dt * 1.2); }
+    for (let i = pajaros.length - 1; i >= 0; i--) { const p = pajaros[i]; p.x += p.vx * dt; p.y += Math.sin(tiempo * 3 + i) * 20 * dt; if (p.x < -30 || p.x > W + 30) pajaros.splice(i, 1); }
+    for (let i = chispas.length - 1; i >= 0; i--) { const s = chispas[i]; s.x += s.vx * dt; s.y += s.vy * dt; s.vy += 300 * dt; s.vida -= dt * 1.5; if (s.vida <= 0) chispas.splice(i, 1); }
+    sol.risa = Math.max(0, sol.risa - dt);
+    dibujar(tiempo);
+    requestAnimationFrame(paso);
+  }
+
+  // ---------- toques ----------
+  let sonando = false;
+  function tocar(x, y) {
+    audio();
+    const t = tren;
+    if (x > t.x - 230 && x < t.x + 80 && y > t.y - 70 && y < t.y + 10) { t.silba = 1.5; silbato(); for (let i = 0; i < 6; i++) humo(t.x + 17 + rnd(-6, 6), t.y - 60 - i * 6); return; }
+    if (Math.hypot(x - sol.x, y - sol.y) < sol.r * 1.6) { sol.risa = 1.2; sol.giro += 0.5; solRisa(); for (let i = 0; i < 14; i++) chispas.push({ x: sol.x, y: sol.y, vx: rnd(-150, 150), vy: rnd(-200, 50), r: rnd(3, 6), vida: 1, c: "#ffd93d" }); return; }
+    for (const n of nubes) if (Math.hypot(x - n.x, y - n.y) < n.r * 2) { n.llueve = 2.2; n.cara = 2.2; lluvia(); return; }
+    for (const v of vacas) if (x > v.x - 30 * v.e && x < v.x + 50 * v.e && y > v.y - 45 * v.e && y < v.y + 22 * v.e) { v.habla = 0.9; mugido(); return; }
+    for (const f of flores) if (Math.hypot(x - f.x, y - f.y + 14) < 18) { f.salta = 1; pop(); for (let i = 0; i < 8; i++) chispas.push({ x: f.x, y: f.y - 14, vx: rnd(-80, 80), vy: rnd(-150, -30), r: rnd(2, 4), vida: 1, c: f.c }); return; }
+    if (Math.abs(x - barrera.x) < 40 && y > suelo - 80 && y < suelo) { barrera.ding = 0.01; campana(); return; }
+    if (y < suelo) { pajaros.push({ x: x < W / 2 ? -20 : W + 20, y: Math.min(y, suelo - 60), vx: x < W / 2 ? rnd(80, 140) : -rnd(80, 140) }); pajaro(); return; }
+    // pasto: brota una flor
+    const f = { x, y: Math.min(H - 10, Math.max(suelo + 12, y)), c: ["#ff6b9d", "#ffd93d", "#ff8c42", "#c77dff", "#ff4d6d"][Math.floor(rnd(0, 5))], s: 0.01, salta: 1 }; flores.push(f); if (flores.length > 40) flores.shift(); pop();
+    const crecer = () => { f.s = Math.min(1, f.s + 0.08); if (f.s < 1) requestAnimationFrame(crecer); }; crecer();
+  }
+  canvas.addEventListener("pointerdown", (ev) => { ev.preventDefault(); tocar(ev.clientX, ev.clientY); });
+  window.addEventListener("keydown", (ev) => { if (ev.key === " " || ev.key === "Enter") { audio(); tren.silba = 1.5; silbato(); } });
+  document.getElementById("jugar").addEventListener("click", () => { sonando = true; audio(); document.getElementById("inicio").classList.add("oculto"); silbato(); });
+  window.addEventListener("resize", medir);
+  medir(); requestAnimationFrame(paso);
+  window.__tren = { tren: () => tren, flores, vacas, nubes, humos, pajaros, sol: () => sol, barrera: () => barrera, suelo: () => suelo };
+})();
+</script>
+</body>
+</html>
