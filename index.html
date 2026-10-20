@@ -85,7 +85,7 @@
     <div class="grupo"><h2>Categorías</h2><nav id="categorias" aria-label="Categorías"></nav></div>
     <div class="grupo"><h2>Para quién</h2><nav id="publicos" aria-label="Para quién"></nav></div>
     <p class="pie"><span id="cuenta"></span><br><a href="https://github.com/fnguerrero/working-folder-auto">El repo</a> · <a href="https://github.com/fnguerrero/working-folder-auto/blob/main/BITACORA.md">La bitácora</a></p>
-    <div class="temas" id="temas" role="group" aria-label="Tema"><button data-tema="">Auto</button><button data-tema="claro">Claro</button><button data-tema="oscuro">Oscuro</button><button data-tema="nocturno">Nocturno</button></div>
+    <div class="temas" id="temas" role="group" aria-label="Tema"><button data-tema="claro">Claro</button><button data-tema="oscuro">Oscuro</button><button data-tema="nocturno">Nocturno</button></div>
   </aside>
   <main>
     <section id="secDestacados"><h2 class="seccion">Lo más copado</h2><p class="explica">Por donde conviene empezar.</p><div class="grilla destacados" id="destacados"></div></section>
@@ -149,11 +149,14 @@
     if (!lista.length) { el.innerHTML = '<p class="vacio">Nada por acá todavía.</p>'; return; }
     for (const p of lista) el.appendChild(tarjeta(p));
   }
-  function marcarTema() { const t = document.documentElement.dataset.tema || ""; for (const b of document.querySelectorAll("#temas button")) b.setAttribute("aria-pressed", String(b.dataset.tema === t)); }
+  function marcarTema() {
+    const t = document.documentElement.dataset.tema || (matchMedia("(prefers-color-scheme: dark)").matches ? "oscuro" : "claro");
+    for (const b of document.querySelectorAll("#temas button")) b.setAttribute("aria-pressed", String(b.dataset.tema === t));
+  }
   for (const b of document.querySelectorAll("#temas button")) b.onclick = () => {
     const t = b.dataset.tema;
-    if (t) document.documentElement.dataset.tema = t; else delete document.documentElement.dataset.tema;
-    try { if (t) localStorage.setItem("tema-nocturno", t); else localStorage.removeItem("tema-nocturno"); } catch (e) {}
+    document.documentElement.dataset.tema = t;
+    try { localStorage.setItem("tema-nocturno", t); } catch (e) {}
     marcarTema();
   };
   marcarTema();
