@@ -67,7 +67,6 @@
   "para": "devs",
   "detalle": "Un simulador de colas para entender por qué la latencia explota antes de llegar al 100 % de uso: workers, pedidos por segundo y variabilidad, contrastado con Erlang C y Little. Con diagnóstico en criollo.",
   "destacado": false,
-  "dato": "Con un solo worker al 90 % de uso, la espera media es nueve veces el tiempo de servicio",
   "actualizado": "2026-10-11"
  },
  {
@@ -82,7 +81,6 @@
   "para": "devs",
   "detalle": "Pegás una expresión cron (estándar o Quartz.NET) y te la explica en castellano, con las próximas diez ejecuciones en hora argentina, avisos de las trampas típicas y snippets de Hangfire, Quartz y NCrontab.",
   "destacado": false,
-  "dato": "En Quartz.NET el cron tiene 6 o 7 campos: el primero son los segundos",
   "actualizado": "2026-10-11"
  },
  {
@@ -111,7 +109,6 @@
   "para": "devs",
   "detalle": "Guía de 17 capítulos para pasar de T-SQL y SSMS a PostgreSQL desde .NET: tipos, identidad, fechas, MVCC, índices, jsonb, EF Core y las sorpresas. Todos los ejemplos se ejecutaron contra un Postgres 16 real.",
   "destacado": false,
-  "dato": "En PostgreSQL un nombre sin comillas pasa a minúsculas: \"ClienteId\" y clienteid son columnas distintas",
   "actualizado": "2026-10-12"
  },
  {
@@ -126,7 +123,6 @@
   "para": "todos",
   "detalle": "Calculadora laboral argentina según la LCT: liquidación final, aguinaldo, vacaciones e indemnización, con la fórmula de cada concepto y el artículo que la respalda. Para saber qué te corresponde antes de firmar.",
   "destacado": true,
-  "dato": "La indemnización del art. 245 es un sueldo por año trabajado, con el tope y el piso de Vizzoti",
   "actualizado": "2026-10-13"
  },
  {
@@ -141,7 +137,6 @@
   "para": "devs",
   "detalle": "Un B+tree que corre en el navegador y muestra qué le pasa al índice clustered cuando la clave es int identity, GUID aleatorio, GUID v7 o secuencial: splits, páginas, fragmentación y lecturas.",
   "destacado": false,
-  "dato": "El GUID v7 de .NET se fragmenta en SQL Server a partir de 2 inserciones por milisegundo",
   "actualizado": "2026-10-13"
  },
  {
@@ -156,7 +151,6 @@
   "para": "devs",
   "detalle": "Pegás un plan de ejecución de SQL Server (XML o texto) y te lo explica en castellano: qué pasa en cada operador, dónde se va el tiempo y qué podés hacer, con planes reales de ejemplo.",
   "destacado": false,
-  "dato": "Un Key Lookup con miles de ejecuciones es un índice al que le faltan columnas en INCLUDE",
   "actualizado": "2026-10-14"
  },
  {
@@ -171,7 +165,6 @@
   "para": "devs",
   "detalle": "Trece experimentos sobre índices de SQL Server medidos en páginas leídas contra un servidor real: cubrientes, incluidos, orden de columnas, filtrados, sargabilidad y cuándo un índice no sirve.",
   "destacado": false,
-  "dato": "El RID Lookup del heap es más barato que el Key Lookup, y CAST(Fecha AS date) sí hace seek",
   "actualizado": "2026-10-14"
  },
  {
@@ -200,7 +193,6 @@
   "para": "devs",
   "detalle": "Simulador del thread pool de .NET: qué pasa cuando bloqueás con .Result o con I/O sincrónica contra async de verdad, y por qué la API se cuelga aunque la CPU esté libre. Contrastado contra un .NET 8 real.",
   "destacado": false,
-  "dato": "Un .Result en un controller inana el thread pool: inyecta hilos de a uno por segundo",
   "actualizado": "2026-10-16"
  },
  {
@@ -215,7 +207,6 @@
   "para": "devs",
   "detalle": "Pegás una cadena de conexión de SQL Server, PostgreSQL, MySQL o Redis y te explica cada clave, qué es peligroso (Encrypt, TrustServerCertificate, timeouts, pool) y dónde guardarla.",
   "destacado": false,
-  "dato": "Encrypt=True es el default desde Microsoft.Data.SqlClient 4: sin certificado válido no conecta",
   "actualizado": "2026-10-15"
  },
  {
@@ -230,7 +221,6 @@
   "para": "devs",
   "detalle": "129 microbenchmarks de .NET 8 medidos con BenchmarkDotNet: strings, LINQ, excepciones, regex, JSON, async, locks, colecciones. Para tener a mano cuánto cuesta cada cosa antes de optimizar a ciegas.",
   "destacado": false,
-  "dato": "Lanzar y atrapar una excepción cuesta decenas de microsegundos: miles de veces un if",
   "actualizado": "2026-10-16"
  },
  {
@@ -245,7 +235,6 @@
   "para": "devs",
   "detalle": "Pegás una excepción de .NET tal como salió en el log y te dice qué pasó, en qué línea de tu código fue (separando lo tuyo del framework) y qué suele significar cada tipo de excepción.",
   "destacado": false,
-  "dato": "Lo que en la traza dice <Metodo>d__12.MoveNext() es el método async Metodo",
   "actualizado": "2026-10-17"
  },
  {
@@ -288,7 +277,6 @@
   "para": "devs",
   "detalle": "Trece experimentos sobre lo que EF Core manda al servidor y lo que trae, medidos contra SQL Server: N+1, explosión cartesiana, tracking, proyección, paginación keyset, Contains, ExecuteUpdate, pool de contextos.",
   "destacado": true,
-  "dato": "Un Include de uno a muchos multiplica las filas que viajan por la cantidad de hijos",
   "actualizado": "2026-10-18"
  },
  {
@@ -303,7 +291,6 @@
   "para": "todos",
   "detalle": "Ponés el precio de contado y el plan de cuotas y te dice qué tasa esconden, cuánto valen en plata de hoy y qué te conviene según qué harías con la plata: ponerla a rendir, dejarla quieta o pagar con el sueldo.",
   "destacado": true,
-  "dato": "«12 cuotas sin interés» con 10 % de descuento contado esconden una TNA del 20 %",
   "actualizado": "2026-10-19"
  },
  {
@@ -318,7 +305,6 @@
   "para": "devs",
   "detalle": "Un modelo del recolector de basura de .NET con reloj de 1 ms: generaciones, LOH, GC de fondo, server, DATAS, y cada pausa que sentirían tus pedidos. Calibrado contra un .NET 8 real con 36 corridas medidas.",
   "destacado": true,
-  "dato": "Un objeto de 85 KB ya va al LOH y solo se libera en una recolección de gen2",
   "actualizado": "2026-10-19"
  },
  {
@@ -333,7 +319,6 @@
   "para": "devs",
   "detalle": "Pegás una expresión regular de .NET y te la explica paso a paso en castellano, la probás con la semántica de .NET, te avisa de las trampas (incluido el backtracking catastrófico) y te deja el C# con GeneratedRegex.",
   "destacado": false,
-  "dato": "En .NET, \\d matchea dígitos de cualquier alfabeto, no solo del 0 al 9",
   "actualizado": "2026-10-19"
  },
  {
@@ -348,7 +333,6 @@
   "para": "devs",
   "detalle": "Pegás un JWT y te explica cada claim en castellano con las fechas en hora argentina, te marca si está vencido (con el ClockSkew de ASP.NET), te avisa de las trampas, verifica la firma y te deja el C# para validarlo.",
   "destacado": true,
-  "dato": "ASP.NET acepta un JWT vencido hasta 5 minutos: es el ClockSkew por defecto",
   "actualizado": "2026-10-20"
  },
  {
@@ -377,7 +361,6 @@
   "para": "devs",
   "detalle": "Simulador de caché con tráfico real (Zipf): siete políticas contra el óptimo, cuánto caché hace falta para el 95 o el 99 %, TTL absoluto o deslizante, y la estampida cuando vence una clave caliente, con y sin protección.",
   "destacado": true,
-  "dato": "El 90 % de aciertos en el caché no alcanza: el 10 % que falta es lo que tumba la base",
   "actualizado": "2026-10-20"
  },
  {
@@ -406,7 +389,6 @@
   "para": "devs",
   "detalle": "Cada capítulo abre dos o más sesiones a la vez contra un SQL Server 2022 y mide lo que ve cada una: cuánto esperó, qué error recibió, qué quedó en la tabla. Cubre qué toma un UPDATE y a quién frena, la escalada, NOLOCK, la actualización perdida con seis remedios, el «si no existe, insertar» con el default de TransactionScope, el deadlock clásico y su grafo, el deadlock que arregla un índice, LOCK_TIMEOUT contra CommandTimeout, RCSI y SNAPSHOT, y la fila caliente. Con chuleta y qué cambia en el código .NET.",
   "destacado": true,
-  "dato": "38 de 40 conteos con NOLOCK sobre una tabla que se escribe dan un total que nunca existió",
   "actualizado": "2026-10-21"
  }
 ]

@@ -22,18 +22,21 @@
   .marco { display: grid; grid-template-columns: 250px 1fr; grid-template-rows: auto 1fr; min-height: 100vh; }
   .barra { grid-column: 2; display: flex; justify-content: flex-end; align-items: stretch; gap: 0; padding: 0 12px; background: var(--card); border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
   .barra::-webkit-scrollbar { display: none; }
-  .tile { display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 7px 12px; border-left: 1px solid var(--line); white-space: nowrap; flex: none; }
+  .tile { display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 7px 16px; white-space: nowrap; flex: none; }
   .tile[hidden] { display: none; }
   .tile b { overflow: hidden; text-overflow: ellipsis; }
-  .tile:first-child { border-left: 0; }
   .tile small { font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
   .tile b { font-size: .86rem; font-weight: 600; color: var(--fg); }
   .tile a { color: var(--accent); text-decoration: none; } .tile a:hover { text-decoration: underline; }
   .tile.ultima { flex: 0 1 auto; min-width: 0; } .tile.ultima b { max-width: 300px; }
   .tile .nombres a + a::before { content: "· "; margin: 0 .2em 0 .35em; color: var(--muted); }
   .tile .ok { color: var(--c-apps); } .tile .pendiente { color: var(--c-juegos); }
-  .dato { margin: 0 0 18px; padding: 8px 12px; border-radius: 10px; background: var(--suave); font-size: .9rem; color: var(--muted); }
-  .dato a { color: var(--fg); text-decoration: none; transition: opacity .4s; } .dato a:hover { text-decoration: underline; } .dato a.cambiando { opacity: 0; }
+  .frase { margin: 6px 0 28px; padding: 2px 0 2px 18px; border-left: 2px solid var(--accent); max-width: 680px; transition: opacity .5s; }
+  .frase.cambiando { opacity: 0; }
+  .frase blockquote { margin: 0; font-family: Georgia, "Iowan Old Style", "Times New Roman", serif; font-style: italic; font-size: 1.1rem; line-height: 1.5; color: var(--fg); }
+  .frase blockquote::before { content: "«"; } .frase blockquote::after { content: "»"; }
+  .frase figcaption { margin-top: 6px; font-size: .7rem; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+  .frase figcaption::before { content: "— "; }
   aside { grid-row: 1 / -1; background: var(--lateral); border-right: 1px solid var(--line); padding: 22px 16px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
   .marca { display: flex; align-items: center; gap: 10px; margin: 0 0 18px; }
   .logo { width: 40px; height: 40px; flex: none; }
@@ -93,7 +96,7 @@
     .marco { grid-template-rows: auto auto 1fr; }
     .barra { grid-column: 1; padding: 0 6px; justify-content: flex-start; }
     .tile { padding: 6px 10px; flex: none; }
-    .tile.ultima b { max-width: 220px; }
+    .tile.ultima { flex: none; } .tile.ultima b { max-width: 220px; }
     aside { grid-row: auto; position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 16px; }
     .grupo h2 { margin-top: 10px; }
     nav { display: flex; flex-wrap: wrap; gap: 4px; } nav button { width: auto; min-height: 34px; padding: 5px 10px; font-size: .86rem; border: 1px solid var(--line); border-radius: 999px; } nav button .n { margin-left: 4px; }
@@ -106,10 +109,8 @@
 <div class="marco">
   <header class="barra" id="barra" aria-label="De un vistazo">
     <span class="tile" id="bLuna" hidden><small>Luna</small><b id="bLunaValor"></b></span>
-    <span class="tile" id="bRacha" hidden><small>Racha</small><b><a href="https://github.com/fnguerrero/working-folder-auto/blob/main/BITACORA.md" id="bRachaLink"></a></b></span>
+    <span class="tile" id="bCielo" hidden title="Dónde están el Sol y la Luna esta noche (zodíaco tropical)"><small>Astrología</small><b id="bCieloValor"></b></span>
     <span class="tile ultima" id="bUltima" hidden><small id="bUltimaCuando">Última noche</small><b class="nombres" id="bUltimaQue"></b></span>
-    <span class="tile" id="bCuenta" hidden><small>Proyectos</small><b><span id="bTotal"></span> · <span id="bTerminados"></span><span id="bEnCurso" hidden></span></b></span>
-    <span class="tile" id="bProxima" hidden title="Corre todas las noches a las 3, hora de Argentina"><small>Próxima noche</small><b id="bProximaEn"></b></span>
     <span class="tile" id="bPedidos" hidden><small>Pedidos</small><b><a id="bPedidosLink" href="https://github.com/fnguerrero/working-folder-auto/issues?q=is%3Aissue+is%3Aopen+label%3Anoche"></a></b></span>
   </header>
   <aside>
@@ -121,7 +122,7 @@
     <div class="temas" id="temas" role="group" aria-label="Tema"><button data-tema="claro">Claro</button><button data-tema="oscuro">Oscuro</button><button data-tema="nocturno">Nocturno</button></div>
   </aside>
   <main>
-    <p class="dato" id="bDato" hidden title="Un hallazgo medido en alguno de los proyectos; cambia solo">💡 <a id="bDatoLink" href="#"></a></p>
+    <figure class="frase" id="bFrase" hidden><blockquote id="bFraseTexto"></blockquote><figcaption id="bFraseAutor"></figcaption></figure>
     <section id="secDestacados"><h2 class="seccion">Lo más copado</h2><p class="explica">Por donde conviene empezar.</p><div class="grilla destacados" id="destacados"></div></section>
     <section><h2 class="seccion" id="tituloTodos">Todo</h2><p class="explica" id="explicaTodos"></p><div class="orden" id="orden" role="group" aria-label="Ordenar"><span>Ordenar por</span><button data-orden="actividad">Última actividad</button><button data-orden="nuevos">Más nuevos</button><button data-orden="nombre">Nombre</button></div><div class="grilla" id="grilla"><p class="vacio">Cargando…</p></div></section>
   </main>
@@ -193,9 +194,6 @@
   function pintarBarra() {
     const vis = visibles();
     if (!vis.length) return;
-    const terminados = vis.filter((p) => p.estado === "terminado").length; const enCurso = vis.filter((p) => p.estado === "en curso").length;
-    $("#bTotal").textContent = vis.length; $("#bTerminados").textContent = `${terminados} ${terminados === 1 ? "terminado" : "terminados"}`;
-    $("#bEnCurso").textContent = ` · ${enCurso} en curso`; $("#bEnCurso").hidden = !enCurso; $("#bCuenta").hidden = false;
     const ultima = vis.map((p) => p.actualizado || p.desde || "").sort().pop();
     if (ultima) {
       const h = hoyArg(); const dias = Math.round((Date.UTC(h.getUTCFullYear(), h.getUTCMonth(), h.getUTCDate()) - new Date(ultima + "T00:00:00Z")) / 864e5);
@@ -216,25 +214,41 @@
     const luz = Math.round((1 - Math.cos(2 * Math.PI * edad)) / 2 * 100);
     $("#bLunaValor").textContent = `${fase[1]} ${luz} %`; $("#bLuna").querySelector("small").textContent = fase[2]; $("#bLuna").title = "La luna de esta noche (iluminada al " + luz + " %). Vista desde Argentina se ve espejada respecto del dibujo."; $("#bLuna").hidden = false;
   }
-  function pintarRacha() {
-    const fechas = new Set(visibles().map((p) => p.desde).filter(Boolean)); if (!fechas.size) return;
-    let dia = new Date([...fechas].sort().pop() + "T00:00:00Z"); let racha = 0;
-    while (fechas.has(dia.toISOString().slice(0, 10))) { racha++; dia = new Date(dia.getTime() - 864e5); }
-    $("#bRachaLink").textContent = `${racha} ${racha === 1 ? "noche" : "noches"}`; $("#bRacha").title = "Noches seguidas con algo nuevo o mejorado"; $("#bRacha").hidden = false;
+  const FRASES = [
+    ["Mejor encender una vela que maldecir la oscuridad.", "Proverbio chino"],
+    ["No es que tengamos poco tiempo, sino que perdemos mucho.", "Séneca"],
+    ["Mientras se espera vivir, la vida pasa.", "Séneca"],
+    ["No es pobre el que tiene poco, sino el que desea más.", "Séneca"],
+    ["No son las cosas las que nos perturban, sino las opiniones que tenemos sobre ellas.", "Epicteto"],
+    ["La mejor manera de vengarse es no parecerse a quien te hizo daño.", "Marco Aurelio"],
+    ["Nadie se baña dos veces en el mismo río.", "Heráclito"],
+    ["Una vida sin examen no merece ser vivida.", "Sócrates"],
+    ["Un viaje de mil leguas empieza con un solo paso.", "Lao Tse"],
+    ["Quien tiene un porqué para vivir soporta casi cualquier cómo.", "Friedrich Nietzsche"],
+    ["La vida solo puede comprenderse mirando hacia atrás, pero hay que vivirla mirando hacia adelante.", "Søren Kierkegaard"],
+    ["En lo más hondo del invierno aprendí, por fin, que había en mí un verano invencible.", "Albert Camus"],
+    ["Hay que imaginarse a Sísifo feliz.", "Albert Camus"],
+    ["El hombre está condenado a ser libre.", "Jean-Paul Sartre"],
+    ["Yo soy yo y mi circunstancia.", "José Ortega y Gasset"],
+    ["Los límites de mi lenguaje significan los límites de mi mundo.", "Ludwig Wittgenstein"],
+    ["Caminante, no hay camino: se hace camino al andar.", "Antonio Machado"],
+    ["La noche es más oscura justo antes del amanecer.", "Thomas Fuller"],
+  ];
+  function pintarCielo() {
+    // Longitudes eclípticas aproximadas (error de un grado o dos), en días desde J2000.
+    const d = (Date.now() - Date.UTC(2000, 0, 1, 12)) / 864e5; const r = (g) => g * Math.PI / 180;
+    const g = 357.528 + 0.9856003 * d; const sol = 280.460 + 0.9856474 * d + 1.915 * Math.sin(r(g)) + 0.020 * Math.sin(r(2 * g));
+    const m = 134.963 + 13.064993 * d; const e = 297.850 + 12.190749 * d;
+    const luna = 218.316 + 13.176396 * d + 6.289 * Math.sin(r(m)) + 1.274 * Math.sin(r(2 * e - m)) + 0.658 * Math.sin(r(2 * e)) - 0.186 * Math.sin(r(g));
+    const signos = ["Aries", "Tauro", "Géminis", "Cáncer", "Leo", "Virgo", "Libra", "Escorpio", "Sagitario", "Capricornio", "Acuario", "Piscis"];
+    const signo = (l) => signos[Math.floor((((l % 360) + 360) % 360) / 30)];
+    $("#bCieloValor").textContent = `☉ ${signo(sol)} · ☽ ${signo(luna)}`; $("#bCielo").hidden = false;
   }
-  function pintarDato() {
-    const datos = visibles().filter((p) => p.dato); if (!datos.length) return;
-    let i = Math.floor(Date.now() / 864e5) % datos.length; const a = $("#bDatoLink");
-    const mostrar = () => { const p = datos[i]; a.textContent = p.dato; a.href = p.probar; a.title = p.nombre; };
-    mostrar(); $("#bDato").hidden = false;
-    setInterval(() => { a.classList.add("cambiando"); setTimeout(() => { i = (i + 1) % datos.length; mostrar(); a.classList.remove("cambiando"); }, 400); }, 12000);
-  }
-  function pintarProxima() {
-    const h = hoyArg(); let objetivo = Date.UTC(h.getUTCFullYear(), h.getUTCMonth(), h.getUTCDate(), 3);
-    if (h.getTime() >= objetivo) objetivo += 864e5;
-    const min = Math.round((objetivo - h.getTime()) / 6e4); const hs = Math.floor(min / 60); const mm = min % 60;
-    $("#bProximaEn").textContent = min > 1320 ? "ya arrancó, está trabajando" : min < 1 ? "en un minuto" : `en ${hs ? `${hs} h` : ""}${hs && mm ? " " : ""}${mm ? `${mm} min` : ""}`;
-    $("#bProxima").hidden = false;
+  function pintarFrase() {
+    let i = Math.floor(Date.now() / 864e5) % FRASES.length; const f = $("#bFrase");
+    const mostrar = () => { $("#bFraseTexto").textContent = FRASES[i][0]; $("#bFraseAutor").textContent = FRASES[i][1]; };
+    mostrar(); f.hidden = false;
+    setInterval(() => { f.classList.add("cambiando"); setTimeout(() => { i = (i + 1) % FRASES.length; mostrar(); f.classList.remove("cambiando"); }, 500); }, 20000);
   }
   function pintarPedidos() {
     if (typeof fetch !== "function") return;
@@ -249,8 +263,8 @@
       })
       .catch(() => {});
   }
-  try { pintarProxima(); setInterval(pintarProxima, 3e4); } catch (e) {}
   try { pintarLuna(); } catch (e) {}
+  try { pintarCielo(); } catch (e) {}
   try { pintarPedidos(); } catch (e) {}
   function marcarTema() {
     const t = document.documentElement.dataset.tema || (matchMedia("(prefers-color-scheme: dark)").matches ? "oscuro" : "claro");
@@ -269,7 +283,7 @@
   leerHash();
   fetch("proyectos.json", { cache: "no-cache" })
     .then((r) => r.json())
-    .then((data) => { proyectos = data; pintarNav(); pintar(); try { pintarBarra(); pintarRacha(); pintarDato(); } catch (e) {} })
+    .then((data) => { proyectos = data; pintarNav(); pintar(); try { pintarBarra(); pintarFrase(); } catch (e) {} })
     .catch(() => { $("#grilla").innerHTML = '<p class="vacio">No se pudo cargar la lista. Si lo abriste como archivo local, serví la carpeta con un servidor estático.</p>'; });
 })();
 </script>

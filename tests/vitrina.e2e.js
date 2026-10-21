@@ -1,5 +1,5 @@
 /* E2e de la vitrina (index.html) en Chromium headless (Playwright) a 375×740 y 1280×800: la barra superior muestra última noche,
-   contadores, próxima corrida y pedidos en cola (con la API de GitHub simulada y también caída), sin scroll horizontal ni errores en consola.
+   la luna, el Sol y la Luna en el zodíaco y los pedidos en cola (con la API de GitHub simulada y también caída), sin scroll horizontal ni errores en consola.
      NODE_PATH=/opt/node-tools/node_modules node tests/vitrina.e2e.js */
 "use strict";
 const http = require("node:http"); const fs = require("node:fs"); const path = require("node:path"); const assert = require("node:assert/strict");
@@ -29,22 +29,18 @@ async function probar(browser, url, viewport, api) {
   assert.ok(caja.height < 60, `un solo renglón (${caja.height}px)`);
   if (viewport.width >= 960) { const primero = await page.locator("#barra > span:not([hidden])").first().boundingBox(); assert.ok(primero.x >= caja.x - 1, "ningún tile queda recortado a la izquierda"); assert.ok(await page.locator("#barra").evaluate((e) => e.scrollWidth <= e.clientWidth + 1), "la barra entra entera en escritorio"); }
   assert.ok(/^🌑|🌒|🌓|🌔|🌕|🌖|🌗|🌘/u.test(await page.locator("#bLuna").innerText()) && /\d+ %/.test(await page.locator("#bLuna").innerText()), "la luna");
-  assert.ok(/\d+ noches?/.test(await page.locator("#bRacha").innerText()), "la racha");
-  const dato = page.locator("#bDatoLink"); const hrefDato = await dato.getAttribute("href"); assert.ok((await dato.innerText()).length > 20 && proyectos.some((p) => p.probar === hrefDato), "el dato linkea a un proyecto");
+  assert.ok(/^☉ \S+ · ☽ \S+$/u.test(await page.locator("#bCieloValor").innerText()), "el cielo");
+  assert.ok((await page.locator("#bFraseTexto").innerText()).length > 15 && (await page.locator("#bFraseAutor").innerText()).length > 2, "la frase con su autor");
   assert.ok((await page.locator(".tarjeta .fechas").first().innerText()).startsWith("Creado el "), "las cards tienen fecha");
   assert.equal(await page.locator("#orden button[aria-pressed=true]").getAttribute("data-orden"), "actividad");
   await page.click("#orden button[data-orden=nombre]"); const nombres = await page.locator("#grilla .tarjeta h3").allInnerTexts(); assert.deepEqual(nombres, nombres.slice().sort((a, b) => a.localeCompare(b, "es")), "ordenado por nombre");
   assert.ok((await page.evaluate(() => location.hash)).includes("orden=nombre")); await page.click("#orden button[data-orden=actividad]");
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), "sin scroll horizontal");
-  const terminados = proyectos.filter((p) => p.estado === "terminado").length; const enCurso = proyectos.filter((p) => p.estado === "en curso").length;
-  const cuenta = await page.locator("#bCuenta").innerText(); assert.ok(cuenta.includes(`${proyectos.length} · ${terminados} terminado`), `contadores: ${cuenta}`);
-  assert.equal(await page.locator("#bEnCurso").isVisible(), enCurso > 0, "en curso solo si hay");
   assert.equal(await page.locator("#cuenta").count(), 0, "la cuenta ya no está en el lateral");
   const ultima = proyectos.map((p) => p.actualizado || p.desde).sort().pop(); const salieron = proyectos.filter((p) => p.desde === ultima || p.actualizado === ultima).sort((a, b) => (a.desde === ultima ? 0 : 1) - (b.desde === ultima ? 0 : 1));
   const links = await page.locator("#bUltimaQue a").allInnerTexts(); assert.ok(links.length === Math.min(salieron.length, 3) + (salieron.length > 3 ? 1 : 0) && links[0] === salieron[0].nombre, `última noche: ${links}`);
   assert.ok(/Anoche|Hace \d+ noches?/.test(await page.locator("#bUltimaCuando").evaluate((e) => e.textContent)), "cuándo fue la última noche");
   const primera = page.locator("#grilla .tarjeta").first(); assert.ok(await primera.locator(".mas").isHidden()); await primera.locator(".ver-mas").click(); assert.ok(await primera.locator(".mas").isVisible(), "«Qué es» despliega el detalle"); await primera.locator(".ver-mas").click(); assert.ok(await primera.locator(".mas").isHidden());
-  const prox = await page.locator("#bProximaEn").innerText(); assert.ok(/^en (\d+ h( \d+ min)?|\d+ min|un minuto)$|ya arrancó/.test(prox), `próxima: ${prox}`);
   const pedidos = page.locator("#bPedidos");
   if (api === "dos") { assert.ok(await pedidos.isVisible()); assert.equal(await page.locator("#bPedidosLink").innerText(), "2 en cola"); }
   else if (api === "cero") { assert.ok(await pedidos.isVisible()); assert.ok((await pedidos.innerText()).includes("0 en cola")); assert.ok((await page.locator("#bPedidosLink").getAttribute("href")).includes("issues/new")); }
