@@ -22,15 +22,19 @@
   .marco { display: grid; grid-template-columns: 250px 1fr; grid-template-rows: auto 1fr; min-height: 100vh; }
   .barra { grid-column: 2; display: flex; justify-content: flex-end; align-items: stretch; gap: 0; padding: 0 12px; background: var(--card); border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
   .barra::-webkit-scrollbar { display: none; }
-  .tile { display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 7px 16px; white-space: nowrap; flex: none; }
-  .tile[hidden] { display: none; }
+  .tile { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 1px; padding: 7px 14px; white-space: nowrap; flex: none; font: inherit; color: inherit; background: none; border: 0; border-radius: 8px; margin: 3px 0; cursor: pointer; }
+  .tile:hover, .tile[aria-expanded=true] { background: var(--suave); }
+  .tile[aria-expanded=true] b { color: var(--accent); }
   .tile b { overflow: hidden; text-overflow: ellipsis; }
   .tile small { font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
   .tile b { font-size: .86rem; font-weight: 600; color: var(--fg); }
-  .tile a { color: var(--accent); text-decoration: none; } .tile a:hover { text-decoration: underline; }
-  .tile.ultima { flex: 0 1 auto; min-width: 0; } .tile.ultima b { max-width: 300px; }
-  .tile .nombres a + a::before { content: "· "; margin: 0 .2em 0 .35em; color: var(--muted); }
-  .tile .ok { color: var(--c-apps); } .tile .pendiente { color: var(--c-juegos); }
+  .astro { position: relative; margin: 0 0 22px; padding: 16px 44px 6px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); max-width: 760px; }
+  .astro h2 { margin: 0 0 8px; font-size: 1.15rem; }
+  .astro .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+  .astro .chips span { font-size: .74rem; padding: 2px 9px; border-radius: 99px; background: var(--suave); color: var(--fg); }
+  .astro p { margin: 0 0 10px; font-size: .92rem; color: var(--muted); }
+  .astro .cerrar { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border: 0; border-radius: 8px; background: none; color: var(--muted); font-size: 1rem; cursor: pointer; }
+  .astro .cerrar:hover { background: var(--suave); color: var(--fg); }
   .frase { margin: 4px auto 30px; padding: 14px 16px 22px; max-width: 640px; text-align: center; border-bottom: 1px solid var(--line); }
   .frase blockquote { margin: 0; font-family: Georgia, "Iowan Old Style", "Times New Roman", serif; font-style: italic; font-size: 1.05rem; line-height: 1.55; color: var(--accent); }
   .frase blockquote::before { content: "«"; } .frase blockquote::after { content: "»"; }
@@ -95,7 +99,6 @@
     .marco { grid-template-rows: auto auto 1fr; }
     .barra { grid-column: 1; padding: 0 6px; justify-content: flex-start; }
     .tile { padding: 6px 10px; flex: none; }
-    .tile.ultima { flex: none; } .tile.ultima b { max-width: 220px; }
     aside { grid-row: auto; position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 16px; }
     .grupo h2 { margin-top: 10px; }
     nav { display: flex; flex-wrap: wrap; gap: 4px; } nav button { width: auto; min-height: 34px; padding: 5px 10px; font-size: .86rem; border: 1px solid var(--line); border-radius: 999px; } nav button .n { margin-left: 4px; }
@@ -106,12 +109,7 @@
 </head>
 <body>
 <div class="marco">
-  <header class="barra" id="barra" aria-label="De un vistazo">
-    <span class="tile" id="bLuna" hidden><small>Luna</small><b id="bLunaValor"></b></span>
-    <span class="tile" id="bCielo" hidden title="Dónde están el Sol y la Luna esta noche (zodíaco tropical)"><small>Astrología</small><b id="bCieloValor"></b></span>
-    <span class="tile ultima" id="bUltima" hidden><small id="bUltimaCuando">Última noche</small><b class="nombres" id="bUltimaQue"></b></span>
-    <span class="tile" id="bPedidos" hidden><small>Pedidos</small><b><a id="bPedidosLink" href="https://github.com/fnguerrero/working-folder-auto/issues?q=is%3Aissue+is%3Aopen+label%3Anoche"></a></b></span>
-  </header>
+  <header class="barra" id="barra" aria-label="El cielo de esta noche"></header>
   <aside>
     <div class="marca"><svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><defs><mask id="luna"><rect width="40" height="40" fill="#fff"/><circle cx="29.5" cy="11.5" r="8" fill="#000"/></mask></defs><rect width="40" height="40" rx="10" fill="#141a3d"/><circle cx="9" cy="9" r="1" fill="#fff" opacity=".7"/><circle cx="15" cy="5.5" r=".7" fill="#fff" opacity=".5"/><circle cx="33" cy="25" r=".8" fill="#fff" opacity=".6"/><circle cx="25" cy="15" r="9" fill="#ffd27a" mask="url(#luna)"/><path d="M8 25.5l4 3.2-4 3.2" fill="none" stroke="#9d93ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><rect class="cursor" x="14.5" y="30" width="7" height="2.4" rx="1" fill="#9d93ff"/></svg><h1>Programador nocturno</h1></div>
     <input class="buscar" id="buscar" type="search" placeholder="Buscar…" aria-label="Buscar proyectos">
@@ -121,6 +119,7 @@
     <div class="temas" id="temas" role="group" aria-label="Tema"><button data-tema="claro">Claro</button><button data-tema="oscuro">Oscuro</button><button data-tema="nocturno">Nocturno</button></div>
   </aside>
   <main>
+    <section class="astro" id="astro" hidden aria-live="polite"><button type="button" class="cerrar" id="astroCerrar" aria-label="Cerrar">✕</button><h2 id="astroTitulo"></h2><p class="chips" id="astroChips"></p><div id="astroTexto"></div></section>
     <figure class="frase" id="bFrase" hidden><blockquote id="bFraseTexto"></blockquote><figcaption id="bFraseAutor"></figcaption></figure>
     <section id="secDestacados"><h2 class="seccion">Lo más copado</h2><p class="explica">Por donde conviene empezar.</p><div class="grilla destacados" id="destacados"></div></section>
     <section><h2 class="seccion" id="tituloTodos">Todo</h2><p class="explica" id="explicaTodos"></p><div class="orden" id="orden" role="group" aria-label="Ordenar"><span>Ordenar por</span><button data-orden="actividad">Última actividad</button><button data-orden="nuevos">Más nuevos</button><button data-orden="nombre">Nombre</button></div><div class="grilla" id="grilla"><p class="vacio">Cargando…</p></div></section>
@@ -186,33 +185,124 @@
     if (!lista.length) { el.innerHTML = '<p class="vacio">Nada por acá todavía.</p>'; return; }
     for (const p of lista) el.appendChild(tarjeta(p));
   }
-  // Barra superior: todo lo que falle se oculta sin ruido.
+  // Barra superior: el cielo de esta noche, calculado en el navegador. Tocar un astro abre su explicación.
   const ART = 3 * 3600e3; // Argentina es UTC-3 todo el año.
   const hoyArg = () => new Date(Date.now() - ART);
   const fechaCorta = (iso) => { const [y, m, d] = iso.split("-").map(Number); return `${d} ${["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"][m - 1]}`; };
-  function pintarBarra() {
-    const vis = visibles();
-    if (!vis.length) return;
-    const ultima = vis.map((p) => p.actualizado || p.desde || "").sort().pop();
-    if (ultima) {
-      const h = hoyArg(); const dias = Math.round((Date.UTC(h.getUTCFullYear(), h.getUTCMonth(), h.getUTCDate()) - new Date(ultima + "T00:00:00Z")) / 864e5);
-      $("#bUltimaCuando").textContent = dias <= 0 ? "Anoche" : `Hace ${dias} ${dias === 1 ? "noche" : "noches"} · ${fechaCorta(ultima)}`;
-      const que = $("#bUltimaQue"); que.innerHTML = "";
-      const salieron = vis.filter((p) => p.desde === ultima || p.actualizado === ultima).sort((a, b) => (a.desde === ultima ? 0 : 1) - (b.desde === ultima ? 0 : 1));
-      for (const p of salieron.slice(0, 3)) { const a = document.createElement("a"); a.href = p.probar; a.textContent = p.nombre; que.appendChild(a); }
-      if (salieron.length > 3) { const a = document.createElement("a"); a.href = "https://github.com/fnguerrero/working-folder-auto/blob/main/BITACORA.md"; a.textContent = `y ${salieron.length - 3} más`; que.appendChild(a); }
-      $("#bUltima").hidden = false;
-    }
+  const TX = "︎"; // que los glifos salgan como texto y no como emoji
+  const SIGNOS = [ // nombre, glifo, elemento, modalidad, regente tradicional, de qué va
+    ["Aries", "♈", "fuego", "cardinal", "Marte", "la iniciativa, el impulso y el coraje: arranca primero y pregunta después"],
+    ["Tauro", "♉", "tierra", "fijo", "Venus", "la estabilidad, los sentidos y la paciencia: construye despacio y disfruta lo concreto"],
+    ["Géminis", "♊", "aire", "mutable", "Mercurio", "la curiosidad, la palabra y el intercambio: quiere saber un poco de todo"],
+    ["Cáncer", "♋", "agua", "cardinal", "la Luna", "el cuidado, el hogar y la memoria: protege a los suyos"],
+    ["Leo", "♌", "fuego", "fijo", "el Sol", "la expresión, el orgullo y la generosidad: brilla y quiere que lo vean"],
+    ["Virgo", "♍", "tierra", "mutable", "Mercurio", "el análisis, el detalle y el servicio: ordena y mejora lo que toca"],
+    ["Libra", "♎", "aire", "cardinal", "Venus", "el equilibrio, los vínculos y la estética: busca lo justo y lo armonioso"],
+    ["Escorpio", "♏", "agua", "fijo", "Marte (y Plutón en la astrología moderna)", "la intensidad, lo oculto y la transformación: va a fondo o no va"],
+    ["Sagitario", "♐", "fuego", "mutable", "Júpiter", "la búsqueda de sentido, los viajes y el optimismo: apunta lejos"],
+    ["Capricornio", "♑", "tierra", "cardinal", "Saturno", "la ambición, la estructura y la constancia: sube la montaña paso a paso"],
+    ["Acuario", "♒", "aire", "fijo", "Saturno (y Urano en la astrología moderna)", "la originalidad, el grupo y el futuro: piensa distinto y en colectivo"],
+    ["Piscis", "♓", "agua", "mutable", "Júpiter (y Neptuno en la astrología moderna)", "la sensibilidad, la imaginación y la entrega: se funde con lo que siente"],
+  ];
+  const ELEMENTO = { fuego: "el impulso y el entusiasmo", tierra: "lo concreto y lo práctico", aire: "las ideas y los vínculos", agua: "las emociones y la intuición" };
+  const MODALIDAD = { cardinal: "abre una estación: inicia", fijo: "está en el medio de la estación: sostiene", mutable: "cierra la estación: se adapta" };
+  const ASTROS = { // dom: signos donde está en su casa; exalt: donde se exalta (las caídas y los exilios son los opuestos)
+    sol: { nombre: "Sol", con: "el Sol", glifo: "☉", rige: "la identidad, la voluntad y la vitalidad: lo que sos en esencia", ritmo: "Pasa un mes en cada signo.", dom: [4], exalt: 0 },
+    luna: { nombre: "Luna", con: "la Luna", glifo: "☽", rige: "las emociones, los hábitos y lo que necesitás para sentirte a salvo", ritmo: "Cambia de signo cada dos días y medio.", dom: [3], exalt: 1 },
+    mercurio: { nombre: "Mercurio", con: "Mercurio", glifo: "☿", rige: "la mente, la palabra, los papeles y los viajes cortos", ritmo: "Nunca se aleja más de 28° del Sol y tres o cuatro veces por año queda retrógrado.", dom: [2, 5], exalt: 5 },
+    venus: { nombre: "Venus", con: "Venus", glifo: "♀", rige: "el amor, el placer, el gusto y lo que valorás (también la plata)", ritmo: "Acompaña al Sol: es el lucero del alba o de la tarde.", dom: [1, 6], exalt: 11 },
+    marte: { nombre: "Marte", con: "Marte", glifo: "♂", rige: "la acción, el deseo, el coraje y el enojo", ritmo: "Pasa un mes y medio en cada signo, más cuando está retrógrado.", dom: [0, 7], exalt: 9 },
+    jupiter: { nombre: "Júpiter", con: "Júpiter", glifo: "♃", rige: "la expansión, la suerte, la fe y los viajes largos", ritmo: "Pasa un año en cada signo.", dom: [8, 11], exalt: 3 },
+    saturno: { nombre: "Saturno", con: "Saturno", glifo: "♄", rige: "los límites, la responsabilidad, el tiempo y la madurez", ritmo: "Pasa dos años y medio en cada signo; vuelve a donde estaba cuando naciste a los 29 años.", dom: [9, 10], exalt: 6 },
+  };
+  const ORDEN = ["luna", "sol", "mercurio", "venus", "marte", "jupiter", "saturno"];
+  const REGENTES = ["sol", "luna", "marte", "mercurio", "jupiter", "venus", "saturno"]; // de domingo a sábado
+  const rad = (g) => g * Math.PI / 180; const norm = (g) => ((g % 360) + 360) % 360;
+  // Elementos orbitales a, e, I, L, ϖ, Ω y su variación por siglo (JPL, «Approximate Positions of the Planets», 1800-2050).
+  const ORBITAS = {
+    mercurio: [0.38709927, 0.20563593, 7.00497902, 252.25032350, 77.45779628, 48.33076593, 0.00000037, 0.00001906, -0.00594749, 149472.67411175, 0.16047689, -0.12534081],
+    venus: [0.72333566, 0.00677672, 3.39467605, 181.97909950, 131.60246718, 76.67984255, 0.00000390, -0.00004107, -0.00078890, 58517.81538729, 0.00268329, -0.27769418],
+    tierra: [1.00000261, 0.01671123, -0.00001531, 100.46457166, 102.93768193, 0, 0.00000562, -0.00004392, -0.01294668, 35999.37244981, 0.32327364, 0],
+    marte: [1.52371034, 0.09339410, 1.84969142, -4.55343205, -23.94362959, 49.55953891, 0.00001847, 0.00007882, -0.00813131, 19140.30268499, 0.44441088, -0.29257343],
+    jupiter: [5.20288700, 0.04838624, 1.30439695, 34.39644051, 14.72847983, 100.47390909, -0.00011607, -0.00013253, -0.00183714, 3034.74612775, 0.21252668, 0.20469106],
+    saturno: [9.53667594, 0.05386179, 2.48599187, 49.95424423, 92.59887831, 113.66242448, -0.00125060, -0.00050991, 0.00193609, 1222.49362201, -0.41897216, -0.28867794],
+  };
+  function helio(k, t) {
+    const o = ORBITAS[k]; const [a, e, i, l, w, n] = o.slice(0, 6).map((v, j) => v + o[j + 6] * t);
+    const m = rad(norm(l - w)); let E = m; for (let r = 0; r < 8; r++) E -= (E - e * Math.sin(E) - m) / (1 - e * Math.cos(E));
+    const x = a * (Math.cos(E) - e), y = a * Math.sqrt(1 - e * e) * Math.sin(E);
+    const W = rad(w - n), N = rad(n), I = rad(i);
+    return [(Math.cos(W) * Math.cos(N) - Math.sin(W) * Math.sin(N) * Math.cos(I)) * x - (Math.sin(W) * Math.cos(N) + Math.cos(W) * Math.sin(N) * Math.cos(I)) * y,
+      (Math.cos(W) * Math.sin(N) + Math.sin(W) * Math.cos(N) * Math.cos(I)) * x + (Math.cos(W) * Math.cos(N) * Math.cos(I) - Math.sin(W) * Math.sin(N)) * y];
   }
-  function pintarLuna() {
+  // Longitud eclíptica geocéntrica del día, en grados (error de un grado o dos: alcanza para el signo).
+  function longitud(k, ms) {
+    const d = (ms - Date.UTC(2000, 0, 1, 12)) / 864e5; const t = d / 36525; const g = rad(357.528 + 0.9856003 * d);
+    if (k === "sol") return norm(280.460 + 0.9856474 * d + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g));
+    if (k === "luna") { const m = rad(134.963 + 13.064993 * d), e = rad(297.850 + 12.190749 * d); return norm(218.316 + 13.176396 * d + 6.289 * Math.sin(m) + 1.274 * Math.sin(2 * e - m) + 0.658 * Math.sin(2 * e) - 0.186 * Math.sin(g)); }
+    const p = helio(k, t), tierra = helio("tierra", t);
+    return norm(Math.atan2(p[1] - tierra[1], p[0] - tierra[0]) * 180 / Math.PI + 1.3969713 * t); // + precesión desde J2000
+  }
+  function faseLuna() {
     // Edad de la luna desde la luna nueva del 2000-01-06 18:14 UTC, en meses sinódicos.
     const edad = (((Date.now() - Date.UTC(2000, 0, 6, 18, 14)) / 864e5 / 29.530588853) % 1 + 1) % 1;
     const fases = [[0, "🌑", "Luna nueva"], [0.25, "🌓", "Cuarto creciente"], [0.5, "🌕", "Luna llena"], [0.75, "🌗", "Cuarto menguante"], [1, "🌑", "Luna nueva"]];
-    let fase = fases.find((f) => Math.abs(edad - f[0]) < 0.034);
-    if (!fase) fase = edad < 0.25 ? [0, "🌒", "Luna creciente"] : edad < 0.5 ? [0, "🌔", "Luna gibosa creciente"] : edad < 0.75 ? [0, "🌖", "Luna gibosa menguante"] : [0, "🌘", "Luna menguante"];
-    const luz = Math.round((1 - Math.cos(2 * Math.PI * edad)) / 2 * 100);
-    $("#bLunaValor").textContent = `${fase[1]} ${luz} %`; $("#bLuna").querySelector("small").textContent = fase[2]; $("#bLuna").title = "La luna de esta noche (iluminada al " + luz + " %). Vista desde Argentina se ve espejada respecto del dibujo."; $("#bLuna").hidden = false;
+    let f = fases.find((x) => Math.abs(edad - x[0]) < 0.034);
+    if (!f) f = edad < 0.25 ? [0, "🌒", "Luna creciente"] : edad < 0.5 ? [0, "🌔", "Luna gibosa creciente"] : edad < 0.75 ? [0, "🌖", "Luna gibosa menguante"] : [0, "🌘", "Luna menguante"];
+    const sentido = edad < 0.03 || edad > 0.97 ? "es momento de sembrar intenciones: lo que se empieza ahora crece con la luna"
+      : edad < 0.47 ? "es la etapa de impulsar lo que empezó: la luz crece noche a noche"
+      : edad < 0.53 ? "es la culminación: todo se ve con claridad, también lo que no funciona"
+      : "es la etapa de soltar, ordenar y cerrar lo que quedó pendiente";
+    return { emoji: f[1], nombre: f[2], luz: Math.round((1 - Math.cos(2 * Math.PI * edad)) / 2 * 100), sentido };
   }
+  const cielo = {};
+  function pintarCielo() {
+    const ahora = Date.now(); const barra = $("#barra"); barra.innerHTML = ""; const luna = faseLuna();
+    const tile = (k, etiqueta, valor) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "tile"; b.dataset.astro = k; b.setAttribute("aria-expanded", "false");
+      const s = document.createElement("small"); s.textContent = etiqueta; const v = document.createElement("b"); v.textContent = valor;
+      b.append(s, v); b.addEventListener("click", () => explicar(k)); barra.appendChild(b);
+    };
+    for (const k of ORDEN) {
+      const lon = longitud(k, ahora); const s = Math.floor(lon / 30);
+      const retro = k !== "sol" && k !== "luna" && norm(longitud(k, ahora + 864e5) - lon + 180) - 180 < 0;
+      cielo[k] = { s, grado: Math.floor(lon % 30), retro };
+      tile(k, k === "luna" ? luna.nombre : ASTROS[k].nombre, `${k === "luna" ? luna.emoji : ASTROS[k].glifo + TX} ${SIGNOS[s][0]}${retro ? " ℞" : ""}`);
+    }
+    const r = REGENTES[hoyArg().getUTCDay()]; tile("dia", "Hoy rige", `${ASTROS[r].glifo}${TX} ${ASTROS[r].nombre}`);
+  }
+  function explicar(k) {
+    const panel = $("#astro"); const cerrar = !panel.hidden && panel.dataset.astro === k;
+    for (const b of document.querySelectorAll("#barra .tile")) b.setAttribute("aria-expanded", String(!cerrar && b.dataset.astro === k));
+    if (cerrar) { panel.hidden = true; return; }
+    panel.dataset.astro = k; let titulo; let chips = []; const parrafos = [];
+    if (k === "dia") {
+      const r = ASTROS[REGENTES[hoyArg().getUTCDay()]];
+      titulo = `${r.glifo}${TX} Hoy rige ${r.con}`;
+      parrafos.push("Cada día de la semana está regido por uno de los siete astros que se veían a simple vista, y de ahí salen sus nombres: lunes de la Luna, martes de Marte, miércoles de Mercurio, jueves de Júpiter y viernes de Venus. El sábado y el domingo cambiaron de nombre por el sabbat y el dominus, pero siguen siendo de Saturno y del Sol (en inglés se nota: Saturday, Sunday).");
+      parrafos.push(`${r.con[0].toUpperCase() + r.con.slice(1)} rige ${r.rige}: según la tradición, es un buen día para eso.`);
+    } else {
+      const a = ASTROS[k], c = cielo[k], sg = SIGNOS[c.s];
+      titulo = `${a.glifo}${TX} ${a.nombre} en ${sg[0]}${c.retro ? " ℞" : ""}`;
+      chips = [`${c.grado}° de ${sg[0]}`, `${sg[1]}${TX} ${sg[2]}`, sg[3], `lo rige ${sg[4].replace(/ \(.*/, "")}`];
+      if (k === "luna") { const l = faseLuna(); chips.unshift(`${l.emoji} ${l.luz} % iluminada`); }
+      parrafos.push(`${a.con[0].toUpperCase() + a.con.slice(1)} habla de ${a.rige}. ${a.ritmo}`);
+      parrafos.push(`${sg[0]} es de ${sg[2]} (${ELEMENTO[sg[2]]}) y ${sg[3]} (${MODALIDAD[sg[3]]}). Va de ${sg[5]}. Lo rige ${sg[4]}.`);
+      const opuesto = (c.s + 6) % 12;
+      if (a.dom.includes(c.s)) parrafos.push(`Está en su domicilio: ${sg[0]} es uno de sus signos, así que se expresa con naturalidad.`);
+      else if (a.dom.includes(opuesto)) parrafos.push(`Está en exilio: ${sg[0]} es el opuesto de su casa y le cuesta expresarse a su manera.`);
+      else if (a.exalt === c.s) parrafos.push(`Está exaltado: en ${sg[0]} da su mejor versión.`);
+      else if ((a.exalt + 6) % 12 === c.s) parrafos.push(`Está en caída: ${sg[0]} es el opuesto de su exaltación y le cuesta rendir.`);
+      if (k === "luna") parrafos.push(`Es ${faseLuna().nombre.toLowerCase()}: ${faseLuna().sentido}.`);
+      if (c.retro) parrafos.push("Está retrógrado: visto desde la Tierra parece ir para atrás unas semanas, un efecto de perspectiva porque los dos planetas se mueven a distinta velocidad. En astrología es tiempo de revisar, corregir y volver sobre lo hecho más que de empezar.");
+    }
+    $("#astroTitulo").textContent = titulo;
+    const ch = $("#astroChips"); ch.innerHTML = ""; for (const t of chips) { const s = document.createElement("span"); s.textContent = t; ch.appendChild(s); }
+    const tx = $("#astroTexto"); tx.innerHTML = ""; for (const t of parrafos) { const p = document.createElement("p"); p.textContent = t; tx.appendChild(p); }
+    panel.hidden = false; if (panel.getBoundingClientRect().top > innerHeight * .6) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  $("#astroCerrar").addEventListener("click", () => { const k = $("#astro").dataset.astro; if (k) explicar(k); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#astro").hidden) explicar($("#astro").dataset.astro); });
   const FRASES = [
     ["Mejor encender una vela que maldecir la oscuridad.", "Proverbio chino"],
     ["No es que tengamos poco tiempo, sino que perdemos mucho.", "Séneca"],
@@ -233,37 +323,12 @@
     ["Caminante, no hay camino: se hace camino al andar.", "Antonio Machado"],
     ["La noche es más oscura justo antes del amanecer.", "Thomas Fuller"],
   ];
-  function pintarCielo() {
-    // Longitudes eclípticas aproximadas (error de un grado o dos), en días desde J2000.
-    const d = (Date.now() - Date.UTC(2000, 0, 1, 12)) / 864e5; const r = (g) => g * Math.PI / 180;
-    const g = 357.528 + 0.9856003 * d; const sol = 280.460 + 0.9856474 * d + 1.915 * Math.sin(r(g)) + 0.020 * Math.sin(r(2 * g));
-    const m = 134.963 + 13.064993 * d; const e = 297.850 + 12.190749 * d;
-    const luna = 218.316 + 13.176396 * d + 6.289 * Math.sin(r(m)) + 1.274 * Math.sin(r(2 * e - m)) + 0.658 * Math.sin(r(2 * e)) - 0.186 * Math.sin(r(g));
-    const signos = ["Aries", "Tauro", "Géminis", "Cáncer", "Leo", "Virgo", "Libra", "Escorpio", "Sagitario", "Capricornio", "Acuario", "Piscis"];
-    const signo = (l) => signos[Math.floor((((l % 360) + 360) % 360) / 30)];
-    $("#bCieloValor").textContent = `☉ ${signo(sol)} · ☽ ${signo(luna)}`; $("#bCielo").hidden = false;
-  }
   function pintarFrase() {
     // Una por noche: cambia a las 3 de Argentina, cuando corre la rutina.
     const [texto, autor] = FRASES[Math.floor((hoyArg().getTime() - 3 * 36e5) / 864e5) % FRASES.length];
     $("#bFraseTexto").textContent = texto; $("#bFraseAutor").textContent = autor; $("#bFrase").hidden = false;
   }
-  function pintarPedidos() {
-    if (typeof fetch !== "function") return;
-    fetch("https://api.github.com/repos/fnguerrero/working-folder-auto/issues?labels=noche&state=open&per_page=100", { headers: { Accept: "application/vnd.github+json" } })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((lista) => {
-        if (!Array.isArray(lista)) return;
-        const n = lista.filter((i) => !i.pull_request).length; const a = $("#bPedidosLink");
-        if (n) { a.textContent = `${n} en cola`; a.className = "pendiente"; }
-        else { a.textContent = "0 en cola"; a.title = "Dejale uno"; a.href = "https://github.com/fnguerrero/working-folder-auto/issues/new?labels=noche"; a.className = "ok"; }
-        $("#bPedidos").hidden = false;
-      })
-      .catch(() => {});
-  }
-  try { pintarLuna(); } catch (e) {}
   try { pintarCielo(); } catch (e) {}
-  try { pintarPedidos(); } catch (e) {}
   function marcarTema() {
     const t = document.documentElement.dataset.tema || (matchMedia("(prefers-color-scheme: dark)").matches ? "oscuro" : "claro");
     for (const b of document.querySelectorAll("#temas button")) b.setAttribute("aria-pressed", String(b.dataset.tema === t));
@@ -281,7 +346,7 @@
   leerHash();
   fetch("proyectos.json", { cache: "no-cache" })
     .then((r) => r.json())
-    .then((data) => { proyectos = data; pintarNav(); pintar(); try { pintarBarra(); pintarFrase(); } catch (e) {} })
+    .then((data) => { proyectos = data; pintarNav(); pintar(); try { pintarFrase(); } catch (e) {} })
     .catch(() => { $("#grilla").innerHTML = '<p class="vacio">No se pudo cargar la lista. Si lo abriste como archivo local, serví la carpeta con un servidor estático.</p>'; });
 })();
 </script>
