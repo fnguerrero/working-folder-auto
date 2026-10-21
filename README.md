@@ -42,4 +42,10 @@ Trabaja directo sobre `main`. Si algo no te gusta, se mueve a `_archivo/`.
 | El caché en vivo | experimentos | Simulador de caché con tráfico Zipf: siete políticas, hit rate contra la fórmula de Che, cuánto caché hace falta, TTL y la estampida cuando vence una clave caliente. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/experimentos/cache-en-vivo/) |
 | El tren | juegos | Un tren que silba cuando lo tocás, con túnel, barrera, nubes que llueven, sol, vacas y flores. Para Valentín. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/juegos/tren/) |
 
+## La vitrina
+
+`index.html` lee `proyectos.json` y arma el menú, los destacados y las cards. La barra de arriba muestra la última noche y qué salió, los contadores, cuánto falta para la próxima corrida (a las 3, hora de Argentina) y los pedidos en cola: ese último dato lo pide a la API pública de GitHub (`api.github.com`, sin token, 60 pedidos por hora por IP); si no responde, el ítem no se muestra y el resto sigue igual. Es la única llamada afuera de todo el sitio.
+
+Se prueba con `NODE_PATH=/opt/node-tools/node_modules node tests/vitrina.e2e.js` (Playwright con Chromium, a 375 y 1280 px, con la API simulada, vacía, con 403 y caída).
+
 Las convenciones de estructura y trabajo están en [CLAUDE.md](CLAUDE.md).

@@ -19,7 +19,16 @@
   :root[data-tema="nocturno"] .chip.cat { color: #10142b; }
   * { box-sizing: border-box; }
   body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.45; }
-  .marco { display: grid; grid-template-columns: 250px 1fr; min-height: 100vh; }
+  .marco { display: grid; grid-template-columns: 250px 1fr; grid-template-rows: auto 1fr; min-height: 100vh; }
+  .barra { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; padding: 8px 20px; font-size: .84rem; color: var(--muted); background: var(--card); border-bottom: 1px solid var(--line); }
+  .barra > span { display: inline-block; line-height: 26px; white-space: nowrap; }
+  .barra > span[hidden] { display: none; }
+  .barra b { color: var(--fg); font-weight: 600; }
+  .barra a { color: var(--accent); text-decoration: none; } .barra a:hover { text-decoration: underline; }
+  .barra .nombres { white-space: normal; }
+  .barra #bUltima { white-space: normal; }
+  .barra .nombres a + a::before { content: "· "; margin-left: .35em; color: var(--muted); }
+  .barra .ok { color: var(--c-apps); } .barra .pendiente { color: var(--c-juegos); font-weight: 600; }
   aside { background: var(--lateral); border-right: 1px solid var(--line); padding: 22px 16px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
   .marca { display: flex; align-items: center; gap: 10px; margin: 0 0 18px; }
   .logo { width: 40px; height: 40px; flex: none; }
@@ -69,6 +78,8 @@
   .menu-movil { display: none; }
   @media (max-width: 820px) {
     .marco { grid-template-columns: 1fr; }
+    .marco { grid-template-rows: auto auto 1fr; }
+    .barra { padding: 6px 16px; gap: 2px 14px; font-size: .8rem; }
     aside { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 16px; }
     .grupo h2 { margin-top: 10px; }
     nav { display: flex; flex-wrap: wrap; gap: 4px; } nav button { width: auto; min-height: 34px; padding: 5px 10px; font-size: .86rem; border: 1px solid var(--line); border-radius: 999px; } nav button .n { margin-left: 4px; }
@@ -79,12 +90,18 @@
 </head>
 <body>
 <div class="marco">
+  <header class="barra" id="barra" aria-label="De un vistazo">
+    <span id="bUltima" hidden>🌙 <span>Última noche <b id="bUltimaCuando"></b>:</span> <span class="nombres" id="bUltimaQue"></span></span>
+    <span id="bCuenta" hidden>📦 <b id="bTotal"></b> proyectos, <span id="bTerminados"></span> <span id="bEnCurso" hidden></span></span>
+    <span id="bProxima" hidden title="Corre todas las noches a las 3, hora de Argentina">⏰ Próxima noche <b id="bProximaEn"></b></span>
+    <span id="bPedidos" hidden>📬 <a id="bPedidosLink" href="https://github.com/fnguerrero/working-folder-auto/issues?q=is%3Aissue+is%3Aopen+label%3Anoche"></a></span>
+  </header>
   <aside>
     <div class="marca"><svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><defs><mask id="luna"><rect width="40" height="40" fill="#fff"/><circle cx="29.5" cy="11.5" r="8" fill="#000"/></mask></defs><rect width="40" height="40" rx="10" fill="#141a3d"/><circle cx="9" cy="9" r="1" fill="#fff" opacity=".7"/><circle cx="15" cy="5.5" r=".7" fill="#fff" opacity=".5"/><circle cx="33" cy="25" r=".8" fill="#fff" opacity=".6"/><circle cx="25" cy="15" r="9" fill="#ffd27a" mask="url(#luna)"/><path d="M8 25.5l4 3.2-4 3.2" fill="none" stroke="#9d93ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><rect class="cursor" x="14.5" y="30" width="7" height="2.4" rx="1" fill="#9d93ff"/></svg><h1>Programador nocturno</h1></div>
     <input class="buscar" id="buscar" type="search" placeholder="Buscar…" aria-label="Buscar proyectos">
     <div class="grupo"><h2>Categorías</h2><nav id="categorias" aria-label="Categorías"></nav></div>
     <div class="grupo"><h2>Para quién</h2><nav id="publicos" aria-label="Para quién"></nav></div>
-    <p class="pie"><span id="cuenta"></span><br><a href="https://github.com/fnguerrero/working-folder-auto">El repo</a> · <a href="https://github.com/fnguerrero/working-folder-auto/blob/main/BITACORA.md">La bitácora</a></p>
+    <p class="pie"><a href="https://github.com/fnguerrero/working-folder-auto">El repo</a> · <a href="https://github.com/fnguerrero/working-folder-auto/blob/main/BITACORA.md">La bitácora</a></p>
     <div class="temas" id="temas" role="group" aria-label="Tema"><button data-tema="claro">Claro</button><button data-tema="oscuro">Oscuro</button><button data-tema="nocturno">Nocturno</button></div>
   </aside>
   <main>
@@ -121,7 +138,6 @@
       b.innerHTML = `<span>${nombre}</span><span class="n">${n}</span>`;
       b.onclick = () => { publico = clave; escribirHash(); pintarNav(); pintar(); }; pub.appendChild(b);
     }
-    $("#cuenta").textContent = `${vis.length} proyectos, ${vis.filter((p) => p.estado === "terminado").length} terminados.`;
   }
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   function tarjeta(p) {
@@ -149,6 +165,49 @@
     if (!lista.length) { el.innerHTML = '<p class="vacio">Nada por acá todavía.</p>'; return; }
     for (const p of lista) el.appendChild(tarjeta(p));
   }
+  // Barra superior: todo lo que falle se oculta sin ruido.
+  const ART = 3 * 3600e3; // Argentina es UTC-3 todo el año.
+  const hoyArg = () => new Date(Date.now() - ART);
+  const fechaCorta = (iso) => { const [y, m, d] = iso.split("-").map(Number); return `${d} ${["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"][m - 1]}`; };
+  function pintarBarra() {
+    const vis = visibles();
+    if (!vis.length) return;
+    const terminados = vis.filter((p) => p.estado === "terminado").length; const enCurso = vis.filter((p) => p.estado === "en curso").length;
+    $("#bTotal").textContent = vis.length; $("#bTerminados").textContent = `${terminados} ${terminados === 1 ? "terminado" : "terminados"}`;
+    $("#bEnCurso").textContent = `y ${enCurso} en curso`; $("#bEnCurso").hidden = !enCurso; $("#bCuenta").hidden = false;
+    const ultima = vis.map((p) => p.desde || "").sort().pop();
+    if (ultima) {
+      const h = hoyArg(); const dias = Math.round((Date.UTC(h.getUTCFullYear(), h.getUTCMonth(), h.getUTCDate()) - new Date(ultima + "T00:00:00Z")) / 864e5);
+      $("#bUltimaCuando").textContent = dias <= 0 ? "(anoche)" : `(${fechaCorta(ultima)}, hace ${dias} ${dias === 1 ? "noche" : "noches"})`;
+      const que = $("#bUltimaQue"); que.innerHTML = "";
+      const salieron = vis.filter((p) => p.desde === ultima);
+      for (const p of salieron.slice(0, 3)) { const a = document.createElement("a"); a.href = p.probar; a.textContent = p.nombre; que.appendChild(a); }
+      if (salieron.length > 3) { const a = document.createElement("a"); a.href = "https://github.com/fnguerrero/working-folder-auto/blob/main/BITACORA.md"; a.textContent = `y ${salieron.length - 3} más`; que.appendChild(a); }
+      $("#bUltima").hidden = false;
+    }
+  }
+  function pintarProxima() {
+    const h = hoyArg(); let objetivo = Date.UTC(h.getUTCFullYear(), h.getUTCMonth(), h.getUTCDate(), 3);
+    if (h.getTime() >= objetivo) objetivo += 864e5;
+    const min = Math.round((objetivo - h.getTime()) / 6e4); const hs = Math.floor(min / 60); const mm = min % 60;
+    $("#bProximaEn").textContent = min > 1320 ? "ya arrancó, está trabajando" : min < 1 ? "en un minuto" : `en ${hs ? `${hs} h` : ""}${hs && mm ? " " : ""}${mm ? `${mm} min` : ""}`;
+    $("#bProxima").hidden = false;
+  }
+  function pintarPedidos() {
+    if (typeof fetch !== "function") return;
+    fetch("https://api.github.com/repos/fnguerrero/working-folder-auto/issues?labels=noche&state=open&per_page=100", { headers: { Accept: "application/vnd.github+json" } })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((lista) => {
+        if (!Array.isArray(lista)) return;
+        const n = lista.filter((i) => !i.pull_request).length; const a = $("#bPedidosLink");
+        if (n) { a.textContent = `${n} ${n === 1 ? "pedido" : "pedidos"} en cola`; a.className = "pendiente"; }
+        else { a.textContent = "Sin pedidos en cola, dejale uno"; a.href = "https://github.com/fnguerrero/working-folder-auto/issues/new?labels=noche"; a.className = "ok"; }
+        $("#bPedidos").hidden = false;
+      })
+      .catch(() => {});
+  }
+  try { pintarProxima(); setInterval(pintarProxima, 3e4); } catch (e) {}
+  try { pintarPedidos(); } catch (e) {}
   function marcarTema() {
     const t = document.documentElement.dataset.tema || (matchMedia("(prefers-color-scheme: dark)").matches ? "oscuro" : "claro");
     for (const b of document.querySelectorAll("#temas button")) b.setAttribute("aria-pressed", String(b.dataset.tema === t));
@@ -165,7 +224,7 @@
   leerHash();
   fetch("proyectos.json", { cache: "no-cache" })
     .then((r) => r.json())
-    .then((data) => { proyectos = data; pintarNav(); pintar(); })
+    .then((data) => { proyectos = data; pintarNav(); pintar(); try { pintarBarra(); } catch (e) {} })
     .catch(() => { $("#grilla").innerHTML = '<p class="vacio">No se pudo cargar la lista. Si lo abriste como archivo local, serví la carpeta con un servidor estático.</p>'; });
 })();
 </script>
