@@ -22,13 +22,23 @@ async function probar(browser, url, viewport, api) {
   });
   await page.goto(url); await page.waitForSelector(".tarjeta"); await page.waitForTimeout(300);
   const barra = page.locator("#barra"); assert.ok(await barra.isVisible(), "la barra se ve");
-  const caja = await barra.boundingBox(); assert.ok(caja.y < 2 && caja.width >= viewport.width - 1, `la barra va arriba de todo y a lo ancho (${JSON.stringify(caja)})`);
+  const caja = await barra.boundingBox(); const lateral = await page.locator("aside").boundingBox();
+  if (viewport.width >= 960) { assert.ok(caja.y < 2 && Math.abs(caja.x - 250) < 2 && Math.abs(caja.x + caja.width - viewport.width) < 2, `la barra va arriba, solo sobre el contenido (${JSON.stringify(caja)})`); assert.ok(lateral.y < 2 && lateral.height >= viewport.height - 1, "el lateral sube hasta arriba"); }
+  else assert.ok(caja.y < 2 && caja.width >= viewport.width - 1, `la barra va arriba y a lo ancho (${JSON.stringify(caja)})`);
+  const ultimoItem = await page.locator("#barra > span:not([hidden])").last().boundingBox(); assert.ok(Math.abs(ultimoItem.x + ultimoItem.width - (caja.x + caja.width)) < 24, "alineada a la derecha");
+  assert.ok(/^🌑|🌒|🌓|🌔|🌕|🌖|🌗|🌘/u.test(await page.locator("#bLuna").innerText()) && /\d+ %/.test(await page.locator("#bLuna").innerText()), "la luna");
+  assert.ok(/\d+ noches? seguidas/.test(await page.locator("#bRacha").innerText()), "la racha");
+  const dato = page.locator("#bDatoLink"); const hrefDato = await dato.getAttribute("href"); assert.ok((await dato.innerText()).length > 20 && proyectos.some((p) => p.probar === hrefDato), "el dato linkea a un proyecto");
+  assert.ok((await page.locator(".tarjeta .fechas").first().innerText()).startsWith("Creado el "), "las cards tienen fecha");
+  assert.equal(await page.locator("#orden button[aria-pressed=true]").getAttribute("data-orden"), "actividad");
+  await page.click("#orden button[data-orden=nombre]"); const nombres = await page.locator("#grilla .tarjeta h3").allInnerTexts(); assert.deepEqual(nombres, nombres.slice().sort((a, b) => a.localeCompare(b, "es")), "ordenado por nombre");
+  assert.ok((await page.evaluate(() => location.hash)).includes("orden=nombre")); await page.click("#orden button[data-orden=actividad]");
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), "sin scroll horizontal");
   const terminados = proyectos.filter((p) => p.estado === "terminado").length; const enCurso = proyectos.filter((p) => p.estado === "en curso").length;
   const cuenta = await page.locator("#bCuenta").innerText(); assert.ok(cuenta.includes(`${proyectos.length} proyectos`) && cuenta.includes(`${terminados} terminado`), `contadores: ${cuenta}`);
   assert.equal(await page.locator("#bEnCurso").isVisible(), enCurso > 0, "en curso solo si hay");
   assert.equal(await page.locator("#cuenta").count(), 0, "la cuenta ya no está en el lateral");
-  const ultima = proyectos.map((p) => p.desde).sort().pop(); const salieron = proyectos.filter((p) => p.desde === ultima);
+  const ultima = proyectos.map((p) => p.actualizado || p.desde).sort().pop(); const salieron = proyectos.filter((p) => p.desde === ultima || p.actualizado === ultima).sort((a, b) => (a.desde === ultima ? 0 : 1) - (b.desde === ultima ? 0 : 1));
   const links = await page.locator("#bUltimaQue a").allInnerTexts(); assert.ok(links.length === Math.min(salieron.length, 3) + (salieron.length > 3 ? 1 : 0) && links[0] === salieron[0].nombre, `última noche: ${links}`);
   assert.ok(/anoche|hace \d+ noches?/.test(await page.locator("#bUltimaCuando").innerText()), "cuándo fue la última noche");
   const prox = await page.locator("#bProximaEn").innerText(); assert.ok(/^en (\d+ h( \d+ min)?|\d+ min|un minuto)$|ya arrancó/.test(prox), `próxima: ${prox}`);

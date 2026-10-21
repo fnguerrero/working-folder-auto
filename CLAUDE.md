@@ -17,7 +17,8 @@ https://fnguerrero.github.io/working-folder-auto/, así que nunca van datos pers
 - Cada proyecto tiene su propio `README.md`: qué es, estado, cómo se prueba y, si aplica, qué no se pudo probar.
 - La spec, el checklist y la bitácora de un proyecto de varias noches van en `<proyecto>/.nonstop/`.
 - Al crear, terminar o archivar un proyecto se actualizan `proyectos.json` (lo lee la vitrina, `index.html`) y la tabla del `README.md` de la raíz.
-- Cada entrada de `proyectos.json` lleva, además de slug, nombre, categoría, descripción (una línea), estado, probar y desde: `icono` (un emoji), `para` (`1+` para Valentín, sin puntaje ni derrota; `3+` chicos que siguen una consigna; `todos` para cualquiera; `devs` para programadores .NET), `detalle` (dos o tres oraciones: qué es y para qué sirve, se ve al desplegar «Qué es, un poco más») y `destacado` (true para que salga en «Lo más copado»; no más de diez).
+- Cada entrada de `proyectos.json` lleva, además de slug, nombre, categoría, descripción (una línea), estado, probar y desde: `icono` (un emoji), `para` (`1+` para Valentín, sin puntaje ni derrota; `3+` chicos que siguen una consigna; `todos` para cualquiera; `devs` para programadores .NET), `detalle` (dos o tres oraciones: qué es y para qué sirve, se ve al desplegar «Qué es, un poco más») y `destacado` (true para que salga en «Lo más copado»; no más de diez). También `actualizado` (AAAA-MM-DD de la última vez que se tocó el proyecto; al crearlo es igual a `desde`). Opcional: `dato`, un hallazgo medido en el proyecto en una línea corta (sale rotando en «💡» de la barra superior).
+- Volver sobre un proyecto terminado para mejorarlo es bienvenido (una idea nueva, una función que le falta, algo que se puede hacer mejor): se commitea y pushea antes lo que esté a medias, se hace la mejora, se actualiza `actualizado` y va en la bitácora como `mejora`.
 - Estados: `en curso`, `terminado`, `archivado`. Como máximo 3 `en curso` a la vez.
 
 ## Cómo se trabaja
