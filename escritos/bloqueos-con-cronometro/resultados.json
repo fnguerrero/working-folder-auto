@@ -1,0 +1,546 @@
+{
+ "servidor": "Microsoft SQL Server 2022 (RTM-CU27-GDR) (KB5126934) - 16.0.4305.5 (X64) · 4 CPU, 12 GB",
+ "fecha": "2026-10-21T06:27:25.334Z",
+ "experimentos": {
+  "bloqueo": {
+   "bloqueosDelUpdate": [
+    {
+     "tipo": "KEY",
+     "modo": "X",
+     "estado": "GRANT",
+     "n": 1
+    },
+    {
+     "tipo": "OBJECT",
+     "modo": "IX",
+     "estado": "GRANT",
+     "n": 1
+    },
+    {
+     "tipo": "PAGE",
+     "modo": "IX",
+     "estado": "GRANT",
+     "n": 1
+    }
+   ],
+   "lectorMismaFila": {
+    "ms": 2090,
+    "vioEstado": 9,
+    "mientrasEsperaba": {
+     "status": "suspended",
+     "wait_type": "LCK_M_S",
+     "wait_time": 516,
+     "blocking_session_id": 70,
+     "wait_resource": "KEY: 5:72057594045857792 (1f00de11a529)",
+     "last_wait_type": "LCK_M_S"
+    }
+   },
+   "lectorOtraFila": {
+    "ms": 2
+   },
+   "countEstrella": {
+    "ms": 21
+   },
+   "sumTotal": {
+    "ms": 1569,
+    "mientrasEsperaba": {
+     "status": "suspended",
+     "wait_type": "LCK_M_S",
+     "wait_time": 510,
+     "blocking_session_id": 70,
+     "wait_resource": "PAGE: 5:1:557 ",
+     "last_wait_type": "LCK_M_S"
+    }
+   }
+  },
+  "escalada": {
+   "filas4000": {
+    "msUpdate": 12,
+    "bloqueos": [
+     {
+      "tipo": "KEY",
+      "modo": "X",
+      "estado": "GRANT",
+      "n": 4000
+     },
+     {
+      "tipo": "OBJECT",
+      "modo": "IX",
+      "estado": "GRANT",
+      "n": 1
+     },
+     {
+      "tipo": "PAGE",
+      "modo": "IX",
+      "estado": "GRANT",
+      "n": 57
+     }
+    ],
+    "lectorFilaLejana": {
+     "ms": 4
+    }
+   },
+   "filas7000": {
+    "msUpdate": 18,
+    "bloqueos": [
+     {
+      "tipo": "OBJECT",
+      "modo": "X",
+      "estado": "GRANT",
+      "n": 1
+     }
+    ],
+    "lectorFilaLejana": {
+     "ms": 423,
+     "mientrasEsperaba": {
+      "status": "suspended",
+      "wait_type": "LCK_M_IS",
+      "wait_time": 403,
+      "blocking_session_id": 72,
+      "wait_resource": "OBJECT: 5:965578478:0 ",
+      "last_wait_type": "LCK_M_IS"
+     }
+    }
+   },
+   "filas7000SinEscalada": {
+    "bloqueos": [
+     {
+      "tipo": "KEY",
+      "modo": "X",
+      "estado": "GRANT",
+      "n": 7000
+     },
+     {
+      "tipo": "OBJECT",
+      "modo": "IX",
+      "estado": "GRANT",
+      "n": 1
+     },
+     {
+      "tipo": "PAGE",
+      "modo": "IX",
+      "estado": "GRANT",
+      "n": 100
+     }
+    ],
+    "totalBloqueos": 7102,
+    "lectorFilaLejana": {
+     "ms": 3
+    }
+   },
+   "porTandas": {
+    "tandas": 4,
+    "ms": 35
+   }
+  },
+  "nolock": {
+   "stockRealAntes": 100,
+   "leidoConNolock": 0,
+   "lecturaNormal": {
+    "ms": 1518,
+    "error": {
+     "numero": 1222,
+     "mensaje": "Lock request time out period exceeded."
+    }
+   },
+   "stockDespuesDelRollback": 100,
+   "conteo": {
+    "real": {
+     "filas": 200000,
+     "total": 5019900000
+    },
+    "corridas": 40,
+    "distintas": 38,
+    "ejemplos": [
+     {
+      "filas": 199956,
+      "total": 5019356390
+     },
+     {
+      "filas": 199957,
+      "total": 5018171627
+     },
+     {
+      "filas": 199972,
+      "total": 5019665122
+     }
+    ],
+    "alFinalConLock": {
+     "filas": 200000,
+     "total": 5019900000
+    }
+   }
+  },
+  "perdida": {
+   "concurrentes": 40,
+   "readCommitted": {
+    "esperado": 60,
+    "stockFinal": 99,
+    "perdidas": 39,
+    "ms": 269,
+    "errores": {},
+    "reintentos": 0,
+    "agotados": 0
+   },
+   "rcsi": {
+    "esperado": 60,
+    "stockFinal": 99,
+    "perdidas": 39,
+    "ms": 252,
+    "errores": {},
+    "reintentos": 0,
+    "agotados": 0
+   },
+   "repeatableRead": {
+    "esperado": 60,
+    "stockFinal": 60,
+    "perdidas": 0,
+    "ms": 135822,
+    "errores": {
+     "1205": 1577
+    },
+    "reintentos": 1577,
+    "agotados": 0
+   },
+   "updlock": {
+    "esperado": 60,
+    "stockFinal": 60,
+    "perdidas": 0,
+    "ms": 1019,
+    "errores": {},
+    "reintentos": 0,
+    "agotados": 0
+   },
+   "atomico": {
+    "esperado": 60,
+    "stockFinal": 60,
+    "perdidas": 0,
+    "ms": 111,
+    "errores": {},
+    "reintentos": 0,
+    "agotados": 0
+   },
+   "rowversion": {
+    "esperado": 60,
+    "stockFinal": 60,
+    "perdidas": 0,
+    "ms": 1364,
+    "errores": {
+     "otro": 622
+    },
+    "reintentos": 622,
+    "agotados": 0
+   },
+   "snapshot": {
+    "esperado": 60,
+    "stockFinal": 60,
+    "perdidas": 0,
+    "ms": 1265,
+    "errores": {
+     "3960": 685
+    },
+    "reintentos": 685,
+    "agotados": 0
+   }
+  },
+  "serializable": {
+   "readCommitted": {
+    "pares": 10,
+    "commits": 20,
+    "filas": 20,
+    "horasDistintas": 10,
+    "deadlocks": 0,
+    "msHastaElDeadlock": null,
+    "errores": {},
+    "ms": 91
+   },
+   "serializable": {
+    "pares": 10,
+    "commits": 10,
+    "filas": 10,
+    "horasDistintas": 10,
+    "deadlocks": 10,
+    "msHastaElDeadlock": {
+     "min": 309,
+     "max": 317
+    },
+    "errores": {
+     "1205": 10
+    },
+    "ms": 366
+   },
+   "serializableUpdlock": {
+    "pares": 10,
+    "commits": 20,
+    "filas": 10,
+    "horasDistintas": 10,
+    "deadlocks": 0,
+    "msHastaElDeadlock": null,
+    "errores": {},
+    "ms": 895
+   },
+   "readCommittedUpdlockHoldlock": {
+    "pares": 10,
+    "commits": 20,
+    "filas": 10,
+    "horasDistintas": 10,
+    "deadlocks": 0,
+    "msHastaElDeadlock": null,
+    "errores": {},
+    "ms": 887
+   },
+   "unicoYCatch": {
+    "pares": 10,
+    "commits": 10,
+    "filas": 10,
+    "horasDistintas": 10,
+    "deadlocks": 0,
+    "msHastaElDeadlock": null,
+    "errores": {
+     "2601": 10
+    },
+    "ms": 88
+   }
+  },
+  "deadlock": {
+   "cruzado": {
+    "s1": {
+     "spid": 51,
+     "ms": 2647,
+     "error": null
+    },
+    "s2": {
+     "spid": 77,
+     "ms": 2642,
+     "error": {
+      "numero": 1205,
+      "mensaje": "Transaction (Process ID 77) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction."
+     }
+    },
+    "victima": "s2",
+    "grafo": "<deadlock><victim-list><victimProcess id=\"processf1a4868c8\"/></victim-list><process-list><process id=\"processf1a4868c8\" taskpriority=\"0\" logused=\"240\" waitresource=\"KEY: 5:72057594045988864 (8194443284a0)\" waittime=\"2426\" ownerId=\"125429\" transactionname=\"user_transaction\" lasttranstarted=\"2026-10-21T06:27:27.543\" XDES=\"0xf24230470\" lockMode=\"X\" schedulerid=\"4\" kpid=\"276\" status=\"suspended\" spid=\"77\" sbid=\"0\" ecid=\"0\" priority=\"0\" trancount=\"2\" lastbatchstarted=\"2026-10-21T06:27:27.757\" lastbatchcompleted=\"2026-10-21T06:27:27.550\" lastattention=\"1900-01-01T00:00:00.550\" clientapp=\"node-mssql\" hostname=\"vm\" hostpid=\"2032\" loginname=\"sa\" isolationlevel=\"read committed (2)\" xactid=\"125429\" currentdb=\"5\" currentdbname=\"Bloqueos\" lockTimeout=\"4294967295\" clientoption1=\"671156320\" clientoption2=\"62520\"><executionStack><frame procname=\"adhoc\" line=\"1\" stmtstart=\"38\" stmtend=\"172\" sqlhandle=\"0x020000005d9107290b953c72f9c823b0422483c563055b700000000000000000000000000000000000000000\">\nunknown    </frame><frame procname=\"adhoc\" line=\"1\" stmtend=\"118\" sqlhandle=\"0x020000004f283307dd566d7296f89f2f26303c2c20f4994b0000000000000000000000000000000000000000\">\nunknown    </frame></executionStack><inputbuf>\nUPDATE dbo.Cuentas SET Saldo = Saldo + 10 WHERE CuentaId = 1   </inputbuf></process><process id=\"processf15d4fc28\" taskpriority=\"0\" logused=\"240\" waitresource=\"KEY: 5:72057594045988864 (61a06abd401c)\" waittime=\"2428\" ownerId=\"125416\" transactionname=\"user_transaction\" lasttranstarted=\"2026-10-21T06:27:27.530\" XDES=\"0xf24238470\" lockMode=\"X\" schedulerid=\"4\" kpid=\"224\" status=\"suspended\" spid=\"51\" sbid=\"0\" ecid=\"0\" priority=\"0\" trancount=\"2\" lastbatchstarted=\"2026-10-21T06:27:27.753\" lastbatchcompleted=\"2026-10-21T06:27:27.550\" lastattention=\"1900-01-01T00:00:00.550\" clientapp=\"node-mssql\" hostname=\"vm\" hostpid=\"2032\" loginname=\"sa\" isolationlevel=\"read committed (2)\" xactid=\"125416\" currentdb=\"5\" currentdbname=\"Bloqueos\" lockTimeout=\"4294967295\" clientoption1=\"671156320\" clientoption2=\"62520\"><executionStack><frame procname=\"adhoc\" line=\"1\" stmtstart=\"38\" stmtend=\"172\" sqlhandle=\"0x020000005d9107290b953c72f9c823b0422483c563055b700000000000000000000000000000000000000000\">\nunknown    </frame><frame procname=\"adhoc\" line=\"1\" stmtend=\"118\" sqlhandle=\"0x020000009a40d22a2d1930da47495caa701c52d7e8c5788a0000000000000000000000000000000000000000\">\nunknown    </frame></executionStack><inputbuf>\nUPDATE dbo.Cuentas SET Saldo = Saldo + 10 WHERE CuentaId = 2   </inputbuf></process></process-list><resource-list><keylock hobtid=\"72057594045988864\" dbid=\"5\" objectname=\"Bloqueos.dbo.Cuentas\" indexname=\"PK_Cuentas\" id=\"lockf1ae70180\" mode=\"X\" associatedObjectId=\"72057594045988864\"><owner-list><owner id=\"processf15d4fc28\" mode=\"X\"/></owner-list><waiter-list><waiter id=\"processf1a4868c8\" mode=\"X\" requestType=\"wait\"/></waiter-list></keylock><keylock hobtid=\"72057594045988864\" dbid=\"5\" objectname=\"Bloqueos.dbo.Cuentas\" indexname=\"PK_Cuentas\" id=\"lockf1aff5f80\" mode=\"X\" associatedObjectId=\"72057594045988864\"><owner-list><owner id=\"processf1a4868c8\" mode=\"X\"/></owner-list><waiter-list><waiter id=\"processf15d4fc28\" mode=\"X\" requestType=\"wait\"/></waiter-list></keylock></resource-list></deadlock>"
+   },
+   "cruzadoPrioridad": {
+    "s1": {
+     "spid": 71,
+     "ms": 1426,
+     "error": null
+    },
+    "s2": {
+     "spid": 76,
+     "ms": 1423,
+     "error": {
+      "numero": 1205,
+      "mensaje": "Transaction (Process ID 76) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction."
+     }
+    },
+    "victima": "s2"
+   },
+   "mismoOrden": {
+    "s1": {
+     "spid": 51,
+     "ms": 413,
+     "error": null
+    },
+    "s2": {
+     "spid": 77,
+     "ms": 207,
+     "error": null
+    },
+    "victima": null
+   },
+   "saldosAlFinal": [
+    {
+     "CuentaId": 1,
+     "Saldo": 1000
+    },
+    {
+     "CuentaId": 2,
+     "Saldo": 1000
+    },
+    {
+     "CuentaId": 3,
+     "Saldo": 1000
+    },
+    {
+     "CuentaId": 4,
+     "Saldo": 1000
+    }
+   ]
+  },
+  "sinIndice": {
+   "sinIndice": {
+    "plan": {
+     "lecturas": 2930,
+     "ops": [
+      "Clustered Index Update",
+      "Compute Scalar",
+      "Clustered Index Scan"
+     ]
+    },
+    "cruzado": {
+     "s1": {
+      "ms": 2494,
+      "error": {
+       "numero": 1205,
+       "mensaje": "Transaction (Process ID 51) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction."
+      }
+     },
+     "s2": {
+      "ms": 2585,
+      "error": null
+     },
+     "deadlock": true
+    },
+    "otraFilaPorCodigo": {
+     "ms": 3032,
+     "error": {
+      "numero": 1222,
+      "mensaje": "Lock request time out period exceeded."
+     }
+    }
+   },
+   "conIndice": {
+    "plan": {
+     "lecturas": 6,
+     "ops": [
+      "Clustered Index Update",
+      "Compute Scalar",
+      "Index Seek"
+     ]
+    },
+    "cruzado": {
+     "s1": {
+      "ms": 3,
+      "error": null
+     },
+     "s2": {
+      "ms": 4,
+      "error": null
+     },
+     "deadlock": false
+    },
+    "otraFilaPorCodigo": {
+     "ms": 1,
+     "error": null
+    }
+   }
+  },
+  "timeout": {
+   "lockTimeout": {
+    "ms": 2004,
+    "error": {
+     "numero": 1222,
+     "mensaje": "Lock request time out period exceeded."
+    }
+   },
+   "commandTimeout": {
+    "ms": 3004,
+    "error": {
+     "numero": "ETIMEOUT",
+     "mensaje": "Timeout: Request failed to complete in 3000ms"
+    }
+   },
+   "cadena": [
+    {
+     "spid": 52,
+     "bloqueadaPor": 51,
+     "wait_type": "LCK_M_X",
+     "wait_time": 623,
+     "wait_resource": "KEY: 5:72057594046185472 (1f00de11a529)",
+     "sqlText": "(@1 int,@2 smallint)UPDATE [dbo].[Pedidos] set [Estado] = @1  WHERE [PedidoId]=@"
+    },
+    {
+     "spid": 71,
+     "bloqueadaPor": 52,
+     "wait_type": "LCK_M_S",
+     "wait_time": 612,
+     "wait_resource": "KEY: 5:72057594046185472 (4b16e90d77c0)",
+     "sqlText": "(@1 smallint)SELECT [Estado] FROM [dbo].[Pedidos] WHERE [PedidoId]=@1"
+    }
+   ],
+   "cabezaDeLaCadena": {
+    "spid": 51,
+    "status": "sleeping",
+    "program_name": "node-mssql",
+    "host_name": "vm",
+    "transacciones": 1,
+    "segundosOciosa": 6,
+    "ultimoSql": "UPDATE dbo.Pedidos SET Estado = 9 WHERE PedidoId = 1000"
+   }
+  },
+  "versiones": {
+   "rcsi": {
+    "lectorMismaFila": {
+     "ms": 2,
+     "vioEstado": 0
+    },
+    "sumTotal": {
+     "ms": 49
+    },
+    "escritorMismaFila": {
+     "ms": 1503,
+     "error": {
+      "numero": 1222,
+      "mensaje": "Lock request time out period exceeded."
+     }
+    },
+    "versionStoreKb": "64",
+    "lectorDespuesDelCommit": 9
+   },
+   "filaConVersion": {
+    "bytesAntes": 60.893,
+    "bytesDespues": 74.893
+   },
+   "versionStore200k": {
+    "kb": "36224",
+    "msUpdate": 477
+   },
+   "snapshot": {
+    "primeraLectura": 100,
+    "otraSesionDejo": 90,
+    "segundaLecturaEnSnapshot": 100,
+    "segundaLecturaEnRcsi": 90,
+    "update": {
+     "ms": 3,
+     "error": {
+      "numero": 3960,
+      "mensaje": "Snapshot isolation transaction aborted due to update conflict. You cannot use snapshot isolation to access table 'dbo.Productos' directly or indirectly in datab"
+     }
+    }
+   }
+  },
+  "filaCaliente": {
+   "espera0": {
+    "workers": 10,
+    "segundos": 4,
+    "commits": 1221,
+    "porSegundo": 305,
+    "esperaMsMediana": 27,
+    "esperaMsP99": 39
+   },
+   "espera20": {
+    "workers": 10,
+    "segundos": 4,
+    "commits": 175,
+    "porSegundo": 44,
+    "esperaMsMediana": 210,
+    "esperaMsP99": 281
+   },
+   "espera200": {
+    "workers": 10,
+    "segundos": 4,
+    "commits": 29,
+    "porSegundo": 7,
+    "esperaMsMediana": 1837,
+    "esperaMsP99": 1841
+   },
+   "espera200FilasDistintas": {
+    "workers": 10,
+    "segundos": 4,
+    "commits": 200,
+    "porSegundo": 50
+   }
+  }
+ }
+}

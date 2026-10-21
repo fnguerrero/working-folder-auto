@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Diez experimentos sobre bloqueos, aislamiento y deadlocks de SQL Server, medidos con sesiones concurrentes contra un servidor real: qué traba un UPDATE, escalada, NOLOCK, la actualización perdida y sus remedios, SERIALIZABLE, el deadlock y su grafo, el índice que falta, timeouts, RCSI y SNAPSHOT, la fila caliente.">
+<title>Bloqueos con el cronómetro en la mano</title>
+<style>
+  :root {
+    --bg: #fbfaf7; --fg: #23201c; --suave: #6b655c; --linea: #e4e0d8; --panel: #f1eee7;
+    --acento: #0f6e8c; --bien: #2e7d32; --mal: #a4373a; --ojo: #b26a00;
+    --codigo-bg: #1e2430; --codigo-fg: #e6e9ef; --ancho: 76ch; --toc: 280px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #15171c; --fg: #e8e6e1; --suave: #a19c93; --linea: #2c3038; --panel: #1d2026;
+      --acento: #5cc3e4; --bien: #7bd389; --mal: #ff8a8d; --ojo: #ffbf5e; --codigo-bg: #0f1218; --codigo-fg: #e6e9ef; }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.6 Georgia, "Times New Roman", "Noto Serif", serif; }
+  a { color: var(--acento); }
+  code, pre, kbd { font-family: ui-monospace, "Cascadia Code", Consolas, "SF Mono", Menlo, monospace; }
+  code { font-size: .88em; background: var(--panel); padding: .1em .35em; border-radius: 5px; overflow-wrap: anywhere; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  h1, h2, h3, h4 { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.2; letter-spacing: -.01em; }
+  h1 { font-size: clamp(1.9rem, 5vw, 2.8rem); margin: .2em 0 .3em; }
+  h2 { font-size: 1.65rem; margin: 2.2em 0 .6em; padding-top: .6em; border-top: 1px solid var(--linea); }
+  h2 small { display: block; color: var(--suave); font-size: .55em; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .3em; }
+  h3 { font-size: 1.2rem; margin: 1.8em 0 .4em; }
+  p, ul, ol { margin: 0 0 1em; }
+  li { margin-bottom: .3em; }
+  .bajada { font-size: 1.15rem; color: var(--suave); font-family: system-ui, sans-serif; }
+  .meta { color: var(--suave); font-size: .9rem; font-family: system-ui, sans-serif; }
+  .marco { display: grid; grid-template-columns: 1fr; gap: 0 40px; max-width: 1200px; margin: 0 auto; padding: 24px 16px 80px; }
+  main { min-width: 0; max-width: 980px; }
+  main p, main ul, main ol, main h1, main h2, main h3, .ojo, .llevo, .bajada { max-width: var(--ancho); }
+  nav.toc { font-family: system-ui, sans-serif; font-size: .92rem; }
+  nav.toc ol { list-style: none; padding: 0; margin: 0; }
+  nav.toc li { margin: 0; }
+  nav.toc a { display: block; padding: 5px 10px; color: var(--suave); text-decoration: none; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--fg); }
+  nav.toc a.activo { color: var(--acento); border-left-color: var(--acento); }
+  nav.toc .num { display: inline-block; width: 2.2ch; color: var(--suave); opacity: .7; }
+  details.toc-movil { border: 1px solid var(--linea); border-radius: 12px; padding: 10px 14px; margin: 0 0 24px; background: var(--panel); }
+  details.toc-movil summary { cursor: pointer; font-weight: 700; font-family: system-ui, sans-serif; }
+  .toc-lateral { display: none; }
+  @media (min-width: 960px) {
+    .marco { grid-template-columns: var(--toc) minmax(0, 1fr); }
+    .toc-lateral { display: block; position: sticky; top: 16px; align-self: start; max-height: calc(100vh - 32px); overflow: auto; padding-right: 6px; }
+    details.toc-movil { display: none; }
+  }
+  pre { position: relative; margin: 0 0 1em; padding: 14px 16px; border-radius: 12px; background: var(--codigo-bg); color: var(--codigo-fg); font-size: .84rem; line-height: 1.5; overflow: auto; tab-size: 4; max-width: 100%; }
+  pre .copiar { position: absolute; top: 6px; right: 6px; font: 600 .72rem system-ui, sans-serif; background: rgba(255,255,255,.12); color: var(--codigo-fg); border: 0; border-radius: 6px; padding: 4px 8px; cursor: pointer; }
+  pre .copiar:hover { background: rgba(255,255,255,.22); }
+  .ventanas { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 0 0 1em; }
+  @media (min-width: 760px) { .ventanas { grid-template-columns: 1fr 1fr; } }
+  .ventanas pre { margin: 0; }
+  .ventanas pre::before { content: attr(data-ventana); display: block; font: 600 .72rem system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.55); margin-bottom: 6px; }
+  .tabla { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 0 1.2em; border: 1px solid var(--linea); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; font: .9rem/1.4 system-ui, sans-serif; min-width: 520px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--linea); vertical-align: top; }
+  th { background: var(--panel); color: var(--suave); font-weight: 600; font-size: .8rem; letter-spacing: .03em; text-transform: uppercase; }
+  tr:last-child td { border-bottom: 0; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td code { font-size: .82em; }
+  .bien { color: var(--bien); font-weight: 700; } .mal { color: var(--mal); font-weight: 700; }
+  .ojo { border-left: 4px solid var(--ojo); background: var(--panel); padding: 10px 14px; border-radius: 0 10px 10px 0; margin: 0 0 1.2em; font-size: .97em; }
+  .ojo b:first-child { font-family: system-ui, sans-serif; }
+  .llevo { border: 1px solid var(--linea); border-radius: 12px; padding: 12px 16px; margin: 1.2em 0; background: var(--panel); }
+  .llevo h4 { margin: 0 0 .4em; font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; color: var(--suave); }
+  .llevo ul { margin: 0; padding-left: 20px; }
+  .llevo li { margin-bottom: .25em; }
+  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 999px; font: .9rem system-ui, sans-serif; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .toast.visible { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="marco">
+<nav class="toc toc-lateral" aria-label="Índice"><ol id="toc-lateral"></ol></nav>
+<main>
+<p class="meta"><a href="../../">← Volver a la vitrina</a></p>
+<h1>Bloqueos con el cronómetro en la mano</h1>
+<p class="bajada">Diez experimentos sobre bloqueos, niveles de aislamiento y deadlocks de SQL Server, hechos con dos o más sesiones a la vez contra un servidor de verdad. Para gente que programa en .NET, abre transacciones sin pensarlo mucho y un día ve un 1205 en producción.</p>
+<p class="meta">SQL Server 2022 (Developer, Linux, 4 CPU) · base «Bloqueos»: 200.000 pedidos, 2.000 productos, 10.000 clientes, 4 cuentas · cada experimento abre sus sesiones desde Node y las coreografía (<a href="medir/medir.js">medir/medir.js</a>); los números salen tal cual de <a href="resultados.json">resultados.json</a>. Para repetirlos a mano en SSMS, con dos ventanas, está <a href="experimentos.sql">experimentos.sql</a>. Si querés el escrito hermano sobre lecturas e índices, es <a href="../indices-con-cronometro/">Índices con el cronómetro en la mano</a>.</p>
+
+<details class="toc-movil"><summary>Índice</summary><nav class="toc"><ol id="toc-movil"></ol></nav></details>
+
+<h2 id="intro"><small>Antes de empezar</small>Por qué medir con dos ventanas</h2>
+<p>Los problemas de bloqueos no aparecen en el entorno de desarrollo porque ahí hay un solo usuario: uno mismo. Aparecen el día que dos pedidos tocan la misma fila, un reporte pasa por arriba de una transacción abierta o dos instancias de un worker hacen lo mismo al mismo tiempo. Y aparecen con tres caras: una consulta que «a veces tarda», un <code>SqlException</code> con el número 1205 que dice <i>deadlock victim</i>, o lo peor, un número que quedó mal sin que nadie se enterara.</p>
+<p>Así que acá cada experimento se hace con dos o más sesiones de verdad, abiertas a la vez, y se mide lo que ve cada una: cuánto esperó, qué le contestó el servidor, qué quedó en la tabla. Mientras una sesión espera, otra conexión mira <code>sys.dm_exec_requests</code> y <code>sys.dm_tran_locks</code> para ver exactamente qué está esperando y quién la frena. Nada de lo que sigue es teoría: cada número es el que dio el servidor, con la salvedad de que es un contenedor sin carga.</p>
+<h3>La base de ejemplo</h3>
+<p>Una tienda chica: <code>Productos</code> (2.000, con <code>Stock</code> y una columna <code>rowversion</code>), <code>Pedidos</code> (200.000, con clave agrupada <code>PedidoId</code>, un índice sobre <code>ClienteId</code> y un <code>Codigo</code> sin índice), <code>Cuentas</code> (cuatro, con saldo, para transferir) y <code>Reservas</code> (vacía, para el «si no existe, insertar»). La base arranca con <code>READ_COMMITTED_SNAPSHOT</code> apagado, que es como viene cualquier SQL Server instalado a mano; el capítulo 9 lo prende.</p>
+<h3>Vocabulario mínimo</h3>
+<ul>
+<li><b>S, X, U</b>: bloqueo compartido (para leer), exclusivo (para escribir) y de actualización (lo toma un <code>UPDATE</code> mientras busca las filas, antes de pasar a X). S y S conviven; S y X no; U y U no.</li>
+<li><b>IS, IX</b>: «de intención», los pone el motor en la página y en la tabla para avisar que más abajo hay un S o un X. Son los que hacen que un bloqueo de fila se note desde arriba.</li>
+<li><b>Nivel de aislamiento</b>: cuánto dura un bloqueo de lectura. En <code>READ COMMITTED</code> (el default) el S se suelta apenas se leyó la fila. En <code>REPEATABLE READ</code> dura hasta el commit. En <code>SERIALIZABLE</code> además se bloquea el rango. En <code>SNAPSHOT</code> y con RCSI no se toman bloqueos para leer: se lee una versión.</li>
+<li><b>LCK_M_S, LCK_M_X, LCK_M_U, LCK_M_IS</b>: cómo aparece en las DMV una sesión que espera un bloqueo S, X, U o IS.</li>
+</ul>
+
+<h2 id="bloqueo"><small>Capítulo 1</small>Qué toma un UPDATE y a quién frena</h2>
+<p>Una sesión actualiza una fila y no confirma. ¿Qué bloqueos tiene? <code>sys.dm_tran_locks</code> lo cuenta:</p>
+<div class="ventanas">
+<pre data-ventana="Ventana 1"><code>BEGIN TRAN;
+UPDATE dbo.Pedidos SET Estado = 9 WHERE PedidoId = 1000;
+-- sin COMMIT</code></pre>
+<pre data-ventana="Ventana 2 (mirar)"><code>SELECT resource_type, request_mode, COUNT(*)
+FROM sys.dm_tran_locks
+WHERE request_session_id = @@SPID_de_la_ventana_1
+  AND resource_type &lt;&gt; 'DATABASE'
+GROUP BY resource_type, request_mode;</code></pre>
+</div>
+<div class="tabla"><table>
+<tr><th>Recurso</th><th>Modo</th><th class="n">Cuántos</th><th>Qué es</th></tr>
+<tr><td>KEY</td><td>X</td><td class="n">1</td><td>La fila, en el índice agrupado</td></tr>
+<tr><td>PAGE</td><td>IX</td><td class="n">1</td><td>La página de 8 KB donde vive la fila: «acá abajo hay un X»</td></tr>
+<tr><td>OBJECT</td><td>IX</td><td class="n">1</td><td>La tabla: «acá abajo hay un X»</td></tr>
+</table></div>
+<p>Tres bloqueos por una fila. Ahora, con esa transacción abierta, cuatro lectores distintos en <code>READ COMMITTED</code>:</p>
+<div class="tabla"><table>
+<tr><th>Lector</th><th class="n">Esperó</th><th>Qué vio el servidor mientras tanto</th></tr>
+<tr><td><code>SELECT Estado … WHERE PedidoId = 1000</code> (la misma fila)</td><td class="n mal">2.090 ms</td><td><code>suspended</code>, <code>LCK_M_S</code>, <code>wait_resource = KEY: …</code>, <code>blocking_session_id</code> = la ventana 1. Salió recién con el commit (que se hizo a los 2 s) y leyó el 9.</td></tr>
+<tr><td><code>SELECT Estado … WHERE PedidoId = 1001</code> (la de al lado)</td><td class="n bien">2 ms</td><td>Nada: otra clave, otro bloqueo.</td></tr>
+<tr><td><code>SELECT COUNT(*) FROM dbo.Pedidos</code></td><td class="n bien">21 ms</td><td>Nada. Contó sobre <code>IX_Pedidos_ClienteId</code>, que es el índice más angosto, y ese índice no tiene ningún bloqueo: el <code>UPDATE</code> no tocó <code>ClienteId</code>.</td></tr>
+<tr><td><code>SELECT SUM(Total) FROM dbo.Pedidos</code></td><td class="n mal">1.569 ms</td><td><code>LCK_M_S</code> sobre <code>PAGE: 5:1:557</code>. Recorre el índice agrupado, llega a la página de la fila 1000, pide S de página, la página tiene IX, y se queda ahí hasta el commit.</td></tr>
+</table></div>
+<p>Lo segundo es lo que sorprende en producción: <b>un reporte entero se traba por una fila que alguien dejó a medio actualizar</b>, aunque al reporte esa fila no le importe. Y no se traba por la fila, se traba por la página: el scan pide S de página y el IX que dejó el <code>UPDATE</code> no lo deja pasar. El <code>COUNT(*)</code> pasó solo porque tuvo la suerte de contar por otro índice.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Un <code>UPDATE</code> de una fila deja X en la fila e IX en su página y su tabla hasta el commit.</li>
+<li>Un lector de la misma fila espera. Un scan que pase por esa página también. Un lector de otra fila, no.</li>
+<li>Para ver quién espera a quién: <code>sys.dm_exec_requests</code> (<code>wait_type</code>, <code>wait_resource</code>, <code>blocking_session_id</code>).</li>
+</ul></div>
+
+<h2 id="escalada"><small>Capítulo 2</small>Escalada: cuando 5.000 filas se vuelven una tabla</h2>
+<p>El motor lleva cada bloqueo en memoria (unos 100 bytes cada uno). Cuando una sola sentencia junta más de 5.000 sobre un mismo objeto, intenta cambiarlos por un único bloqueo de tabla. Se mide con dos <code>UPDATE</code> sin confirmar, de 4.000 y de 7.000 filas, y un lector de la fila 199.000, que está lejísimos de las actualizadas:</p>
+<div class="tabla"><table>
+<tr><th>UPDATE de…</th><th>Bloqueos que quedaron</th><th class="n">Lector de la fila 199.000</th></tr>
+<tr><td>4.000 filas</td><td>4.000 KEY X + 57 PAGE IX + 1 OBJECT IX</td><td class="n bien">4 ms</td></tr>
+<tr><td>7.000 filas</td><td><b>1 OBJECT X</b> y nada más: escaló</td><td class="n mal">423 ms, esperando <code>LCK_M_IS</code> sobre la tabla (salió con el rollback)</td></tr>
+<tr><td>7.000 filas con <code>LOCK_ESCALATION = DISABLE</code></td><td>7.000 KEY X + 100 PAGE IX + 1 OBJECT IX = 7.102 bloqueos (~700 KB)</td><td class="n bien">3 ms</td></tr>
+<tr><td>7.000 filas en 4 tandas de 2.000</td><td>Nunca más de 2.000; entre tanda y tanda, todo libre</td><td class="n bien">35 ms en total las cuatro tandas</td></tr>
+</table></div>
+<p>Con 7.000 filas el <code>UPDATE</code> dejó de tener 7.000 bloqueos chicos y pasó a tener uno grande sobre toda la tabla: ya no importa qué fila quiera leer el otro, la tabla está tomada. Es la razón por la que un «proceso nocturno que actualiza todo» frena a la aplicación entera, aunque la aplicación lea filas que el proceso no toca.</p>
+<div class="ojo"><b>Ojo:</b> el umbral es por sentencia, no por transacción: 10 <code>UPDATE</code> de 1.000 filas en la misma transacción no escalan (pero acumulan 10.000 bloqueos). Y se puede escalar también cuando el motor se queda sin memoria para bloqueos, sin llegar a 5.000.</div>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Más de 5.000 bloqueos en una sentencia → bloqueo de tabla, y frena a todos.</li>
+<li>Actualizar o borrar de a tandas (de 1.000 a 4.000 filas, con commit entre medio) evita la escalada y deja respirar a los demás.</li>
+<li><code>ALTER TABLE … SET (LOCK_ESCALATION = DISABLE)</code> existe, pero es un parche: cuesta memoria y no arregla la transacción larga.</li>
+</ul></div>
+
+<h2 id="nolock"><small>Capítulo 3</small>NOLOCK: leer sin esperar, y lo que cuesta</h2>
+<p>El remedio clásico contra el capítulo 1 es <code>WITH (NOLOCK)</code> (o <code>READ UNCOMMITTED</code>): leer sin pedir bloqueos. Funciona: no espera. El experimento muestra qué más hace.</p>
+<div class="ventanas">
+<pre data-ventana="Ventana 1"><code>BEGIN TRAN;
+UPDATE dbo.Productos SET Stock = 0 WHERE ProductoId = 7;
+-- … y un rato después:
+ROLLBACK;</code></pre>
+<pre data-ventana="Ventana 2"><code>SELECT Stock FROM dbo.Productos WITH (NOLOCK)
+WHERE ProductoId = 7;   -- 0
+SET LOCK_TIMEOUT 1500;
+SELECT Stock FROM dbo.Productos
+WHERE ProductoId = 7;   -- error 1222 a los 1.518 ms</code></pre>
+</div>
+<p>La lectura con <code>NOLOCK</code> devolvió <b>0</b>: un valor que nunca existió, porque la ventana 1 hizo rollback y el stock volvió a 100. La lectura normal esperó hasta que se le acabó la paciencia (1.518 ms, error 1222) y no mintió. Eso es la <i>lectura sucia</i>, y se entiende rápido. Lo que no se entiende tan rápido es lo segundo:</p>
+<h3>Filas contadas dos veces o ninguna</h3>
+<p>Mientras otra sesión actualiza <code>Pedidos</code> por tandas de 5.000 (agranda <code>Observaciones</code>, lo que mueve filas de página porque la página se parte), se corre 40 veces <code>SELECT COUNT(*), SUM(Total) FROM dbo.Pedidos WITH (NOLOCK)</code>. El <code>UPDATE</code> no cambia <code>Total</code> ni agrega ni borra filas, así que la respuesta correcta es siempre la misma: 200.000 filas, 5.019.900.000 de total.</p>
+<div class="tabla"><table>
+<tr><th>Corridas con NOLOCK</th><th class="n">Dieron otra cosa</th><th>Ejemplos</th><th>Al final, sin NOLOCK</th></tr>
+<tr><td class="n">40</td><td class="n mal">38</td><td>199.956 filas y 5.019.356.390 · 199.957 y 5.018.171.627 · 199.972 y 5.019.665.122</td><td class="bien">200.000 y 5.019.900.000</td></tr>
+</table></div>
+<p>38 de 40 corridas contaron mal, y siempre de menos: una fila que se mudó de página mientras el scan pasaba quedó sin contar (también puede contarse dos veces; depende de hacia dónde se mudó). No es que la lectura vio un dato viejo o nuevo: <b>vio un conjunto de filas que nunca existió</b>. Un reporte de ventas con <code>NOLOCK</code> sobre una tabla que se está escribiendo da un total distinto cada vez que se corre, y ninguno es el correcto.</p>
+<div class="ojo"><b>Ojo:</b> <code>NOLOCK</code> tiene un lugar: una consulta de diagnóstico sobre una tabla enorme en producción, donde una cifra aproximada sirve y trabarse no es opción. No es la forma de «hacer que no se trabe» una aplicación. Para eso está el capítulo 9.</div>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li><code>NOLOCK</code> lee lo que todavía no se confirmó, incluso lo que después se deshizo.</li>
+<li>Sobre una tabla que se está escribiendo, puede contar filas dos veces o saltearlas: 38 de 40 totales distintos acá.</li>
+<li>Si el problema es que las lecturas esperan, la solución es RCSI (capítulo 9), no <code>NOLOCK</code>.</li>
+</ul></div>
+
+<h2 id="perdida"><small>Capítulo 4</small>La actualización perdida, con seis remedios</h2>
+<p>El bug de concurrencia más común no da error: dos pedidos leen el stock, cada uno resta uno y escribe, y el segundo pisa al primero. Se mide con 40 sesiones a la vez descontando una unidad del mismo producto, que arranca en 100. El resultado correcto es <b>60</b>. Cada sesión hace «leer, pensar 20 ms, escribir»:</p>
+<pre><code>BEGIN TRAN;
+SELECT @stock = Stock FROM dbo.Productos WHERE ProductoId = 42;
+-- 20 ms de lógica de negocio
+UPDATE dbo.Productos SET Stock = @stock - 1 WHERE ProductoId = 42;
+COMMIT;</code></pre>
+<div class="tabla"><table>
+<tr><th>Variante</th><th class="n">Stock final</th><th class="n">Perdidas</th><th class="n">Tiempo total</th><th>Qué pasó</th></tr>
+<tr><td><code>READ COMMITTED</code>, leer y escribir</td><td class="n mal">99</td><td class="n mal">39</td><td class="n">269 ms</td><td>El S de la lectura se soltó al instante; las 40 leyeron 100 y escribieron 99. Casi todo se perdió.</td></tr>
+<tr><td>Lo mismo con RCSI prendido</td><td class="n mal">99</td><td class="n mal">39</td><td class="n">252 ms</td><td>Igual: leer una versión no reserva nada. RCSI no es un remedio para esto.</td></tr>
+<tr><td><code>REPEATABLE READ</code></td><td class="n bien">60</td><td class="n">0</td><td class="n mal">135.822 ms</td><td>Correcto, pero a costa de <b>1.577 deadlocks</b>: cada una retiene el S, las dos quieren X, el motor mata a una, se reintenta. Dos minutos para 40 descuentos.</td></tr>
+<tr><td><code>SELECT … WITH (UPDLOCK)</code></td><td class="n bien">60</td><td class="n">0</td><td class="n">1.019 ms</td><td>La lectura toma U, que no convive con otro U: las 40 pasan de a una. Sin deadlocks, 25 ms cada una, en fila.</td></tr>
+<tr><td><code>UPDATE … SET Stock = Stock - 1</code></td><td class="n bien">60</td><td class="n">0</td><td class="n bien">111 ms</td><td>Una sola sentencia atómica. La más rápida y la más simple.</td></tr>
+<tr><td><code>rowversion</code> (optimista)</td><td class="n bien">60</td><td class="n">0</td><td class="n">1.364 ms</td><td><code>UPDATE … WHERE Version = @leida</code>; si <code>@@ROWCOUNT = 0</code>, releer y reintentar. 622 reintentos para 40 commits: con 40 peleando por la misma fila, el optimismo es caro.</td></tr>
+<tr><td><code>SNAPSHOT</code></td><td class="n bien">60</td><td class="n">0</td><td class="n">1.265 ms</td><td>Correcto porque el motor detecta el choque y tira el error 3960 («update conflict»), 685 veces. Hay que reintentar.</td></tr>
+</table></div>
+<p>Dos cosas para mirar dos veces. Primera: <b>RCSI no arregla la actualización perdida</b>, y es fácil creer que sí porque «con versiones no hay bloqueos». No hay bloqueos de lectura, que es otra cosa. Segunda: <code>REPEATABLE READ</code> da el resultado correcto, pero es el peor remedio que hay: convierte cada choque en un deadlock.</p>
+<p>La elección, por orden: si se puede expresar como una sentencia (<code>Stock = Stock - 1</code>, <code>Saldo = Saldo - @monto</code>), eso. Si hay lógica en el medio y la contención es baja (la mayoría de las pantallas de edición), <code>rowversion</code>, que además le avisa al usuario «alguien lo cambió antes». Si la contención es alta y la lógica no cabe en una sentencia, <code>UPDLOCK</code> en la lectura.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Leer y después escribir pierde actualizaciones en <code>READ COMMITTED</code>, con o sin RCSI.</li>
+<li>Primero una sentencia atómica; después <code>rowversion</code>; para contención alta, <code>UPDLOCK</code>.</li>
+<li><code>REPEATABLE READ</code> y <code>SNAPSHOT</code> «protegen» convirtiendo el choque en un error (1205 o 3960) que hay que reintentar.</li>
+</ul></div>
+
+<h2 id="serializable"><small>Capítulo 5</small>SERIALIZABLE y el «si no existe, insertar»</h2>
+<p>Esto importa en .NET por un detalle que casi nadie recuerda: <code>new TransactionScope()</code> sin opciones usa <b><code>IsolationLevel.Serializable</code></b>. Entonces, el patrón de reservar un turno, «si no hay reserva para esa sala y esa hora, insertar», corre en <code>SERIALIZABLE</code> sin que nadie lo haya pedido. Diez pares de sesiones, cada par intentando la misma hora al mismo tiempo:</p>
+<pre><code>BEGIN TRAN;
+IF NOT EXISTS (SELECT 1 FROM dbo.Reservas WHERE Sala = 1 AND Hora = @hora)
+    INSERT dbo.Reservas (Sala, Hora, Quien) VALUES (1, @hora, @quien);
+COMMIT;</code></pre>
+<div class="tabla"><table>
+<tr><th>Variante</th><th class="n">Filas</th><th class="n">Horas distintas</th><th class="n">Deadlocks</th><th class="n">Tiempo</th><th>Qué pasó</th></tr>
+<tr><td><code>READ COMMITTED</code></td><td class="n mal">20</td><td class="n">10</td><td class="n">0</td><td class="n">91 ms</td><td>Los dos de cada par vieron «no existe» e insertaron: cada hora quedó reservada dos veces.</td></tr>
+<tr><td><code>SERIALIZABLE</code> (el default de <code>TransactionScope</code>)</td><td class="n bien">10</td><td class="n">10</td><td class="n mal">10</td><td class="n">366 ms</td><td>Correcto, pero <b>un deadlock por par</b>: los dos toman el bloqueo de rango compartido con el <code>SELECT</code> y ninguno puede insertar. 309 a 317 ms hasta que el motor mata a uno.</td></tr>
+<tr><td><code>SERIALIZABLE</code> + <code>UPDLOCK</code> en el <code>SELECT</code></td><td class="n bien">10</td><td class="n">10</td><td class="n">0</td><td class="n">895 ms</td><td>El rango se toma en modo U: el segundo espera, después ve la fila y no inserta.</td></tr>
+<tr><td><code>READ COMMITTED</code> + <code>UPDLOCK, HOLDLOCK</code></td><td class="n bien">10</td><td class="n">10</td><td class="n">0</td><td class="n">887 ms</td><td>Lo mismo sin cambiar el nivel de toda la transacción: <code>HOLDLOCK</code> es <code>SERIALIZABLE</code> solo para esa lectura.</td></tr>
+<tr><td>Índice único + atrapar el error</td><td class="n bien">10</td><td class="n">10</td><td class="n">0</td><td class="n bien">88 ms</td><td>Insertar sin preguntar; el segundo recibe 2601 y lo traduce a «esa hora ya está tomada». Diez veces más rápido.</td></tr>
+</table></div>
+<p>El default de <code>TransactionScope</code> no es un bug: <code>SERIALIZABLE</code> es el único nivel en el que el «si no existe» vale algo. El problema es que lo da por deadlock, y que la aplicación no suele estar preparada para reintentar. <b>La restricción única es la respuesta</b>: es la única forma de que la regla «una reserva por sala y hora» se cumpla aunque alguien la saltee desde otro código.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li><code>new TransactionScope()</code> = <code>SERIALIZABLE</code>. Siempre pasar <code>TransactionOptions</code> con <code>IsolationLevel.ReadCommitted</code>.</li>
+<li>«Si no existe, insertar» en <code>READ COMMITTED</code> duplica; en <code>SERIALIZABLE</code> hace deadlock. Con <code>UPDLOCK, HOLDLOCK</code> anda; con índice único y <code>catch</code> anda mejor.</li>
+<li>La regla de unicidad va en la base, no en un <code>if</code>.</li>
+</ul></div>
+
+<h2 id="deadlock"><small>Capítulo 6</small>El deadlock clásico y cómo leer su grafo</h2>
+<p>Dos transferencias cruzadas: una resta de la cuenta 1 y suma en la 2; la otra, al revés. Cada una toma X en la primera cuenta, espera 200 ms (la lógica de negocio) y va por la segunda, que la otra ya tiene.</p>
+<div class="ventanas">
+<pre data-ventana="Ventana 1"><code>BEGIN TRAN;
+UPDATE dbo.Cuentas SET Saldo = Saldo - 10 WHERE CuentaId = 1;
+-- 200 ms
+UPDATE dbo.Cuentas SET Saldo = Saldo + 10 WHERE CuentaId = 2;
+COMMIT;</code></pre>
+<pre data-ventana="Ventana 2"><code>BEGIN TRAN;
+UPDATE dbo.Cuentas SET Saldo = Saldo - 10 WHERE CuentaId = 2;
+-- 200 ms
+UPDATE dbo.Cuentas SET Saldo = Saldo + 10 WHERE CuentaId = 1;
+COMMIT;</code></pre>
+</div>
+<div class="tabla"><table>
+<tr><th>Ronda</th><th class="n">Ventana 1</th><th class="n">Ventana 2</th><th>Resultado</th></tr>
+<tr><td>Cruzadas</td><td class="n">2.647 ms, commit</td><td class="n mal">2.642 ms, error 1205</td><td>Deadlock. El motor eligió víctima a la 2 (las dos costaban lo mismo de deshacer; es un empate que resuelve como quiere) y la otra siguió.</td></tr>
+<tr><td>Cruzadas, ventana 1 con <code>SET DEADLOCK_PRIORITY HIGH</code> y 2 con <code>LOW</code></td><td class="n">1.426 ms, commit</td><td class="n mal">1.423 ms, error 1205</td><td>La prioridad decide: muere la <code>LOW</code>. Sirve para que el proceso nocturno muera él y no la API.</td></tr>
+<tr><td>Las dos en el mismo orden (primero la cuenta 1, después la 2)</td><td class="n bien">413 ms, commit</td><td class="n bien">207 ms, commit</td><td>Sin deadlock: la segunda esperó a la primera en la cuenta 1 y siguió. Los saldos quedaron bien.</td></tr>
+</table></div>
+<p>Dos números para guardar. Las víctimas murieron a los <b>2,6 segundos</b> en la primera ronda, <b>1,4</b> en la segunda y, en el capítulo 5, a los <b>0,3</b>: el monitor de deadlocks pasa cada 5 segundos, pero cuando encuentra uno se vuelve a fijar cada 100 ms, hasta que pasa un rato sin novedades. Un deadlock aislado se siente como una consulta que tardó 5 segundos y después tiró error. Y la cura más barata de todas es ordenar: <b>si todas las transacciones toman las filas en el mismo orden, no hay ciclo posible</b>.</p>
+<h3>El grafo</h3>
+<p>SQL Server guarda cada deadlock en la sesión de eventos extendidos <code>system_health</code>, que viene prendida. Este es el de la primera ronda, sacado de ahí y recortado a lo que importa:</p>
+<pre><code>&lt;deadlock&gt;
+  &lt;victim-list&gt;&lt;victimProcess id="processf1a4868c8"/&gt;&lt;/victim-list&gt;
+  &lt;process-list&gt;
+    &lt;process id="processf1a4868c8" spid="77" waitresource="KEY: 5:72057594045988864 (8194443284a0)"
+             lockMode="X" isolationlevel="read committed (2)" clientapp="node-mssql" hostname="vm"&gt;
+      &lt;inputbuf&gt;UPDATE dbo.Cuentas SET Saldo = Saldo + 10 WHERE CuentaId = 1&lt;/inputbuf&gt;
+    &lt;/process&gt;
+    &lt;process id="processf15d4fc28" spid="51" waitresource="KEY: 5:72057594045988864 (61a06abd401c)"
+             lockMode="X" isolationlevel="read committed (2)" clientapp="node-mssql" hostname="vm"&gt;
+      &lt;inputbuf&gt;UPDATE dbo.Cuentas SET Saldo = Saldo + 10 WHERE CuentaId = 2&lt;/inputbuf&gt;
+    &lt;/process&gt;
+  &lt;/process-list&gt;
+  &lt;resource-list&gt;
+    &lt;keylock objectname="Bloqueos.dbo.Cuentas" indexname="PK_Cuentas" mode="X"&gt;
+      &lt;owner-list&gt;&lt;owner id="processf15d4fc28" mode="X"/&gt;&lt;/owner-list&gt;
+      &lt;waiter-list&gt;&lt;waiter id="processf1a4868c8" mode="X" requestType="wait"/&gt;&lt;/waiter-list&gt;
+    &lt;/keylock&gt;
+    &lt;keylock objectname="Bloqueos.dbo.Cuentas" indexname="PK_Cuentas" mode="X"&gt;
+      &lt;owner-list&gt;&lt;owner id="processf1a4868c8" mode="X"/&gt;&lt;/owner-list&gt;
+      &lt;waiter-list&gt;&lt;waiter id="processf15d4fc28" mode="X" requestType="wait"/&gt;&lt;/waiter-list&gt;
+    &lt;/keylock&gt;
+  &lt;/resource-list&gt;
+&lt;/deadlock&gt;</code></pre>
+<p>Se lee así: <code>victim-list</code> dice quién murió. En <code>process-list</code>, cada proceso trae su <code>spid</code>, el nivel de aislamiento, la aplicación (<code>clientapp</code>: por eso vale la pena poner <code>Application Name</code> en la cadena de conexión) y, en <code>inputbuf</code>, <b>la sentencia en la que estaba trabado</b>, no la que tomó el bloqueo que el otro quiere; esa hay que deducirla de la transacción. En <code>resource-list</code>, cada recurso (acá dos claves de <code>PK_Cuentas</code>) tiene un <code>owner</code> y un <code>waiter</code>: el ciclo está a la vista, el 51 tiene lo que el 77 espera y viceversa. Para sacarlo del servidor:</p>
+<pre><code>SELECT XEvent.query('(data/value/deadlock)[1]') AS grafo, XEvent.value('(@timestamp)[1]', 'datetime2') AS cuando
+FROM (SELECT CAST(target_data AS xml) AS TargetData
+      FROM sys.dm_xe_session_targets st JOIN sys.dm_xe_sessions s ON s.address = st.event_session_address
+      WHERE s.name = 'system_health' AND st.target_name = 'ring_buffer') AS d
+CROSS APPLY TargetData.nodes('RingBufferTarget/event[@name="xml_deadlock_report"]') AS x(XEvent)
+ORDER BY cuando DESC;</code></pre>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Deadlock = dos transacciones que toman las mismas filas en distinto orden. Tomarlas en el mismo orden (por clave) lo elimina.</li>
+<li>Tarda hasta 5 segundos en detectarse; después del primero, 100 ms.</li>
+<li>El grafo está en <code>system_health</code>: víctima, <code>inputbuf</code> de cada uno y quién tiene lo que el otro espera. <code>DEADLOCK_PRIORITY LOW</code> en los procesos que pueden reintentar.</li>
+</ul></div>
+
+<h2 id="sinindice"><small>Capítulo 7</small>El deadlock que arregla un índice</h2>
+<p>Hay deadlocks que no tienen ningún orden cruzado: dos sesiones actualizan filas distintas por un campo sin índice. <code>Codigo</code> no tiene índice en <code>Pedidos</code>. Cada sesión tiene una fila tomada (por <code>PedidoId</code>) y actualiza <i>otra</i> fila por <code>Codigo</code>:</p>
+<div class="ventanas">
+<pre data-ventana="Ventana 1"><code>BEGIN TRAN;
+UPDATE dbo.Pedidos SET Estado = 9 WHERE PedidoId = 50000;
+UPDATE dbo.Pedidos SET Estado = 8 WHERE Codigo = N'PED-150001';</code></pre>
+<pre data-ventana="Ventana 2"><code>BEGIN TRAN;
+UPDATE dbo.Pedidos SET Estado = 9 WHERE PedidoId = 150000;
+UPDATE dbo.Pedidos SET Estado = 8 WHERE Codigo = N'PED-050001';</code></pre>
+</div>
+<div class="tabla"><table>
+<tr><th></th><th>Plan del UPDATE por Codigo</th><th class="n">Lecturas</th><th>Las dos a la vez</th><th class="n">Una sola, con otra fila tomada por un tercero</th></tr>
+<tr><td>Sin índice</td><td>Clustered Index Scan</td><td class="n mal">2.930</td><td class="mal">Deadlock: la ventana 1 murió a los 2.494 ms</td><td class="n mal">3.032 ms y error 1222 (se trabó)</td></tr>
+<tr><td>Con <code>IX_Pedidos_Codigo</code></td><td>Index Seek</td><td class="n bien">6</td><td class="bien">3 y 4 ms, sin deadlock</td><td class="n bien">1 ms</td></tr>
+</table></div>
+<p>Sin índice, el <code>UPDATE … WHERE Codigo = …</code> recorre la tabla entera pidiendo U en cada fila para ver si es la que busca. Al llegar a la fila que la otra sesión tiene con X, se queda esperando; la otra hace lo mismo en el sentido contrario, y listo. <b>Ninguna de las dos quería la fila de la otra</b>; se cruzaron porque el camino para llegar a la suya pasaba por todas. Con el índice, cada una va derecho a su fila y no se ven. Es el deadlock más común en aplicaciones reales, y el más fácil de pasar por alto porque el código está perfecto.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>Un <code>UPDATE</code> o <code>DELETE</code> con <code>WHERE</code> sin índice toma U en toda la tabla mientras busca.</li>
+<li>Dos de esos a la vez, con cualquier otra cosa abierta, hacen deadlock aunque toquen filas distintas.</li>
+<li>Ante un deadlock, mirar el plan del <code>inputbuf</code>: si hay un scan, primero el índice.</li>
+</ul></div>
+
+<h2 id="timeout"><small>Capítulo 8</small>Timeouts: el servidor espera para siempre, el cliente no</h2>
+<p>Una sesión bloqueada no tiene vencimiento del lado del servidor: <code>@@LOCK_TIMEOUT</code> es -1 por default, espera lo que haga falta. El que corta es el cliente, con el <code>CommandTimeout</code> de <code>SqlCommand</code>, que es de 30 segundos. Con una fila tomada por otra sesión:</p>
+<div class="tabla"><table>
+<tr><th>Lector bloqueado</th><th class="n">Esperó</th><th>Error</th><th>Después</th></tr>
+<tr><td><code>SET LOCK_TIMEOUT 2000</code> en la sesión</td><td class="n">2.004 ms</td><td>1222, «Lock request time out period exceeded»</td><td>La transacción sigue viva; falló solo esa sentencia.</td></tr>
+<tr><td><code>CommandTimeout</code> de 3 s en el cliente</td><td class="n">3.004 ms</td><td>Timeout del lado del cliente (en .NET, <code>SqlException</code> -2, «Execution Timeout Expired»)</td><td>El cliente mandó una cancelación; en <code>sys.dm_exec_requests</code> el pedido ya no estaba.</td></tr>
+</table></div>
+<p>Esto explica una cosa que desorienta: un timeout de 30 segundos en una consulta que «siempre tarda 5 ms». No es que la consulta sea lenta; es que está esperando un bloqueo. Y como la transacción abierta del otro lado no tiene vencimiento, puede esperar más que el timeout, que es el que la mata. <b>Un timeout en una consulta puntual es, casi siempre, un bloqueo</b>.</p>
+<h3>Quién bloquea a quién</h3>
+<p>Una tercera sesión actualiza la fila 2.000 y después intenta la 1.000, que tiene la primera; una cuarta lee la 2.000. Queda una cadena, y se ve así:</p>
+<pre><code>SELECT r.session_id, r.blocking_session_id, r.wait_type, r.wait_time, r.wait_resource, SUBSTRING(t.text, 1, 80) AS sql
+FROM sys.dm_exec_requests r CROSS APPLY sys.dm_exec_sql_text(r.sql_handle) t
+WHERE r.blocking_session_id &lt;&gt; 0;</code></pre>
+<div class="tabla"><table>
+<tr><th class="n">Sesión</th><th class="n">Bloqueada por</th><th>Espera</th><th class="n">Hace</th><th>Sentencia</th></tr>
+<tr><td class="n">52</td><td class="n">51</td><td><code>LCK_M_X</code> sobre una KEY</td><td class="n">623 ms</td><td><code>UPDATE [dbo].[Pedidos] set [Estado] = @1 WHERE [PedidoId]=@2</code></td></tr>
+<tr><td class="n">71</td><td class="n">52</td><td><code>LCK_M_S</code> sobre una KEY</td><td class="n">612 ms</td><td><code>SELECT [Estado] FROM [dbo].[Pedidos] WHERE [PedidoId]=@1</code></td></tr>
+</table></div>
+<p>La sesión 51, la cabeza de la cadena, <b>no aparece</b>: no está esperando nada, no está ejecutando nada. Hay que buscarla en <code>sys.dm_exec_sessions</code>, y es siempre la misma foto:</p>
+<div class="tabla"><table>
+<tr><th class="n">Sesión</th><th>Estado</th><th>Programa</th><th class="n">Transacciones abiertas</th><th class="n">Ociosa hace</th><th>Último SQL</th></tr>
+<tr><td class="n">51</td><td><code>sleeping</code></td><td>node-mssql</td><td class="n mal">1</td><td class="n">6 s</td><td><code>UPDATE dbo.Pedidos SET Estado = 9 WHERE PedidoId = 1000</code></td></tr>
+</table></div>
+<p>Dormida, con una transacción abierta, sin hacer nada desde hace 6 segundos. En una aplicación .NET, eso es una transacción que quedó abierta mientras el código esperaba otra cosa (una llamada HTTP, un <code>await</code> largo, un <code>MessageBox</code>) o, peor, una conexión que volvió al pool con la transacción sin cerrar porque alguien olvidó el <code>using</code>.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>El servidor no vence bloqueos; el cliente sí, a los 30 s. Un timeout en una consulta rápida es un bloqueo.</li>
+<li><code>SET LOCK_TIMEOUT</code> hace fallar la sentencia, no la transacción: sirve para «si está tomado, me voy».</li>
+<li>La cabeza de la cadena está <code>sleeping</code> con <code>open_transaction_count &gt; 0</code>. Su último SQL dice qué código la dejó así.</li>
+</ul></div>
+
+<h2 id="versiones"><small>Capítulo 9</small>RCSI y SNAPSHOT: leer sin esperar, bien</h2>
+<p>La alternativa seria a <code>NOLOCK</code> es que los lectores lean la última versión confirmada de la fila en vez de esperar al escritor. Es un cambio en la base, no en las consultas: <code>ALTER DATABASE Bloqueos SET READ_COMMITTED_SNAPSHOT ON</code>. Azure SQL lo trae prendido; un SQL Server instalado a mano, no. Se repite el capítulo 1 con RCSI:</p>
+<div class="tabla"><table>
+<tr><th>Con la fila 1000 a medio actualizar por otra sesión</th><th class="n">Sin RCSI (cap. 1)</th><th class="n">Con RCSI</th><th>Qué leyó</th></tr>
+<tr><td>Lector de la misma fila</td><td class="n mal">2.090 ms</td><td class="n bien">2 ms</td><td>El <code>Estado</code> anterior (0), que es el último confirmado. Después del commit, el 9.</td></tr>
+<tr><td><code>SELECT SUM(Total)</code></td><td class="n mal">1.569 ms</td><td class="n bien">49 ms</td><td>El total correcto, consistente al instante en que empezó la sentencia.</td></tr>
+<tr><td>Otro escritor de la misma fila</td><td class="n mal">espera</td><td class="n mal">espera (1.503 ms y error 1222 con <code>LOCK_TIMEOUT</code>)</td><td>Los escritores se siguen bloqueando entre sí: RCSI es solo para lectores.</td></tr>
+</table></div>
+<p>Los lectores dejaron de esperar y leyeron algo consistente, no una mezcla como con <code>NOLOCK</code>. El costo está en otro lado:</p>
+<div class="tabla"><table>
+<tr><th>Costo</th><th class="n">Medido</th><th>Qué es</th></tr>
+<tr><td>Cada fila modificada con versionado prendido</td><td class="n">60,9 → 74,9 bytes</td><td>14 bytes más por fila: el puntero a la versión anterior. En <code>Productos</code>, un 23 % de la fila; en una tabla ancha no se nota.</td></tr>
+<tr><td>Version store en <code>tempdb</code> después de un <code>UPDATE</code> de 200.000 filas</td><td class="n">36.224 KB</td><td>Las versiones viejas viven en <code>tempdb</code> mientras alguien pueda necesitarlas. Una transacción larga las retiene a todas.</td></tr>
+</table></div>
+<h3>SNAPSHOT, que es otra cosa</h3>
+<p>RCSI da consistencia por sentencia: dos <code>SELECT</code> en la misma transacción pueden ver datos distintos. <code>ALLOW_SNAPSHOT_ISOLATION ON</code> habilita además el nivel <code>SNAPSHOT</code>, que se pide por transacción y congela la foto desde el primer acceso:</p>
+<div class="tabla"><table>
+<tr><th>Paso</th><th class="n">Transacción SNAPSHOT</th><th class="n">Transacción READ COMMITTED con RCSI</th></tr>
+<tr><td>Lee el stock del producto 5</td><td class="n">100</td><td class="n">100</td></tr>
+<tr><td>Otra sesión lo pone en 90 y confirma</td><td class="n"></td><td class="n"></td></tr>
+<tr><td>Lo vuelve a leer</td><td class="n">100 (la foto no cambió)</td><td class="n">90 (lo último confirmado)</td></tr>
+<tr><td>Intenta <code>UPDATE … SET Stock = Stock - 1</code></td><td class="n mal">error 3960 a los 3 ms: «update conflict»</td><td class="n bien">espera si hace falta y escribe</td></tr>
+</table></div>
+<p><code>SNAPSHOT</code> es para reportes largos que necesitan que todas sus consultas cuenten la misma historia, y para la concurrencia optimista a nivel de base (el 3960 del capítulo 4). Para una API, RCSI alcanza y no cambia el comportamiento de los <code>UPDATE</code>.</p>
+<div class="ojo"><b>Ojo:</b> prender RCSI reclama la base para sí (<code>WITH ROLLBACK IMMEDIATE</code> corta las transacciones abiertas) y cambia qué leen las consultas que hoy esperan: si alguna dependía de la espera para «ver lo último» (una lectura que después escribe), ahora lee la versión anterior. El capítulo 4 muestra que esa lectura ya estaba mal; RCSI solo lo deja a la vista.</div>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>RCSI: los lectores no esperan ni mienten. Los escritores se siguen bloqueando entre sí. Azure lo trae; on-premise hay que prenderlo.</li>
+<li>Cuesta 14 bytes por fila modificada y espacio en <code>tempdb</code>, que crece con la transacción más larga que haya.</li>
+<li><code>SNAPSHOT</code> congela la transacción entera y choca al escribir (3960). Es para reportes, no para el default.</li>
+</ul></div>
+
+<h2 id="caliente"><small>Capítulo 10</small>La fila caliente: cuánto dura la transacción</h2>
+<p>Al final todo se reduce a esto: cuánto tiempo una transacción tiene tomada una fila que otros quieren. Diez sesiones descuentan stock del mismo producto en loop durante 4 segundos; entre el <code>UPDATE</code> y el <code>COMMIT</code> «hacen otra cosa» durante 0, 20 o 200 ms:</p>
+<div class="tabla"><table>
+<tr><th>Entre el UPDATE y el COMMIT</th><th class="n">Commits en 4 s</th><th class="n">Por segundo</th><th class="n">Espera mediana del UPDATE</th><th class="n">p99</th></tr>
+<tr><td>0 ms</td><td class="n">1.221</td><td class="n bien">305</td><td class="n">27 ms</td><td class="n">39 ms</td></tr>
+<tr><td>20 ms</td><td class="n">175</td><td class="n">44</td><td class="n">210 ms</td><td class="n">281 ms</td></tr>
+<tr><td>200 ms</td><td class="n">29</td><td class="n mal">7</td><td class="n mal">1.837 ms</td><td class="n mal">1.841 ms</td></tr>
+<tr><td>200 ms, pero cada sesión en su propia fila</td><td class="n">200</td><td class="n bien">50</td><td class="n">—</td><td class="n">—</td></tr>
+</table></div>
+<p>Es una cola con un solo cajero: la fila. Con 200 ms adentro de la transacción, el sistema entero hace 7 operaciones por segundo y cada pedido espera casi dos segundos, aunque el <code>UPDATE</code> en sí tarde un milisegundo. Y no importa cuánto hardware haya: 4 CPU, 40, da igual, hay una fila. La fila con 200 ms de espera distribuida en diez filas distintas hace 50 por segundo sin que nadie espere.</p>
+<p>Esos 200 ms son, en una API típica, una llamada HTTP a otro servicio, un <code>SaveChanges</code> que dispara diez consultas más, un log que se escribe sincrónico, o el <code>await</code> de algo que no tenía nada que ver con la base pero quedó adentro del <code>using (var tx = …)</code>. <b>La regla es que adentro de la transacción solo pasa la base</b>: todo lo que se pueda calcular, pedir o validar antes, va antes; lo que se pueda avisar después, va después.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul>
+<li>El rendimiento sobre una fila caliente es 1 / (tiempo que la transacción la tiene tomada). Nada más.</li>
+<li>Adentro de la transacción, solo la base. Las llamadas a otros servicios van afuera.</li>
+<li>Si una fila es inevitablemente caliente (un contador, un saldo global), repartirla (varias filas que se suman) o sacarla de la base.</li>
+</ul></div>
+
+<h2 id="conclusion"><small>Cierre</small>Conclusión</h2>
+<p>Lo que estos diez experimentos tienen en común es que ninguno de los bugs daba error en desarrollo. El stock que se pierde, la reserva doble, el reporte con el total inventado, la cadena de sesiones dormidas: todo eso pasa solo con dos sesiones a la vez, y con dos sesiones el servidor hace exactamente lo que se le pidió, que casi nunca es lo que uno creía que pedía. Las tres ideas que resuelven la mayoría de los casos son viejas y aburridas: escribir con una sola sentencia atómica en vez de leer y escribir; prender RCSI y dejar de usar <code>NOLOCK</code>; y tener la transacción abierta el menor tiempo posible, con un índice para cada <code>WHERE</code> que actualiza. Para el resto, hay un grafo en <code>system_health</code> que dice exactamente qué pasó.</p>
+
+<h2 id="chuleta"><small>Cierre</small>La chuleta</h2>
+<div class="tabla"><table>
+<tr><th>Situación</th><th>Qué hacer</th><th>Capítulo</th></tr>
+<tr><td>Una consulta rápida tira timeout a los 30 s</td><td>Es un bloqueo. Buscar la cabeza: <code>sleeping</code> con <code>open_transaction_count &gt; 0</code> en <code>sys.dm_exec_sessions</code></td><td><a href="#bloqueo">1</a>, <a href="#timeout">8</a></td></tr>
+<tr><td>Los reportes se traban mientras la aplicación escribe</td><td><code>READ_COMMITTED_SNAPSHOT ON</code>. No <code>NOLOCK</code></td><td><a href="#nolock">3</a>, <a href="#versiones">9</a></td></tr>
+<tr><td>Un proceso masivo frena a todos</td><td>Tandas de 1.000 a 4.000 filas con commit entre medio (la escalada es a los 5.000 bloqueos)</td><td><a href="#escalada">2</a></td></tr>
+<tr><td>Un stock, saldo o contador que queda mal sin error</td><td><code>UPDATE … SET X = X - @n</code>; si hay lógica en el medio, <code>rowversion</code> o <code>UPDLOCK</code></td><td><a href="#perdida">4</a></td></tr>
+<tr><td>«Si no existe, insertar» duplica o hace deadlock</td><td>Índice único y atrapar 2601/2627; o <code>WITH (UPDLOCK, HOLDLOCK)</code> en la lectura</td><td><a href="#serializable">5</a></td></tr>
+<tr><td>Error 1205 (deadlock)</td><td>Sacar el grafo de <code>system_health</code>; mirar el <code>inputbuf</code>; si hay un scan, índice; si hay orden cruzado, ordenar por clave; reintentar</td><td><a href="#deadlock">6</a>, <a href="#sinindice">7</a></td></tr>
+<tr><td>Deadlocks entre sesiones que tocan filas distintas</td><td>Falta el índice del <code>WHERE</code> del <code>UPDATE</code> o <code>DELETE</code></td><td><a href="#sinindice">7</a></td></tr>
+<tr><td>Un reporte largo que necesita una foto consistente</td><td>Transacción en <code>SNAPSHOT</code> (con <code>ALLOW_SNAPSHOT_ISOLATION ON</code>)</td><td><a href="#versiones">9</a></td></tr>
+<tr><td>Pocas operaciones por segundo sobre una fila</td><td>Acortar la transacción: nada de HTTP ni logs adentro. Repartir la fila</td><td><a href="#caliente">10</a></td></tr>
+<tr><td>El proceso nocturno hace deadlock con la API</td><td><code>SET DEADLOCK_PRIORITY LOW</code> en el nocturno, que puede reintentar</td><td><a href="#deadlock">6</a></td></tr>
+</table></div>
+<h3>Para el código .NET</h3>
+<ul>
+<li><code>new TransactionScope()</code> usa <code>Serializable</code>. Siempre: <code>new TransactionScope(TransactionScopeOption.Required, new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted }, TransactionScopeAsyncFlowOption.Enabled)</code>. Con EF Core, <code>await ctx.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted)</code>.</li>
+<li>Atómico desde EF Core 7: <code>await ctx.Productos.Where(p =&gt; p.Id == id &amp;&amp; p.Stock &gt; 0).ExecuteUpdateAsync(s =&gt; s.SetProperty(p =&gt; p.Stock, p =&gt; p.Stock - 1))</code>; si devuelve 0, no había stock.</li>
+<li>Optimista: una propiedad <code>[Timestamp] byte[] Version</code> (o <code>.IsRowVersion()</code>); EF manda <code>WHERE Version = @leida</code> y tira <code>DbUpdateConcurrencyException</code> si cambió. Atraparla y decidir: releer y reintentar, o avisar.</li>
+<li>Reintentos: <code>UseSqlServer(…, o =&gt; o.EnableRetryOnFailure())</code> reintenta 1205, 1222 y 3960 (están en la lista de transitorios de <code>SqlServerTransientExceptionDetector</code>), pero una transacción propia hay que envolverla: <code>await ctx.Database.CreateExecutionStrategy().ExecuteAsync(async () =&gt; { using var tx = …; … })</code>. Sin eso, reintenta la sentencia suelta, no la transacción.</li>
+<li>Unicidad: <code>HasIndex(r =&gt; new { r.Sala, r.Hora }).IsUnique()</code> y atrapar <code>DbUpdateException</code> cuya <code>InnerException</code> es <code>SqlException</code> con <code>Number</code> 2601 o 2627.</li>
+<li>Adentro de la transacción no hay <code>HttpClient</code>, ni colas, ni logs sincrónicos. Lo que se pueda hacer antes, antes. Y la transacción en un <code>using</code>/<code>await using</code>, siempre: una conexión que vuelve al pool con la transacción abierta es la cabeza de la cadena del capítulo 8.</li>
+<li><code>Application Name=MiApi</code> en la cadena de conexión: aparece en <code>clientapp</code> del grafo y en <code>program_name</code> de la sesión dormida.</li>
+<li>Cuando una fila se actualiza por un campo, ese campo tiene índice. Es el mismo índice que pide <a href="../indices-con-cronometro/">el escrito de índices</a>, por otra razón.</li>
+</ul>
+<h3>Cómo se hizo</h3>
+<p>SQL Server 2022 Developer (16.0.4305) en un contenedor Linux con 4 CPU y 12 GB, base <code>Bloqueos</code> creada con <a href="medir/setup.sql"><code>medir/setup.sql</code></a>. Cada experimento está en <a href="medir/medir.js"><code>medir/medir.js</code></a>: abre las sesiones que necesita desde Node (el driver <code>mssql</code>, una transacción por sesión para que cada una quede pegada a su conexión), las lanza a la vez, mide lo que tarda cada una y, mientras esperan, consulta <code>sys.dm_exec_requests</code>, <code>sys.dm_tran_locks</code>, <code>sys.dm_tran_version_store_space_usage</code> y <code>sys.dm_db_index_physical_stats</code> desde otra conexión. Los grafos salen del <i>ring buffer</i> de <code>system_health</code>. Todo quedó en <a href="resultados.json"><code>resultados.json</code></a> tal cual salió, y los tests del proyecto verifican que las cifras del texto son esas. Los tiempos son de un contenedor sin carga: sirven para comparar, no como promesa.</p>
+</main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+(function () {
+  "use strict";
+  const secciones = [...document.querySelectorAll("main h2[id]")];
+  const items = secciones.map((h) => {
+    const titulo = h.childNodes[h.childNodes.length - 1].textContent.trim();
+    const small = h.querySelector("small") ? h.querySelector("small").textContent.replace("Capítulo ", "") : "";
+    const num = /^\d+$/.test(small) ? small : "";
+    return `<li><a href="#${h.id}" data-id="${h.id}"><span class="num">${num}</span>${titulo}</a></li>`;
+  }).join("");
+  document.getElementById("toc-lateral").innerHTML = items;
+  document.getElementById("toc-movil").innerHTML = items;
+  const enlaces = [...document.querySelectorAll("nav.toc a")];
+  const activar = (id) => enlaces.forEach((a) => a.classList.toggle("activo", a.dataset.id === id));
+  let pendiente = false;
+  const calcular = () => {
+    pendiente = false;
+    let actual = secciones[0].id;
+    for (const s of secciones) { if (s.getBoundingClientRect().top <= 120) actual = s.id; else break; }
+    activar(actual);
+  };
+  window.addEventListener("scroll", () => { if (!pendiente) { pendiente = true; requestAnimationFrame(calcular); } }, { passive: true });
+  window.addEventListener("hashchange", () => setTimeout(calcular, 50));
+  calcular();
+  const toast = document.getElementById("toast");
+  for (const pre of document.querySelectorAll("pre")) {
+    const b = document.createElement("button"); b.type = "button"; b.className = "copiar"; b.textContent = "Copiar";
+    b.addEventListener("click", async () => {
+      const texto = pre.querySelector("code").textContent;
+      try { await navigator.clipboard.writeText(texto); } catch (e) { const ta = document.createElement("textarea"); ta.value = texto; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); } catch (e2) { /* nada */ } ta.remove(); }
+      toast.textContent = "Copiado"; toast.classList.add("visible"); setTimeout(() => toast.classList.remove("visible"), 1500);
+    });
+    pre.appendChild(b);
+  }
+})();
+</script>
+</body>
+</html>

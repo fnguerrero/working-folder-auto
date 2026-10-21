@@ -349,5 +349,18 @@
   "para": "1+",
   "detalle": "Un tren con vagones de animales que anda por el campo, larga humo y silba cuando lo tocás. Túnel, barrera con campana, nubes que llueven, sol que se ríe, vacas que mugen y flores que brotan.",
   "destacado": true
+ },
+ {
+  "slug": "bloqueos-con-cronometro",
+  "nombre": "Bloqueos con el cronómetro en la mano",
+  "categoria": "escritos",
+  "descripcion": "Diez experimentos sobre bloqueos, aislamiento y deadlocks de SQL Server, medidos con sesiones concurrentes contra un servidor real: la actualización perdida y sus remedios, SERIALIZABLE, el grafo del deadlock, timeouts, RCSI y la fila caliente.",
+  "estado": "terminado",
+  "probar": "escritos/bloqueos-con-cronometro/",
+  "desde": "2026-10-21",
+  "icono": "🔒",
+  "para": "devs",
+  "detalle": "Cada capítulo abre dos o más sesiones a la vez contra un SQL Server 2022 y mide lo que ve cada una: cuánto esperó, qué error recibió, qué quedó en la tabla. Cubre qué toma un UPDATE y a quién frena, la escalada, NOLOCK, la actualización perdida con seis remedios, el «si no existe, insertar» con el default de TransactionScope, el deadlock clásico y su grafo, el deadlock que arregla un índice, LOCK_TIMEOUT contra CommandTimeout, RCSI y SNAPSHOT, y la fila caliente. Con chuleta y qué cambia en el código .NET.",
+  "destacado": true
  }
 ]
