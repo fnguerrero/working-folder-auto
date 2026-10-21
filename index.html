@@ -31,12 +31,11 @@
   .tile.ultima { flex: 0 1 auto; min-width: 0; } .tile.ultima b { max-width: 300px; }
   .tile .nombres a + a::before { content: "· "; margin: 0 .2em 0 .35em; color: var(--muted); }
   .tile .ok { color: var(--c-apps); } .tile .pendiente { color: var(--c-juegos); }
-  .frase { margin: 6px 0 28px; padding: 2px 0 2px 18px; border-left: 2px solid var(--accent); max-width: 680px; transition: opacity .5s; }
-  .frase.cambiando { opacity: 0; }
-  .frase blockquote { margin: 0; font-family: Georgia, "Iowan Old Style", "Times New Roman", serif; font-style: italic; font-size: 1.1rem; line-height: 1.5; color: var(--fg); }
+  .frase { margin: 4px auto 30px; padding: 14px 16px 22px; max-width: 640px; text-align: center; border-bottom: 1px solid var(--line); }
+  .frase blockquote { margin: 0; font-family: Georgia, "Iowan Old Style", "Times New Roman", serif; font-style: italic; font-size: 1.05rem; line-height: 1.55; color: var(--accent); }
   .frase blockquote::before { content: "«"; } .frase blockquote::after { content: "»"; }
-  .frase figcaption { margin-top: 6px; font-size: .7rem; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
-  .frase figcaption::before { content: "— "; }
+  .frase figcaption { margin-top: 8px; font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .frase figcaption::before, .frase figcaption::after { content: ""; display: inline-block; width: 18px; height: 1px; margin: 0 8px; vertical-align: middle; background: var(--muted); opacity: .5; }
   aside { grid-row: 1 / -1; background: var(--lateral); border-right: 1px solid var(--line); padding: 22px 16px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
   .marca { display: flex; align-items: center; gap: 10px; margin: 0 0 18px; }
   .logo { width: 40px; height: 40px; flex: none; }
@@ -245,10 +244,9 @@
     $("#bCieloValor").textContent = `☉ ${signo(sol)} · ☽ ${signo(luna)}`; $("#bCielo").hidden = false;
   }
   function pintarFrase() {
-    let i = Math.floor(Date.now() / 864e5) % FRASES.length; const f = $("#bFrase");
-    const mostrar = () => { $("#bFraseTexto").textContent = FRASES[i][0]; $("#bFraseAutor").textContent = FRASES[i][1]; };
-    mostrar(); f.hidden = false;
-    setInterval(() => { f.classList.add("cambiando"); setTimeout(() => { i = (i + 1) % FRASES.length; mostrar(); f.classList.remove("cambiando"); }, 500); }, 20000);
+    // Una por noche: cambia a las 3 de Argentina, cuando corre la rutina.
+    const [texto, autor] = FRASES[Math.floor((hoyArg().getTime() - 3 * 36e5) / 864e5) % FRASES.length];
+    $("#bFraseTexto").textContent = texto; $("#bFraseAutor").textContent = autor; $("#bFrase").hidden = false;
   }
   function pintarPedidos() {
     if (typeof fetch !== "function") return;
