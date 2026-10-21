@@ -20,16 +20,20 @@
   * { box-sizing: border-box; }
   body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.45; }
   .marco { display: grid; grid-template-columns: 250px 1fr; grid-template-rows: auto 1fr; min-height: 100vh; }
-  .barra { grid-column: 2; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 4px 18px; padding: 8px 20px; font-size: .84rem; color: var(--muted); background: var(--card); border-bottom: 1px solid var(--line); }
-  .barra > span { display: inline-block; line-height: 26px; white-space: nowrap; }
-  .barra > span[hidden] { display: none; }
-  .barra b { color: var(--fg); font-weight: 600; }
-  .barra a { color: var(--accent); text-decoration: none; } .barra a:hover { text-decoration: underline; }
-  .barra .nombres { white-space: normal; }
-  .barra #bUltima { white-space: normal; text-align: right; }
-  .barra .nombres a + a::before { content: "· "; margin-left: .35em; color: var(--muted); }
-  .barra #bDato a { color: var(--fg); transition: opacity .4s; } .barra #bDato a.cambiando { opacity: 0; } .barra #bDato { white-space: normal; text-align: right; }
-  .barra .ok { color: var(--c-apps); } .barra .pendiente { color: var(--c-juegos); font-weight: 600; }
+  .barra { grid-column: 2; display: flex; justify-content: flex-end; align-items: stretch; gap: 0; padding: 0 12px; background: var(--card); border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+  .barra::-webkit-scrollbar { display: none; }
+  .tile { display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 7px 12px; border-left: 1px solid var(--line); white-space: nowrap; flex: none; }
+  .tile[hidden] { display: none; }
+  .tile b { overflow: hidden; text-overflow: ellipsis; }
+  .tile:first-child { border-left: 0; }
+  .tile small { font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .tile b { font-size: .86rem; font-weight: 600; color: var(--fg); }
+  .tile a { color: var(--accent); text-decoration: none; } .tile a:hover { text-decoration: underline; }
+  .tile.ultima { flex: 0 1 auto; min-width: 0; } .tile.ultima b { max-width: 300px; }
+  .tile .nombres a + a::before { content: "· "; margin: 0 .2em 0 .35em; color: var(--muted); }
+  .tile .ok { color: var(--c-apps); } .tile .pendiente { color: var(--c-juegos); }
+  .dato { margin: 0 0 18px; padding: 8px 12px; border-radius: 10px; background: var(--suave); font-size: .9rem; color: var(--muted); }
+  .dato a { color: var(--fg); text-decoration: none; transition: opacity .4s; } .dato a:hover { text-decoration: underline; } .dato a.cambiando { opacity: 0; }
   aside { grid-row: 1 / -1; background: var(--lateral); border-right: 1px solid var(--line); padding: 22px 16px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
   .marca { display: flex; align-items: center; gap: 10px; margin: 0 0 18px; }
   .logo { width: 40px; height: 40px; flex: none; }
@@ -70,15 +74,16 @@
   .chip.edad { border-color: var(--accent); color: var(--accent); font-weight: 600; }
   .chip.en-curso { border-color: var(--c-juegos); color: var(--c-juegos); }
   .tarjeta p { margin: 0; color: var(--muted); font-size: .92rem; }
-  .tarjeta .fechas { font-size: .76rem; color: var(--muted); opacity: .85; }
   .orden { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: -6px 0 14px; }
   .orden span { font-size: .78rem; color: var(--muted); margin-right: 4px; }
   .orden button { font: inherit; font-size: .78rem; min-height: 32px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer; }
   .orden button:hover { border-color: var(--accent); color: var(--fg); }
   .orden button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
-  .tarjeta details { font-size: .9rem; } .tarjeta summary { cursor: pointer; color: var(--accent); font-size: .86rem; list-style: none; } .tarjeta summary::-webkit-details-marker { display: none; } .tarjeta summary::before { content: "+ "; } .tarjeta details[open] summary::before { content: "– "; }
-  .tarjeta details p { margin: 6px 0 0; color: var(--fg); }
-  .acciones { margin-top: auto; padding-top: 6px; }
+  .acciones { margin-top: auto; padding-top: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .ver-mas { font: inherit; font-size: .84rem; min-height: 36px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--accent); cursor: pointer; }
+  .ver-mas:hover { border-color: var(--accent); } .ver-mas::before { content: "+ "; } .ver-mas[aria-expanded="true"]::before { content: "– "; }
+  .acciones .fechas { font-size: .74rem; color: var(--muted); line-height: 1.3; margin-left: auto; text-align: right; }
+  .mas p { margin: 8px 0 0; font-size: .9rem; color: var(--fg); }
   .probar { display: inline-flex; align-items: center; min-height: 36px; padding: 6px 14px; border-radius: 999px; background: var(--accent); color: var(--accent-fg); text-decoration: none; font-size: .88rem; font-weight: 600; }
   .probar:hover { filter: brightness(1.1); }
   .vacio { color: var(--muted); }
@@ -86,7 +91,9 @@
   @media (max-width: 820px) {
     .marco { grid-template-columns: 1fr; }
     .marco { grid-template-rows: auto auto 1fr; }
-    .barra { grid-column: 1; padding: 6px 16px; gap: 2px 14px; font-size: .8rem; }
+    .barra { grid-column: 1; padding: 0 6px; justify-content: flex-start; }
+    .tile { padding: 6px 10px; flex: none; }
+    .tile.ultima b { max-width: 220px; }
     aside { grid-row: auto; position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 16px; }
     .grupo h2 { margin-top: 10px; }
     nav { display: flex; flex-wrap: wrap; gap: 4px; } nav button { width: auto; min-height: 34px; padding: 5px 10px; font-size: .86rem; border: 1px solid var(--line); border-radius: 999px; } nav button .n { margin-left: 4px; }
@@ -98,13 +105,12 @@
 <body>
 <div class="marco">
   <header class="barra" id="barra" aria-label="De un vistazo">
-    <span id="bDato" hidden title="Un hallazgo medido en alguno de los proyectos; cambia solo">💡 <a id="bDatoLink" href="#"></a></span>
-    <span id="bLuna" hidden></span>
-    <span id="bRacha" hidden>🔥 <a href="https://github.com/fnguerrero/working-folder-auto/blob/main/BITACORA.md" id="bRachaLink"></a></span>
-    <span id="bUltima" hidden>🌙 <span>Última noche <b id="bUltimaCuando"></b>:</span> <span class="nombres" id="bUltimaQue"></span></span>
-    <span id="bCuenta" hidden>📦 <b id="bTotal"></b> proyectos, <span id="bTerminados"></span> <span id="bEnCurso" hidden></span></span>
-    <span id="bProxima" hidden title="Corre todas las noches a las 3, hora de Argentina">⏰ Próxima noche <b id="bProximaEn"></b></span>
-    <span id="bPedidos" hidden>📬 <a id="bPedidosLink" href="https://github.com/fnguerrero/working-folder-auto/issues?q=is%3Aissue+is%3Aopen+label%3Anoche"></a></span>
+    <span class="tile" id="bLuna" hidden><small>Luna</small><b id="bLunaValor"></b></span>
+    <span class="tile" id="bRacha" hidden><small>Racha</small><b><a href="https://github.com/fnguerrero/working-folder-auto/blob/main/BITACORA.md" id="bRachaLink"></a></b></span>
+    <span class="tile ultima" id="bUltima" hidden><small id="bUltimaCuando">Última noche</small><b class="nombres" id="bUltimaQue"></b></span>
+    <span class="tile" id="bCuenta" hidden><small>Proyectos</small><b><span id="bTotal"></span> · <span id="bTerminados"></span><span id="bEnCurso" hidden></span></b></span>
+    <span class="tile" id="bProxima" hidden title="Corre todas las noches a las 3, hora de Argentina"><small>Próxima noche</small><b id="bProximaEn"></b></span>
+    <span class="tile" id="bPedidos" hidden><small>Pedidos</small><b><a id="bPedidosLink" href="https://github.com/fnguerrero/working-folder-auto/issues?q=is%3Aissue+is%3Aopen+label%3Anoche"></a></b></span>
   </header>
   <aside>
     <div class="marca"><svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><defs><mask id="luna"><rect width="40" height="40" fill="#fff"/><circle cx="29.5" cy="11.5" r="8" fill="#000"/></mask></defs><rect width="40" height="40" rx="10" fill="#141a3d"/><circle cx="9" cy="9" r="1" fill="#fff" opacity=".7"/><circle cx="15" cy="5.5" r=".7" fill="#fff" opacity=".5"/><circle cx="33" cy="25" r=".8" fill="#fff" opacity=".6"/><circle cx="25" cy="15" r="9" fill="#ffd27a" mask="url(#luna)"/><path d="M8 25.5l4 3.2-4 3.2" fill="none" stroke="#9d93ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><rect class="cursor" x="14.5" y="30" width="7" height="2.4" rx="1" fill="#9d93ff"/></svg><h1>Programador nocturno</h1></div>
@@ -115,6 +121,7 @@
     <div class="temas" id="temas" role="group" aria-label="Tema"><button data-tema="claro">Claro</button><button data-tema="oscuro">Oscuro</button><button data-tema="nocturno">Nocturno</button></div>
   </aside>
   <main>
+    <p class="dato" id="bDato" hidden title="Un hallazgo medido en alguno de los proyectos; cambia solo">💡 <a id="bDatoLink" href="#"></a></p>
     <section id="secDestacados"><h2 class="seccion">Lo más copado</h2><p class="explica">Por donde conviene empezar.</p><div class="grilla destacados" id="destacados"></div></section>
     <section><h2 class="seccion" id="tituloTodos">Todo</h2><p class="explica" id="explicaTodos"></p><div class="orden" id="orden" role="group" aria-label="Ordenar"><span>Ordenar por</span><button data-orden="actividad">Última actividad</button><button data-orden="nuevos">Más nuevos</button><button data-orden="nombre">Nombre</button></div><div class="grilla" id="grilla"><p class="vacio">Cargando…</p></div></section>
   </main>
@@ -155,9 +162,9 @@
     const a = document.createElement("article"); a.className = "tarjeta"; a.dataset.slug = p.slug;
     a.innerHTML = `<div class="cab"><div class="icono ${esc(p.categoria)}" aria-hidden="true">${esc(p.icono || "✨")}</div><div><h3><a href="${esc(p.probar)}">${esc(p.nombre)}</a></h3><div class="chips"><span class="chip cat ${esc(p.categoria)}">${esc(CATEGORIAS[p.categoria] || p.categoria)}</span><span class="chip edad">${esc(EDAD[p.para] || "")}</span>${p.estado !== "terminado" ? `<span class="chip en-curso">${esc(p.estado)}</span>` : ""}</div></div></div>
       <p>${esc(p.descripcion)}</p>
-      <p class="fechas">${p.desde ? `Creado el ${fechaCorta(p.desde)}` : ""}${p.actualizado && p.actualizado !== p.desde ? ` · Actualizado el ${fechaCorta(p.actualizado)}` : ""}</p>
-      ${p.detalle ? `<details><summary>Qué es, un poco más</summary><p>${esc(p.detalle)}</p></details>` : ""}
-      <div class="acciones"><a class="probar" href="${esc(p.probar)}">Probar →</a></div>`;
+      <div class="acciones"><a class="probar" href="${esc(p.probar)}">Probar →</a>${p.detalle ? `<button type="button" class="ver-mas" aria-expanded="false">Qué es, un poco más</button>` : ""}<span class="fechas">${p.desde ? `Creado el ${fechaCorta(p.desde)}` : ""}${p.actualizado && p.actualizado !== p.desde ? `<br>Actualizado el ${fechaCorta(p.actualizado)}` : ""}</span></div>
+      ${p.detalle ? `<div class="mas" hidden><p>${esc(p.detalle)}</p></div>` : ""}`;
+    const mas = a.querySelector(".ver-mas"); if (mas) mas.onclick = () => { const abierto = mas.getAttribute("aria-expanded") === "true"; mas.setAttribute("aria-expanded", String(!abierto)); a.querySelector(".mas").hidden = abierto; };
     return a;
   }
   function filtrar(lista) {
@@ -188,11 +195,11 @@
     if (!vis.length) return;
     const terminados = vis.filter((p) => p.estado === "terminado").length; const enCurso = vis.filter((p) => p.estado === "en curso").length;
     $("#bTotal").textContent = vis.length; $("#bTerminados").textContent = `${terminados} ${terminados === 1 ? "terminado" : "terminados"}`;
-    $("#bEnCurso").textContent = `y ${enCurso} en curso`; $("#bEnCurso").hidden = !enCurso; $("#bCuenta").hidden = false;
+    $("#bEnCurso").textContent = ` · ${enCurso} en curso`; $("#bEnCurso").hidden = !enCurso; $("#bCuenta").hidden = false;
     const ultima = vis.map((p) => p.actualizado || p.desde || "").sort().pop();
     if (ultima) {
       const h = hoyArg(); const dias = Math.round((Date.UTC(h.getUTCFullYear(), h.getUTCMonth(), h.getUTCDate()) - new Date(ultima + "T00:00:00Z")) / 864e5);
-      $("#bUltimaCuando").textContent = dias <= 0 ? "(anoche)" : `(${fechaCorta(ultima)}, hace ${dias} ${dias === 1 ? "noche" : "noches"})`;
+      $("#bUltimaCuando").textContent = dias <= 0 ? "Anoche" : `Hace ${dias} ${dias === 1 ? "noche" : "noches"} · ${fechaCorta(ultima)}`;
       const que = $("#bUltimaQue"); que.innerHTML = "";
       const salieron = vis.filter((p) => p.desde === ultima || p.actualizado === ultima).sort((a, b) => (a.desde === ultima ? 0 : 1) - (b.desde === ultima ? 0 : 1));
       for (const p of salieron.slice(0, 3)) { const a = document.createElement("a"); a.href = p.probar; a.textContent = p.nombre; que.appendChild(a); }
@@ -207,13 +214,13 @@
     let fase = fases.find((f) => Math.abs(edad - f[0]) < 0.034);
     if (!fase) fase = edad < 0.25 ? [0, "🌒", "Luna creciente"] : edad < 0.5 ? [0, "🌔", "Luna gibosa creciente"] : edad < 0.75 ? [0, "🌖", "Luna gibosa menguante"] : [0, "🌘", "Luna menguante"];
     const luz = Math.round((1 - Math.cos(2 * Math.PI * edad)) / 2 * 100);
-    $("#bLuna").textContent = `${fase[1]} ${fase[2]}, ${luz} %`; $("#bLuna").title = "La luna de esta noche (iluminada al " + luz + " %). Vista desde Argentina se ve espejada respecto del dibujo."; $("#bLuna").hidden = false;
+    $("#bLunaValor").textContent = `${fase[1]} ${luz} %`; $("#bLuna").querySelector("small").textContent = fase[2]; $("#bLuna").title = "La luna de esta noche (iluminada al " + luz + " %). Vista desde Argentina se ve espejada respecto del dibujo."; $("#bLuna").hidden = false;
   }
   function pintarRacha() {
     const fechas = new Set(visibles().map((p) => p.desde).filter(Boolean)); if (!fechas.size) return;
     let dia = new Date([...fechas].sort().pop() + "T00:00:00Z"); let racha = 0;
     while (fechas.has(dia.toISOString().slice(0, 10))) { racha++; dia = new Date(dia.getTime() - 864e5); }
-    $("#bRachaLink").textContent = `${racha} ${racha === 1 ? "noche" : "noches"} seguidas`; $("#bRacha").hidden = false;
+    $("#bRachaLink").textContent = `${racha} ${racha === 1 ? "noche" : "noches"}`; $("#bRacha").title = "Noches seguidas con algo nuevo o mejorado"; $("#bRacha").hidden = false;
   }
   function pintarDato() {
     const datos = visibles().filter((p) => p.dato); if (!datos.length) return;
@@ -236,8 +243,8 @@
       .then((lista) => {
         if (!Array.isArray(lista)) return;
         const n = lista.filter((i) => !i.pull_request).length; const a = $("#bPedidosLink");
-        if (n) { a.textContent = `${n} ${n === 1 ? "pedido" : "pedidos"} en cola`; a.className = "pendiente"; }
-        else { a.textContent = "Sin pedidos en cola, dejale uno"; a.href = "https://github.com/fnguerrero/working-folder-auto/issues/new?labels=noche"; a.className = "ok"; }
+        if (n) { a.textContent = `${n} en cola`; a.className = "pendiente"; }
+        else { a.textContent = "0 en cola"; a.title = "Dejale uno"; a.href = "https://github.com/fnguerrero/working-folder-auto/issues/new?labels=noche"; a.className = "ok"; }
         $("#bPedidos").hidden = false;
       })
       .catch(() => {});
