@@ -35,11 +35,12 @@
   .astro p { margin: 0 0 10px; font-size: .92rem; color: var(--muted); }
   .astro .cerrar { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border: 0; border-radius: 8px; background: none; color: var(--muted); font-size: 1rem; cursor: pointer; }
   .astro .cerrar:hover { background: var(--suave); color: var(--fg); }
-  .frase { margin: 4px auto 30px; padding: 14px 16px 22px; max-width: 640px; text-align: center; border-bottom: 1px solid var(--line); }
-  .frase blockquote { margin: 0; font-family: Georgia, "Iowan Old Style", "Times New Roman", serif; font-style: italic; font-size: 1.05rem; line-height: 1.55; color: var(--accent); }
+  .frase { flex: 1 1 auto; min-width: 0; margin: 0 12px 0 0; padding: 3px 4px; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+  .frase[hidden] { display: none; }
+  .frase blockquote { margin: 0; max-width: 560px; font-family: Georgia, "Iowan Old Style", "Times New Roman", serif; font-style: italic; font-size: .86rem; line-height: 1.18; color: var(--accent); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .frase blockquote::before { content: "«"; } .frase blockquote::after { content: "»"; }
-  .frase figcaption { margin-top: 8px; font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
-  .frase figcaption::before, .frase figcaption::after { content: ""; display: inline-block; width: 18px; height: 1px; margin: 0 8px; vertical-align: middle; background: var(--muted); opacity: .5; }
+  .frase figcaption { flex: none; font-size: .6rem; line-height: 1.2; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+  .frase figcaption::before { content: "— "; }
   aside { grid-row: 1 / -1; background: var(--lateral); border-right: 1px solid var(--line); padding: 22px 16px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
   .marca { display: flex; align-items: center; gap: 10px; margin: 0 0 18px; }
   .logo { width: 40px; height: 40px; flex: none; }
@@ -99,6 +100,7 @@
     .marco { grid-template-rows: auto auto 1fr; }
     .barra { grid-column: 1; padding: 0 6px; justify-content: flex-start; }
     .tile { padding: 6px 10px; flex: none; }
+    .frase { flex: none; width: 240px; }
     aside { grid-row: auto; position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 16px; }
     .grupo h2 { margin-top: 10px; }
     nav { display: flex; flex-wrap: wrap; gap: 4px; } nav button { width: auto; min-height: 34px; padding: 5px 10px; font-size: .86rem; border: 1px solid var(--line); border-radius: 999px; } nav button .n { margin-left: 4px; }
@@ -109,7 +111,7 @@
 </head>
 <body>
 <div class="marco">
-  <header class="barra" id="barra" aria-label="El cielo de esta noche"></header>
+  <header class="barra" id="barra" aria-label="La frase y el cielo de esta noche"><figure class="frase" id="bFrase" hidden><blockquote id="bFraseTexto"></blockquote><figcaption id="bFraseAutor"></figcaption></figure></header>
   <aside>
     <div class="marca"><svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><defs><mask id="luna"><rect width="40" height="40" fill="#fff"/><circle cx="29.5" cy="11.5" r="8" fill="#000"/></mask></defs><rect width="40" height="40" rx="10" fill="#141a3d"/><circle cx="9" cy="9" r="1" fill="#fff" opacity=".7"/><circle cx="15" cy="5.5" r=".7" fill="#fff" opacity=".5"/><circle cx="33" cy="25" r=".8" fill="#fff" opacity=".6"/><circle cx="25" cy="15" r="9" fill="#ffd27a" mask="url(#luna)"/><path d="M8 25.5l4 3.2-4 3.2" fill="none" stroke="#9d93ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><rect class="cursor" x="14.5" y="30" width="7" height="2.4" rx="1" fill="#9d93ff"/></svg><h1>Programador nocturno</h1></div>
     <input class="buscar" id="buscar" type="search" placeholder="Buscar…" aria-label="Buscar proyectos">
@@ -120,7 +122,6 @@
   </aside>
   <main>
     <section class="astro" id="astro" hidden aria-live="polite"><button type="button" class="cerrar" id="astroCerrar" aria-label="Cerrar">✕</button><h2 id="astroTitulo"></h2><p class="chips" id="astroChips"></p><div id="astroTexto"></div></section>
-    <figure class="frase" id="bFrase" hidden><blockquote id="bFraseTexto"></blockquote><figcaption id="bFraseAutor"></figcaption></figure>
     <section id="secDestacados"><h2 class="seccion">Lo más copado</h2><p class="explica">Por donde conviene empezar.</p><div class="grilla destacados" id="destacados"></div></section>
     <section><h2 class="seccion" id="tituloTodos">Todo</h2><p class="explica" id="explicaTodos"></p><div class="orden" id="orden" role="group" aria-label="Ordenar"><span>Ordenar por</span><button data-orden="actividad">Última actividad</button><button data-orden="nuevos">Más nuevos</button><button data-orden="nombre">Nombre</button></div><div class="grilla" id="grilla"><p class="vacio">Cargando…</p></div></section>
   </main>
@@ -257,7 +258,7 @@
   }
   const cielo = {};
   function pintarCielo() {
-    const ahora = Date.now(); const barra = $("#barra"); barra.innerHTML = ""; const luna = faseLuna();
+    const ahora = Date.now(); const barra = $("#barra"); for (const t of barra.querySelectorAll(".tile")) t.remove(); const luna = faseLuna();
     const tile = (k, etiqueta, valor) => {
       const b = document.createElement("button"); b.type = "button"; b.className = "tile"; b.dataset.astro = k; b.setAttribute("aria-expanded", "false");
       const s = document.createElement("small"); s.textContent = etiqueta; const v = document.createElement("b"); v.textContent = valor;
@@ -326,7 +327,7 @@
   function pintarFrase() {
     // Una por noche: cambia a las 3 de Argentina, cuando corre la rutina.
     const [texto, autor] = FRASES[Math.floor((hoyArg().getTime() - 3 * 36e5) / 864e5) % FRASES.length];
-    $("#bFraseTexto").textContent = texto; $("#bFraseAutor").textContent = autor; $("#bFrase").hidden = false;
+    $("#bFraseTexto").textContent = texto; $("#bFraseAutor").textContent = autor; $("#bFrase").title = `«${texto}» — ${autor}`; $("#bFrase").hidden = false;
   }
   try { pintarCielo(); } catch (e) {}
   function marcarTema() {
