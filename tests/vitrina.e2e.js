@@ -35,10 +35,13 @@ async function probar(browser, url, viewport) {
   await page.keyboard.press("Escape"); assert.ok(await panel.isHidden(), "Esc cierra");
   await page.click("#barra .tile[data-astro=luna]"); await page.click("#astroCerrar"); assert.ok(await panel.isHidden(), "la cruz cierra");
   assert.ok((await page.locator("#bFraseTexto").innerText()).length > 15 && (await page.locator("#bFraseAutor").innerText()).length > 2, "la frase con su autor");
-  assert.ok((await page.locator(".tarjeta .fechas").first().innerText()).startsWith("Creado el "), "las cards tienen fecha");
-  assert.equal(await page.locator("#orden button[aria-pressed=true]").getAttribute("data-orden"), "actividad");
-  await page.click("#orden button[data-orden=nombre]"); const nombres = await page.locator("#grilla .tarjeta h3").allInnerTexts(); assert.deepEqual(nombres, nombres.slice().sort((a, b) => a.localeCompare(b, "es")), "ordenado por nombre");
-  assert.ok((await page.evaluate(() => location.hash)).includes("orden=nombre")); await page.click("#orden button[data-orden=actividad]");
+  assert.ok((await page.locator(".tarjeta .fechas").first().innerText()).startsWith("Creado "), "las cards tienen fecha");
+  assert.equal(await page.locator("#selOrden").inputValue(), "actividad");
+  await page.selectOption("#selOrden", "nombre"); const nombres = await page.locator("#grilla .tarjeta h3").allInnerTexts(); assert.deepEqual(nombres, nombres.slice().sort((a, b) => a.localeCompare(b, "es")), "ordenado por nombre");
+  assert.ok((await page.evaluate(() => location.hash)).includes("orden=nombre")); await page.selectOption("#selOrden", "actividad");
+  await page.selectOption("#selEdad", "devs"); assert.ok(await page.locator("#activos button").filter({ hasText: "Para devs .NET" }).isVisible(), "el filtro de edad muestra su chip");
+  assert.ok((await page.locator("#cuentaRes").innerText()).startsWith(`${proyectos.filter((p) => p.para === "devs").length} resultado`), "cuenta los resultados filtrados");
+  await page.click("#activos button"); assert.equal(await page.locator("#selEdad").inputValue(), "todos", "el chip saca el filtro");
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), "sin scroll horizontal");
   assert.equal(await page.locator("#cuenta").count(), 0, "la cuenta ya no está en el lateral");
   const primera = page.locator("#grilla .tarjeta").first(); assert.ok(await primera.locator(".mas").isHidden()); await primera.locator(".ver-mas").click(); assert.ok(await primera.locator(".mas").isVisible(), "«Qué es» despliega el detalle"); await primera.locator(".ver-mas").click(); assert.ok(await primera.locator(".mas").isHidden());

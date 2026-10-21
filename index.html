@@ -81,17 +81,23 @@
   .chip.edad { border-color: var(--accent); color: var(--accent); font-weight: 600; }
   .chip.en-curso { border-color: var(--c-juegos); color: var(--c-juegos); }
   .tarjeta p { margin: 0; color: var(--muted); font-size: .92rem; }
-  .orden { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: -6px 0 14px; }
-  .orden span { font-size: .78rem; color: var(--muted); margin-right: 4px; }
-  .orden button { font: inherit; font-size: .78rem; min-height: 32px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer; }
-  .orden button:hover { border-color: var(--accent); color: var(--fg); }
-  .orden button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
-  .acciones { margin-top: auto; padding-top: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-  .ver-mas { font: inherit; font-size: .84rem; min-height: 36px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--accent); cursor: pointer; }
+  .herramientas { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin: -6px 0 14px; }
+  .resultados { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: .82rem; color: var(--muted); }
+  .activos { display: contents; }
+  .activos button { font: inherit; font-size: .76rem; min-height: 28px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--accent); background: var(--suave); color: var(--fg); cursor: pointer; }
+  .activos button::after { content: " ✕"; color: var(--muted); } .activos button:hover::after { color: var(--fg); }
+  .selects { display: flex; flex-wrap: wrap; gap: 8px 14px; }
+  .sel { position: relative; display: flex; align-items: center; gap: 6px; font-size: .78rem; color: var(--muted); }
+  .sel select { font: inherit; font-size: .84rem; color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 8px; min-height: 34px; padding: 4px 28px 4px 10px; appearance: none; -webkit-appearance: none; cursor: pointer; }
+  .sel select:hover, .sel select:focus-visible { border-color: var(--accent); }
+  .sel select option { background: var(--card); color: var(--fg); }
+  .sel::after { content: "▾"; position: absolute; right: 10px; pointer-events: none; color: var(--accent); font-size: .8rem; }
+  .acciones { margin-top: auto; padding-top: 6px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: center; gap: 8px; }
+  .ver-mas { font: inherit; font-size: .84rem; min-height: 36px; width: 100%; white-space: nowrap; padding: 6px 8px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--accent); cursor: pointer; }
   .ver-mas:hover { border-color: var(--accent); } .ver-mas::before { content: "+ "; } .ver-mas[aria-expanded="true"]::before { content: "– "; }
-  .acciones .fechas { font-size: .74rem; color: var(--muted); line-height: 1.3; margin-left: auto; text-align: right; }
+  .acciones .fechas { grid-column: 3; font-size: .7rem; color: var(--muted); line-height: 1.3; text-align: right; }
   .mas p { margin: 8px 0 0; font-size: .9rem; color: var(--fg); }
-  .probar { display: inline-flex; align-items: center; min-height: 36px; padding: 6px 14px; border-radius: 999px; background: var(--accent); color: var(--accent-fg); text-decoration: none; font-size: .88rem; font-weight: 600; }
+  .probar { display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; min-height: 36px; padding: 6px 8px; border-radius: 999px; background: var(--accent); color: var(--accent-fg); text-decoration: none; font-size: .88rem; font-weight: 600; }
   .probar:hover { filter: brightness(1.1); }
   .vacio { color: var(--muted); }
   .menu-movil { display: none; }
@@ -116,14 +122,13 @@
     <div class="marca"><svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><defs><mask id="luna"><rect width="40" height="40" fill="#fff"/><circle cx="29.5" cy="11.5" r="8" fill="#000"/></mask></defs><rect width="40" height="40" rx="10" fill="#141a3d"/><circle cx="9" cy="9" r="1" fill="#fff" opacity=".7"/><circle cx="15" cy="5.5" r=".7" fill="#fff" opacity=".5"/><circle cx="33" cy="25" r=".8" fill="#fff" opacity=".6"/><circle cx="25" cy="15" r="9" fill="#ffd27a" mask="url(#luna)"/><path d="M8 25.5l4 3.2-4 3.2" fill="none" stroke="#9d93ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><rect class="cursor" x="14.5" y="30" width="7" height="2.4" rx="1" fill="#9d93ff"/></svg><h1>Programador nocturno</h1></div>
     <input class="buscar" id="buscar" type="search" placeholder="Buscar…" aria-label="Buscar proyectos">
     <div class="grupo"><h2>Categorías</h2><nav id="categorias" aria-label="Categorías"></nav></div>
-    <div class="grupo"><h2>Para quién</h2><nav id="publicos" aria-label="Para quién"></nav></div>
     <p class="pie"><a href="https://github.com/fnguerrero/working-folder-auto">El repo</a> · <a href="https://github.com/fnguerrero/working-folder-auto/blob/main/BITACORA.md">La bitácora</a></p>
     <div class="temas" id="temas" role="group" aria-label="Tema"><button data-tema="claro">Claro</button><button data-tema="oscuro">Oscuro</button><button data-tema="nocturno">Nocturno</button></div>
   </aside>
   <main>
     <section class="astro" id="astro" hidden aria-live="polite"><button type="button" class="cerrar" id="astroCerrar" aria-label="Cerrar">✕</button><h2 id="astroTitulo"></h2><p class="chips" id="astroChips"></p><div id="astroTexto"></div></section>
     <section id="secDestacados"><h2 class="seccion">Lo más copado</h2><p class="explica">Por donde conviene empezar.</p><div class="grilla destacados" id="destacados"></div></section>
-    <section><h2 class="seccion" id="tituloTodos">Todo</h2><p class="explica" id="explicaTodos"></p><div class="orden" id="orden" role="group" aria-label="Ordenar"><span>Ordenar por</span><button data-orden="actividad">Última actividad</button><button data-orden="nuevos">Más nuevos</button><button data-orden="nombre">Nombre</button></div><div class="grilla" id="grilla"><p class="vacio">Cargando…</p></div></section>
+    <section><h2 class="seccion" id="tituloTodos">Todo</h2><p class="explica" id="explicaTodos"></p><div class="herramientas"><div class="resultados"><span id="cuentaRes"></span><span class="activos" id="activos"></span></div><div class="selects"><label class="sel">Edad <select id="selEdad"></select></label><label class="sel">Ordenar por <select id="selOrden"></select></label></div></div><div class="grilla" id="grilla"><p class="vacio">Cargando…</p></div></section>
   </main>
 </div>
 <script>
@@ -135,7 +140,7 @@
   const EDAD = { "1+": "Desde 1 año", "3+": "Desde 3 años", todos: "Para cualquiera", devs: "Para devs .NET" };
   const $ = (s) => document.querySelector(s);
   let proyectos = []; let categoria = "todo"; let publico = "todos"; let busqueda = ""; let orden = "actividad";
-  const ORDENES = { actividad: "lo último trabajado primero", nuevos: "lo más nuevo primero", nombre: "por nombre" };
+  const ORDENES = { actividad: ["Última actividad", "lo último trabajado primero"], nuevos: ["Más recientes", "lo más nuevo primero"], antiguos: ["Más antiguos", "lo más viejo primero"], nombre: ["Nombre (A-Z)", "por nombre"] };
   const leerHash = () => { const h = new URLSearchParams(location.hash.replace(/^#/, "")); if (h.get("cat") && CATEGORIAS[h.get("cat")]) categoria = h.get("cat"); if (h.get("para") && PUBLICOS[h.get("para")]) publico = h.get("para"); if (h.get("orden") && ORDENES[h.get("orden")]) orden = h.get("orden"); };
   const escribirHash = () => { const h = new URLSearchParams(); if (categoria !== "todo") h.set("cat", categoria); if (publico !== "todos") h.set("para", publico); if (orden !== "actividad") h.set("orden", orden); history.replaceState(null, "", h.toString() ? "#" + h.toString() : location.pathname); };
   const claveDePublico = (p) => (p.para === "todos" ? "cualquiera" : p.para);
@@ -149,22 +154,21 @@
       b.innerHTML = `${clave === "todo" ? "" : `<i style="background:var(--c-${clave})"></i>`}<span>${nombre}</span><span class="n">${n}</span>`;
       b.onclick = () => { categoria = clave; escribirHash(); pintarNav(); pintar(); }; cat.appendChild(b);
     }
-    const pub = $("#publicos"); pub.innerHTML = "";
+    const edad = $("#selEdad"); edad.innerHTML = ""; const enCat = vis.filter((p) => categoria === "todo" || p.categoria === categoria);
     for (const [clave, [nombre]] of Object.entries(PUBLICOS)) {
-      const n = clave === "todos" ? vis.length : vis.filter((p) => claveDePublico(p) === clave).length; if (!n) continue;
-      const b = document.createElement("button"); b.dataset.para = clave; b.setAttribute("aria-pressed", String(clave === publico));
-      b.innerHTML = `<span>${nombre}</span><span class="n">${n}</span>`;
-      b.onclick = () => { publico = clave; escribirHash(); pintarNav(); pintar(); }; pub.appendChild(b);
+      const n = clave === "todos" ? enCat.length : enCat.filter((p) => claveDePublico(p) === clave).length; if (!n && clave !== publico) continue;
+      const o = document.createElement("option"); o.value = clave; o.textContent = `${clave === "todos" ? "Todas" : nombre} (${n})`; edad.appendChild(o);
     }
+    edad.value = publico;
   }
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   function tarjeta(p) {
     const a = document.createElement("article"); a.className = "tarjeta"; a.dataset.slug = p.slug;
     a.innerHTML = `<div class="cab"><div class="icono ${esc(p.categoria)}" aria-hidden="true">${esc(p.icono || "✨")}</div><div><h3><a href="${esc(p.probar)}">${esc(p.nombre)}</a></h3><div class="chips"><span class="chip cat ${esc(p.categoria)}">${esc(CATEGORIAS[p.categoria] || p.categoria)}</span><span class="chip edad">${esc(EDAD[p.para] || "")}</span>${p.estado !== "terminado" ? `<span class="chip en-curso">${esc(p.estado)}</span>` : ""}</div></div></div>
       <p>${esc(p.descripcion)}</p>
-      <div class="acciones"><a class="probar" href="${esc(p.probar)}">Probar →</a>${p.detalle ? `<button type="button" class="ver-mas" aria-expanded="false">Qué es, un poco más</button>` : ""}<span class="fechas">${p.desde ? `Creado el ${fechaCorta(p.desde)}` : ""}${p.actualizado && p.actualizado !== p.desde ? `<br>Actualizado el ${fechaCorta(p.actualizado)}` : ""}</span></div>
+      <div class="acciones"><a class="probar" href="${esc(p.probar)}">Probar →</a>${p.detalle ? `<button type="button" class="ver-mas" aria-expanded="false">Ver más</button>` : ""}<span class="fechas">${p.desde ? `Creado ${fechaCorta(p.desde)}` : ""}${p.actualizado && p.actualizado !== p.desde ? `<br>Editado ${fechaCorta(p.actualizado)}` : ""}</span></div>
       ${p.detalle ? `<div class="mas" hidden><p>${esc(p.detalle)}</p></div>` : ""}`;
-    const mas = a.querySelector(".ver-mas"); if (mas) mas.onclick = () => { const abierto = mas.getAttribute("aria-expanded") === "true"; mas.setAttribute("aria-expanded", String(!abierto)); a.querySelector(".mas").hidden = abierto; };
+    const mas = a.querySelector(".ver-mas"); if (mas) mas.onclick = () => { const abierto = mas.getAttribute("aria-expanded") === "true"; mas.setAttribute("aria-expanded", String(!abierto)); mas.textContent = abierto ? "Ver más" : "Ver menos"; a.querySelector(".mas").hidden = abierto; };
     return a;
   }
   function filtrar(lista) {
@@ -173,16 +177,22 @@
   }
   function pintar() {
     const vis = visibles(); const porFecha = (k) => (a, b) => (b[k] || b.desde || "").localeCompare(a[k] || a.desde || "") || (b.desde || "").localeCompare(a.desde || "") || a.nombre.localeCompare(b.nombre, "es");
-    const ordenados = vis.slice().sort(orden === "nombre" ? (a, b) => a.nombre.localeCompare(b.nombre, "es") : orden === "nuevos" ? porFecha("desde") : porFecha("actualizado"));
-    for (const b of document.querySelectorAll("#orden button")) b.setAttribute("aria-pressed", String(b.dataset.orden === orden));
+    const ordenados = vis.slice().sort(orden === "nombre" ? (a, b) => a.nombre.localeCompare(b.nombre, "es") : orden === "nuevos" ? porFecha("desde") : orden === "antiguos" ? (a, b) => (a.desde || "").localeCompare(b.desde || "") || a.nombre.localeCompare(b.nombre, "es") : porFecha("actualizado"));
+    $("#selOrden").value = orden;
     const sinFiltro = categoria === "todo" && publico === "todos" && !busqueda.trim();
     const dest = $("#destacados"); dest.innerHTML = "";
     const destacados = vis.filter((p) => p.destacado).sort(porFecha("desde"));
     $("#secDestacados").hidden = !(sinFiltro && destacados.length);
     if (sinFiltro) for (const p of destacados) dest.appendChild(tarjeta(p));
     const lista = filtrar(ordenados); const el = $("#grilla"); el.innerHTML = "";
-    $("#tituloTodos").textContent = busqueda.trim() ? `Resultados para «${busqueda.trim()}»` : categoria === "todo" && publico === "todos" ? `Todo, ${ORDENES[orden]}` : [categoria !== "todo" ? CATEGORIAS[categoria] : "", publico !== "todos" ? PUBLICOS[publico][0] : ""].filter(Boolean).join(" · ");
+    $("#tituloTodos").textContent = busqueda.trim() ? `Resultados para «${busqueda.trim()}»` : categoria === "todo" && publico === "todos" ? `Todo, ${ORDENES[orden][1]}` : [categoria !== "todo" ? CATEGORIAS[categoria] : "", publico !== "todos" ? PUBLICOS[publico][0] : ""].filter(Boolean).join(" · ");
     $("#explicaTodos").textContent = busqueda.trim() ? `${lista.length} ${lista.length === 1 ? "proyecto" : "proyectos"}.` : publico !== "todos" && categoria === "todo" ? PUBLICOS[publico][1] : EXPLICA[categoria];
+    $("#cuentaRes").textContent = `${lista.length} ${lista.length === 1 ? "resultado" : "resultados"}`;
+    const activos = $("#activos"); activos.innerHTML = "";
+    const chip = (texto, sacar) => { const b = document.createElement("button"); b.type = "button"; b.textContent = texto; b.title = "Sacar este filtro"; b.onclick = sacar; activos.appendChild(b); };
+    if (categoria !== "todo") chip(CATEGORIAS[categoria], () => { categoria = "todo"; escribirHash(); pintarNav(); pintar(); });
+    if (publico !== "todos") chip(PUBLICOS[publico][0], () => { publico = "todos"; escribirHash(); pintarNav(); pintar(); });
+    if (busqueda.trim()) chip(`«${busqueda.trim()}»`, () => { busqueda = ""; $("#buscar").value = ""; pintar(); });
     if (!lista.length) { el.innerHTML = '<p class="vacio">Nada por acá todavía.</p>'; return; }
     for (const p of lista) el.appendChild(tarjeta(p));
   }
@@ -341,7 +351,9 @@
     marcarTema();
   };
   marcarTema();
-  for (const b of document.querySelectorAll("#orden button")) b.onclick = () => { orden = b.dataset.orden; escribirHash(); pintar(); };
+  for (const [clave, [nombre]] of Object.entries(ORDENES)) { const o = document.createElement("option"); o.value = clave; o.textContent = nombre; $("#selOrden").appendChild(o); }
+  $("#selOrden").onchange = (ev) => { orden = ev.target.value; escribirHash(); pintar(); };
+  $("#selEdad").onchange = (ev) => { publico = ev.target.value; escribirHash(); pintarNav(); pintar(); };
   $("#buscar").addEventListener("input", (ev) => { busqueda = ev.target.value; pintar(); });
   window.addEventListener("hashchange", () => { leerHash(); pintarNav(); pintar(); });
   leerHash();
