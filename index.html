@@ -81,17 +81,17 @@
   .chip.edad { border-color: var(--accent); color: var(--accent); font-weight: 600; }
   .chip.en-curso { border-color: var(--c-juegos); color: var(--c-juegos); }
   .tarjeta p { margin: 0; color: var(--muted); font-size: .92rem; }
-  .herramientas { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin: 0 0 20px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .herramientas { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 14px; margin: -16px 0 4px; }
   .resultados { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: .82rem; color: var(--muted); }
   .activos { display: contents; }
   .activos button { font: inherit; font-size: .76rem; min-height: 28px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--accent); background: var(--suave); color: var(--fg); cursor: pointer; }
   .activos button::after { content: " ✕"; color: var(--muted); } .activos button:hover::after { color: var(--fg); }
   .selects { display: flex; flex-wrap: wrap; gap: 8px 14px; }
   .sel { position: relative; display: flex; align-items: center; gap: 6px; font-size: .78rem; color: var(--muted); }
-  .sel select { font: inherit; font-size: .84rem; color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 8px; min-height: 34px; padding: 4px 28px 4px 10px; appearance: none; -webkit-appearance: none; cursor: pointer; }
+  .sel select { font: inherit; font-size: .8rem; color: var(--fg); background: transparent; border: 1px solid var(--line); border-radius: 8px; min-height: 28px; padding: 2px 24px 2px 8px; appearance: none; -webkit-appearance: none; cursor: pointer; }
   .sel select:hover, .sel select:focus-visible { border-color: var(--accent); }
   .sel select option { background: var(--card); color: var(--fg); }
-  .sel::after { content: "▾"; position: absolute; right: 10px; pointer-events: none; color: var(--accent); font-size: .8rem; }
+  .sel::after { content: "▾"; position: absolute; right: 8px; pointer-events: none; color: var(--accent); font-size: .8rem; }
   .acciones { margin-top: auto; padding-top: 6px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: center; gap: 8px; }
   .ver-mas { font: inherit; font-size: .84rem; min-height: 36px; width: 100%; white-space: nowrap; padding: 6px 8px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--accent); cursor: pointer; }
   .ver-mas:hover { border-color: var(--accent); } .ver-mas::before { content: "+ "; } .ver-mas[aria-expanded="true"]::before { content: "– "; }
@@ -107,6 +107,7 @@
     .barra { grid-column: 1; padding: 0 6px; justify-content: flex-start; }
     .tile { padding: 6px 10px; flex: none; }
     .frase { flex: none; width: 240px; }
+    .herramientas { margin: 0 0 8px; }
     aside { grid-row: auto; position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 16px; }
     .grupo h2 { margin-top: 10px; }
     nav { display: flex; flex-wrap: wrap; gap: 4px; } nav button { width: auto; min-height: 34px; padding: 5px 10px; font-size: .86rem; border: 1px solid var(--line); border-radius: 999px; } nav button .n { margin-left: 4px; }
