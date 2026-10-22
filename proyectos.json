@@ -404,5 +404,19 @@
   "detalle": "Martín llamó un martes: «Necesito que vengas. No por teléfono». Cuando Verónica, perita calígrafa, llega a la casa de la isla el jueves, la lancha de su hermano no está, la puerta está abierta y en la cocina hay una mujer que dice ser su pareja desde hace cuatro meses. Esa noche entra la sudestada y las dos quedan encerradas con el agua subiendo por la escalera. Dieciocho capítulos, con un giro final sembrado desde el primero. Lector por capítulos que recuerda dónde quedaste, con tema oscuro, más la novela entera para imprimir y en EPUB.",
   "destacado": true,
   "actualizado": "2026-10-22"
+ },
+ {
+  "slug": "diez-segundos",
+  "nombre": "Diez segundos",
+  "categoria": "experimentos",
+  "descripcion": "Un corto de diez segundos en WebGL puro: tormenta sobre un arroyo del Delta, con lluvia, rayos, una casa sobre pilotes, agua con reflejos y un amanecer, todo en un shader y con sonido sintetizado.",
+  "estado": "terminado",
+  "probar": "experimentos/diez-segundos/",
+  "desde": "2026-10-22",
+  "icono": "🎬",
+  "para": "todos",
+  "detalle": "Una prueba de hasta dónde llega la gráfica sin librerías ni imágenes: el cielo con nubes, el agua con olas y reflejos, la lluvia, los relámpagos con su rayo, los sauces y la casa salen de un único fragment shader, y el viento, los truenos y el acorde del amanecer, de WebAudio. Se puede grabar a video desde el navegador y hay un .mp4 ya renderizado.",
+  "destacado": false,
+  "actualizado": "2026-10-22"
  }
 ]

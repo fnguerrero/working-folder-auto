@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Diez segundos de sudestada: un corto animado en WebGL puro, con agua, lluvia, relámpagos y amanecer dibujados en un shader, y sonido sintetizado.">
+<title>Diez segundos</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #05070c; color: #e8e4dc; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 16px; gap: 14px; }
+  .marco { position: relative; width: min(100%, 1120px); aspect-ratio: 16 / 9; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+  canvas { display: block; width: 100%; height: 100%; }
+  .capa { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 20px; transition: opacity .4s; }
+  .capa.oculta { opacity: 0; pointer-events: none; }
+  .capa h1 { font: 400 clamp(2.2rem, 8vw, 4.6rem)/1 Georgia, "Noto Serif", serif; letter-spacing: .06em; margin: 0; text-shadow: 0 2px 30px rgba(0,0,0,.8); }
+  .capa p { margin: 0; color: #bdb6aa; max-width: 34ch; text-shadow: 0 1px 12px rgba(0,0,0,.8); font-size: clamp(.85rem, 2.4vw, 1rem); }
+  button { font: 600 1rem system-ui, sans-serif; background: #e8e4dc; color: #0b0d12; border: 0; border-radius: 999px; padding: 12px 22px; cursor: pointer; min-height: 44px; }
+  button.sec { background: rgba(255,255,255,.12); color: #e8e4dc; border: 1px solid rgba(255,255,255,.25); }
+  button:hover { filter: brightness(1.08); }
+  .titulo { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; opacity: 0; transition: opacity 1.2s; }
+  .titulo.visible { opacity: 1; }
+  .titulo h2 { font: 400 clamp(2rem, 9vw, 5.4rem)/1 Georgia, "Noto Serif", serif; letter-spacing: .14em; margin: 0; color: #f3eee4; text-shadow: 0 2px 40px rgba(0,0,0,.9); }
+  .controles { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; }
+  .meta { color: #8e897f; font-size: .85rem; text-align: center; max-width: 60ch; }
+  .meta a { color: #cfc8ba; }
+  .tiempo { position: absolute; left: 0; bottom: 0; height: 3px; width: 0; background: rgba(255,255,255,.7); }
+  .aviso { display: none; color: #ffb4a8; }
+</style>
+</head>
+<body>
+<div class="marco" id="marco">
+  <canvas id="c" width="1280" height="720"></canvas>
+  <div class="titulo" id="titulo"><h2>SUDESTADA</h2></div>
+  <div class="tiempo" id="tiempo"></div>
+  <div class="capa" id="capa">
+    <h1>Diez segundos</h1>
+    <p>Un arroyo del Delta, de noche, con tormenta. Después amanece. Todo dibujado en un shader, con sonido.</p>
+    <button type="button" id="play">▶ Reproducir</button>
+    <p class="aviso" id="aviso">Tu navegador no pudo iniciar WebGL. Probá en Chrome o Firefox actualizados.</p>
+  </div>
+</div>
+<div class="controles">
+  <button type="button" class="sec" id="otra">↻ Otra vez</button>
+  <button type="button" class="sec" id="grabar">⏺ Grabar y descargar (.webm)</button>
+  <a class="meta" href="diez-segundos.mp4" download>⬇ Bajar el .mp4 (2,6 MB)</a>
+  <label class="meta"><input type="checkbox" id="calidad" checked> Calidad alta</label>
+</div>
+<p class="meta">WebGL puro, sin librerías ni imágenes: el cielo, el agua, la lluvia, los relámpagos, la casa y los sauces salen de un único fragment shader; el viento, la lluvia, los truenos y el acorde final, de WebAudio. <a href="../../">← Volver a la vitrina</a></p>
+
+<script id="fs" type="x-shader/x-fragment">
+precision highp float;
+uniform vec2 uRes; uniform float uT; uniform float uFlash; uniform vec3 uRayo; /* x del rayo, intensidad, semilla */
+#define DUR 10.0
+
+float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float hash1(float n) { return fract(sin(n) * 43758.5453); }
+float noise(vec2 p) {
+  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+}
+float fbm(vec2 p) {
+  float v = 0.0, a = 0.5; mat2 m = mat2(1.6, 1.2, -1.2, 1.6);
+  for (int i = 0; i < 6; i++) { v += a * noise(p); p = m * p; a *= 0.5; }
+  return v;
+}
+float sdBox(vec2 p, vec2 b) { vec2 d = abs(p) - b; return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0); }
+
+/* progreso del amanecer: 0 noche cerrada, 1 amanecer */
+float dawn(float t) { return smoothstep(5.5, 9.6, t); }
+
+/* cielo: dirección normalizada, devuelve color */
+vec3 sky(vec3 d, float t) {
+  float k = dawn(t);
+  float h = clamp(d.y, 0.0, 1.0);
+  vec3 nocheArriba = vec3(0.012, 0.018, 0.035), nocheHoriz = vec3(0.06, 0.07, 0.09);
+  vec3 albaArriba = vec3(0.22, 0.30, 0.46), albaHoriz = vec3(1.0, 0.62, 0.32);
+  vec3 arriba = mix(nocheArriba, albaArriba, k), horiz = mix(nocheHoriz, albaHoriz, k);
+  vec3 col = mix(horiz, arriba, pow(h, 0.45));
+  /* sol, sale por la derecha */
+  vec3 sunDir = normalize(vec3(0.55, -0.08 + 0.16 * k, 1.0));
+  float sd = max(dot(d, sunDir), 0.0);
+  col += vec3(1.0, 0.7, 0.4) * pow(sd, 18.0) * 1.2 * k + vec3(1.0, 0.85, 0.6) * pow(sd, 400.0) * 2.5 * k;
+  /* nubes: capa baja densa que se abre con el amanecer */
+  vec2 uv = d.xz / max(d.y, 0.02);
+  float n = fbm(uv * 0.55 + vec2(t * 0.09, t * 0.025));
+  float n2 = fbm(uv * 1.3 - vec2(t * 0.14, 0.0));
+  float cob = mix(0.86, 0.45, k);
+  float cl = smoothstep(cob - 0.35, cob + 0.1, n * 0.7 + n2 * 0.3);
+  vec3 nubeNoche = vec3(0.045, 0.05, 0.065), nubeAlba = vec3(0.9, 0.55, 0.42);
+  vec3 nube = mix(nubeNoche, nubeAlba * (0.6 + 0.6 * sd), k);
+  nube += vec3(1.0, 0.95, 0.9) * uFlash * 0.9 * (0.5 + 0.5 * n);
+  col = mix(col, nube, cl * smoothstep(0.0, 0.25, d.y));
+  /* estrellas entre las nubes, de noche */
+  vec2 sp = d.xz / max(d.y, 0.05) * 60.0;
+  float st = step(0.9975, hash(floor(sp))) * (1.0 - cl) * (1.0 - k) * smoothstep(0.05, 0.3, d.y);
+  col += vec3(0.9, 0.9, 1.0) * st * (0.5 + 0.5 * sin(t * 3.0 + hash(floor(sp)) * 20.0));
+  /* relámpago general */
+  col += vec3(0.75, 0.8, 1.0) * uFlash * 0.35;
+  return col;
+}
+
+/* silueta de la orilla: casa sobre pilotes a la derecha, sauces a la izquierda, muelle. p en coords de "pantalla lejana" (x -1..1, y 0 = horizonte) */
+float orilla(vec2 p, float t) {
+  float d = 1e3;
+  /* tierra/muelle */
+  d = min(d, sdBox(p - vec2(0.72, -0.012), vec2(0.42, 0.012)));
+  /* pilotes */
+  for (int i = 0; i < 5; i++) { float x = 0.46 + float(i) * 0.11; d = min(d, sdBox(p - vec2(x, 0.03), vec2(0.006, 0.05))); }
+  /* casa */
+  d = min(d, sdBox(p - vec2(0.68, 0.16), vec2(0.23, 0.085)));
+  /* techo a dos aguas */
+  vec2 q = p - vec2(0.68, 0.245); float roof = max(abs(q.x) * 0.9 + q.y - 0.09, -q.y - 0.001); d = min(d, roof);
+  /* galería */
+  d = min(d, sdBox(p - vec2(0.42, 0.095), vec2(0.07, 0.006)));
+  /* chimenea */
+  d = min(d, sdBox(p - vec2(0.78, 0.33), vec2(0.014, 0.04)));
+  /* sauces a la izquierda: copas con ruido, que se mueven con el viento */
+  float sway = sin(t * 1.7 + p.y * 6.0) * 0.012 * (1.0 + uFlash);
+  for (int i = 0; i < 4; i++) {
+    float fi = float(i);
+    float fx = -0.98 + fi * 0.2 + 0.04 * hash1(fi), fy = 0.2 + 0.05 * hash1(fi + 3.0);
+    vec2 c = p - vec2(fx + sway * (0.4 + p.y), fy);
+    /* copa: óvalo irregular */
+    float r = 0.09 + 0.03 * hash1(fi + 9.0) + 0.025 * noise(c * 12.0 + fi * 7.0 + vec2(t * 0.4, 0.0)) - 0.015 * noise(c * 40.0);
+    float copa = length((c + vec2(0.0, 0.02)) * vec2(1.0, 2.1)) - r;
+    /* cortina de ramas colgantes: columnas finas de largo desparejo que bajan casi hasta el agua */
+    float ancho = r * 1.15;
+    float col = c.x * 220.0 + fi * 13.0;
+    float hebra = smoothstep(0.38, 0.6, noise(vec2(col, 0.0))) * smoothstep(ancho + 0.02, ancho * 0.5, abs(c.x)); /* qué columnas tienen rama, más densas al centro */
+    float largo = 0.08 + 0.2 * noise(vec2(col * 0.6, 1.0 + fi)) * (1.0 - 0.5 * abs(c.x) / ancho); /* cuánto baja cada una */
+    float enX = 1.0 - smoothstep(ancho, ancho + 0.01, abs(c.x));
+    float enY = step(-largo - fy * 0.9, c.y) * step(c.y, 0.0);
+    float cortina = 1.0 - enX * enY * hebra;                                /* 0 donde hay rama */
+    /* la cortina es una máscara, no una distancia: la convierto en distancia aproximada */
+    float ramas = mix(0.002, 1.0, cortina);
+    d = min(d, min(copa, ramas));
+    /* tronco */
+    d = min(d, sdBox(p - vec2(fx, 0.07), vec2(0.006, 0.1)));
+  }
+  return d;
+}
+
+/* ventana iluminada de la casa */
+float ventana(vec2 p, float t) {
+  float v = 1.0 - smoothstep(0.0, 0.004, sdBox(p - vec2(0.60, 0.16), vec2(0.03, 0.035)));
+  v += 1.0 - smoothstep(0.0, 0.004, sdBox(p - vec2(0.76, 0.16), vec2(0.03, 0.035)));
+  float parpadeo = 0.85 + 0.15 * noise(vec2(t * 7.0, 0.0));
+  return v * parpadeo * (1.0 - 0.6 * dawn(t));
+}
+
+void main() {
+  vec2 frag = gl_FragCoord.xy;
+  vec2 uv = (frag - 0.5 * uRes) / uRes.y;
+  float t = uT;
+  /* cámara: leve avance y una gota de balanceo */
+  float zoom = 1.0 + 0.08 * t / DUR;
+  uv /= zoom;
+  uv.y += 0.003 * sin(t * 0.8);
+  float camH = 0.9;
+  vec3 ro = vec3(0.0, camH, 0.0);
+  vec3 rd = normalize(vec3(uv.x, uv.y - 0.02, 1.0));
+  vec3 col;
+  float horizonY = 0.02; /* altura del horizonte en uv */
+  float k = dawn(t);
+  float fogN = 1.0 - k * 0.6;
+
+  if (rd.y > 0.0) {
+    /* cielo y orilla lejana */
+    col = sky(rd, t);
+    vec2 p = vec2(uv.x, uv.y - horizonY) * 1.0;
+    float d = orilla(p, t);
+    float m = 1.0 - smoothstep(0.0, 0.003, d);
+    vec3 silCol = mix(vec3(0.0, 0.0, 0.005), vec3(0.05, 0.03, 0.03), k) + vec3(0.5, 0.55, 0.7) * uFlash * 0.25;
+    col = mix(col, silCol, m);
+    col += vec3(1.0, 0.72, 0.35) * ventana(p, t) * 1.2;
+    /* bruma pegada al horizonte */
+    col = mix(col, sky(normalize(vec3(rd.x, 0.004, rd.z)), t), (1.0 - smoothstep(0.0, 0.12, rd.y)) * mix(1.0, 0.7, k));
+    /* el rayo: una línea quebrada que baja de las nubes al horizonte */
+    if (uRayo.y > 0.001) {
+      float yy = clamp((uv.y - horizonY) / 0.5, 0.0, 1.0);
+      float x0 = uRayo.x + 0.07 * (noise(vec2(yy * 7.0 + uRayo.z, 0.0)) - 0.5) + 0.03 * (noise(vec2(yy * 23.0 + uRayo.z, 3.0)) - 0.5);
+      float dx = abs(uv.x - x0);
+      float nucleo = smoothstep(0.0025, 0.0, dx), halo = smoothstep(0.08, 0.0, dx) * 0.35;
+      float enAltura = step(horizonY, uv.y) * step(uv.y, horizonY + 0.42) * smoothstep(0.42, 0.3, uv.y - horizonY);
+      /* una rama secundaria */
+      float x1 = x0 + 0.05 + 0.12 * yy; float rama = smoothstep(0.0018, 0.0, abs(uv.x - x1)) * step(0.15, yy) * step(yy, 0.5) * 0.7;
+      col += vec3(0.85, 0.9, 1.0) * (nucleo + halo + rama) * enAltura * uRayo.y * 2.5;
+    }
+  } else {
+    /* agua: plano y=0 */
+    float tt = -ro.y / rd.y;
+    vec3 pos = ro + rd * tt;
+    float dist = length(pos.xz);
+    /* olas: fbm animado, más chicas con el amanecer (el viento afloja) */
+    float amp = mix(0.07, 0.025, k);
+    vec2 wp = pos.xz * 0.8 + vec2(0.0, -t * 0.9);
+    float e = 0.02;
+    float h0 = fbm(wp) * amp;
+    float hx = fbm(wp + vec2(e, 0.0)) * amp;
+    float hz = fbm(wp + vec2(0.0, e)) * amp;
+    vec3 n = normalize(vec3(h0 - hx, e * 0.9 + 0.012 * dist, h0 - hz));
+    /* ondas de lluvia */
+    float lluviaK = 1.0 - smoothstep(4.0, 8.5, t);
+    float rip = noise(pos.xz * 14.0 + t * 6.0) * lluviaK * 0.5;
+    n = normalize(n + vec3(rip - 0.25 * lluviaK, 0.0, rip * 0.7) * 0.08);
+    vec3 refl = reflect(rd, n);
+    refl.y = abs(refl.y) + 0.01;
+    vec3 rcol = sky(refl, t);
+    /* reflejo de la orilla, distorsionado por las olas */
+    vec2 pr = vec2(uv.x + n.x * 0.6, -(uv.y - horizonY) * 1.05 + n.z * 0.25 + 0.01);
+    float dr = orilla(pr, t);
+    float mr = 1.0 - smoothstep(0.0, 0.004, dr);
+    rcol = mix(rcol, vec3(0.0, 0.0, 0.004), mr * 0.95);
+    rcol += vec3(1.0, 0.7, 0.35) * ventana(pr, t) * 0.9;
+    /* fresnel y color del agua */
+    float fr = pow(1.0 - max(dot(-rd, n), 0.0), 3.0);
+    fr = mix(0.25, 1.0, fr);
+    vec3 aguaBase = mix(vec3(0.015, 0.02, 0.03), vec3(0.16, 0.11, 0.07), k);
+    col = mix(aguaBase, rcol, fr);
+    /* brillo del sol / luna en el agua */
+    vec3 sunDir = normalize(vec3(0.55, -0.08 + 0.16 * k, 1.0));
+    float spec = pow(max(dot(refl, sunDir), 0.0), 60.0);
+    col += vec3(1.0, 0.75, 0.45) * spec * 1.8 * k;
+    col += vec3(0.6, 0.7, 1.0) * pow(max(dot(refl, normalize(vec3(-0.3, 0.5, 1.0))), 0.0), 200.0) * 0.6 * (1.0 - k) * (1.0 - fbm(pos.xz * 0.3 + t * 0.1));
+    /* gotas de lluvia en el agua (salpicaduras) */
+    float drops = step(0.993, hash(floor(pos.xz * 25.0 + floor(t * 12.0)))) * lluviaK;
+    col += vec3(0.5, 0.55, 0.65) * drops * (1.0 - smoothstep(0.0, 6.0, dist)) * 0.6;
+    /* niebla con la distancia */
+    vec3 fogCol = sky(normalize(vec3(rd.x, 0.004, rd.z)), t);
+    col = mix(col, fogCol, (1.0 - exp(-dist * 0.05)) * mix(0.97, 0.7, k));
+    col += vec3(0.7, 0.75, 1.0) * uFlash * 0.2;
+  }
+
+  /* lluvia en pantalla: estrías que caen en diagonal, se van con el amanecer */
+  float lluviaK = 1.0 - smoothstep(4.5, 8.5, t);
+  if (lluviaK > 0.001) {
+    for (int c = 0; c < 3; c++) {
+      float capa = float(c);
+      float esc = 60.0 + capa * 50.0;
+      vec2 ru = (frag / uRes.y) * vec2(esc, esc * 0.22);
+      ru.x += ru.y * 0.9 + capa * 7.0;
+      ru.y += t * (9.0 + capa * 3.5);
+      vec2 cell = floor(ru);
+      float rnd = hash(cell + capa * 11.0);
+      float xoff = fract(ru.x) - 0.5;
+      float gota = step(0.72 + capa * 0.06, rnd) * smoothstep(0.07, 0.0, abs(xoff)) * smoothstep(0.0, 0.25, fract(ru.y)) * smoothstep(1.0, 0.55, fract(ru.y));
+      col += vec3(0.55, 0.6, 0.75) * gota * lluviaK * (0.18 - capa * 0.04) * (1.0 + uFlash);
+    }
+  }
+
+  /* viñeta, grano, tonemap y fundidos */
+  vec2 q = frag / uRes;
+  float vig = pow(16.0 * q.x * q.y * (1.0 - q.x) * (1.0 - q.y), 0.22);
+  col *= mix(0.55, 1.0, vig);
+  col += (hash(frag + fract(t * 13.0)) - 0.5) * 0.025;
+  col = col / (col + 0.65) * 1.25; /* tonemap suave */
+  col = pow(max(col, 0.0), vec3(0.92));
+  float fadeIn = smoothstep(0.0, 1.2, t), fadeOut = 1.0 - smoothstep(DUR - 0.9, DUR, t);
+  col *= fadeIn * fadeOut;
+  gl_FragColor = vec4(col, 1.0);
+}
+</script>
+
+<script>
+"use strict";
+const DUR = 10;
+const canvas = document.getElementById("c"), capa = document.getElementById("capa"), titulo = document.getElementById("titulo"), tiempo = document.getElementById("tiempo"), aviso = document.getElementById("aviso");
+const gl = canvas.getContext("webgl", { antialias: false, preserveDrawingBuffer: true, powerPreference: "high-performance" });
+let prog, uRes, uT, uFlash, uRayo;
+function compilar() {
+  const vs = "attribute vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }";
+  const mk = (tipo, src) => { const s = gl.createShader(tipo); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
+  prog = gl.createProgram(); gl.attachShader(prog, mk(gl.VERTEX_SHADER, vs)); gl.attachShader(prog, mk(gl.FRAGMENT_SHADER, document.getElementById("fs").textContent)); gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+  gl.useProgram(prog);
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(prog, "p"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  uRes = gl.getUniformLocation(prog, "uRes"); uT = gl.getUniformLocation(prog, "uT"); uFlash = gl.getUniformLocation(prog, "uFlash"); uRayo = gl.getUniformLocation(prog, "uRayo");
+}
+function ajustar() {
+  const cal = document.getElementById("calidad"); const alta = cal ? cal.checked : true;
+  const dpr = alta ? Math.min(devicePixelRatio || 1, 2) : 0.6;
+  const w = Math.round(canvas.clientWidth * dpr), h = Math.round(canvas.clientHeight * dpr);
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  gl.viewport(0, 0, w, h);
+}
+/* relámpagos: instantes fijos para que la película sea la misma cada vez; cada uno con dos destellos */
+const RAYOS = [1.3, 2.9, 4.4], RAYOS_X = [-0.35, 0.2, -0.6];
+function flash(t) {
+  let f = 0;
+  for (const r of RAYOS) { const d = t - r; if (d >= 0) f += Math.exp(-d * 14) + 0.6 * Math.exp(-Math.max(0, d - 0.12) * 18) * (d > 0.1 ? 1 : 0); }
+  return Math.min(1.2, f);
+}
+function rayo(t) {
+  for (let i = 0; i < RAYOS.length; i++) { const d = t - RAYOS[i]; if (d >= 0 && d < 0.22) return [RAYOS_X[i], d < 0.08 ? 1 : d < 0.11 ? 0.2 : Math.max(0, 1 - (d - 0.11) / 0.11), i * 17.3]; }
+  return [0, 0, 0];
+}
+function dibujar(t) {
+  const r = rayo(t);
+  gl.uniform2f(uRes, canvas.width, canvas.height); gl.uniform1f(uT, t); gl.uniform1f(uFlash, flash(t)); gl.uniform3f(uRayo, r[0], r[1], r[2]);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+
+/* ---- sonido ---- */
+let actx, maestro, destinoGrab;
+function sonar() {
+  if (!actx) { actx = new (window.AudioContext || window.webkitAudioContext)(); maestro = actx.createGain(); maestro.connect(actx.destination); destinoGrab = actx.createMediaStreamDestination(); maestro.connect(destinoGrab); }
+  if (actx.state === "suspended") actx.resume();
+  programar(actx, maestro, actx.currentTime + 0.05);
+}
+function programar(actx, maestro, T) {
+  const ruido = (seg) => { const b = actx.createBuffer(1, actx.sampleRate * seg, actx.sampleRate); const d = b.getChannelData(0); let s = 12345; for (let i = 0; i < d.length; i++) { s = (s * 1664525 + 1013904223) >>> 0; d[i] = (s / 2147483648) - 1; } return b; };
+  maestro.gain.cancelScheduledValues(0); maestro.gain.setValueAtTime(0, T); maestro.gain.linearRampToValueAtTime(0.9, T + 1.0); maestro.gain.setValueAtTime(0.9, T + DUR - 1.2); maestro.gain.linearRampToValueAtTime(0, T + DUR);
+  const fuente = actx.createBufferSource(); fuente.buffer = ruido(DUR + 1); fuente.loop = true;
+  /* viento: pasabanda que baila y afloja al amanecer */
+  const viento = actx.createBiquadFilter(); viento.type = "bandpass"; viento.Q.value = 0.7; viento.frequency.setValueAtTime(380, T);
+  const lfo = actx.createOscillator(); lfo.frequency.value = 0.23; const lfoG = actx.createGain(); lfoG.gain.value = 180; lfo.connect(lfoG); lfoG.connect(viento.frequency); lfo.start(T); lfo.stop(T + DUR);
+  const gV = actx.createGain(); gV.gain.setValueAtTime(0.55, T); gV.gain.setValueAtTime(0.55, T + 5.5); gV.gain.linearRampToValueAtTime(0.08, T + 9.5);
+  /* lluvia: pasaaltos que se va */
+  const lluvia = actx.createBiquadFilter(); lluvia.type = "highpass"; lluvia.frequency.value = 3200;
+  const gL = actx.createGain(); gL.gain.setValueAtTime(0.16, T); gL.gain.setValueAtTime(0.16, T + 4.5); gL.gain.linearRampToValueAtTime(0.0, T + 8.5);
+  fuente.connect(viento); viento.connect(gV); gV.connect(maestro); fuente.connect(lluvia); lluvia.connect(gL); gL.connect(maestro);
+  fuente.start(T); fuente.stop(T + DUR);
+  /* truenos: ruido grave con envolvente, un poco después de cada relámpago */
+  for (const r of RAYOS) {
+    const tr = actx.createBufferSource(); tr.buffer = ruido(3); const f = actx.createBiquadFilter(); f.type = "lowpass"; f.frequency.setValueAtTime(220, T + r + 0.3); f.frequency.exponentialRampToValueAtTime(60, T + r + 2.6);
+    const g = actx.createGain(); g.gain.setValueAtTime(0, T + r + 0.3); g.gain.linearRampToValueAtTime(0.9, T + r + 0.45); g.gain.exponentialRampToValueAtTime(0.001, T + r + 2.8);
+    tr.connect(f); f.connect(g); g.connect(maestro); tr.start(T + r + 0.3); tr.stop(T + r + 3);
+  }
+  /* acorde del amanecer: Re mayor con la sexta, muy suave, entra a los 6.5 */
+  for (const [fr, vol, dly] of [[146.83, 0.10, 0], [220.0, 0.07, 0.3], [293.66, 0.06, 0.6], [369.99, 0.05, 0.9], [493.88, 0.035, 1.3]]) {
+    const o = actx.createOscillator(); o.type = "sine"; o.frequency.value = fr;
+    const o2 = actx.createOscillator(); o2.type = "triangle"; o2.frequency.value = fr * 2.003;
+    const g = actx.createGain(); const ta = T + 6.5 + dly; g.gain.setValueAtTime(0, ta); g.gain.linearRampToValueAtTime(vol, ta + 1.6); g.gain.setValueAtTime(vol, T + DUR - 1.0); g.gain.linearRampToValueAtTime(0, T + DUR);
+    const g2 = actx.createGain(); g2.gain.value = 0.25; o2.connect(g2); g2.connect(g); o.connect(g); g.connect(maestro); o.start(ta); o2.start(ta); o.stop(T + DUR); o2.stop(T + DUR);
+  }
+  /* un pájaro al final */
+  const p = actx.createOscillator(); p.type = "sine"; const gp = actx.createGain(); gp.gain.value = 0; p.connect(gp); gp.connect(maestro);
+  const tp = T + 8.6; p.frequency.setValueAtTime(2200, tp); p.frequency.exponentialRampToValueAtTime(3100, tp + 0.12); p.frequency.exponentialRampToValueAtTime(2400, tp + 0.25);
+  gp.gain.setValueAtTime(0, tp); gp.gain.linearRampToValueAtTime(0.06, tp + 0.03); gp.gain.linearRampToValueAtTime(0, tp + 0.3); p.start(tp); p.stop(tp + 0.4);
+}
+
+/* ---- reproducción ---- */
+let inicio = 0, raf = 0, corriendo = false;
+function cuadro(now) {
+  const t = Math.min(DUR, (now - inicio) / 1000);
+  ajustar(); dibujar(t);
+  tiempo.style.width = (t / DUR * 100).toFixed(1) + "%";
+  titulo.classList.toggle("visible", t > 8.4 && t < DUR - 0.2);
+  if (t < DUR) raf = requestAnimationFrame(cuadro); else terminar();
+}
+function reproducir() {
+  if (!prog) return;
+  capa.classList.add("oculta"); corriendo = true; sonar();
+  inicio = performance.now(); cancelAnimationFrame(raf); raf = requestAnimationFrame(cuadro);
+}
+function terminar() { corriendo = false; titulo.classList.remove("visible"); capa.querySelector("h1").textContent = "Fin"; capa.querySelector("p").textContent = "Diez segundos de sudestada. ¿Otra vez?"; document.getElementById("play").textContent = "↻ Otra vez"; capa.classList.remove("oculta"); if (grabadora && grabadora.state === "recording") grabadora.stop(); }
+
+/* ---- grabar a webm con el audio ---- */
+let grabadora = null;
+function grabar() {
+  if (!("MediaRecorder" in window) || !canvas.captureStream) { alert("Tu navegador no graba video desde canvas."); return; }
+  if (!actx) sonar(); /* crea el contexto y el destino */
+  const stream = canvas.captureStream(60); for (const tr of destinoGrab.stream.getAudioTracks()) stream.addTrack(tr);
+  const tipo = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"].find((t) => MediaRecorder.isTypeSupported(t)) || "";
+  const partes = []; grabadora = new MediaRecorder(stream, { mimeType: tipo || undefined, videoBitsPerSecond: 12e6 });
+  grabadora.ondataavailable = (e) => { if (e.data.size) partes.push(e.data); };
+  grabadora.onstop = () => { const url = URL.createObjectURL(new Blob(partes, { type: "video/webm" })); const a = document.createElement("a"); a.href = url; a.download = "diez-segundos.webm"; a.click(); setTimeout(() => URL.revokeObjectURL(url), 5000); };
+  grabadora.start(100); reproducir();
+}
+
+try { compilar(); ajustar(); dibujar(0); } catch (e) { aviso.style.display = "block"; document.getElementById("play").disabled = true; console.error(e); }
+document.getElementById("play").addEventListener("click", reproducir);
+document.getElementById("otra").addEventListener("click", reproducir);
+document.getElementById("grabar").addEventListener("click", grabar);
+document.getElementById("calidad").addEventListener("change", () => { ajustar(); if (!corriendo) dibujar(0); });
+addEventListener("resize", () => { ajustar(); if (!corriendo) dibujar(0); });
+/* render de un instante fijo, para pruebas y para el .mp4: ?t=segundos */
+const qt = new URLSearchParams(location.search).get("t");
+if (qt !== null && prog) { capa.style.display = "none"; titulo.style.transition = "none"; const t = Math.max(0, Math.min(DUR, parseFloat(qt))); ajustar(); dibujar(t); titulo.classList.toggle("visible", t > 8.4 && t < DUR - 0.2); window.__listo = true; }
+window.__render = (t) => { capa.style.display = "none"; titulo.style.transition = "none"; ajustar(); dibujar(t); titulo.classList.toggle("visible", t > 8.4 && t < DUR - 0.2); return true; };
+/* el sonido de los diez segundos renderizado a WAV sin parlantes (para armar el .mp4) */
+window.__wav = async () => {
+  const sr = 44100, off = new OfflineAudioContext(1, sr * DUR, sr); const m = off.createGain(); m.connect(off.destination); programar(off, m, 0);
+  const buf = await off.startRendering(); const d = buf.getChannelData(0); const out = new DataView(new ArrayBuffer(44 + d.length * 2));
+  const str = (o, s) => { for (let i = 0; i < s.length; i++) out.setUint8(o + i, s.charCodeAt(i)); };
+  str(0, "RIFF"); out.setUint32(4, 36 + d.length * 2, true); str(8, "WAVE"); str(12, "fmt "); out.setUint32(16, 16, true); out.setUint16(20, 1, true); out.setUint16(22, 1, true); out.setUint32(24, sr, true); out.setUint32(28, sr * 2, true); out.setUint16(32, 2, true); out.setUint16(34, 16, true); str(36, "data"); out.setUint32(40, d.length * 2, true);
+  for (let i = 0; i < d.length; i++) out.setInt16(44 + i * 2, Math.max(-1, Math.min(1, d[i])) * 32767, true);
+  let bin = ""; const u8 = new Uint8Array(out.buffer); for (let i = 0; i < u8.length; i += 8192) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 8192)); return btoa(bin);
+};
+</script>
+</body>
+</html>
