@@ -7,7 +7,7 @@ de Martín no está, la puerta está abierta y en la cocina hay una mujer que di
 
 **Leer:** https://fnguerrero.github.io/working-folder-auto/escritos/sudestada/
 
-**Estado:** en curso (pedido #14, de varias noches). Los capítulos van saliendo noche a noche; el lector dice cuántos hay.
+**Estado:** terminada (pedido #14). Dieciocho capítulos, 35.600 palabras, escrita en una sola noche; la pasada de continuidad está en `.nonstop/CONTINUIDAD.md`.
 
 ## Qué hay
 
@@ -20,7 +20,8 @@ de Martín no está, la puerta está abierta y en la cocina hay una mujer que di
 - `build.js` genera `index.html` y `sudestada.html`; `epub.py` (Python, solo stdlib) arma el `.epub`.
 - `.nonstop/`: la cocina. `SPEC.md` (objetivo, lugar y época argumentados, voz, estructura del giro, supuestos),
   `PERSONAJES.md` (qué quiere, qué esconde y qué sabe cada uno en cada momento), `ESCALETA.md` (capítulo por capítulo),
-  `PISTAS.md` y `pistas.json` (las pistas del giro y en qué capítulo se siembra y se resuelve cada una), `CHECKLIST.md`
+  `PISTAS.md` y `pistas.json` (las pistas del giro y en qué capítulo se siembra y se resuelve cada una), `CONTINUIDAD.md`
+  (calendario interno, objetos que tienen que coincidir, quién sabe qué en cada capítulo y lo que se corrigió), `CHECKLIST.md`
   y `BITACORA.md`. **Ojo: tienen spoilers.** Si vas a leer la novela, no entres ahí.
 
 ## Cómo se prueba
