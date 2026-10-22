@@ -43,7 +43,7 @@ Trabaja directo sobre `main`. Si algo no te gusta, se mueve a `_archivo/`.
 | El tren | juegos | Un tren que silba cuando lo tocás, con túnel, barrera, nubes que llueven, sol, vacas y flores. Para Valentín. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/juegos/tren/) |
 | Bloqueos con el cronómetro en la mano | escritos | Diez experimentos sobre bloqueos, aislamiento y deadlocks de SQL Server, medidos con sesiones concurrentes: la actualización perdida y sus remedios, el grafo del deadlock, timeouts, RCSI y la fila caliente. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/escritos/bloqueos-con-cronometro/) |
 | Sudestada | escritos | Novela corta de suspenso psicológico en el Delta del Tigre: una perita calígrafa, un hermano que no aparece, una desconocida en la cocina y cuatro días de sudestada. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/escritos/sudestada/) |
-| Diez segundos | experimentos | Un corto de diez segundos en WebGL puro: tormenta, rayos, agua con reflejos y amanecer sobre un arroyo del Delta, en un shader y con sonido. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/experimentos/diez-segundos/) |
+| Diez segundos | experimentos | Un corto de diez segundos en WebGL puro: un hombre rema con un farol bajo la tormenta, con rayos, agua con reflejos y amanecer, en un shader y con sonido. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/experimentos/diez-segundos/) |
 
 ## La vitrina
 

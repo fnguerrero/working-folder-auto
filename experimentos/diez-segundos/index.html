@@ -37,7 +37,7 @@
   <div class="tiempo" id="tiempo"></div>
   <div class="capa" id="capa">
     <h1>Diez segundos</h1>
-    <p>Un arroyo del Delta, de noche, con tormenta. Después amanece. Todo dibujado en un shader, con sonido.</p>
+    <p>Un hombre rema con un farol por un arroyo del Delta, de noche, con tormenta. Después amanece. Todo dibujado en un shader, con sonido.</p>
     <button type="button" id="play">▶ Reproducir</button>
     <p class="aviso" id="aviso">Tu navegador no pudo iniciar WebGL. Probá en Chrome o Firefox actualizados.</p>
   </div>
@@ -54,6 +54,7 @@
 precision highp float;
 uniform vec2 uRes; uniform float uT; uniform float uFlash; uniform vec3 uRayo; /* x del rayo, intensidad, semilla */
 #define DUR 10.0
+#define PI 3.14159265
 
 float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 float hash1(float n) { return fract(sin(n) * 43758.5453); }
@@ -61,202 +62,294 @@ float noise(vec2 p) {
   vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
   return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
 }
-float fbm(vec2 p) {
-  float v = 0.0, a = 0.5; mat2 m = mat2(1.6, 1.2, -1.2, 1.6);
-  for (int i = 0; i < 6; i++) { v += a * noise(p); p = m * p; a *= 0.5; }
-  return v;
-}
+float fbm(vec2 p) { float v = 0.0, a = 0.5; mat2 m = mat2(1.6, 1.2, -1.2, 1.6); for (int i = 0; i < 6; i++) { v += a * noise(p); p = m * p; a *= 0.5; } return v; }
+float fbm4(vec2 p) { float v = 0.0, a = 0.5; mat2 m = mat2(1.6, 1.2, -1.2, 1.6); for (int i = 0; i < 4; i++) { v += a * noise(p); p = m * p; a *= 0.5; } return v; }
 float sdBox(vec2 p, vec2 b) { vec2 d = abs(p) - b; return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0); }
+float sdBox3(vec3 p, vec3 b) { vec3 d = abs(p) - b; return length(max(d, 0.0)) + min(max(d.x, max(d.y, d.z)), 0.0); }
+float sdCap(vec3 p, vec3 a, vec3 b, float r) { vec3 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); return length(pa - ba * h) - r; }
+float sdCil(vec3 p, float h, float r) { vec2 d = abs(vec2(length(p.xz), p.y)) - vec2(r, h); return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)); }
+float smin(float a, float b, float k) { float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0); return mix(b, a, h) - k * h * (1.0 - h); }
+mat2 rot(float a) { float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }
 
-/* progreso del amanecer: 0 noche cerrada, 1 amanecer */
 float dawn(float t) { return smoothstep(5.5, 9.6, t); }
+vec3 sunDir(float k) { return normalize(vec3(0.55, -0.08 + 0.16 * k, 1.0)); }
 
-/* cielo: dirección normalizada, devuelve color */
+/* ---------- cielo ---------- */
 vec3 sky(vec3 d, float t) {
   float k = dawn(t);
   float h = clamp(d.y, 0.0, 1.0);
-  vec3 nocheArriba = vec3(0.012, 0.018, 0.035), nocheHoriz = vec3(0.06, 0.07, 0.09);
-  vec3 albaArriba = vec3(0.22, 0.30, 0.46), albaHoriz = vec3(1.0, 0.62, 0.32);
-  vec3 arriba = mix(nocheArriba, albaArriba, k), horiz = mix(nocheHoriz, albaHoriz, k);
+  vec3 arriba = mix(vec3(0.012, 0.018, 0.035), vec3(0.22, 0.30, 0.46), k), horiz = mix(vec3(0.06, 0.07, 0.09), vec3(1.0, 0.62, 0.32), k);
   vec3 col = mix(horiz, arriba, pow(h, 0.45));
-  /* sol, sale por la derecha */
-  vec3 sunDir = normalize(vec3(0.55, -0.08 + 0.16 * k, 1.0));
-  float sd = max(dot(d, sunDir), 0.0);
+  vec3 sd3 = sunDir(k); float sd = max(dot(d, sd3), 0.0);
   col += vec3(1.0, 0.7, 0.4) * pow(sd, 18.0) * 1.2 * k + vec3(1.0, 0.85, 0.6) * pow(sd, 400.0) * 2.5 * k;
-  /* nubes: capa baja densa que se abre con el amanecer */
   vec2 uv = d.xz / max(d.y, 0.02);
-  float n = fbm(uv * 0.55 + vec2(t * 0.09, t * 0.025));
-  float n2 = fbm(uv * 1.3 - vec2(t * 0.14, 0.0));
+  float n = fbm(uv * 0.55 + vec2(t * 0.09, t * 0.025)), n2 = fbm4(uv * 1.3 - vec2(t * 0.14, 0.0));
   float cob = mix(0.86, 0.45, k);
   float cl = smoothstep(cob - 0.35, cob + 0.1, n * 0.7 + n2 * 0.3);
-  vec3 nubeNoche = vec3(0.045, 0.05, 0.065), nubeAlba = vec3(0.9, 0.55, 0.42);
-  vec3 nube = mix(nubeNoche, nubeAlba * (0.6 + 0.6 * sd), k);
+  vec3 nube = mix(vec3(0.045, 0.05, 0.065), vec3(0.9, 0.55, 0.42) * (0.6 + 0.6 * sd), k);
   nube += vec3(1.0, 0.95, 0.9) * uFlash * 0.9 * (0.5 + 0.5 * n);
   col = mix(col, nube, cl * smoothstep(0.0, 0.25, d.y));
-  /* estrellas entre las nubes, de noche */
   vec2 sp = d.xz / max(d.y, 0.05) * 60.0;
   float st = step(0.9975, hash(floor(sp))) * (1.0 - cl) * (1.0 - k) * smoothstep(0.05, 0.3, d.y);
   col += vec3(0.9, 0.9, 1.0) * st * (0.5 + 0.5 * sin(t * 3.0 + hash(floor(sp)) * 20.0));
-  /* relámpago general */
   col += vec3(0.75, 0.8, 1.0) * uFlash * 0.35;
   return col;
 }
 
-/* silueta de la orilla: casa sobre pilotes a la derecha, sauces a la izquierda, muelle. p en coords de "pantalla lejana" (x -1..1, y 0 = horizonte) */
+/* ---------- orilla lejana (siluetas 2D) ---------- */
 float orilla(vec2 p, float t) {
   float d = 1e3;
-  /* tierra/muelle */
   d = min(d, sdBox(p - vec2(0.72, -0.012), vec2(0.42, 0.012)));
-  /* pilotes */
   for (int i = 0; i < 5; i++) { float x = 0.46 + float(i) * 0.11; d = min(d, sdBox(p - vec2(x, 0.03), vec2(0.006, 0.05))); }
-  /* casa */
   d = min(d, sdBox(p - vec2(0.68, 0.16), vec2(0.23, 0.085)));
-  /* techo a dos aguas */
   vec2 q = p - vec2(0.68, 0.245); float roof = max(abs(q.x) * 0.9 + q.y - 0.09, -q.y - 0.001); d = min(d, roof);
-  /* galería */
   d = min(d, sdBox(p - vec2(0.42, 0.095), vec2(0.07, 0.006)));
-  /* chimenea */
   d = min(d, sdBox(p - vec2(0.78, 0.33), vec2(0.014, 0.04)));
-  /* sauces a la izquierda: copas con ruido, que se mueven con el viento */
   float sway = sin(t * 1.7 + p.y * 6.0) * 0.012 * (1.0 + uFlash);
   for (int i = 0; i < 4; i++) {
     float fi = float(i);
     float fx = -0.98 + fi * 0.2 + 0.04 * hash1(fi), fy = 0.2 + 0.05 * hash1(fi + 3.0);
     vec2 c = p - vec2(fx + sway * (0.4 + p.y), fy);
-    /* copa: óvalo irregular */
     float r = 0.09 + 0.03 * hash1(fi + 9.0) + 0.025 * noise(c * 12.0 + fi * 7.0 + vec2(t * 0.4, 0.0)) - 0.015 * noise(c * 40.0);
     float copa = length((c + vec2(0.0, 0.02)) * vec2(1.0, 2.1)) - r;
-    /* cortina de ramas colgantes: columnas finas de largo desparejo que bajan casi hasta el agua */
     float ancho = r * 1.15;
     float col = c.x * 220.0 + fi * 13.0;
-    float hebra = smoothstep(0.38, 0.6, noise(vec2(col, 0.0))) * smoothstep(ancho + 0.02, ancho * 0.5, abs(c.x)); /* qué columnas tienen rama, más densas al centro */
-    float largo = 0.08 + 0.2 * noise(vec2(col * 0.6, 1.0 + fi)) * (1.0 - 0.5 * abs(c.x) / ancho); /* cuánto baja cada una */
+    float hebra = smoothstep(0.38, 0.6, noise(vec2(col, 0.0))) * smoothstep(ancho + 0.02, ancho * 0.5, abs(c.x));
+    float largo = 0.08 + 0.2 * noise(vec2(col * 0.6, 1.0 + fi)) * (1.0 - 0.5 * abs(c.x) / ancho);
     float enX = 1.0 - smoothstep(ancho, ancho + 0.01, abs(c.x));
     float enY = step(-largo - fy * 0.9, c.y) * step(c.y, 0.0);
-    float cortina = 1.0 - enX * enY * hebra;                                /* 0 donde hay rama */
-    /* la cortina es una máscara, no una distancia: la convierto en distancia aproximada */
-    float ramas = mix(0.002, 1.0, cortina);
+    float ramas = mix(0.002, 1.0, 1.0 - enX * enY * hebra);
     d = min(d, min(copa, ramas));
-    /* tronco */
     d = min(d, sdBox(p - vec2(fx, 0.07), vec2(0.006, 0.1)));
   }
   return d;
 }
-
-/* ventana iluminada de la casa */
 float ventana(vec2 p, float t) {
   float v = 1.0 - smoothstep(0.0, 0.004, sdBox(p - vec2(0.60, 0.16), vec2(0.03, 0.035)));
   v += 1.0 - smoothstep(0.0, 0.004, sdBox(p - vec2(0.76, 0.16), vec2(0.03, 0.035)));
-  float parpadeo = 0.85 + 0.15 * noise(vec2(t * 7.0, 0.0));
-  return v * parpadeo * (1.0 - 0.6 * dawn(t));
+  return v * (0.85 + 0.15 * noise(vec2(t * 7.0, 0.0))) * (1.0 - 0.6 * dawn(t));
+}
+
+/* ---------- la chata y el remero (3D, raymarching) ---------- */
+vec3 barcoPos(float t) { return vec3(-2.6 + 0.5 * t, 0.0, 5.0); }
+float remo(float t) { return sin(t * 2.0 * PI / 2.4); } /* -1 recobro, +1 tirón */
+vec3 aLocal(vec3 p, float t) {
+  vec3 q = p - barcoPos(t);
+  q.y -= 0.05 * sin(t * 1.7) + 0.02 * sin(t * 3.1 + q.x);
+  q.yz = rot(0.05 * sin(t * 1.3)) * q.yz;      /* rolido */
+  q.xy = rot(0.025 * sin(t * 1.7 + 1.0)) * q.xy; /* cabeceo */
+  return q;
+}
+vec3 farolLocal() { return vec3(1.08, 0.92, 0.0); }
+/* devuelve (distancia, material): 1 casco, 2 ropa, 3 piel, 4 sombrero, 5 remo, 6 farol, 7 banco */
+vec2 mapa(vec3 q, float t) {
+  float a = remo(t);
+  /* casco: caja redondeada afinada en las puntas, ahuecada */
+  vec3 h = q; h.z *= 1.0 / (1.0 - 0.42 * pow(abs(h.x) / 1.35, 2.2)); h.y -= 0.17;
+  float casco = sdBox3(h, vec3(1.3, 0.17, 0.36)) - 0.06;
+  float hueco = sdBox3(h - vec3(0.0, 0.12, 0.0), vec3(1.2, 0.17, 0.3)) - 0.04;
+  casco = max(casco, -hueco) * 0.55; /* el afinado estira la distancia; se acorta para que la marcha no atraviese la pared */
+  vec2 r = vec2(casco, 1.0);
+  float banco = sdBox3(q - vec3(0.12, 0.3, 0.0), vec3(0.09, 0.02, 0.36));
+  if (banco < r.x) r = vec2(banco, 7.0);
+  /* el hombre, sentado mirando a -x, rema hacia +x */
+  vec3 cad = vec3(0.12, 0.36, 0.0);
+  float lean = -0.2 * a;                                 /* se echa atrás (+x) en el tirón */
+  vec3 hom = vec3(0.12 + lean, 0.8, 0.0);
+  float torso = sdCap(q, cad, hom, 0.15);
+  torso = smin(torso, sdCap(q, hom + vec3(0.0, -0.08, -0.17), hom + vec3(0.0, -0.08, 0.17), 0.07), 0.06); /* hombros */
+  vec3 cab = hom + vec3(-0.03 - 0.03 * a, 0.22, 0.0);
+  float cuello = sdCap(q, hom, cab, 0.055);
+  float cabeza = length(q - cab) - 0.115;
+  float ala = sdCil(q - cab - vec3(0.0, 0.07, 0.0), 0.008, 0.2);
+  float copa = sdCil(q - cab - vec3(0.0, 0.13, 0.0), 0.06, 0.11);
+  float sombrero = min(ala, copa);
+  /* brazos: del hombro a las manos en los remos */
+  vec3 manoI = vec3(0.12 - 0.22 - 0.24 * a, 0.64 + 0.08 * a, -0.18), manoD = manoI * vec3(1.0, 1.0, -1.0);
+  vec3 homI = hom + vec3(0.0, -0.06, -0.19), homD = hom + vec3(0.0, -0.06, 0.19);
+  float brazos = min(sdCap(q, homI, manoI, 0.05), sdCap(q, homD, manoD, 0.05));
+  float manos = min(length(q - manoI) - 0.06, length(q - manoD) - 0.06);
+  /* piernas: cadera, rodillas, pies en el fondo */
+  vec3 rodI = vec3(0.12 - 0.38, 0.44, -0.11), rodD = rodI * vec3(1.0, 1.0, -1.0);
+  vec3 pieI = vec3(0.12 - 0.62, 0.1, -0.12), pieD = pieI * vec3(1.0, 1.0, -1.0);
+  float piernas = min(min(sdCap(q, cad + vec3(0.0, 0.0, -0.1), rodI, 0.075), sdCap(q, cad + vec3(0.0, 0.0, 0.1), rodD, 0.075)), min(sdCap(q, rodI, pieI, 0.065), sdCap(q, rodD, pieD, 0.065)));
+  float ropa = min(torso, min(brazos, piernas));
+  ropa = min(ropa, cuello);
+  if (ropa < r.x) r = vec2(ropa, 2.0);
+  float piel = min(cabeza, manos);
+  if (piel < r.x) r = vec2(piel, 3.0);
+  if (sombrero < r.x) r = vec2(sombrero, 4.0);
+  /* remos: de la mano, por la chumacera, hasta la pala */
+  vec3 chumI = vec3(0.12 - 0.12, 0.46, -0.42), chumD = chumI * vec3(1.0, 1.0, -1.0);
+  vec3 dI = normalize(chumI - manoI), dD = normalize(chumD - manoD);
+  vec3 palaI = chumI + dI * 2.1, palaD = chumD + dD * 2.1;
+  float remos = min(sdCap(q, manoI, palaI, 0.025), sdCap(q, manoD, palaD, 0.025));
+  remos = min(remos, min(sdCap(q, palaI - dI * 0.45, palaI, 0.06), sdCap(q, palaD - dD * 0.45, palaD, 0.06)));
+  if (remos < r.x) r = vec2(remos, 5.0);
+  /* farol en la proa: palo y lámpara */
+  float palo = sdCap(q, vec3(1.08, 0.3, 0.0), vec3(1.08, 0.86, 0.0), 0.02);
+  if (palo < r.x) r = vec2(palo, 5.0);
+  float farol = length(q - farolLocal()) - 0.075;
+  if (farol < r.x) r = vec2(farol, 6.0);
+  return r;
+}
+/* esfera envolvente para no marchar donde no hay nada */
+bool envolvente(vec3 ro, vec3 rd, vec3 c, float R, out float t0, out float t1) {
+  vec3 oc = ro - c; float b = dot(oc, rd), cc = dot(oc, oc) - R * R, h = b * b - cc;
+  if (h < 0.0) return false; h = sqrt(h); t0 = max(-b - h, 0.0); t1 = -b + h; return t1 > 0.0;
+}
+vec2 marchar(vec3 ro, vec3 rd, float t, float tmax) {
+  float t0, t1; vec3 c = barcoPos(t) + vec3(0.0, 0.5, 0.0);
+  if (!envolvente(ro, rd, c, 2.6, t0, t1)) return vec2(-1.0, 0.0);
+  float d = t0; t1 = min(t1, tmax);
+  for (int i = 0; i < 72; i++) {
+    vec3 p = ro + rd * d;
+    vec2 m = mapa(aLocal(p, t), t);
+    if (m.x < 0.002 * d) return vec2(d, m.y);
+    d += m.x * 0.9;
+    if (d > t1) break;
+  }
+  return vec2(-1.0, 0.0);
+}
+vec3 normal(vec3 p, float t) {
+  vec2 e = vec2(0.004, 0.0);
+  return normalize(vec3(mapa(aLocal(p + e.xyy, t), t).x - mapa(aLocal(p - e.xyy, t), t).x, mapa(aLocal(p + e.yxy, t), t).x - mapa(aLocal(p - e.yxy, t), t).x, mapa(aLocal(p + e.yyx, t), t).x - mapa(aLocal(p - e.yyx, t), t).x));
+}
+vec3 farolMundo(float t) { vec3 q = farolLocal(); q.y += 0.05 * sin(t * 1.7); return barcoPos(t) + q; }
+vec3 colorFarol() { return vec3(1.0, 0.72, 0.38); }
+/* sombra suave hacia el farol (pocos pasos) */
+float sombra(vec3 p, vec3 l, float t) {
+  float res = 1.0, d = 0.03; vec3 rd = normalize(l - p); float maxd = length(l - p) - 0.1;
+  for (int i = 0; i < 14; i++) { float h = mapa(aLocal(p + rd * d, t), t).x; res = min(res, 10.0 * h / d); d += clamp(h, 0.02, 0.2); if (res < 0.01 || d > maxd) break; }
+  return clamp(res, 0.0, 1.0);
+}
+vec3 sombrear(vec3 p, vec3 n, vec3 rd, float mat, float t) {
+  float k = dawn(t);
+  vec3 alb = vec3(0.3);
+  if (mat < 1.5) alb = vec3(0.26, 0.15, 0.08);            /* casco, madera */
+  else if (mat < 2.5) alb = vec3(0.1, 0.13, 0.1);          /* campera verde oscura */
+  else if (mat < 3.5) alb = vec3(0.6, 0.42, 0.3);           /* piel */
+  else if (mat < 4.5) alb = vec3(0.12, 0.1, 0.08);          /* sombrero */
+  else if (mat < 5.5) alb = vec3(0.35, 0.25, 0.14);         /* remos */
+  else if (mat < 6.5) return colorFarol() * 4.0;             /* farol, emisivo */
+  else alb = vec3(0.3, 0.2, 0.1);
+  vec3 L = farolMundo(t); vec3 lv = L - p; float ld = length(lv); lv /= ld;
+  float farol = max(dot(n, lv), 0.0) * 2.2 / (1.0 + ld * ld * 1.2) * sombra(p, L, t) * (1.0 - 0.75 * k);
+  vec3 amb = mix(vec3(0.03, 0.04, 0.06), vec3(0.35, 0.3, 0.3), k) * (0.55 + 0.45 * n.y);
+  vec3 sd = sunDir(k);
+  float sol = max(dot(n, sd), 0.0) * 1.4 * k;
+  float rim = pow(1.0 - max(dot(n, -rd), 0.0), 3.0);
+  vec3 cielo = sky(normalize(vec3(n.x, abs(n.y) + 0.2, n.z)), t);
+  vec3 col = alb * (amb + colorFarol() * farol + vec3(1.0, 0.8, 0.6) * sol) + cielo * rim * 0.5;
+  col += vec3(0.7, 0.75, 1.0) * uFlash * max(dot(n, normalize(vec3(-0.3, 1.0, -0.4))), 0.0) * 0.8 * alb * 3.0;
+  /* brillo del farol y del sol en lo mojado */
+  vec3 rf = reflect(rd, n);
+  col += colorFarol() * pow(max(dot(rf, lv), 0.0), 40.0) * 0.6 / (1.0 + ld * ld) * (mat < 1.5 || mat > 4.5 ? 1.0 : 0.3);
+  col += vec3(1.0, 0.85, 0.6) * pow(max(dot(rf, sd), 0.0), 60.0) * k * 0.8;
+  return col;
 }
 
 void main() {
   vec2 frag = gl_FragCoord.xy;
   vec2 uv = (frag - 0.5 * uRes) / uRes.y;
   float t = uT;
-  /* cámara: leve avance y una gota de balanceo */
-  float zoom = 1.0 + 0.08 * t / DUR;
-  uv /= zoom;
-  uv.y += 0.003 * sin(t * 0.8);
-  float camH = 0.9;
-  vec3 ro = vec3(0.0, camH, 0.0);
-  vec3 rd = normalize(vec3(uv.x, uv.y - 0.02, 1.0));
-  vec3 col;
-  float horizonY = 0.02; /* altura del horizonte en uv */
   float k = dawn(t);
+  /* cámara: sigue despacio a la chata */
+  float pan = 0.1 * barcoPos(t).x / 2.6;
+  uv /= 1.0 + 0.05 * t / DUR;
+  uv.y += 0.003 * sin(t * 0.8);
+  vec3 ro = vec3(0.0, 1.05, 0.0);
+  vec3 rd = normalize(vec3(uv.x + pan, uv.y - 0.03, 1.0));
+  float horizonY = 0.03 - pan * 0.0;
   float fogN = 1.0 - k * 0.6;
+  vec3 hzCol = sky(normalize(vec3(rd.x, 0.004, rd.z)), t);
+  vec3 col;
 
-  if (rd.y > 0.0) {
-    /* cielo y orilla lejana */
+  float tw = rd.y < 0.0 ? -ro.y / rd.y : 1e5;
+  vec2 hit = marchar(ro, rd, t, tw);
+
+  if (hit.x > 0.0) {
+    vec3 p = ro + rd * hit.x; vec3 n = normal(p, t);
+    col = sombrear(p, n, rd, hit.y, t);
+    col = mix(col, hzCol, (1.0 - exp(-hit.x * 0.05)) * 0.5 * fogN);
+  } else if (rd.y > 0.0) {
     col = sky(rd, t);
-    vec2 p = vec2(uv.x, uv.y - horizonY) * 1.0;
+    vec2 p = vec2(uv.x + pan, uv.y - horizonY);
     float d = orilla(p, t);
     float m = 1.0 - smoothstep(0.0, 0.003, d);
     vec3 silCol = mix(vec3(0.0, 0.0, 0.005), vec3(0.05, 0.03, 0.03), k) + vec3(0.5, 0.55, 0.7) * uFlash * 0.25;
     col = mix(col, silCol, m);
     col += vec3(1.0, 0.72, 0.35) * ventana(p, t) * 1.2;
-    /* bruma pegada al horizonte */
-    col = mix(col, sky(normalize(vec3(rd.x, 0.004, rd.z)), t), (1.0 - smoothstep(0.0, 0.12, rd.y)) * mix(1.0, 0.7, k));
-    /* el rayo: una línea quebrada que baja de las nubes al horizonte */
+    col = mix(col, hzCol, (1.0 - smoothstep(0.0, 0.12, rd.y)) * mix(1.0, 0.7, k));
     if (uRayo.y > 0.001) {
       float yy = clamp((uv.y - horizonY) / 0.5, 0.0, 1.0);
       float x0 = uRayo.x + 0.07 * (noise(vec2(yy * 7.0 + uRayo.z, 0.0)) - 0.5) + 0.03 * (noise(vec2(yy * 23.0 + uRayo.z, 3.0)) - 0.5);
-      float dx = abs(uv.x - x0);
+      float dx = abs(uv.x + pan - x0);
       float nucleo = smoothstep(0.0025, 0.0, dx), halo = smoothstep(0.08, 0.0, dx) * 0.35;
       float enAltura = step(horizonY, uv.y) * step(uv.y, horizonY + 0.42) * smoothstep(0.42, 0.3, uv.y - horizonY);
-      /* una rama secundaria */
-      float x1 = x0 + 0.05 + 0.12 * yy; float rama = smoothstep(0.0018, 0.0, abs(uv.x - x1)) * step(0.15, yy) * step(yy, 0.5) * 0.7;
+      float x1 = x0 + 0.05 + 0.12 * yy; float rama = smoothstep(0.0018, 0.0, abs(uv.x + pan - x1)) * step(0.15, yy) * step(yy, 0.5) * 0.7;
       col += vec3(0.85, 0.9, 1.0) * (nucleo + halo + rama) * enAltura * uRayo.y * 2.5;
     }
   } else {
-    /* agua: plano y=0 */
-    float tt = -ro.y / rd.y;
-    vec3 pos = ro + rd * tt;
+    /* agua */
+    vec3 pos = ro + rd * tw;
     float dist = length(pos.xz);
-    /* olas: fbm animado, más chicas con el amanecer (el viento afloja) */
     float amp = mix(0.07, 0.025, k);
     vec2 wp = pos.xz * 0.8 + vec2(0.0, -t * 0.9);
     float e = 0.02;
-    float h0 = fbm(wp) * amp;
-    float hx = fbm(wp + vec2(e, 0.0)) * amp;
-    float hz = fbm(wp + vec2(0.0, e)) * amp;
+    float h0 = fbm(wp) * amp, hx = fbm(wp + vec2(e, 0.0)) * amp, hz = fbm(wp + vec2(0.0, e)) * amp;
     vec3 n = normalize(vec3(h0 - hx, e * 0.9 + 0.012 * dist, h0 - hz));
-    /* ondas de lluvia */
     float lluviaK = 1.0 - smoothstep(4.0, 8.5, t);
     float rip = noise(pos.xz * 14.0 + t * 6.0) * lluviaK * 0.5;
-    n = normalize(n + vec3(rip - 0.25 * lluviaK, 0.0, rip * 0.7) * 0.08);
-    vec3 refl = reflect(rd, n);
-    refl.y = abs(refl.y) + 0.01;
+    /* ondas que deja la chata y las palas */
+    vec3 bq = pos - barcoPos(t); float estela = exp(-abs(bq.z) * 2.5) * exp(-max(-bq.x, 0.0) * 0.6) * step(bq.x, 1.2) * 0.06 * sin(bq.x * 18.0 - t * 6.0);
+    n = normalize(n + vec3(rip - 0.25 * lluviaK + estela, 0.0, rip * 0.7 + estela) * 0.08);
+    vec3 refl = reflect(rd, n); refl.y = abs(refl.y) + 0.01;
     vec3 rcol = sky(refl, t);
-    /* reflejo de la orilla, distorsionado por las olas */
-    vec2 pr = vec2(uv.x + n.x * 0.6, -(uv.y - horizonY) * 1.05 + n.z * 0.25 + 0.01);
-    float dr = orilla(pr, t);
-    float mr = 1.0 - smoothstep(0.0, 0.004, dr);
+    vec2 pr = vec2(uv.x + pan + n.x * 0.6, -(uv.y - horizonY) * 1.05 + n.z * 0.25 + 0.01);
+    float mr = 1.0 - smoothstep(0.0, 0.004, orilla(pr, t));
     rcol = mix(rcol, vec3(0.0, 0.0, 0.004), mr * 0.95);
     rcol += vec3(1.0, 0.7, 0.35) * ventana(pr, t) * 0.9;
-    /* fresnel y color del agua */
-    float fr = pow(1.0 - max(dot(-rd, n), 0.0), 3.0);
-    fr = mix(0.25, 1.0, fr);
+    /* reflejo de la chata y el remero */
+    vec2 rh = marchar(pos + n * 0.01, refl, t, 30.0);
+    if (rh.x > 0.0) { vec3 rp = pos + refl * rh.x; vec3 rn = normal(rp, t); rcol = mix(rcol, sombrear(rp, rn, refl, rh.y, t), 0.85); }
+    float fr = mix(0.25, 1.0, pow(1.0 - max(dot(-rd, n), 0.0), 3.0));
     vec3 aguaBase = mix(vec3(0.015, 0.02, 0.03), vec3(0.16, 0.11, 0.07), k);
     col = mix(aguaBase, rcol, fr);
-    /* brillo del sol / luna en el agua */
-    vec3 sunDir = normalize(vec3(0.55, -0.08 + 0.16 * k, 1.0));
-    float spec = pow(max(dot(refl, sunDir), 0.0), 60.0);
-    col += vec3(1.0, 0.75, 0.45) * spec * 1.8 * k;
-    col += vec3(0.6, 0.7, 1.0) * pow(max(dot(refl, normalize(vec3(-0.3, 0.5, 1.0))), 0.0), 200.0) * 0.6 * (1.0 - k) * (1.0 - fbm(pos.xz * 0.3 + t * 0.1));
-    /* gotas de lluvia en el agua (salpicaduras) */
+    /* luz del farol sobre el agua y su reflejo largo */
+    vec3 L = farolMundo(t); vec3 lv = L - pos; float ld = length(lv); lv /= ld;
+    col += colorFarol() * max(dot(n, lv), 0.0) * 0.25 / (1.0 + ld * ld * 0.8) * (1.0 - 0.7 * k);
+    col += colorFarol() * pow(max(dot(refl, lv), 0.0), 120.0) * 2.0 / (1.0 + ld * 0.3) * (1.0 - 0.7 * k);
+    vec3 sd = sunDir(k);
+    col += vec3(1.0, 0.75, 0.45) * pow(max(dot(refl, sd), 0.0), 60.0) * 1.8 * k;
+    col += vec3(0.6, 0.7, 1.0) * pow(max(dot(refl, normalize(vec3(-0.3, 0.5, 1.0))), 0.0), 200.0) * 0.6 * (1.0 - k) * (1.0 - fbm4(pos.xz * 0.3 + t * 0.1));
     float drops = step(0.993, hash(floor(pos.xz * 25.0 + floor(t * 12.0)))) * lluviaK;
     col += vec3(0.5, 0.55, 0.65) * drops * (1.0 - smoothstep(0.0, 6.0, dist)) * 0.6;
-    /* niebla con la distancia */
-    vec3 fogCol = sky(normalize(vec3(rd.x, 0.004, rd.z)), t);
-    col = mix(col, fogCol, (1.0 - exp(-dist * 0.05)) * mix(0.97, 0.7, k));
+    col = mix(col, hzCol, (1.0 - exp(-dist * 0.05)) * mix(0.97, 0.7, k));
     col += vec3(0.7, 0.75, 1.0) * uFlash * 0.2;
   }
 
-  /* lluvia en pantalla: estrías que caen en diagonal, se van con el amanecer */
+  /* halo del farol en el aire húmedo */
+  { vec3 L = farolMundo(t); vec3 lv = L - ro; float ld = length(lv); float ang = max(dot(rd, lv / ld), 0.0); col += colorFarol() * pow(ang, 900.0) * 1.2 * (1.0 - 0.7 * k) + colorFarol() * pow(ang, 60.0) * 0.08 * (1.0 - 0.7 * k); }
+
+  /* lluvia en pantalla */
   float lluviaK = 1.0 - smoothstep(4.5, 8.5, t);
   if (lluviaK > 0.001) {
     for (int c = 0; c < 3; c++) {
-      float capa = float(c);
-      float esc = 60.0 + capa * 50.0;
+      float capa = float(c); float esc = 60.0 + capa * 50.0;
       vec2 ru = (frag / uRes.y) * vec2(esc, esc * 0.22);
-      ru.x += ru.y * 0.9 + capa * 7.0;
-      ru.y += t * (9.0 + capa * 3.5);
-      vec2 cell = floor(ru);
-      float rnd = hash(cell + capa * 11.0);
-      float xoff = fract(ru.x) - 0.5;
+      ru.x += ru.y * 0.9 + capa * 7.0; ru.y += t * (9.0 + capa * 3.5);
+      vec2 cell = floor(ru); float rnd = hash(cell + capa * 11.0); float xoff = fract(ru.x) - 0.5;
       float gota = step(0.72 + capa * 0.06, rnd) * smoothstep(0.07, 0.0, abs(xoff)) * smoothstep(0.0, 0.25, fract(ru.y)) * smoothstep(1.0, 0.55, fract(ru.y));
       col += vec3(0.55, 0.6, 0.75) * gota * lluviaK * (0.18 - capa * 0.04) * (1.0 + uFlash);
     }
   }
 
-  /* viñeta, grano, tonemap y fundidos */
   vec2 q = frag / uRes;
   float vig = pow(16.0 * q.x * q.y * (1.0 - q.x) * (1.0 - q.y), 0.22);
   col *= mix(0.55, 1.0, vig);
-  col += (hash(frag + fract(t * 13.0)) - 0.5) * 0.025;
-  col = col / (col + 0.65) * 1.25; /* tonemap suave */
+  col += (hash(frag + fract(t * 13.0)) - 0.5) * 0.02;
+  col = col / (col + 0.65) * 1.25;
   col = pow(max(col, 0.0), vec3(0.92));
   float fadeIn = smoothstep(0.0, 1.2, t), fadeOut = 1.0 - smoothstep(DUR - 0.9, DUR, t);
   col *= fadeIn * fadeOut;

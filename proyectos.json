@@ -409,13 +409,13 @@
   "slug": "diez-segundos",
   "nombre": "Diez segundos",
   "categoria": "experimentos",
-  "descripcion": "Un corto de diez segundos en WebGL puro: tormenta sobre un arroyo del Delta, con lluvia, rayos, una casa sobre pilotes, agua con reflejos y un amanecer, todo en un shader y con sonido sintetizado.",
+  "descripcion": "Un corto de diez segundos en WebGL puro: un hombre rema con un farol bajo la tormenta por un arroyo del Delta, con rayos, agua con reflejos y un amanecer, todo en un shader y con sonido sintetizado.",
   "estado": "terminado",
   "probar": "experimentos/diez-segundos/",
   "desde": "2026-10-22",
   "icono": "🎬",
   "para": "todos",
-  "detalle": "Una prueba de hasta dónde llega la gráfica sin librerías ni imágenes: el cielo con nubes, el agua con olas y reflejos, la lluvia, los relámpagos con su rayo, los sauces y la casa salen de un único fragment shader, y el viento, los truenos y el acorde del amanecer, de WebAudio. Se puede grabar a video desde el navegador y hay un .mp4 ya renderizado.",
+  "detalle": "Una prueba de hasta dónde llega la gráfica sin librerías ni imágenes: la chata y el remero son geometría 3D por raymarching, con la luz del farol, sombras suaves y reflejos en el agua; el cielo con nubes, las olas, la lluvia, los relámpagos con su rayo, los sauces y la casa salen del mismo fragment shader, y el viento, los truenos y el acorde del amanecer, de WebAudio. Se puede grabar a video desde el navegador y hay un .mp4 ya renderizado.",
   "destacado": false,
   "actualizado": "2026-10-22"
  }

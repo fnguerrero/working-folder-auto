@@ -1,9 +1,11 @@
 # Diez segundos
 
-Un corto de diez segundos para probar hasta dónde llega la gráfica sin librerías: un arroyo del Delta de noche, con
-tormenta (lluvia, relámpagos con su rayo, truenos), una casa sobre pilotes con las ventanas prendidas y sauces en la
-orilla, el agua con olas, reflejos y niebla, y al final amanece y aparece el título. Todo sale de **un único fragment
-shader** en WebGL puro; el sonido (viento, lluvia, truenos, un acorde y un pájaro) se sintetiza con WebAudio.
+Un corto de diez segundos para probar hasta dónde llega la gráfica sin librerías: un hombre rema en una chata con un
+farol en la proa por un arroyo del Delta, de noche, con tormenta (lluvia, relámpagos con su rayo, truenos); en la orilla
+una casa sobre pilotes con las ventanas prendidas y sauces; el agua con olas, la estela, los reflejos del remero y del
+farol, y niebla; y al final amanece y aparece el título. Todo sale de **un único fragment shader** en WebGL puro: el
+bote y el hombre son geometría 3D real (campos de distancia con raymarching, con luz del farol, sombras suaves y
+reflejos en el agua); el sonido (viento, lluvia, truenos, un acorde y un pájaro) se sintetiza con WebAudio.
 
 **Ver:** https://fnguerrero.github.io/working-folder-auto/experimentos/diez-segundos/
 
@@ -24,6 +26,16 @@ que podés meterle para ver qué onda»).
   imagen y son distintos, Reproducir arranca, sin scroll horizontal ni errores en consola.
 
 ## Cómo está hecho
+
+- **La chata y el remero:** campos de distancia 3D (cajas redondeadas, cápsulas, cilindros, uniones suaves) marchados
+  por rayo, dentro de una esfera envolvente para no gastar pasos donde no hay nada. El casco es una caja afinada en
+  las puntas y ahuecada; el hombre, sentado en el banco, mirando a popa, con torso, hombros, cabeza, sombrero, brazos,
+  manos, piernas y pies; los remos van de las manos por la chumacera hasta la pala y siguen el ciclo de la remada
+  (2,4 s), y el torso se echa atrás en el tirón. El bote cabecea y rola con las olas, avanza de izquierda a derecha y la
+  cámara lo sigue despacio. Materiales: madera, campera, piel, sombrero, remos y el farol, que es emisivo.
+- **Luz:** el farol es una luz puntual cálida con sombras suaves (marcha corta hacia la luz), más luz ambiente del
+  cielo, luz del sol al amanecer, un borde de contraluz y el destello azulado de cada relámpago desde arriba. El agua
+  recibe la luz del farol y su reflejo largo, y refleja el bote y el hombre marchando el rayo reflejado.
 
 - **Cielo:** gradiente noche → alba, nubes con FBM que se abren a medida que amanece, estrellas entre las nubes de
   noche, sol que sale detrás de la casa, destello general de cada relámpago.
