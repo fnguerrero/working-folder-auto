@@ -31,8 +31,9 @@ que podés meterle para ver qué onda»).
   restas suaves) marchados por rayo, dentro de una esfera envolvente para no gastar pasos donde no hay nada. El casco
   es una caja afinada en las puntas y ahuecada. El hombre está sentado en el banco mirando a popa: torso con panza y
   hombros, cuello de campera, brazos con codo, manos con pulgar agarrando los remos, piernas con rodilla y botas de
-  goma; la cabeza tiene cráneo, mandíbula, nariz, cejas, cuencas de los ojos, orejas y boca, con barba y pelo pintados
-  por posición, y un sombrero con el ala levantada en los bordes. Los remos van de las manos por la chumacera hasta la
+  goma; la cabeza tiene cráneo, mandíbula con ángulo, pómulos, mentón, nariz con puente, punta, aletas y tabique, cuencas con
+  globo y párpado, cejas, orejas con hélix, concha y lóbulo, dos labios, nuez, barba y pelo pintados por posición, y
+  un sombrero con el ala levantada en los bordes; las manos tienen pulgar y tres dedos cerrados sobre el remo. Los remos van de las manos por la chumacera hasta la
   pala y siguen el ciclo de la remada (2,4 s); el torso se echa atrás en el tirón. El bote cabecea y rola con las olas y
   avanza despacio; la cámara lo sigue y en la segunda mitad se le acerca hasta quedar a dos metros del hombre.
   Materiales: madera con veta mojada, campera con arrugas (la normal se perturba con ruido), piel que deja pasar la luz
