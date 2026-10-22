@@ -1,0 +1,242 @@
+[
+{
+"id": "P1",
+"que": "Visita el primer sábado de cada mes",
+"siembra": {
+"cap": 1,
+"texto": "el primer sábado de cada mes"
+},
+"resuelve": {
+"cap": 14,
+"texto": "primer sábado"
+}
+},
+{
+"id": "P2",
+"que": "La bolsa de siempre",
+"siembra": {
+"cap": 1,
+"texto": "la bolsa de siempre"
+},
+"resuelve": {
+"cap": 14,
+"texto": "la bolsa"
+}
+},
+{
+"id": "P3",
+"que": "Cuenta las pastillas",
+"siembra": {
+"cap": 1,
+"texto": "las conté"
+},
+"resuelve": {
+"cap": 14,
+"texto": "las pastillas contadas"
+}
+},
+{
+"id": "P4",
+"que": "Zurdo: el arrastre de la tinta",
+"siembra": {
+"cap": 2,
+"texto": "zurdo"
+},
+"resuelve": {
+"cap": 14,
+"texto": "zurdo"
+}
+},
+{
+"id": "P5",
+"que": "La V con la cola larga",
+"siembra": {
+"cap": 5,
+"texto": "la V con la cola larga"
+},
+"resuelve": {
+"cap": 18,
+"texto": "la cola larga"
+}
+},
+{
+"id": "P6",
+"que": "Entradas con «ella» fechadas en primeros sábados",
+"siembra": {
+"cap": 3,
+"texto": "sáb 7/6"
+},
+"resuelve": {
+"cap": 14,
+"texto": "7/6"
+}
+},
+{
+"id": "P7",
+"que": "Hojas arrancadas de la última libreta",
+"siembra": {
+"cap": 2,
+"texto": "arrancadas"
+},
+"resuelve": {
+"cap": 17,
+"texto": "Firmé por los dos"
+}
+},
+{
+"id": "P8",
+"que": "Dos bultos bajo la lona en el muelle de Elías",
+"siembra": {
+"cap": 6,
+"texto": "dos bultos"
+},
+"resuelve": {
+"cap": 15,
+"texto": "la lona"
+}
+},
+{
+"id": "P9",
+"que": "Elías vio a Ana despedirlo en el muelle; Ana dijo que dormía",
+"siembra": {
+"cap": 2,
+"texto": "lo despidió"
+},
+"resuelve": {
+"cap": 12,
+"texto": "o me voy"
+}
+},
+{
+"id": "P10",
+"que": "Ana corta el pan con la derecha",
+"siembra": {
+"cap": 10,
+"texto": "con la derecha"
+},
+"resuelve": {
+"cap": 14,
+"texto": "con la derecha"
+}
+},
+{
+"id": "P11",
+"que": "«El Martín es grande, Verónica»",
+"siembra": {
+"cap": 4,
+"texto": "El Martín es grande"
+},
+"resuelve": {
+"cap": 16,
+"texto": "es grande"
+}
+},
+{
+"id": "P12",
+"que": "Hernán: «lo administrás»",
+"siembra": {
+"cap": 5,
+"texto": "Lo administrás"
+},
+"resuelve": {
+"cap": 17,
+"texto": "administr"
+}
+},
+{
+"id": "P13",
+"que": "Rema raro, como al revés",
+"siembra": {
+"cap": 4,
+"texto": "como al revés"
+},
+"resuelve": {
+"cap": 15,
+"texto": "con la izquierda"
+}
+},
+{
+"id": "P14",
+"que": "«Firmé yo, no había nadie más que firmara»",
+"siembra": {
+"cap": 5,
+"texto": "no había nadie más que firmara"
+},
+"resuelve": {
+"cap": 16,
+"texto": "Firmé por los dos"
+}
+},
+{
+"id": "P15",
+"que": "«Ella no va a dejarme ir»",
+"siembra": {
+"cap": 3,
+"texto": "Ella no va a dejarme ir"
+},
+"resuelve": {
+"cap": 14,
+"texto": "no va a dejarme ir"
+}
+},
+{
+"id": "P16",
+"que": "El galpón de Villa Paranacito",
+"siembra": {
+"cap": 6,
+"texto": "Paranacito"
+},
+"resuelve": {
+"cap": 16,
+"texto": "Paranacito"
+}
+},
+{
+"id": "P17",
+"que": "El perro de Elías ladra hacia el galpón",
+"siembra": {
+"cap": 9,
+"texto": "ladr"
+},
+"resuelve": {
+"cap": 15,
+"texto": "el Negro"
+}
+},
+{
+"id": "P18",
+"que": "Una luz en el galpón de Elías",
+"siembra": {
+"cap": 13,
+"texto": "una luz"
+},
+"resuelve": {
+"cap": 15,
+"texto": "galpón"
+}
+},
+{
+"id": "P19",
+"que": "«Ella no sabe lo que es que te cierren con llave»",
+"siembra": {
+"cap": 8,
+"texto": "te cierren con llave"
+},
+"resuelve": {
+"cap": 14,
+"texto": "con llave"
+}
+},
+{
+"id": "P20",
+"que": "Pan como para tres",
+"siembra": {
+"cap": 6,
+"texto": "como para tres"
+},
+"resuelve": {
+"cap": 16,
+"texto": "para tres"
+}
+}
+]

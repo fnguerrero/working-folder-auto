@@ -390,5 +390,19 @@
   "detalle": "Cada capítulo abre dos o más sesiones a la vez contra un SQL Server 2022 y mide lo que ve cada una: cuánto esperó, qué error recibió, qué quedó en la tabla. Cubre qué toma un UPDATE y a quién frena, la escalada, NOLOCK, la actualización perdida con seis remedios, el «si no existe, insertar» con el default de TransactionScope, el deadlock clásico y su grafo, el deadlock que arregla un índice, LOCK_TIMEOUT contra CommandTimeout, RCSI y SNAPSHOT, y la fila caliente. Con chuleta y qué cambia en el código .NET.",
   "destacado": true,
   "actualizado": "2026-10-21"
+ },
+ {
+  "slug": "sudestada",
+  "nombre": "Sudestada",
+  "categoria": "escritos",
+  "descripcion": "Novela corta de suspenso psicológico en el Delta del Tigre: una perita calígrafa, un hermano que no aparece, una desconocida en la cocina y cuatro días de sudestada.",
+  "estado": "en curso",
+  "probar": "escritos/sudestada/",
+  "desde": "2026-10-22",
+  "icono": "🌊",
+  "para": "todos",
+  "detalle": "Martín llamó un martes: «Necesito que vengas. No por teléfono». Cuando Verónica, perita calígrafa, llega a la casa de la isla el jueves, la lancha de su hermano no está, la puerta está abierta y en la cocina hay una mujer que dice ser su pareja desde hace cuatro meses. Esa noche entra la sudestada y las dos quedan encerradas con el agua subiendo por la escalera. Lector por capítulos que recuerda dónde quedaste, con tema oscuro, más la novela entera para imprimir y en EPUB.",
+  "destacado": true,
+  "actualizado": "2026-10-22"
  }
 ]
