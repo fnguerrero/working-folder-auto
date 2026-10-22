@@ -81,7 +81,7 @@
   .chip.edad { border-color: var(--accent); color: var(--accent); font-weight: 600; }
   .chip.en-curso { border-color: var(--c-juegos); color: var(--c-juegos); }
   .tarjeta p { margin: 0; color: var(--muted); font-size: .92rem; }
-  .herramientas { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 14px; margin: -16px 0 4px; }
+  .filtros { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 14px; margin: -16px 0 4px; }
   .resultados { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: .82rem; color: var(--muted); }
   .activos { display: contents; }
   .activos button { font: inherit; font-size: .76rem; min-height: 28px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--accent); background: var(--suave); color: var(--fg); cursor: pointer; }
@@ -107,7 +107,7 @@
     .barra { grid-column: 1; padding: 0 6px; justify-content: flex-start; }
     .tile { padding: 6px 10px; flex: none; }
     .frase { flex: none; width: 240px; }
-    .herramientas { margin: 0 0 8px; }
+    .filtros { margin: 0 0 8px; }
     aside { grid-row: auto; position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 16px; }
     .grupo h2 { margin-top: 10px; }
     nav { display: flex; flex-wrap: wrap; gap: 4px; } nav button { width: auto; min-height: 34px; padding: 5px 10px; font-size: .86rem; border: 1px solid var(--line); border-radius: 999px; } nav button .n { margin-left: 4px; }
@@ -128,7 +128,7 @@
   </aside>
   <main>
     <section class="astro" id="astro" hidden aria-live="polite"><button type="button" class="cerrar" id="astroCerrar" aria-label="Cerrar">✕</button><h2 id="astroTitulo"></h2><p class="chips" id="astroChips"></p><div id="astroTexto"></div></section>
-    <div class="herramientas"><div class="resultados"><span id="cuentaRes"></span><span class="activos" id="activos"></span></div><div class="selects"><label class="sel">Edad <select id="selEdad"></select></label><label class="sel">Ordenar por <select id="selOrden"></select></label></div></div>
+    <div class="filtros"><div class="resultados"><span id="cuentaRes"></span><span class="activos" id="activos"></span></div><div class="selects"><label class="sel">Edad <select id="selEdad"></select></label><label class="sel">Ordenar por <select id="selOrden"></select></label></div></div>
     <section id="secDestacados"><h2 class="seccion">Lo más copado</h2><p class="explica">Por donde conviene empezar.</p><div class="grilla destacados" id="destacados"></div></section>
     <section><h2 class="seccion" id="tituloTodos">Todo</h2><p class="explica" id="explicaTodos"></p><div class="grilla" id="grilla"><p class="vacio">Cargando…</p></div></section>
   </main>
