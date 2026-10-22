@@ -18,7 +18,7 @@ que podés meterle para ver qué onda»).
   reproducción con el audio a `.webm` con MediaRecorder, en el navegador) y una casilla de calidad (alta = la
   resolución del dispositivo hasta 2×; baja = 0,6×, para celulares que se queden cortos). `?t=4` dibuja el cuadro de
   los 4 segundos quieto, para pruebas.
-- `diez-segundos.mp4` (2,6 MB): el corto renderizado a 1280×720 y 30 fps con el sonido, para verlo sin abrir la página o
+- `diez-segundos.mp4`: el corto renderizado a 1280×720 y 30 fps con el sonido, para verlo sin abrir la página o
   mandarlo por WhatsApp. Lo genera `render.js` (Chromium headless con WebGL por software + ffmpeg); el audio lo
   renderiza la misma página con `OfflineAudioContext` a WAV.
 - `cuadro-noche.jpg` y `cuadro-amanecer.jpg`: dos fotogramas.
