@@ -81,7 +81,7 @@
   .chip.edad { border-color: var(--accent); color: var(--accent); font-weight: 600; }
   .chip.en-curso { border-color: var(--c-juegos); color: var(--c-juegos); }
   .tarjeta p { margin: 0; color: var(--muted); font-size: .92rem; }
-  .herramientas { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin: -6px 0 14px; }
+  .herramientas { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin: 0 0 20px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
   .resultados { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: .82rem; color: var(--muted); }
   .activos { display: contents; }
   .activos button { font: inherit; font-size: .76rem; min-height: 28px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--accent); background: var(--suave); color: var(--fg); cursor: pointer; }
@@ -127,8 +127,9 @@
   </aside>
   <main>
     <section class="astro" id="astro" hidden aria-live="polite"><button type="button" class="cerrar" id="astroCerrar" aria-label="Cerrar">✕</button><h2 id="astroTitulo"></h2><p class="chips" id="astroChips"></p><div id="astroTexto"></div></section>
+    <div class="herramientas"><div class="resultados"><span id="cuentaRes"></span><span class="activos" id="activos"></span></div><div class="selects"><label class="sel">Edad <select id="selEdad"></select></label><label class="sel">Ordenar por <select id="selOrden"></select></label></div></div>
     <section id="secDestacados"><h2 class="seccion">Lo más copado</h2><p class="explica">Por donde conviene empezar.</p><div class="grilla destacados" id="destacados"></div></section>
-    <section><h2 class="seccion" id="tituloTodos">Todo</h2><p class="explica" id="explicaTodos"></p><div class="herramientas"><div class="resultados"><span id="cuentaRes"></span><span class="activos" id="activos"></span></div><div class="selects"><label class="sel">Edad <select id="selEdad"></select></label><label class="sel">Ordenar por <select id="selOrden"></select></label></div></div><div class="grilla" id="grilla"><p class="vacio">Cargando…</p></div></section>
+    <section><h2 class="seccion" id="tituloTodos">Todo</h2><p class="explica" id="explicaTodos"></p><div class="grilla" id="grilla"><p class="vacio">Cargando…</p></div></section>
   </main>
 </div>
 <script>
@@ -179,7 +180,7 @@
     const vis = visibles(); const porFecha = (k) => (a, b) => (b[k] || b.desde || "").localeCompare(a[k] || a.desde || "") || (b.desde || "").localeCompare(a.desde || "") || a.nombre.localeCompare(b.nombre, "es");
     const ordenados = vis.slice().sort(orden === "nombre" ? (a, b) => a.nombre.localeCompare(b.nombre, "es") : orden === "nuevos" ? porFecha("desde") : orden === "antiguos" ? (a, b) => (a.desde || "").localeCompare(b.desde || "") || a.nombre.localeCompare(b.nombre, "es") : porFecha("actualizado"));
     $("#selOrden").value = orden;
-    const sinFiltro = categoria === "todo" && publico === "todos" && !busqueda.trim();
+    const sinFiltro = categoria === "todo" && publico === "todos" && orden === "actividad" && !busqueda.trim();
     const dest = $("#destacados"); dest.innerHTML = "";
     const destacados = vis.filter((p) => p.destacado).sort(porFecha("desde"));
     $("#secDestacados").hidden = !(sinFiltro && destacados.length);
