@@ -27,12 +27,17 @@ que podés meterle para ver qué onda»).
 
 ## Cómo está hecho
 
-- **La chata y el remero:** campos de distancia 3D (cajas redondeadas, cápsulas, cilindros, uniones suaves) marchados
-  por rayo, dentro de una esfera envolvente para no gastar pasos donde no hay nada. El casco es una caja afinada en
-  las puntas y ahuecada; el hombre, sentado en el banco, mirando a popa, con torso, hombros, cabeza, sombrero, brazos,
-  manos, piernas y pies; los remos van de las manos por la chumacera hasta la pala y siguen el ciclo de la remada
-  (2,4 s), y el torso se echa atrás en el tirón. El bote cabecea y rola con las olas, avanza de izquierda a derecha y la
-  cámara lo sigue despacio. Materiales: madera, campera, piel, sombrero, remos y el farol, que es emisivo.
+- **La chata y el remero:** campos de distancia 3D (elipsoides, cápsulas, cilindros, cajas redondeadas, uniones y
+  restas suaves) marchados por rayo, dentro de una esfera envolvente para no gastar pasos donde no hay nada. El casco
+  es una caja afinada en las puntas y ahuecada. El hombre está sentado en el banco mirando a popa: torso con panza y
+  hombros, cuello de campera, brazos con codo, manos con pulgar agarrando los remos, piernas con rodilla y botas de
+  goma; la cabeza tiene cráneo, mandíbula, nariz, cejas, cuencas de los ojos, orejas y boca, con barba y pelo pintados
+  por posición, y un sombrero con el ala levantada en los bordes. Los remos van de las manos por la chumacera hasta la
+  pala y siguen el ciclo de la remada (2,4 s); el torso se echa atrás en el tirón. El bote cabecea y rola con las olas y
+  avanza despacio; la cámara lo sigue y en la segunda mitad se le acerca hasta quedar a dos metros del hombre.
+  Materiales: madera con veta mojada, campera con arrugas (la normal se perturba con ruido), piel que deja pasar la luz
+  del farol cuando viene de atrás, fieltro, remos, botas y el farol, que es emisivo. Oclusión ambiental en los pliegues
+  (cinco muestras a lo largo de la normal).
 - **Luz:** el farol es una luz puntual cálida con sombras suaves (marcha corta hacia la luz), más luz ambiente del
   cielo, luz del sol al amanecer, un borde de contraluz y el destello azulado de cada relámpago desde arriba. El agua
   recibe la luz del farol y su reflejo largo, y refleja el bote y el hombre marchando el rayo reflejado.
@@ -60,7 +65,8 @@ NODE_PATH=/opt/node-tools/node_modules node experimentos/diez-segundos/render.js
 
 ## Qué no se pudo probar
 
-- El rendimiento en un celular real: en la nube se renderiza por software. En un celular de gama media debería andar a
-  30 fps en calidad alta; si va a los saltos, destildar «Calidad alta».
+- El rendimiento en un celular real: en la nube se renderiza por software. El raymarching del remero (con sombras y
+  oclusión) es lo más pesado; en una compu con GPU anda fluido, en un celular de gama media conviene destildar
+  «Calidad alta».
 - El botón «Grabar y descargar» depende de MediaRecorder con canvas: anda en Chrome y Firefox de escritorio y en
   Android; en iPhone Safari puede no estar.

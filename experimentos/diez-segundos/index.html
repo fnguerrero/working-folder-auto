@@ -20,7 +20,7 @@
   button { font: 600 1rem system-ui, sans-serif; background: #e8e4dc; color: #0b0d12; border: 0; border-radius: 999px; padding: 12px 22px; cursor: pointer; min-height: 44px; }
   button.sec { background: rgba(255,255,255,.12); color: #e8e4dc; border: 1px solid rgba(255,255,255,.25); }
   button:hover { filter: brightness(1.08); }
-  .titulo { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; opacity: 0; transition: opacity 1.2s; }
+  .titulo { position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: flex-start; padding: 9% 0 0 7%; pointer-events: none; opacity: 0; transition: opacity 1.2s; }
   .titulo.visible { opacity: 1; }
   .titulo h2 { font: 400 clamp(2rem, 9vw, 5.4rem)/1 Georgia, "Noto Serif", serif; letter-spacing: .14em; margin: 0; color: #f3eee4; text-shadow: 0 2px 40px rgba(0,0,0,.9); }
   .controles { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; }
@@ -69,6 +69,8 @@ float sdBox3(vec3 p, vec3 b) { vec3 d = abs(p) - b; return length(max(d, 0.0)) +
 float sdCap(vec3 p, vec3 a, vec3 b, float r) { vec3 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); return length(pa - ba * h) - r; }
 float sdCil(vec3 p, float h, float r) { vec2 d = abs(vec2(length(p.xz), p.y)) - vec2(r, h); return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)); }
 float smin(float a, float b, float k) { float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0); return mix(b, a, h) - k * h * (1.0 - h); }
+float smax(float a, float b, float k) { return -smin(-a, -b, k); }
+float sdElip(vec3 p, vec3 r) { float k0 = length(p / r), k1 = length(p / (r * r)); return k0 * (k0 - 1.0) / k1; }
 mat2 rot(float a) { float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }
 
 float dawn(float t) { return smoothstep(5.5, 9.6, t); }
@@ -131,7 +133,8 @@ float ventana(vec2 p, float t) {
 }
 
 /* ---------- la chata y el remero (3D, raymarching) ---------- */
-vec3 barcoPos(float t) { return vec3(-2.6 + 0.5 * t, 0.0, 5.0); }
+vec3 barcoPos(float t) { return vec3(-1.6 + 0.3 * t, 0.0, 4.6); }
+vec3 camPos(float t) { return vec3(0.0, 1.0 - 0.12 * smoothstep(3.0, 10.0, t), 2.3 * smoothstep(2.0, 10.0, t)); }
 float remo(float t) { return sin(t * 2.0 * PI / 2.4); } /* -1 recobro, +1 tirón */
 vec3 aLocal(vec3 p, float t) {
   vec3 q = p - barcoPos(t);
@@ -150,34 +153,59 @@ vec2 mapa(vec3 q, float t) {
   float hueco = sdBox3(h - vec3(0.0, 0.12, 0.0), vec3(1.2, 0.17, 0.3)) - 0.04;
   casco = max(casco, -hueco) * 0.55; /* el afinado estira la distancia; se acorta para que la marcha no atraviese la pared */
   vec2 r = vec2(casco, 1.0);
-  float banco = sdBox3(q - vec3(0.12, 0.3, 0.0), vec3(0.09, 0.02, 0.36));
+  float banco = sdBox3(q - vec3(0.12, 0.3, 0.0), vec3(0.09, 0.02, 0.36)) - 0.01;
   if (banco < r.x) r = vec2(banco, 7.0);
   /* el hombre, sentado mirando a -x, rema hacia +x */
   vec3 cad = vec3(0.12, 0.36, 0.0);
   float lean = -0.2 * a;                                 /* se echa atrás (+x) en el tirón */
+  vec3 pecho = vec3(0.12 + lean * 0.6, 0.62, 0.0);
   vec3 hom = vec3(0.12 + lean, 0.8, 0.0);
-  float torso = sdCap(q, cad, hom, 0.15);
-  torso = smin(torso, sdCap(q, hom + vec3(0.0, -0.08, -0.17), hom + vec3(0.0, -0.08, 0.17), 0.07), 0.06); /* hombros */
-  vec3 cab = hom + vec3(-0.03 - 0.03 * a, 0.22, 0.0);
-  float cuello = sdCap(q, hom, cab, 0.055);
-  float cabeza = length(q - cab) - 0.115;
-  float ala = sdCil(q - cab - vec3(0.0, 0.07, 0.0), 0.008, 0.2);
-  float copa = sdCil(q - cab - vec3(0.0, 0.13, 0.0), 0.06, 0.11);
-  float sombrero = min(ala, copa);
-  /* brazos: del hombro a las manos en los remos */
-  vec3 manoI = vec3(0.12 - 0.22 - 0.24 * a, 0.64 + 0.08 * a, -0.18), manoD = manoI * vec3(1.0, 1.0, -1.0);
-  vec3 homI = hom + vec3(0.0, -0.06, -0.19), homD = hom + vec3(0.0, -0.06, 0.19);
-  float brazos = min(sdCap(q, homI, manoI, 0.05), sdCap(q, homD, manoD, 0.05));
-  float manos = min(length(q - manoI) - 0.06, length(q - manoD) - 0.06);
-  /* piernas: cadera, rodillas, pies en el fondo */
-  vec3 rodI = vec3(0.12 - 0.38, 0.44, -0.11), rodD = rodI * vec3(1.0, 1.0, -1.0);
-  vec3 pieI = vec3(0.12 - 0.62, 0.1, -0.12), pieD = pieI * vec3(1.0, 1.0, -1.0);
-  float piernas = min(min(sdCap(q, cad + vec3(0.0, 0.0, -0.1), rodI, 0.075), sdCap(q, cad + vec3(0.0, 0.0, 0.1), rodD, 0.075)), min(sdCap(q, rodI, pieI, 0.065), sdCap(q, rodD, pieD, 0.065)));
-  float ropa = min(torso, min(brazos, piernas));
-  ropa = min(ropa, cuello);
+  float torso = sdCap(q, cad, pecho, 0.15);
+  torso = smin(torso, sdCap(q, pecho, hom, 0.135), 0.08);
+  torso = smin(torso, sdElip(q - (cad + pecho) * 0.5 - vec3(-0.035, 0.0, 0.0), vec3(0.17, 0.15, 0.16)), 0.08); /* panza */
+  vec3 homI = hom + vec3(0.0, -0.04, -0.2), homD = hom + vec3(0.0, -0.04, 0.2);
+  torso = smin(torso, length(q - homI) - 0.085, 0.07);
+  torso = smin(torso, length(q - homD) - 0.085, 0.07);
+  vec3 cab = hom + vec3(-0.035 - 0.03 * a, 0.25, 0.0);
+  float cuello = sdCap(q, hom, cab - vec3(0.0, 0.08, 0.0), 0.058);
+  float cuelloCampera = sdCil(q - hom - vec3(0.0, 0.085, 0.0), 0.035, 0.105) - 0.01;
+  torso = smin(torso, cuelloCampera, 0.03);
+  /* brazos con codo; las manos agarran los remos */
+  vec3 manoI = vec3(0.12 - 0.2 - 0.24 * a, 0.62 + 0.08 * a, -0.19), manoD = manoI * vec3(1.0, 1.0, -1.0);
+  vec3 codoI = mix(homI, manoI, 0.5) + vec3(0.1 + 0.08 * a, -0.1, -0.05), codoD = codoI * vec3(1.0, 1.0, -1.0);
+  float brazos = min(smin(sdCap(q, homI, codoI, 0.062), sdCap(q, codoI, manoI, 0.052), 0.04), smin(sdCap(q, homD, codoD, 0.062), sdCap(q, codoD, manoD, 0.052), 0.04));
+  float manos = min(sdElip(q - manoI, vec3(0.055, 0.045, 0.05)), sdElip(q - manoD, vec3(0.055, 0.045, 0.05)));
+  manos = min(manos, min(sdCap(q, manoI + vec3(0.0, 0.03, 0.0), manoI + vec3(-0.04, 0.05, 0.02), 0.016), sdCap(q, manoD + vec3(0.0, 0.03, 0.0), manoD + vec3(-0.04, 0.05, -0.02), 0.016))); /* pulgares */
+  /* piernas con rodilla, y botas */
+  vec3 rodI = vec3(0.12 - 0.38, 0.46, -0.12), rodD = rodI * vec3(1.0, 1.0, -1.0);
+  vec3 pieI = vec3(0.12 - 0.6, 0.1, -0.13), pieD = pieI * vec3(1.0, 1.0, -1.0);
+  float piernas = min(smin(sdCap(q, cad + vec3(0.0, 0.0, -0.1), rodI, 0.08), sdCap(q, rodI, pieI, 0.065), 0.05), smin(sdCap(q, cad + vec3(0.0, 0.0, 0.1), rodD, 0.08), sdCap(q, rodD, pieD, 0.065), 0.05));
+  float botas = min(smin(sdCap(q, pieI, pieI + vec3(-0.13, -0.01, 0.0), 0.058), sdCap(q, pieI + vec3(0.0, 0.1, 0.0), pieI, 0.068), 0.03), smin(sdCap(q, pieD, pieD + vec3(-0.13, -0.01, 0.0), 0.058), sdCap(q, pieD + vec3(0.0, 0.1, 0.0), pieD, 0.068), 0.03));
+  float ropa = smin(torso, brazos, 0.03);
+  ropa = smin(ropa, piernas, 0.04);
   if (ropa < r.x) r = vec2(ropa, 2.0);
-  float piel = min(cabeza, manos);
+  if (botas < r.x) r = vec2(botas, 9.0);
+  /* la cabeza: cráneo, mandíbula, nariz, cejas, cuencas, orejas, boca */
+  vec3 hc = q - cab;
+  float craneo = sdElip(hc, vec3(0.12, 0.112, 0.105));
+  float mandibula = sdElip(hc - vec3(-0.025, -0.075, 0.0), vec3(0.085, 0.06, 0.072));
+  float cabeza = smin(craneo, mandibula, 0.035);
+  float nariz = sdCap(q, cab + vec3(-0.095, 0.0, 0.0), cab + vec3(-0.14, -0.035, 0.0), 0.021);
+  cabeza = smin(cabeza, nariz, 0.012);
+  float ceja = sdBox3(hc - vec3(-0.1, 0.035, 0.0), vec3(0.012, 0.01, 0.05)) - 0.012;
+  cabeza = smin(cabeza, ceja, 0.018);
+  float ojos = min(length(hc - vec3(-0.105, 0.01, -0.045)) - 0.027, length(hc - vec3(-0.105, 0.01, 0.045)) - 0.027);
+  cabeza = smax(cabeza, -ojos, 0.012);
+  float orejas = min(sdElip(hc - vec3(0.0, -0.01, -0.115), vec3(0.03, 0.045, 0.018)), sdElip(hc - vec3(0.0, -0.01, 0.115), vec3(0.03, 0.045, 0.018)));
+  cabeza = smin(cabeza, orejas, 0.01);
+  float boca = sdBox3(hc - vec3(-0.118, -0.05, 0.0), vec3(0.012, 0.0035, 0.028));
+  cabeza = smax(cabeza, -boca, 0.008);
+  float piel = min(cabeza, min(manos, cuello));
   if (piel < r.x) r = vec2(piel, 3.0);
+  /* sombrero: ala con el borde levantado y copa */
+  float ala = sdCil(q - cab - vec3(0.0, 0.082 + 0.035 * smoothstep(0.13, 0.21, length(hc.xz)), 0.0), 0.005, 0.21) - 0.004;
+  float copa = sdCil(q - cab - vec3(0.0, 0.15, 0.0), 0.062, 0.1) - 0.012;
+  float sombrero = min(ala, copa);
   if (sombrero < r.x) r = vec2(sombrero, 4.0);
   /* remos: de la mano, por la chumacera, hasta la pala */
   vec3 chumI = vec3(0.12 - 0.12, 0.46, -0.42), chumD = chumI * vec3(1.0, 1.0, -1.0);
@@ -215,6 +243,8 @@ vec3 normal(vec3 p, float t) {
   vec2 e = vec2(0.004, 0.0);
   return normalize(vec3(mapa(aLocal(p + e.xyy, t), t).x - mapa(aLocal(p - e.xyy, t), t).x, mapa(aLocal(p + e.yxy, t), t).x - mapa(aLocal(p - e.yxy, t), t).x, mapa(aLocal(p + e.yyx, t), t).x - mapa(aLocal(p - e.yyx, t), t).x));
 }
+vec3 cabezaLocal(float t) { float a = remo(t); return vec3(0.12 - 0.2 * a - 0.035 - 0.03 * a, 1.05, 0.0); }
+float ao(vec3 p, vec3 n, float t) { float o = 0.0, s = 1.0; for (int i = 1; i <= 5; i++) { float h = 0.012 * float(i); float d = mapa(aLocal(p + n * h, t), t).x; o += (h - d) * s; s *= 0.7; } return clamp(1.0 - 2.5 * o, 0.0, 1.0); }
 vec3 farolMundo(float t) { vec3 q = farolLocal(); q.y += 0.05 * sin(t * 1.7); return barcoPos(t) + q; }
 vec3 colorFarol() { return vec3(1.0, 0.72, 0.38); }
 /* sombra suave hacia el farol (pocos pasos) */
@@ -226,13 +256,23 @@ float sombra(vec3 p, vec3 l, float t) {
 vec3 sombrear(vec3 p, vec3 n, vec3 rd, float mat, float t) {
   float k = dawn(t);
   vec3 alb = vec3(0.3);
-  if (mat < 1.5) alb = vec3(0.26, 0.15, 0.08);            /* casco, madera */
-  else if (mat < 2.5) alb = vec3(0.1, 0.13, 0.1);          /* campera verde oscura */
-  else if (mat < 3.5) alb = vec3(0.6, 0.42, 0.3);           /* piel */
-  else if (mat < 4.5) alb = vec3(0.12, 0.1, 0.08);          /* sombrero */
-  else if (mat < 5.5) alb = vec3(0.35, 0.25, 0.14);         /* remos */
+  vec3 q = aLocal(p, t);
+  float brillo = 0.3, piel = 0.0;
+  if (mat < 1.5) { alb = vec3(0.26, 0.15, 0.08) * (0.8 + 0.4 * noise(q.xy * 30.0 + q.z)); brillo = 1.0; }   /* casco, madera con veta, mojada */
+  else if (mat < 2.5) { alb = vec3(0.1, 0.13, 0.1); n = normalize(n + 0.14 * vec3(noise(q.yz * 45.0) - 0.5, noise(q.xz * 45.0 + 3.0) - 0.5, noise(q.xy * 45.0 + 7.0) - 0.5)); brillo = 0.5; } /* campera con arrugas */
+  else if (mat < 3.5) {                                     /* piel: con barba y pelo según dónde */
+    vec3 hc = q - cabezaLocal(t);
+    float barba = smoothstep(-0.02, -0.05, hc.y) * step(hc.x, -0.01) * step(-0.14, hc.y) * (0.5 + 0.5 * noise(hc.yz * 90.0));
+    float pelo = smoothstep(0.0, 0.03, hc.x) * step(-0.06, hc.y) * step(hc.y, 0.09);
+    alb = mix(vec3(0.62, 0.44, 0.34), vec3(0.14, 0.11, 0.09), max(barba * 0.75, pelo));
+    brillo = 0.8; piel = 1.0 - max(barba, pelo);
+  }
+  else if (mat < 4.5) { alb = vec3(0.12, 0.1, 0.08) * (0.85 + 0.3 * noise(q.xz * 60.0)); brillo = 0.6; } /* sombrero de fieltro mojado */
+  else if (mat < 5.5) { alb = vec3(0.35, 0.25, 0.14); brillo = 0.8; }  /* remos */
   else if (mat < 6.5) return colorFarol() * 4.0;             /* farol, emisivo */
-  else alb = vec3(0.3, 0.2, 0.1);
+  else if (mat < 7.5) alb = vec3(0.3, 0.2, 0.1);              /* banco */
+  else alb = vec3(0.06, 0.05, 0.05), brillo = 1.2;            /* botas de goma */
+  float oc = ao(p, n, t);
   vec3 L = farolMundo(t); vec3 lv = L - p; float ld = length(lv); lv /= ld;
   float farol = max(dot(n, lv), 0.0) * 2.2 / (1.0 + ld * ld * 1.2) * sombra(p, L, t) * (1.0 - 0.75 * k);
   vec3 amb = mix(vec3(0.03, 0.04, 0.06), vec3(0.35, 0.3, 0.3), k) * (0.55 + 0.45 * n.y);
@@ -240,11 +280,13 @@ vec3 sombrear(vec3 p, vec3 n, vec3 rd, float mat, float t) {
   float sol = max(dot(n, sd), 0.0) * 1.4 * k;
   float rim = pow(1.0 - max(dot(n, -rd), 0.0), 3.0);
   vec3 cielo = sky(normalize(vec3(n.x, abs(n.y) + 0.2, n.z)), t);
-  vec3 col = alb * (amb + colorFarol() * farol + vec3(1.0, 0.8, 0.6) * sol) + cielo * rim * 0.5;
+  vec3 col = alb * (amb * oc + colorFarol() * farol * (0.5 + 0.5 * oc) + vec3(1.0, 0.8, 0.6) * sol) + cielo * rim * 0.5 * oc;
+  /* la piel deja pasar un poco la luz del farol cuando viene de atrás */
+  col += vec3(0.9, 0.35, 0.2) * piel * pow(max(dot(rd, lv), 0.0), 6.0) * 0.5 / (1.0 + ld * ld) * (1.0 - 0.7 * k);
   col += vec3(0.7, 0.75, 1.0) * uFlash * max(dot(n, normalize(vec3(-0.3, 1.0, -0.4))), 0.0) * 0.8 * alb * 3.0;
   /* brillo del farol y del sol en lo mojado */
   vec3 rf = reflect(rd, n);
-  col += colorFarol() * pow(max(dot(rf, lv), 0.0), 40.0) * 0.6 / (1.0 + ld * ld) * (mat < 1.5 || mat > 4.5 ? 1.0 : 0.3);
+  col += colorFarol() * pow(max(dot(rf, lv), 0.0), 40.0) * 0.6 / (1.0 + ld * ld) * brillo;
   col += vec3(1.0, 0.85, 0.6) * pow(max(dot(rf, sd), 0.0), 60.0) * k * 0.8;
   return col;
 }
@@ -255,10 +297,9 @@ void main() {
   float t = uT;
   float k = dawn(t);
   /* cámara: sigue despacio a la chata */
-  float pan = 0.1 * barcoPos(t).x / 2.6;
-  uv /= 1.0 + 0.05 * t / DUR;
+  vec3 ro = camPos(t);
+  float pan = 0.6 * barcoPos(t).x / (barcoPos(t).z - ro.z);
   uv.y += 0.003 * sin(t * 0.8);
-  vec3 ro = vec3(0.0, 1.05, 0.0);
   vec3 rd = normalize(vec3(uv.x + pan, uv.y - 0.03, 1.0));
   float horizonY = 0.03 - pan * 0.0;
   float fogN = 1.0 - k * 0.6;
