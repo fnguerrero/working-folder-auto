@@ -37,6 +37,7 @@ const DUR = acum;
 const canvas = document.getElementById("c"), capa = document.getElementById("capa"), textoDiv = document.getElementById("texto"), textoP = document.getElementById("textoP"), avance = document.getElementById("avance"), aviso = document.getElementById("aviso"), cargando = document.getElementById("cargando");
 const gl = canvas.getContext("webgl", { antialias: false, preserveDrawingBuffer: true, powerPreference: "high-performance" });
 const paralelo = gl && gl.getExtension("KHR_parallel_shader_compile");
+let gpu = ""; try { const dbg = gl && gl.getExtension("WEBGL_debug_renderer_info"); if (dbg) gpu = String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)).replace(/^ANGLE \(|\)$/g, "").slice(0, 60); } catch (e) { /* sin dato */ }
 let buf;
 const fuente = (id) => { const s = document.getElementById(id); return s ? s.textContent : null; };
 /* arma y compila el programa de una escena: cabecera + comun + escena + main; si la escena no tiene shader todavía, usa el de la portada */
@@ -47,12 +48,15 @@ function compilar(i) {
   const vs = "attribute vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }";
   const mk = (tipo, s) => { const sh = gl.createShader(tipo); gl.shaderSource(sh, s); gl.compileShader(sh); return sh; };
   const prog = gl.createProgram(); const fsh = mk(gl.FRAGMENT_SHADER, src); gl.attachShader(prog, mk(gl.VERTEX_SHADER, vs)); gl.attachShader(prog, fsh); gl.linkProgram(prog);
-  e.prog = prog; e.fsh = fsh; e.src = src; e.lista = false;
+  e.prog = prog; e.fsh = fsh; e.src = src; e.lista = false; e.t0 = performance.now();
   return e;
 }
-function asegurar(i) {
+/* devuelve la escena lista para dibujar, o null si todavía se está compilando en segundo plano (KHR_parallel_shader_compile) */
+function asegurar(i, esperar) {
   const e = compilar(i); if (e.lista) return e;
+  if (paralelo && !esperar && !gl.getProgramParameter(e.prog, paralelo.COMPLETION_STATUS_KHR)) return null;
   if (!gl.getProgramParameter(e.prog, gl.LINK_STATUS)) { const log = gl.getShaderInfoLog(e.fsh) || gl.getProgramInfoLog(e.prog); throw new Error("escena " + e.id + ": " + log); }
+  if (e.t0) console.log(`escena ${e.id} compilada en ${Math.round(performance.now() - e.t0)} ms`);
   e.u = {}; for (const n of ["uRes", "uT", "uFlash", "uRayo", "uFundido"]) e.u[n] = gl.getUniformLocation(e.prog, n);
   e.loc = gl.getAttribLocation(e.prog, "p"); e.lista = true;
   return e;
@@ -66,7 +70,7 @@ function ajustar() {
   const w = Math.max(160, Math.round(canvas.clientWidth * dpr)), h = Math.max(90, Math.round(canvas.clientHeight * dpr));
   if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
   gl.viewport(0, 0, w, h);
-  const est = document.getElementById("estado"); if (est) est.textContent = `${w}×${h}`;
+  const est = document.getElementById("estado"); if (est) est.textContent = `${w}×${h}${gpu ? " · " + gpu : ""}`;
 }
 function adaptar(ms) {
   const cal = document.getElementById("calidad"); if (!cal || cal.value !== "auto") return;
@@ -82,10 +86,13 @@ const suave = (a, b, x) => { const k = Math.max(0, Math.min(1, (x - a) / (b - a)
 function fundido(e, t) { const fin = e.fin ?? 1.0, fout = e.fout ?? 0.8; let f = 1; if (fin > 0) f *= suave(0, fin, t); if (fout > 0) f *= 1 - suave(e.dur - fout, e.dur, t); return f; }
 function escenaEn(tg) { let i = ESCENAS.length - 1; while (i > 0 && ESCENAS[i].inicio > tg) i--; return i; }
 let actual = -1;
-function dibujar(tg) {
+function dibujar(tg, esperar) {
   tg = Math.max(0, Math.min(DUR - 0.001, tg));
-  const i = escenaEn(tg); const e = asegurar(i); const t = tg - e.inicio;
-  if (i !== actual) { actual = i; marcarEscena(i); if (i + 1 < ESCENAS.length) compilar(i + 1); }
+  const i = escenaEn(tg); const e = asegurar(i, esperar);
+  if (!e) { cargando.textContent = `Preparando «${ESCENAS[i].nombre}»…`; return false; }
+  cargando.textContent = "";
+  const t = tg - e.inicio;
+  if (i !== actual) { actual = i; marcarEscena(i); if (corriendo && i + 1 < ESCENAS.length) compilar(i + 1); }
   usar(e);
   const r = rayo(e, t);
   gl.uniform2f(e.u.uRes, canvas.width, canvas.height); gl.uniform1f(e.u.uT, t); gl.uniform1f(e.u.uFlash, flash(e, t)); gl.uniform3f(e.u.uRayo, r[0], r[1], r[2]); gl.uniform1f(e.u.uFundido, fundido(e, t));
@@ -94,6 +101,7 @@ function dibujar(tg) {
   let tx = null; for (const x of e.textos || []) if (t >= x.desde && t < x.hasta) tx = x;
   if (tx) { if (textoP.dataset.html !== tx.html) { textoP.innerHTML = tx.html; textoP.dataset.html = tx.html; } textoDiv.className = "texto visible " + (tx.clase || ""); } else textoDiv.classList.remove("visible");
   avance.style.width = (tg / DUR * 100).toFixed(2) + "%";
+  return true;
 }
 
 /* ---- reproducción ---- */
@@ -109,12 +117,14 @@ function reproducir(desde) {
   if (!gl) return;
   desde = desde || 0;
   capa.classList.add("oculta"); corriendo = true;
+  /* con compilación en paralelo, se mandan a compilar todas las escenas de entrada y el driver las prepara de fondo */
+  if (paralelo) for (let i = 0; i < ESCENAS.length; i++) compilar(i);
   sonar(desde);
   inicio = performance.now() - desde * 1000; ultimo = 0; tiempos = []; cancelAnimationFrame(raf); raf = requestAnimationFrame(cuadro);
 }
 function detener() { corriendo = false; cancelAnimationFrame(raf); callar(); }
 function terminar() { detener(); textoDiv.classList.remove("visible"); capa.querySelector("h1").textContent = "Fin"; capa.querySelector("p").textContent = "Sudestada, el corto. ¿Otra vez?"; document.getElementById("play").textContent = "↻ Otra vez"; capa.classList.remove("oculta"); if (grabadora && grabadora.state === "recording") grabadora.stop(); }
-function saltar(tg) { if (corriendo) reproducir(tg); else { ajustar(); try { dibujar(tg); } catch (e) { console.error(e); } } }
+function saltar(tg) { if (corriendo) reproducir(tg); else { ajustar(); try { dibujar(tg, true); } catch (e) { console.error(e); } } }
 
 /* ---- sonido ---- */
 let actx, maestro, destinoGrab, fuentes = [];
@@ -168,19 +178,19 @@ try {
     /* un cuadro fijo, para pruebas y para el render: ?t=segundos (global) o ?escena=N&t=segundos (local) */
     document.getElementById("calidad").value = "1"; capa.style.display = "none"; textoDiv.style.transition = "none"; ajustar();
     const tg = qe !== null ? ESCENAS[Math.max(0, Math.min(ESCENAS.length - 1, parseInt(qe, 10)))].inicio + parseFloat(qt || "0") : parseFloat(qt);
-    dibujar(tg);
-  } else dibujar(0.001);
+    dibujar(tg, true);
+  } else dibujar(0.001, true);
 } catch (e) { aviso.style.display = "block"; aviso.textContent = "Tu navegador no pudo iniciar WebGL: " + (e.message || e); document.getElementById("play").disabled = true; console.error(e); }
 window.__listo = true;
-window.__render = (tg) => { document.getElementById("calidad").value = "1"; capa.style.display = "none"; textoDiv.style.transition = "none"; ajustar(); dibujar(tg); return true; };
+window.__render = (tg) => { document.getElementById("calidad").value = "1"; capa.style.display = "none"; textoDiv.style.transition = "none"; ajustar(); dibujar(tg, true); return true; };
 window.__fuente = (i) => compilar(i).src;
 window.__escenas = () => ESCENAS.map((e) => ({ id: e.id, nombre: e.nombre, dur: e.dur, inicio: e.inicio, propia: !!fuente("glsl-" + e.id) }));
-window.__probarTodas = () => { const r = []; for (let i = 0; i < ESCENAS.length; i++) { try { asegurar(i); r.push({ id: ESCENAS[i].id, ok: true }); } catch (e) { r.push({ id: ESCENAS[i].id, ok: false, error: String(e.message || e) }); } } return r; };
+window.__probarTodas = () => { const r = []; for (let i = 0; i < ESCENAS.length; i++) { try { asegurar(i, true); r.push({ id: ESCENAS[i].id, ok: true }); } catch (e) { r.push({ id: ESCENAS[i].id, ok: false, error: String(e.message || e) }); } } return r; };
 document.getElementById("play").addEventListener("click", () => reproducir(0));
 document.getElementById("otra").addEventListener("click", () => reproducir(0));
 document.getElementById("grabar").addEventListener("click", grabar);
-document.getElementById("calidad").addEventListener("change", () => { ajustar(); if (!corriendo) dibujar(Math.max(0.001, (performance.now() - inicio) / 1000 * (inicio ? 1 : 0))); });
-addEventListener("resize", () => { ajustar(); if (!corriendo) dibujar(actual >= 0 ? Math.max(0.001, (performance.now() - inicio) / 1000) : 0.001); });
+document.getElementById("calidad").addEventListener("change", () => { ajustar(); if (!corriendo) dibujar(Math.max(0.001, (performance.now() - inicio) / 1000 * (inicio ? 1 : 0)), true); });
+addEventListener("resize", () => { ajustar(); if (!corriendo) dibujar(actual >= 0 ? Math.max(0.001, (performance.now() - inicio) / 1000) : 0.001, true); });
 /* el sonido entero renderizado a WAV sin parlantes (para el .mp4) */
 window.__wav = async (desde, hasta) => {
   desde = desde || 0; hasta = hasta || DUR;
