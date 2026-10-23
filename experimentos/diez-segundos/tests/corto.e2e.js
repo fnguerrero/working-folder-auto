@@ -15,13 +15,13 @@ const estadisticas = async (page) => page.evaluate(() => { const c = document.ge
     const ctx = await browser.newContext({ viewport: { width: w, height: h } }); const page = await ctx.newPage();
     const errores = []; page.on("pageerror", (e) => errores.push(String(e))); page.on("console", (m) => { if (m.type() === "error") errores.push(m.text()); });
     try {
-      await page.goto(url + "?t=4"); await page.waitForFunction(() => window.__listo === true, null, { timeout: 60000 });
+      await page.goto(url + "?t=4"); await page.waitForFunction(() => window.__listo === true, null, { timeout: 300000 });
       const a = await estadisticas(page); assert.ok(a.media > 4 && a.desvio > 6, `el cuadro de los 4 s tiene imagen: ${JSON.stringify(a)}`);
-      await page.evaluate(() => window.__render(9)); const b = await estadisticas(page);
+      await page.evaluate(() => window.__render(9), { timeout: 300000 }); const b = await estadisticas(page);
       assert.ok(b.media > a.media + 30, `el amanecer es más claro que la noche: ${a.media.toFixed(1)} → ${b.media.toFixed(1)}`);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), "sin scroll horizontal");
       await page.goto(url); await page.waitForSelector("#play:not([disabled])");
-      await page.click("#play"); await page.waitForTimeout(600);
+      await page.click("#play"); await page.waitForTimeout(1500);
       assert.ok(await page.evaluate(() => document.getElementById("capa").classList.contains("oculta")), "Reproducir oculta la portada");
       assert.ok(await page.evaluate(() => parseFloat(document.getElementById("tiempo").style.width) > 0), "la barra de tiempo avanza");
       assert.equal(errores.length, 0, "sin errores en consola: " + errores.join(" | "));

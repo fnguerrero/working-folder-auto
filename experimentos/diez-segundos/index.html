@@ -95,41 +95,11 @@ vec3 sky(vec3 d, float t) {
   float st = step(0.9975, hash(floor(sp))) * (1.0 - cl) * (1.0 - k) * smoothstep(0.05, 0.3, d.y);
   col += vec3(0.9, 0.9, 1.0) * st * (0.5 + 0.5 * sin(t * 3.0 + hash(floor(sp)) * 20.0));
   col += vec3(0.75, 0.8, 1.0) * uFlash * 0.35;
+  /* línea de monte lejana en el horizonte */
+  float ang = atan(d.x, d.z);
+  float monte = 0.012 + 0.02 * fbm4(vec2(ang * 9.0, 0.0)) + 0.006 * noise(vec2(ang * 60.0, 1.0));
+  col = mix(col, mix(vec3(0.02, 0.025, 0.035), vec3(0.25, 0.17, 0.16), k), (1.0 - smoothstep(monte - 0.004, monte + 0.004, d.y)) * step(0.0, d.y) * 0.9);
   return col;
-}
-
-/* ---------- orilla lejana (siluetas 2D) ---------- */
-float orilla(vec2 p, float t) {
-  float d = 1e3;
-  d = min(d, sdBox(p - vec2(0.72, -0.012), vec2(0.42, 0.012)));
-  for (int i = 0; i < 5; i++) { float x = 0.46 + float(i) * 0.11; d = min(d, sdBox(p - vec2(x, 0.03), vec2(0.006, 0.05))); }
-  d = min(d, sdBox(p - vec2(0.68, 0.16), vec2(0.23, 0.085)));
-  vec2 q = p - vec2(0.68, 0.245); float roof = max(abs(q.x) * 0.9 + q.y - 0.09, -q.y - 0.001); d = min(d, roof);
-  d = min(d, sdBox(p - vec2(0.42, 0.095), vec2(0.07, 0.006)));
-  d = min(d, sdBox(p - vec2(0.78, 0.33), vec2(0.014, 0.04)));
-  float sway = sin(t * 1.7 + p.y * 6.0) * 0.012 * (1.0 + uFlash);
-  for (int i = 0; i < 4; i++) {
-    float fi = float(i);
-    float fx = -0.98 + fi * 0.2 + 0.04 * hash1(fi), fy = 0.2 + 0.05 * hash1(fi + 3.0);
-    vec2 c = p - vec2(fx + sway * (0.4 + p.y), fy);
-    float r = 0.09 + 0.03 * hash1(fi + 9.0) + 0.025 * noise(c * 12.0 + fi * 7.0 + vec2(t * 0.4, 0.0)) - 0.015 * noise(c * 40.0);
-    float copa = length((c + vec2(0.0, 0.02)) * vec2(1.0, 2.1)) - r;
-    float ancho = r * 1.15;
-    float col = c.x * 220.0 + fi * 13.0;
-    float hebra = smoothstep(0.38, 0.6, noise(vec2(col, 0.0))) * smoothstep(ancho + 0.02, ancho * 0.5, abs(c.x));
-    float largo = 0.08 + 0.2 * noise(vec2(col * 0.6, 1.0 + fi)) * (1.0 - 0.5 * abs(c.x) / ancho);
-    float enX = 1.0 - smoothstep(ancho, ancho + 0.01, abs(c.x));
-    float enY = step(-largo - fy * 0.9, c.y) * step(c.y, 0.0);
-    float ramas = mix(0.002, 1.0, 1.0 - enX * enY * hebra);
-    d = min(d, min(copa, ramas));
-    d = min(d, sdBox(p - vec2(fx, 0.07), vec2(0.006, 0.1)));
-  }
-  return d;
-}
-float ventana(vec2 p, float t) {
-  float v = 1.0 - smoothstep(0.0, 0.004, sdBox(p - vec2(0.60, 0.16), vec2(0.03, 0.035)));
-  v += 1.0 - smoothstep(0.0, 0.004, sdBox(p - vec2(0.76, 0.16), vec2(0.03, 0.035)));
-  return v * (0.85 + 0.15 * noise(vec2(t * 7.0, 0.0))) * (1.0 - 0.6 * dawn(t));
 }
 
 /* ---------- la chata y el remero (3D, raymarching) ---------- */
@@ -263,38 +233,121 @@ vec2 mapa(vec3 q, float t) {
   if (farol < r.x) r = vec2(farol, 6.0);
   return r;
 }
+/* ---------- la orilla en 3D: casa sobre pilotes, galería, muelle, sauces y barranca ---------- */
+#define CASA vec3(4.4, 0.0, 11.0)
+/* materiales: 10 paredes, 11 techo, 12 ventana (emisiva), 13 postes, 14 tablas, 15 follaje, 16 tronco, 17 barro */
+vec2 mapaCasa(vec3 h) {
+  vec2 r = vec2(1e3, 0.0);
+  float postes = 1e3;
+  for (int i = 0; i < 3; i++) { float x = -1.2 + 1.2 * float(i); postes = min(postes, min(sdCil(h - vec3(x, 0.5, -0.9), 0.56, 0.07), sdCil(h - vec3(x, 0.5, 0.9), 0.56, 0.07))); }
+  r = vec2(postes, 13.0);
+  float cuerpo = sdBox3(h - vec3(0.0, 1.85, 0.0), vec3(1.35, 0.8, 1.0)) - 0.01;
+  float huecos = min(min(sdBox3(h - vec3(-0.6, 1.95, -1.0), vec3(0.27, 0.31, 0.2)), sdBox3(h - vec3(0.6, 1.95, -1.0), vec3(0.27, 0.31, 0.2))), sdBox3(h - vec3(0.0, 1.5, -1.0), vec3(0.22, 0.42, 0.2)));
+  cuerpo = max(cuerpo, -huecos);
+  if (cuerpo < r.x) r = vec2(cuerpo, 10.0);
+  float puerta = sdBox3(h - vec3(0.0, 1.5, -0.93), vec3(0.22, 0.42, 0.02));
+  if (puerta < r.x) r = vec2(puerta, 13.0);
+  float techo = max(max((h.y - 2.62) + 0.72 * abs(h.z) - 0.9, -(h.y - 2.58)), abs(h.x) - 1.5);
+  if (techo < r.x) r = vec2(techo, 11.0);
+  float chimenea = sdBox3(h - vec3(0.85, 3.15, 0.25), vec3(0.11, 0.3, 0.11));
+  if (chimenea < r.x) r = vec2(chimenea, 10.0);
+  /* marcos de las ventanas del frente, que sobresalen */
+  float marcos = min(sdBox3(h - vec3(-0.6, 1.95, -1.0), vec3(0.32, 0.36, 0.04)), sdBox3(h - vec3(0.6, 1.95, -1.0), vec3(0.32, 0.36, 0.04)));
+  marcos = max(marcos, -min(sdBox3(h - vec3(-0.6, 1.95, -1.0), vec3(0.26, 0.3, 0.2)), sdBox3(h - vec3(0.6, 1.95, -1.0), vec3(0.26, 0.3, 0.2))));
+  marcos = min(marcos, min(sdBox3(h - vec3(-0.6, 1.95, -1.0), vec3(0.015, 0.31, 0.03)), sdBox3(h - vec3(0.6, 1.95, -1.0), vec3(0.015, 0.31, 0.03)))); /* el parante del medio */
+  if (marcos < r.x) r = vec2(marcos, 13.0);
+  /* el vidrio, un poco hundido, emisivo */
+  float vidrio = min(sdBox3(h - vec3(-0.6, 1.95, -0.94), vec3(0.27, 0.31, 0.005)), sdBox3(h - vec3(0.6, 1.95, -0.94), vec3(0.27, 0.31, 0.005)));
+  if (vidrio < r.x) r = vec2(vidrio, 12.0);
+  /* galería al frente con baranda */
+  float galeria = sdBox3(h - vec3(0.0, 1.07, -1.45), vec3(1.35, 0.03, 0.45));
+  if (galeria < r.x) r = vec2(galeria, 14.0);
+  float baranda = sdCap(h, vec3(-1.3, 1.55, -1.88), vec3(1.3, 1.55, -1.88), 0.025);
+  for (int i = 0; i < 5; i++) { float x = -1.3 + 0.65 * float(i); baranda = min(baranda, sdCil(h - vec3(x, 1.3, -1.88), 0.25, 0.03)); }
+  if (baranda < r.x) r = vec2(baranda, 13.0);
+  /* muelle a la izquierda, con sus postes */
+  float muelle = sdBox3(h - vec3(-2.4, 0.32, -0.6), vec3(1.0, 0.025, 0.35));
+  if (muelle < r.x) r = vec2(muelle, 14.0);
+  float pm = 1e3;
+  for (int i = 0; i < 3; i++) { float x = -3.2 + 0.8 * float(i); pm = min(pm, min(sdCil(h - vec3(x, 0.2, -0.9), 0.4, 0.05), sdCil(h - vec3(x, 0.2, -0.3), 0.4, 0.05))); }
+  if (pm < r.x) r = vec2(pm, 13.0);
+  return r;
+}
+vec2 mapaSauce(vec3 c, float t, float semilla) {
+  /* c relativo al pie del tronco */
+  vec2 r = vec2(sdCap(c, vec3(0.0, -0.2, 0.0), vec3(0.05, 2.1, 0.0), 0.13), 16.0);
+  float sway = 0.06 * sin(t * 1.3 + semilla);
+  vec3 cc = c - vec3(0.05 + sway, 2.45, 0.0);
+  float copa = length(cc * vec3(1.0, 1.35, 1.0)) - 1.15 + 0.28 * fbm4(cc.xy * 2.2 + cc.z * 1.7 + semilla) + 0.08 * noise(cc.xz * 9.0 + cc.y);
+  /* cortina de ramas colgantes: hebras verticales donde el ruido las pone */
+  vec3 cu = c - vec3(0.05 + sway * 0.5, 0.0, 0.0);
+  vec2 celda = floor(cu.xz * 5.0), loc = fract(cu.xz * 5.0) - 0.5;
+  float hay = step(0.5, noise(celda * 0.7 + semilla)) * step(length(celda / 5.0), 1.0);
+  float largo = 0.9 + 1.2 * noise(celda * 1.3 + semilla + 5.0);
+  float hebra = mix(1.0, length(loc) / 5.0 - 0.018 + 0.5 * (1.0 - hay), hay);
+  hebra = max(hebra, max(cu.y - 2.3, (2.45 - largo) - cu.y));
+  float foll = min(copa, hebra);
+  if (foll < r.x) r = vec2(foll, 15.0);
+  return r;
+}
+vec2 mapaMundo(vec3 p, float t) {
+  vec2 r = vec2(1e3, 0.0);
+  float db = length(p - (barcoPos(t) + vec3(0.0, 0.5, 0.0))) - 2.6;
+  if (db < 0.2) r = mapa(aLocal(p, t), t); else r = vec2(db, 0.0);
+  vec3 h = p - CASA;
+  float dh = length(h - vec3(-0.6, 1.5, 0.0)) - 4.3;
+  if (dh < 0.2) { vec2 m = mapaCasa(h); if (m.x < r.x) r = m; } else if (dh < r.x) r = vec2(dh, 0.0);
+  for (int i = 0; i < 3; i++) {
+    vec3 base = i == 0 ? vec3(-4.6, 0.0, 10.6) : i == 1 ? vec3(-2.7, 0.0, 12.3) : vec3(-0.9, 0.0, 11.4);
+    vec3 c = p - base;
+    float ds = length(c - vec3(0.0, 1.6, 0.0)) - 2.6;
+    if (ds < 0.2) { vec2 m = mapaSauce(c, t, float(i) * 7.3); if (m.x < r.x) r = m; } else if (ds < r.x) r = vec2(ds, 0.0);
+  }
+  /* la barranca: tierra baja detrás del muelle */
+  float borde = 9.6 + 0.9 * noise(p.xx * 0.6 + 3.0) + 0.25 * noise(p.xx * 2.5);
+  float alto = 0.05 + 0.2 * smoothstep(0.0, 2.5, p.z - borde) + 0.08 * fbm4(p.xz * 1.6);
+  float barranca = smax(p.y - alto, borde - p.z, 0.6);
+  if (barranca < r.x) r = vec2(barranca, 17.0);
+  return r;
+}
 /* esfera envolvente para no marchar donde no hay nada */
 bool envolvente(vec3 ro, vec3 rd, vec3 c, float R, out float t0, out float t1) {
   vec3 oc = ro - c; float b = dot(oc, rd), cc = dot(oc, oc) - R * R, h = b * b - cc;
   if (h < 0.0) return false; h = sqrt(h); t0 = max(-b - h, 0.0); t1 = -b + h; return t1 > 0.0;
 }
 vec2 marchar(vec3 ro, vec3 rd, float t, float tmax) {
-  float t0, t1; vec3 c = barcoPos(t) + vec3(0.0, 0.5, 0.0);
-  if (!envolvente(ro, rd, c, 2.6, t0, t1)) return vec2(-1.0, 0.0);
-  float d = t0; t1 = min(t1, tmax);
-  for (int i = 0; i < 72; i++) {
+  float d = 0.02; float t1 = min(tmax, 40.0);
+  for (int i = 0; i < 110; i++) {
     vec3 p = ro + rd * d;
-    vec2 m = mapa(aLocal(p, t), t);
-    if (m.x < 0.002 * d) return vec2(d, m.y);
-    d += m.x * 0.9;
+    vec2 m = mapaMundo(p, t);
+    if (m.x < 0.0015 * d) return vec2(d, m.y);
+    d += m.x * 0.85;
     if (d > t1) break;
   }
   return vec2(-1.0, 0.0);
 }
 vec3 normal(vec3 p, float t) {
   vec2 e = vec2(0.004, 0.0);
-  return normalize(vec3(mapa(aLocal(p + e.xyy, t), t).x - mapa(aLocal(p - e.xyy, t), t).x, mapa(aLocal(p + e.yxy, t), t).x - mapa(aLocal(p - e.yxy, t), t).x, mapa(aLocal(p + e.yyx, t), t).x - mapa(aLocal(p - e.yyx, t), t).x));
+  return normalize(vec3(mapaMundo(p + e.xyy, t).x - mapaMundo(p - e.xyy, t).x, mapaMundo(p + e.yxy, t).x - mapaMundo(p - e.yxy, t).x, mapaMundo(p + e.yyx, t).x - mapaMundo(p - e.yyx, t).x));
 }
 vec3 cabezaLocal(float t) { float a = remo(t); return vec3(0.12 - 0.2 * a - 0.035 - 0.03 * a, 1.05, 0.0); }
-float ao(vec3 p, vec3 n, float t) { float o = 0.0, s = 1.0; for (int i = 1; i <= 5; i++) { float h = 0.012 * float(i); float d = mapa(aLocal(p + n * h, t), t).x; o += (h - d) * s; s *= 0.7; } return clamp(1.0 - 2.5 * o, 0.0, 1.0); }
+float ao(vec3 p, vec3 n, float t) { float o = 0.0, s = 1.0; for (int i = 1; i <= 5; i++) { float h = 0.015 * float(i); float d = mapaMundo(p + n * h, t).x; o += (h - d) * s; s *= 0.7; } return clamp(1.0 - 2.2 * o, 0.0, 1.0); }
 vec3 farolMundo(float t) { vec3 q = farolLocal(); q.y += 0.05 * sin(t * 1.7); return barcoPos(t) + q; }
 vec3 colorFarol() { return vec3(1.0, 0.72, 0.38); }
 /* sombra suave hacia el farol (pocos pasos) */
 float sombra(vec3 p, vec3 l, float t) {
   float res = 1.0, d = 0.03; vec3 rd = normalize(l - p); float maxd = length(l - p) - 0.1;
-  for (int i = 0; i < 14; i++) { float h = mapa(aLocal(p + rd * d, t), t).x; res = min(res, 10.0 * h / d); d += clamp(h, 0.02, 0.2); if (res < 0.01 || d > maxd) break; }
+  for (int i = 0; i < 14; i++) { float h = mapaMundo(p + rd * d, t).x; res = min(res, 10.0 * h / d); d += clamp(h, 0.02, 0.25); if (res < 0.01 || d > maxd) break; }
   return clamp(res, 0.0, 1.0);
 }
+/* sombra suave hacia una dirección (el sol) */
+float sombraDir(vec3 p, vec3 dir, float t) {
+  float res = 1.0, d = 0.05;
+  for (int i = 0; i < 16; i++) { float h = mapaMundo(p + dir * d, t).x; res = min(res, 8.0 * h / d); d += clamp(h, 0.03, 0.5); if (res < 0.01 || d > 12.0) break; }
+  return clamp(res, 0.0, 1.0);
+}
+vec3 ventanaMundo(int i) { return CASA + vec3(i == 0 ? -0.6 : 0.6, 1.95, -1.05); }
+vec3 colorVentana(float t) { return vec3(1.0, 0.78, 0.45) * (0.85 + 0.15 * noise(vec2(t * 7.0, 0.0))) * (1.0 - 0.6 * dawn(t)); }
 vec3 sombrear(vec3 p, vec3 n, vec3 rd, float mat, float t) {
   float k = dawn(t);
   vec3 alb = vec3(0.3);
@@ -315,16 +368,31 @@ vec3 sombrear(vec3 p, vec3 n, vec3 rd, float mat, float t) {
   else if (mat < 5.5) { alb = vec3(0.35, 0.25, 0.14); brillo = 0.8; }  /* remos */
   else if (mat < 6.5) return colorFarol() * 4.0;             /* farol, emisivo */
   else if (mat < 7.5) alb = vec3(0.3, 0.2, 0.1);              /* banco */
-  else alb = vec3(0.06, 0.05, 0.05), brillo = 1.2;            /* botas de goma */
+  else if (mat < 9.5) { alb = vec3(0.06, 0.05, 0.05); brillo = 1.2; }   /* botas de goma */
+  else if (mat < 10.5) {                                       /* paredes: tablas horizontales de madera pintada, gastada */
+    vec3 h = p - CASA; float tabla = fract(h.y * 7.0); float junta = smoothstep(0.0, 0.08, tabla) * smoothstep(1.0, 0.92, tabla);
+    alb = mix(vec3(0.2, 0.26, 0.2), vec3(0.3, 0.24, 0.16), smoothstep(0.4, 0.7, fbm4(h.xy * 3.0 + h.z))) * (0.6 + 0.4 * junta) * (0.85 + 0.3 * noise(h.xy * 40.0));
+    n = normalize(n + 0.25 * vec3(0.0, (junta - 1.0) * 0.5, 0.0) + 0.06 * (noise(h.xy * 50.0) - 0.5)); brillo = 0.5;
+  }
+  else if (mat < 11.5) { vec3 h = p - CASA; float onda = 0.5 + 0.5 * sin(h.x * 60.0); alb = vec3(0.16, 0.12, 0.1) * (0.7 + 0.5 * onda) * (0.7 + 0.5 * noise(h.xz * 6.0)); n = normalize(n + 0.2 * vec3(cos(h.x * 60.0), 0.0, 0.0)); brillo = 1.2; } /* chapa acanalada, oxidada */
+  else if (mat < 12.5) { vec3 h = p - CASA; float cortina = 0.6 + 0.4 * noise(vec2(h.x * 25.0, h.y * 3.0)); return colorVentana(t) * 2.8 * cortina; } /* el vidrio, con luz adentro */
+  else if (mat < 13.5) { alb = vec3(0.1, 0.08, 0.06) * (0.8 + 0.4 * noise(p.xy * 25.0 + p.z)); brillo = 1.0; } /* postes, madera oscura y mojada */
+  else if (mat < 14.5) { float tabla = fract(p.x * 6.0); float junta = smoothstep(0.0, 0.06, tabla) * smoothstep(1.0, 0.94, tabla); alb = vec3(0.3, 0.22, 0.14) * (0.5 + 0.5 * junta) * (0.8 + 0.4 * noise(p.xz * 30.0)); brillo = 1.0; } /* tablas */
+  else if (mat < 15.5) { alb = mix(vec3(0.08, 0.14, 0.06), vec3(0.2, 0.26, 0.1), noise(p.xz * 8.0 + p.y)); n = normalize(n + 0.5 * vec3(noise(p.yz * 30.0) - 0.5, noise(p.xz * 30.0) - 0.5, noise(p.xy * 30.0) - 0.5)); brillo = 0.4; } /* follaje */
+  else if (mat < 16.5) { alb = vec3(0.14, 0.1, 0.07) * (0.7 + 0.5 * noise(vec2(p.y * 20.0, atan(p.x, p.z) * 8.0))); brillo = 0.3; } /* tronco */
+  else { alb = vec3(0.22, 0.16, 0.11) * (0.7 + 0.5 * noise(p.xz * 12.0)); brillo = 0.9; } /* barro */
   float oc = ao(p, n, t);
   vec3 L = farolMundo(t); vec3 lv = L - p; float ld = length(lv); lv /= ld;
   float farol = max(dot(n, lv), 0.0) * 2.2 / (1.0 + ld * ld * 1.2) * sombra(p, L, t) * (1.0 - 0.75 * k);
   vec3 amb = mix(vec3(0.03, 0.04, 0.06), vec3(0.35, 0.3, 0.3), k) * (0.55 + 0.45 * n.y);
   vec3 sd = sunDir(k);
-  float sol = max(dot(n, sd), 0.0) * 1.4 * k;
+  float sol = max(dot(n, sd), 0.0) * 1.4 * k * (k > 0.02 ? sombraDir(p + n * 0.02, sd, t) : 1.0);
+  /* las ventanas iluminan la galería, el muelle y el agua cercana */
+  vec3 luzVent = vec3(0.0);
+  for (int i = 0; i < 2; i++) { vec3 V = ventanaMundo(i); vec3 vv = V - p; float vd = length(vv); luzVent += colorVentana(t) * max(dot(n, vv / vd), 0.0) * 1.6 / (1.0 + vd * vd * 0.8) * step(0.05, vd); }
   float rim = pow(1.0 - max(dot(n, -rd), 0.0), 3.0);
   vec3 cielo = sky(normalize(vec3(n.x, abs(n.y) + 0.2, n.z)), t);
-  vec3 col = alb * (amb * oc + colorFarol() * farol * (0.5 + 0.5 * oc) + vec3(1.0, 0.8, 0.6) * sol) + cielo * rim * 0.5 * oc;
+  vec3 col = alb * (amb * oc + colorFarol() * farol * (0.5 + 0.5 * oc) + luzVent * oc + vec3(1.0, 0.8, 0.6) * sol) + cielo * rim * 0.5 * oc;
   /* la piel deja pasar un poco la luz del farol cuando viene de atrás */
   col += vec3(0.9, 0.35, 0.2) * piel * pow(max(dot(rd, lv), 0.0), 6.0) * 0.5 / (1.0 + ld * ld) * (1.0 - 0.7 * k);
   col += vec3(0.7, 0.75, 1.0) * uFlash * max(dot(n, normalize(vec3(-0.3, 1.0, -0.4))), 0.0) * 0.8 * alb * 3.0;
@@ -359,12 +427,6 @@ void main() {
     col = mix(col, hzCol, (1.0 - exp(-hit.x * 0.05)) * 0.5 * fogN);
   } else if (rd.y > 0.0) {
     col = sky(rd, t);
-    vec2 p = vec2(uv.x + pan, uv.y - horizonY);
-    float d = orilla(p, t);
-    float m = 1.0 - smoothstep(0.0, 0.003, d);
-    vec3 silCol = mix(vec3(0.0, 0.0, 0.005), vec3(0.05, 0.03, 0.03), k) + vec3(0.5, 0.55, 0.7) * uFlash * 0.25;
-    col = mix(col, silCol, m);
-    col += vec3(1.0, 0.72, 0.35) * ventana(p, t) * 1.2;
     col = mix(col, hzCol, (1.0 - smoothstep(0.0, 0.12, rd.y)) * mix(1.0, 0.7, k));
     if (uRayo.y > 0.001) {
       float yy = clamp((uv.y - horizonY) / 0.5, 0.0, 1.0);
@@ -391,13 +453,9 @@ void main() {
     n = normalize(n + vec3(rip - 0.25 * lluviaK + estela, 0.0, rip * 0.7 + estela) * 0.08);
     vec3 refl = reflect(rd, n); refl.y = abs(refl.y) + 0.01;
     vec3 rcol = sky(refl, t);
-    vec2 pr = vec2(uv.x + pan + n.x * 0.6, -(uv.y - horizonY) * 1.05 + n.z * 0.25 + 0.01);
-    float mr = 1.0 - smoothstep(0.0, 0.004, orilla(pr, t));
-    rcol = mix(rcol, vec3(0.0, 0.0, 0.004), mr * 0.95);
-    rcol += vec3(1.0, 0.7, 0.35) * ventana(pr, t) * 0.9;
-    /* reflejo de la chata y el remero */
-    vec2 rh = marchar(pos + n * 0.01, refl, t, 30.0);
-    if (rh.x > 0.0) { vec3 rp = pos + refl * rh.x; vec3 rn = normal(rp, t); rcol = mix(rcol, sombrear(rp, rn, refl, rh.y, t), 0.85); }
+    /* reflejo de todo lo que hay: la chata, el remero, la casa, el muelle, los sauces */
+    vec2 rh = marchar(pos + n * 0.01, refl, t, 40.0);
+    if (rh.x > 0.0) { vec3 rp = pos + refl * rh.x; vec3 rn = normal(rp, t); vec3 rc = sombrear(rp, rn, refl, rh.y, t); rcol = mix(rcol, mix(rc, hzCol, (1.0 - exp(-rh.x * 0.05)) * 0.5 * fogN), 0.9); }
     float fr = mix(0.25, 1.0, pow(1.0 - max(dot(-rd, n), 0.0), 3.0));
     vec3 aguaBase = mix(vec3(0.015, 0.02, 0.03), vec3(0.16, 0.11, 0.07), k);
     col = mix(aguaBase, rcol, fr);
@@ -405,6 +463,7 @@ void main() {
     vec3 L = farolMundo(t); vec3 lv = L - pos; float ld = length(lv); lv /= ld;
     col += colorFarol() * max(dot(n, lv), 0.0) * 0.25 / (1.0 + ld * ld * 0.8) * (1.0 - 0.7 * k);
     col += colorFarol() * pow(max(dot(refl, lv), 0.0), 120.0) * 2.0 / (1.0 + ld * 0.3) * (1.0 - 0.7 * k);
+    for (int i = 0; i < 2; i++) { vec3 V = ventanaMundo(i); vec3 vv = V - pos; float vd = length(vv); vv /= vd; col += colorVentana(t) * max(dot(n, vv), 0.0) * 0.3 / (1.0 + vd * vd * 0.5); }
     vec3 sd = sunDir(k);
     col += vec3(1.0, 0.75, 0.45) * pow(max(dot(refl, sd), 0.0), 60.0) * 1.8 * k;
     col += vec3(0.6, 0.7, 1.0) * pow(max(dot(refl, normalize(vec3(-0.3, 0.5, 1.0))), 0.0), 200.0) * 0.6 * (1.0 - k) * (1.0 - fbm4(pos.xz * 0.3 + t * 0.1));
@@ -434,8 +493,9 @@ void main() {
   float vig = pow(16.0 * q.x * q.y * (1.0 - q.x) * (1.0 - q.y), 0.22);
   col *= mix(0.55, 1.0, vig);
   col += (hash(frag + fract(t * 13.0)) - 0.5) * 0.02;
-  col = col / (col + 0.65) * 1.25;
-  col = pow(max(col, 0.0), vec3(0.92));
+  col = max(col, 0.0) * 0.95;
+  col = (col * (2.51 * col + 0.03)) / (col * (2.43 * col + 0.59) + 0.14); /* ACES */
+  col = pow(col, vec3(1.0 / 1.05));
   float fadeIn = smoothstep(0.0, 1.2, t), fadeOut = 1.0 - smoothstep(DUR - 0.9, DUR, t);
   col *= fadeIn * fadeOut;
   gl_FragColor = vec4(col, 1.0);
