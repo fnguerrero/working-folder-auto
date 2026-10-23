@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Sudestada, el corto: una película animada de tres minutos a partir de la novela, hecha en WebGL puro con un shader por escena, raymarching y sonido sintetizado.">
+<title>Sudestada, el corto</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #05070c; color: #e8e4dc; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 16px; gap: 12px; }
+  .marco { position: relative; width: min(100%, 1120px); aspect-ratio: 16 / 9; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+  canvas { display: block; width: 100%; height: 100%; }
+  .capa { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 20px; transition: opacity .4s; background: rgba(0,0,0,.35); }
+  .capa.oculta { opacity: 0; pointer-events: none; }
+  .capa h1 { font: 400 clamp(2rem, 7vw, 4.2rem)/1 Georgia, "Noto Serif", serif; letter-spacing: .08em; margin: 0; text-shadow: 0 2px 30px rgba(0,0,0,.8); }
+  .capa p { margin: 0; color: #bdb6aa; max-width: 40ch; text-shadow: 0 1px 12px rgba(0,0,0,.8); font-size: clamp(.85rem, 2.4vw, 1rem); }
+  button { font: 600 1rem system-ui, sans-serif; background: #e8e4dc; color: #0b0d12; border: 0; border-radius: 999px; padding: 12px 22px; cursor: pointer; min-height: 44px; }
+  button.sec { background: rgba(255,255,255,.12); color: #e8e4dc; border: 1px solid rgba(255,255,255,.25); }
+  button:hover { filter: brightness(1.08); }
+  /* intertítulos: texto sobre el cuadro, estilo cartel de cine mudo */
+  .texto { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 6%; pointer-events: none; opacity: 0; transition: opacity .9s; text-align: center; }
+  .texto.visible { opacity: 1; }
+  .texto.abajo { align-items: flex-end; padding-bottom: 7%; }
+  .texto.arriba-izq { align-items: flex-start; justify-content: flex-start; padding: 9% 0 0 7%; text-align: left; }
+  .texto p { margin: 0; font: italic 400 clamp(1.05rem, 3.6vw, 2.1rem)/1.35 Georgia, "Noto Serif", serif; color: #f3eee4; text-shadow: 0 2px 24px rgba(0,0,0,.95), 0 0 6px rgba(0,0,0,.8); max-width: 30ch; }
+  .texto p.titulo { font-style: normal; font-size: clamp(2rem, 9vw, 5.6rem); letter-spacing: .14em; line-height: 1; }
+  .texto p.chico { font-style: normal; font-size: clamp(.8rem, 2.2vw, 1.1rem); letter-spacing: .18em; text-transform: uppercase; color: #cfc8ba; }
+  .texto p.cartel { font-style: normal; font-size: clamp(.95rem, 2.8vw, 1.5rem); letter-spacing: .12em; color: #d8d2c6; }
+  .controles { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; width: min(100%, 1120px); }
+  .meta { color: #8e897f; font-size: .85rem; text-align: center; max-width: 70ch; }
+  .meta a { color: #cfc8ba; }
+  /* barra de tiempo con la que se salta, y los cortes de escena marcados */
+  .barra { position: absolute; left: 0; right: 0; bottom: 0; height: 22px; cursor: pointer; touch-action: none; }
+  .barra .fondo { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255,255,255,.18); }
+  .barra .corte { position: absolute; bottom: 0; width: 2px; height: 4px; background: rgba(0,0,0,.6); }
+  .barra .avance { position: absolute; left: 0; bottom: 0; height: 4px; width: 0; background: rgba(255,255,255,.75); }
+  .escenas { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; width: min(100%, 1120px); }
+  .escenas button { font-size: .8rem; padding: 6px 12px; min-height: 32px; }
+  .escenas button.actual { background: #e8e4dc; color: #0b0d12; }
+  .escenas button.falta { opacity: .45; }
+  .aviso { display: none; color: #ffb4a8; }
+  .cargando { position: absolute; right: 12px; top: 10px; font-size: .75rem; color: rgba(255,255,255,.55); letter-spacing: .1em; text-transform: uppercase; pointer-events: none; }
+</style>
+</head>
+<body>
+<div class="marco" id="marco">
+  <canvas id="c" width="1280" height="720"></canvas>
+  <div class="texto" id="texto"><p id="textoP"></p></div>
+  <div class="cargando" id="cargando"></div>
+  <div class="barra" id="barra"><div class="fondo"></div><div id="cortes"></div><div class="avance" id="avance"></div></div>
+  <div class="capa" id="capa">
+    <h1>Sudestada</h1>
+    <p>El corto. Tres minutos a partir de la novela: una casa sobre pilotes, una crecida y un farol en el agua. Dibujado en shaders, con sonido.</p>
+    <button type="button" id="play">▶ Reproducir</button>
+    <p class="aviso" id="aviso">Tu navegador no pudo iniciar WebGL. Probá en Chrome o Firefox actualizados.</p>
+  </div>
+</div>
+<div class="escenas" id="escenas"></div>
+<div class="controles">
+  <button type="button" class="sec" id="otra">↻ Desde el principio</button>
+  <button type="button" class="sec" id="grabar">⏺ Grabar y descargar (.webm)</button>
+  <a class="meta" href="sudestada-el-corto.mp4" download id="mp4">⬇ Bajar el .mp4</a>
+  <label class="meta">Calidad <select id="calidad"><option value="auto" selected>automática</option><option value="1.5">alta</option><option value="1">media</option><option value="0.6">baja</option><option value="0.4">mínima</option></select></label>
+  <span class="meta" id="estado"></span>
+</div>
+<p class="meta">Si va a los saltos, la calidad automática baja sola la resolución hasta que fluya; también la podés fijar. Tocá la barra de abajo del cuadro para saltar, o el nombre de una escena. WebGL puro, sin librerías ni imágenes: cada escena es un fragment shader con raymarching; el viento, la lluvia, el motor, los remos y el piano, de WebAudio. <a href="../../escritos/sudestada/">Leer la novela</a> · <a href="../diez-segundos/">Diez segundos</a>, de donde sale el motor · <a href="../../">← Volver a la vitrina</a></p>
+<!--SHADERS-->
+<!--SCRIPTS-->
+</body>
+</html>

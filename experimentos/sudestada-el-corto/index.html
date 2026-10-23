@@ -1,0 +1,1544 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Sudestada, el corto: una película animada de tres minutos a partir de la novela, hecha en WebGL puro con un shader por escena, raymarching y sonido sintetizado.">
+<title>Sudestada, el corto</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #05070c; color: #e8e4dc; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 16px; gap: 12px; }
+  .marco { position: relative; width: min(100%, 1120px); aspect-ratio: 16 / 9; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+  canvas { display: block; width: 100%; height: 100%; }
+  .capa { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 20px; transition: opacity .4s; background: rgba(0,0,0,.35); }
+  .capa.oculta { opacity: 0; pointer-events: none; }
+  .capa h1 { font: 400 clamp(2rem, 7vw, 4.2rem)/1 Georgia, "Noto Serif", serif; letter-spacing: .08em; margin: 0; text-shadow: 0 2px 30px rgba(0,0,0,.8); }
+  .capa p { margin: 0; color: #bdb6aa; max-width: 40ch; text-shadow: 0 1px 12px rgba(0,0,0,.8); font-size: clamp(.85rem, 2.4vw, 1rem); }
+  button { font: 600 1rem system-ui, sans-serif; background: #e8e4dc; color: #0b0d12; border: 0; border-radius: 999px; padding: 12px 22px; cursor: pointer; min-height: 44px; }
+  button.sec { background: rgba(255,255,255,.12); color: #e8e4dc; border: 1px solid rgba(255,255,255,.25); }
+  button:hover { filter: brightness(1.08); }
+  /* intertítulos: texto sobre el cuadro, estilo cartel de cine mudo */
+  .texto { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 6%; pointer-events: none; opacity: 0; transition: opacity .9s; text-align: center; }
+  .texto.visible { opacity: 1; }
+  .texto.abajo { align-items: flex-end; padding-bottom: 7%; }
+  .texto.arriba-izq { align-items: flex-start; justify-content: flex-start; padding: 9% 0 0 7%; text-align: left; }
+  .texto p { margin: 0; font: italic 400 clamp(1.05rem, 3.6vw, 2.1rem)/1.35 Georgia, "Noto Serif", serif; color: #f3eee4; text-shadow: 0 2px 24px rgba(0,0,0,.95), 0 0 6px rgba(0,0,0,.8); max-width: 30ch; }
+  .texto p.titulo { font-style: normal; font-size: clamp(2rem, 9vw, 5.6rem); letter-spacing: .14em; line-height: 1; }
+  .texto p.chico { font-style: normal; font-size: clamp(.8rem, 2.2vw, 1.1rem); letter-spacing: .18em; text-transform: uppercase; color: #cfc8ba; }
+  .texto p.cartel { font-style: normal; font-size: clamp(.95rem, 2.8vw, 1.5rem); letter-spacing: .12em; color: #d8d2c6; }
+  .controles { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; width: min(100%, 1120px); }
+  .meta { color: #8e897f; font-size: .85rem; text-align: center; max-width: 70ch; }
+  .meta a { color: #cfc8ba; }
+  /* barra de tiempo con la que se salta, y los cortes de escena marcados */
+  .barra { position: absolute; left: 0; right: 0; bottom: 0; height: 22px; cursor: pointer; touch-action: none; }
+  .barra .fondo { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255,255,255,.18); }
+  .barra .corte { position: absolute; bottom: 0; width: 2px; height: 4px; background: rgba(0,0,0,.6); }
+  .barra .avance { position: absolute; left: 0; bottom: 0; height: 4px; width: 0; background: rgba(255,255,255,.75); }
+  .escenas { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; width: min(100%, 1120px); }
+  .escenas button { font-size: .8rem; padding: 6px 12px; min-height: 32px; }
+  .escenas button.actual { background: #e8e4dc; color: #0b0d12; }
+  .escenas button.falta { opacity: .45; }
+  .aviso { display: none; color: #ffb4a8; }
+  .cargando { position: absolute; right: 12px; top: 10px; font-size: .75rem; color: rgba(255,255,255,.55); letter-spacing: .1em; text-transform: uppercase; pointer-events: none; }
+</style>
+</head>
+<body>
+<div class="marco" id="marco">
+  <canvas id="c" width="1280" height="720"></canvas>
+  <div class="texto" id="texto"><p id="textoP"></p></div>
+  <div class="cargando" id="cargando"></div>
+  <div class="barra" id="barra"><div class="fondo"></div><div id="cortes"></div><div class="avance" id="avance"></div></div>
+  <div class="capa" id="capa">
+    <h1>Sudestada</h1>
+    <p>El corto. Tres minutos a partir de la novela: una casa sobre pilotes, una crecida y un farol en el agua. Dibujado en shaders, con sonido.</p>
+    <button type="button" id="play">▶ Reproducir</button>
+    <p class="aviso" id="aviso">Tu navegador no pudo iniciar WebGL. Probá en Chrome o Firefox actualizados.</p>
+  </div>
+</div>
+<div class="escenas" id="escenas"></div>
+<div class="controles">
+  <button type="button" class="sec" id="otra">↻ Desde el principio</button>
+  <button type="button" class="sec" id="grabar">⏺ Grabar y descargar (.webm)</button>
+  <a class="meta" href="sudestada-el-corto.mp4" download id="mp4">⬇ Bajar el .mp4</a>
+  <label class="meta">Calidad <select id="calidad"><option value="auto" selected>automática</option><option value="1.5">alta</option><option value="1">media</option><option value="0.6">baja</option><option value="0.4">mínima</option></select></label>
+  <span class="meta" id="estado"></span>
+</div>
+<p class="meta">Si va a los saltos, la calidad automática baja sola la resolución hasta que fluya; también la podés fijar. Tocá la barra de abajo del cuadro para saltar, o el nombre de una escena. WebGL puro, sin librerías ni imágenes: cada escena es un fragment shader con raymarching; el viento, la lluvia, el motor, los remos y el piano, de WebAudio. <a href="../../escritos/sudestada/">Leer la novela</a> · <a href="../diez-segundos/">Diez segundos</a>, de donde sale el motor · <a href="../../">← Volver a la vitrina</a></p>
+<script id="glsl-comun" type="x-shader/x-fragment">
+precision highp float;
+uniform vec2 uRes; uniform float uT; uniform float uFlash; uniform vec3 uRayo; uniform float uFundido;
+#define PI 3.14159265
+#ifndef NLUCES
+#define NLUCES 1
+#endif
+#ifndef NSOMBRAS
+#define NSOMBRAS NLUCES
+#endif
+#ifndef PASOS
+#define PASOS 110
+#endif
+#ifndef ALCANCE
+#define ALCANCE 60.0
+#endif
+
+/* ---------- ruido y primitivas ---------- */
+float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float hash1(float n) { return fract(sin(n) * 43758.5453); }
+float noise(vec2 p) {
+  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+}
+float fbm(vec2 p) { float v = 0.0, a = 0.5; mat2 m = mat2(1.6, 1.2, -1.2, 1.6); for (int i = 0; i < 6; i++) { v += a * noise(p); p = m * p; a *= 0.5; } return v; }
+float fbm4(vec2 p) { float v = 0.0, a = 0.5; mat2 m = mat2(1.6, 1.2, -1.2, 1.6); for (int i = 0; i < 4; i++) { v += a * noise(p); p = m * p; a *= 0.5; } return v; }
+float sdBox(vec2 p, vec2 b) { vec2 d = abs(p) - b; return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0); }
+float sdBox3(vec3 p, vec3 b) { vec3 d = abs(p) - b; return length(max(d, 0.0)) + min(max(d.x, max(d.y, d.z)), 0.0); }
+float sdCap(vec3 p, vec3 a, vec3 b, float r) { vec3 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); return length(pa - ba * h) - r; }
+float sdCil(vec3 p, float h, float r) { vec2 d = abs(vec2(length(p.xz), p.y)) - vec2(r, h); return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)); }
+float sdCilZ(vec3 p, float h, float r) { vec2 d = abs(vec2(length(p.xy), p.z)) - vec2(r, h); return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)); }
+float sdCilX(vec3 p, float h, float r) { vec2 d = abs(vec2(length(p.yz), p.x)) - vec2(r, h); return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)); }
+float sdToro(vec3 p, float R, float r) { return length(vec2(length(p.xz) - R, p.y)) - r; }
+float smin(float a, float b, float k) { float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0); return mix(b, a, h) - k * h * (1.0 - h); }
+float smax(float a, float b, float k) { return -smin(-a, -b, k); }
+float sdElip(vec3 p, vec3 r) { float k0 = length(p / r), k1 = length(p / (r * r)); return k0 * (k0 - 1.0) / k1; }
+mat2 rot(float a) { float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }
+vec3 rotY(vec3 p, float a) { p.xz = rot(a) * p.xz; return p; }
+vec2 u2(vec2 a, vec2 b) { return a.x < b.x ? a : b; }
+
+/* ---------- lo que define cada escena ---------- */
+struct Clima { float luz; float alba; float nubes; float lluvia; float niebla; float viento; vec2 corriente; };
+struct Luz { vec3 pos; vec3 col; float inten; };
+vec2 mapaMundo(vec3 p, float t);
+void camara(float t, vec2 uv, out vec3 ro, out vec3 rd);
+Clima clima(float t);
+float nivelAgua(float t);
+Luz luz(int i, float t);
+vec3 sunDir(float t);
+vec4 aguaExtra(vec3 pos, float t); /* xz: perturbación de la normal; y: espuma; w: hojas y basura oscura */
+
+/* ---------- personas: rig por postura y aspecto, en un marco local que mira a -x ---------- */
+struct Pose { vec3 cad, pecho, hom, cab, homI, homD, codoI, codoD, manoI, manoD, rodI, rodD, pieI, pieD, agarreI, agarreD; float yaw, pitch; };
+struct Aspecto { float mujer, barba, pelo, gorra, sombrero, panza, matRopa, escala; };
+/* el último punto de piel evaluado cerca de la superficie, para pintar barba, pelo y ojos */
+vec3 gHC; float gBarba = 0.0, gPelo = 0.0, gMujer = 0.0; vec3 gToalla;
+
+Pose poseDePie(float fase, float paso) {
+  /* parada o caminando hacia -x; fase en radianes, paso 0 (quieta) a 1 (caminando) */
+  Pose P;
+  float s = sin(fase), c = cos(fase);
+  float sube = 0.02 * paso * abs(cos(fase));
+  P.cad = vec3(0.0, 0.93 + sube, 0.0); P.pecho = vec3(-0.02, 1.2 + sube, 0.0); P.hom = vec3(-0.03, 1.42 + sube, 0.0); P.cab = vec3(-0.03, 1.67 + sube, 0.0);
+  P.homI = P.hom + vec3(0.0, -0.03, -0.17); P.homD = P.hom + vec3(0.0, -0.03, 0.17);
+  float bI = 0.3 * paso * s, bD = -0.3 * paso * s;
+  P.codoI = P.homI + vec3(0.04 + 0.2 * bI, -0.28, -0.03); P.codoD = P.homD + vec3(0.04 + 0.2 * bD, -0.28, 0.03);
+  P.manoI = P.codoI + vec3(0.02 + 0.22 * bI, -0.26, -0.01); P.manoD = P.codoD + vec3(0.02 + 0.22 * bD, -0.26, 0.01);
+  P.agarreI = vec3(1.0, 0.0, 0.0); P.agarreD = vec3(1.0, 0.0, 0.0);
+  float pI = paso * s, pD = -paso * s;
+  P.rodI = vec3(-0.3 * pI * 0.6 - 0.02 - 0.05 * paso * max(c, 0.0), 0.5 + 0.08 * paso * max(c, 0.0), -0.1); P.rodD = vec3(-0.3 * pD * 0.6 - 0.02 - 0.05 * paso * max(-c, 0.0), 0.5 + 0.08 * paso * max(-c, 0.0), 0.1);
+  P.pieI = vec3(-0.32 * pI, 0.06 + 0.07 * paso * max(c, 0.0) * abs(s), -0.11); P.pieD = vec3(-0.32 * pD, 0.06 + 0.07 * paso * max(-c, 0.0) * abs(s), 0.11);
+  P.yaw = 0.0; P.pitch = 0.0;
+  return P;
+}
+Pose poseRemando(float a) {
+  /* sentada en el banco de la chata (y 0.3), mirando a -x, remando hacia +x; a = -1 recobro, +1 tirón */
+  Pose P;
+  vec3 cad = vec3(0.12, 0.36, 0.0); float lean = -0.2 * a;
+  P.cad = cad; P.pecho = vec3(0.12 + lean * 0.6, 0.62, 0.0); P.hom = vec3(0.12 + lean, 0.8, 0.0);
+  P.cab = P.hom + vec3(-0.035 - 0.03 * a, 0.25, 0.0);
+  P.homI = P.hom + vec3(0.0, -0.04, -0.2); P.homD = P.hom + vec3(0.0, -0.04, 0.2);
+  P.manoI = vec3(0.12 - 0.2 - 0.24 * a, 0.62 + 0.08 * a, -0.19); P.manoD = P.manoI * vec3(1.0, 1.0, -1.0);
+  P.codoI = mix(P.homI, P.manoI, 0.5) + vec3(0.1 + 0.08 * a, -0.1, -0.05); P.codoD = P.codoI * vec3(1.0, 1.0, -1.0);
+  P.agarreI = vec3(-0.4, -1.0, 0.0); P.agarreD = vec3(-0.4, -1.0, 0.0);
+  P.rodI = vec3(0.12 - 0.38, 0.46, -0.12); P.rodD = P.rodI * vec3(1.0, 1.0, -1.0);
+  P.pieI = vec3(0.12 - 0.6, 0.1, -0.13); P.pieD = P.pieI * vec3(1.0, 1.0, -1.0);
+  P.yaw = 0.0; P.pitch = 0.0;
+  return P;
+}
+Pose poseSentada() {
+  /* sentada en un banco a la altura 0.3 (como el de la chata), mirando a -x, con las manos en la falda */
+  Pose P;
+  P.cad = vec3(0.1, 0.36, 0.0); P.pecho = vec3(0.08, 0.62, 0.0); P.hom = vec3(0.07, 0.8, 0.0); P.cab = vec3(0.05, 1.05, 0.0);
+  P.homI = P.hom + vec3(0.0, -0.03, -0.18); P.homD = P.hom + vec3(0.0, -0.03, 0.18);
+  P.codoI = vec3(0.05, 0.55, -0.22); P.codoD = vec3(0.05, 0.55, 0.22);
+  P.manoI = vec3(-0.25, 0.5, -0.1); P.manoD = vec3(-0.25, 0.5, 0.1);
+  P.agarreI = vec3(0.0, -1.0, 0.0); P.agarreD = vec3(0.0, -1.0, 0.0);
+  P.rodI = vec3(-0.35, 0.45, -0.11); P.rodD = vec3(-0.35, 0.45, 0.11);
+  P.pieI = vec3(-0.42, 0.05, -0.12); P.pieD = vec3(-0.42, 0.05, 0.12);
+  P.yaw = 0.0; P.pitch = 0.0;
+  return P;
+}
+Aspecto aspectoMartin() { return Aspecto(0.0, 1.0, 1.0, 1.0, 0.0, 0.5, 2.0, 1.0); }
+Aspecto aspectoMartinSombrero() { return Aspecto(0.0, 1.0, 1.0, 0.0, 1.0, 0.6, 2.0, 1.0); }
+Aspecto aspectoVeronica() { return Aspecto(1.0, 0.0, 2.0, 0.0, 0.0, 0.2, 25.0, 0.94); }
+Aspecto aspectoAna() { return Aspecto(1.0, 0.0, 3.0, 0.0, 0.0, 0.0, 26.0, 0.92); }
+
+/* cabeza en el marco local de la cabeza (la cara mira a -x); devuelve (piel, pelo-geometría, gorra/sombrero) */
+vec3 cabeza(vec3 hc, Aspecto A) {
+  float m = A.mujer;
+  vec3 e = hc; e.z /= 1.0 - 0.06 * m; e.y /= 1.0 + 0.02 * m;
+  float craneo = sdElip(e - vec3(0.01, 0.01, 0.0), vec3(0.115, 0.11, 0.092));
+  float mandibula = sdBox3(e - vec3(-0.025, -0.072, 0.0), vec3(0.08, 0.038 - 0.008 * m, 0.044 - 0.008 * m)) - 0.02;
+  float cab = smin(craneo, mandibula, 0.025 + 0.015 * m);
+  float menton = sdElip(e - vec3(-0.085, -0.1 + 0.004 * m, 0.0), vec3(0.04, 0.03, 0.045 - 0.01 * m));
+  cab = smin(cab, menton, 0.035);
+  float pomulos = min(sdElip(e - vec3(-0.08, -0.015, -0.062), vec3(0.022, 0.014, 0.014)), sdElip(e - vec3(-0.08, -0.015, 0.062), vec3(0.022, 0.014, 0.014)));
+  cab = smin(cab, pomulos, 0.03 + 0.01 * m);
+  vec3 nz = e; nz.z *= 1.35 + 0.1 * m;
+  float puente = sdCap(nz, vec3(-0.1, 0.035, 0.0), vec3(-0.136, -0.025, 0.0), 0.011 - 0.002 * m);
+  float punta = sdElip(nz - vec3(-0.14, -0.032, 0.0), vec3(0.018, 0.015, 0.016) * (1.0 - 0.1 * m));
+  float aletas = min(sdElip(nz - vec3(-0.124, -0.04, -0.02), vec3(0.014, 0.011, 0.012)), sdElip(nz - vec3(-0.124, -0.04, 0.02), vec3(0.014, 0.011, 0.012)));
+  float nariz = smin(smin(puente, punta, 0.006), aletas, 0.006);
+  nariz = smax(nariz, -sdBox3(nz - vec3(-0.128, -0.055, 0.0), vec3(0.02, 0.006, 0.01)), 0.004);
+  cab = smin(cab, nariz, 0.006);
+  float cuencas = min(length(e - vec3(-0.1, 0.012, -0.042)) - 0.026, length(e - vec3(-0.1, 0.012, 0.042)) - 0.026);
+  cab = smax(cab, -cuencas, 0.01);
+  float globos = min(length(e - vec3(-0.088, 0.01, -0.042)) - 0.019, length(e - vec3(-0.088, 0.01, 0.042)) - 0.019);
+  float parpados = min(sdElip(e - vec3(-0.095, 0.024, -0.042), vec3(0.016, 0.009, 0.022)), sdElip(e - vec3(-0.095, 0.024, 0.042), vec3(0.016, 0.009, 0.022)));
+  cab = smin(cab, smin(globos, parpados, 0.006), 0.006);
+  float cejas = min(sdCap(e, vec3(-0.1, 0.045, -0.065), vec3(-0.108, 0.05, -0.02), 0.009 - 0.004 * m), sdCap(e, vec3(-0.1, 0.045, 0.065), vec3(-0.108, 0.05, 0.02), 0.009 - 0.004 * m));
+  cab = smin(cab, cejas, 0.008);
+  for (int lado = 0; lado < 2; lado++) {
+    float sg = lado == 0 ? -1.0 : 1.0;
+    vec3 oc = e - vec3(0.005, -0.005, sg * 0.1); oc.xy = rot(0.25) * oc.xy;
+    float pabellon = sdElip(oc, vec3(0.022, 0.04, 0.012) * (1.0 - 0.1 * m));
+    float concha = sdElip(oc - vec3(-0.004, -0.004, sg * 0.012), vec3(0.013, 0.026, 0.012));
+    float oreja = smax(pabellon, -concha, 0.004);
+    oreja = smin(oreja, length(oc - vec3(0.0, -0.038, 0.0)) - 0.011, 0.005);
+    cab = smin(cab, oreja, 0.004);
+  }
+  float labios = min(sdElip(e - vec3(-0.104, -0.053, 0.0), vec3(0.006, 0.0045 + 0.002 * m, 0.03 - 0.004 * m)), sdElip(e - vec3(-0.102, -0.063, 0.0), vec3(0.006, 0.005 + 0.003 * m, 0.026 - 0.004 * m)));
+  cab = smin(cab, labios, 0.008);
+  cab = smax(cab, -sdBox3(e - vec3(-0.112, -0.058, 0.0), vec3(0.018, 0.0025, 0.027)), 0.002);
+  /* pelo con volumen: corto (casquete), recogido (rodete atrás) o suelto y mojado (cae hasta los hombros) */
+  float pelo = 1e3;
+  if (A.pelo > 0.5) {
+    float casquete = max(sdElip(e - vec3(0.015, 0.02, 0.0), vec3(0.125, 0.12, 0.1)), -0.035 - e.x - 0.5 * e.y); /* no tapa la cara */
+    pelo = casquete;
+    if (A.pelo > 1.5 && A.pelo < 2.5) pelo = smin(pelo, sdElip(e - vec3(0.1, -0.01, 0.0), vec3(0.045, 0.04, 0.045)), 0.02); /* rodete */
+    if (A.pelo > 2.5) { float largo = max(sdElip(e - vec3(0.06, -0.12, 0.0), vec3(0.085, 0.24, 0.105)), -0.055 - e.x); largo = max(largo, -sdElip(e - vec3(0.02, 0.0, 0.0), vec3(0.11, 0.1, 0.085))); pelo = smin(pelo, largo, 0.02); }
+  }
+  /* gorra: copa sobre el cráneo y visera adelante; sombrero: ala y copa */
+  float tapa = 1e3;
+  if (A.gorra > 0.5) {
+    float copa = max(length(e - vec3(0.015, 0.01, 0.0)) - 0.128, 0.035 - e.y);
+    vec3 vi = e - vec3(-0.12, 0.05, 0.0); vi.xy = rot(0.18) * vi.xy;
+    float visera = sdBox3(vi, vec3(0.07, 0.004, 0.072 - 0.25 * max(-vi.x, 0.0))) - 0.003;
+    tapa = min(copa, visera);
+  }
+  if (A.sombrero > 0.5) {
+    vec3 sh = e - vec3(0.0, 0.085, 0.0); sh.xy = rot(-0.12) * sh.xy;
+    vec2 alaXZ = sh.xz * vec2(0.85, 1.0); float rAla = length(alaXZ);
+    float caida = -0.028 * smoothstep(0.09, 0.17, rAla) * (0.3 + 0.7 * abs(sh.x) / max(rAla, 0.001)) + 0.012 * smoothstep(0.09, 0.17, rAla) * (abs(sh.z) / max(rAla, 0.001));
+    float ala = max(rAla - 0.17, abs(sh.y - caida) - 0.006) - 0.003;
+    vec3 cp = sh - vec3(0.0, 0.068, 0.0); cp.z *= 1.12; cp.xz *= 1.0 + 0.3 * clamp((cp.y + 0.06) / 0.12, 0.0, 1.0);
+    float copa = sdCil(cp, 0.062, 0.1) - 0.01;
+    copa = smax(copa, -sdElip(cp - vec3(-0.01, 0.085, 0.0), vec3(0.1, 0.035, 0.028)), 0.012);
+    tapa = min(ala, copa);
+  }
+  return vec3(cab, pelo, tapa);
+}
+float mano(vec3 q, vec3 codo, vec3 m, vec3 agarre, float r) {
+  vec3 f = normalize(m - codo);
+  vec3 cu = normalize(agarre - f * dot(agarre, f) + vec3(1e-4, 0.0, 0.0));
+  vec3 z = normalize(cross(f, cu));
+  float palma = sdCap(q, m - f * 0.01, m + f * 0.055, r * 0.78);
+  palma = smin(palma, sdElip(q - m - f * 0.03, vec3(r * 1.1)), 0.02);
+  float dedos = 1e3;
+  for (int k = 0; k < 3; k++) {
+    float fz = (-1.0 + float(k)) * r * 0.62;
+    vec3 base = m + f * 0.06 + z * fz;
+    dedos = min(dedos, sdCap(q, base, base + f * 0.035 + cu * 0.03, r * 0.3));
+    dedos = min(dedos, sdCap(q, base + f * 0.035 + cu * 0.03, base + f * 0.03 + cu * 0.065, r * 0.27));
+  }
+  float pulgar = sdCap(q, m + f * 0.02 - z * r * 0.9, m + f * 0.05 - z * r * 0.8 + cu * 0.04, r * 0.34);
+  return smin(palma, smin(dedos, pulgar, 0.008), 0.01);
+}
+/* devuelve (distancia, material); material 3 piel, A.matRopa ropa, 9 botas, 27 pelo, 28 gorra, 4 sombrero */
+vec2 persona(vec3 q, Pose P, Aspecto A) {
+  q /= A.escala;
+  float m = A.mujer;
+  float torso = sdCap(q, P.cad, P.pecho, 0.15 - 0.02 * m);
+  torso = smin(torso, sdCap(q, P.pecho, P.hom, 0.135 - 0.015 * m), 0.08);
+  torso = smin(torso, sdElip(q - (P.cad + P.pecho) * 0.5 - vec3(-0.035, 0.0, 0.0), vec3(0.17, 0.15, 0.16) * (0.8 + 0.25 * A.panza)), 0.08);
+  torso = smin(torso, sdElip(q - P.cad, vec3(0.14, 0.12, 0.15 + 0.03 * m)), 0.06);
+  if (m > 0.5) torso = smin(torso, sdElip(q - (P.pecho + vec3(-0.08, 0.02, 0.0)), vec3(0.07, 0.06, 0.13)), 0.05);
+  torso = smin(torso, length(q - P.homI) - 0.085 + 0.01 * m, 0.07);
+  torso = smin(torso, length(q - P.homD) - 0.085 + 0.01 * m, 0.07);
+  vec3 cab = P.cab;
+  vec3 ejeCuello = normalize(cab - P.hom);
+  float cuello = sdCap(q, P.hom, cab - ejeCuello * 0.08, 0.058 - 0.008 * m);
+  float collar = sdCap(q, P.hom + ejeCuello * 0.07, P.hom + ejeCuello * 0.13, 0.1 - 0.01 * m) ;
+  torso = smin(torso, collar, 0.03);
+  float rb = 0.062 - 0.008 * m, ra = 0.052 - 0.007 * m;
+  float brazos = min(smin(sdCap(q, P.homI, P.codoI, rb), sdCap(q, P.codoI, P.manoI, ra), 0.04), smin(sdCap(q, P.homD, P.codoD, rb), sdCap(q, P.codoD, P.manoD, ra), 0.04));
+  float manos = min(mano(q, P.codoI, P.manoI, P.agarreI, 0.045 - 0.005 * m), mano(q, P.codoD, P.manoD, P.agarreD, 0.045 - 0.005 * m));
+  float rp = 0.08 - 0.008 * m, rc = 0.065 - 0.007 * m;
+  float piernas = min(smin(sdCap(q, P.cad + vec3(0.0, 0.0, -0.1), P.rodI, rp), sdCap(q, P.rodI, P.pieI, rc), 0.05), smin(sdCap(q, P.cad + vec3(0.0, 0.0, 0.1), P.rodD, rp), sdCap(q, P.rodD, P.pieD, rc), 0.05));
+  vec3 fw = vec3(-1.0, 0.0, 0.0);
+  float botas = min(smin(sdCap(q, P.pieI, P.pieI + fw * 0.13 + vec3(0.0, -0.01, 0.0), 0.058 - 0.006 * m), sdCap(q, P.pieI + vec3(0.0, 0.1, 0.0), P.pieI, 0.068 - 0.006 * m), 0.03), smin(sdCap(q, P.pieD, P.pieD + fw * 0.13 + vec3(0.0, -0.01, 0.0), 0.058 - 0.006 * m), sdCap(q, P.pieD + vec3(0.0, 0.1, 0.0), P.pieD, 0.068 - 0.006 * m), 0.03));
+  float ropa = smin(smin(torso, brazos, 0.03), piernas, 0.04);
+  /* la cabeza, girada por yaw y pitch */
+  vec3 hc = q - cab; hc = rotY(hc, -P.yaw); hc.xy = rot(-P.pitch) * hc.xy;
+  vec3 cz = cabeza(hc, A);
+  float nuez = length(q - (cab - ejeCuello * 0.13 + vec3(-0.045, 0.0, 0.0))) - 0.018 * (1.0 - m);
+  float piel = min(cz.x, min(manos, smin(cuello, nuez, 0.015)));
+  if (min(piel, cz.y) < 0.01) { gHC = hc; gBarba = A.barba; gPelo = A.pelo; gMujer = m; }
+  vec2 r = vec2(ropa, A.matRopa);
+  if (botas < r.x) r = vec2(botas, 9.0);
+  if (piel < r.x) r = vec2(piel, 3.0);
+  if (cz.y < r.x) r = vec2(cz.y, 27.0);
+  if (cz.z < r.x) r = vec2(cz.z, A.gorra > 0.5 ? 28.0 : 4.0);
+  r.x *= A.escala;
+  return r;
+}
+
+/* ---------- la chata (marco local: eje x, proa en +x) ---------- */
+vec2 chata(vec3 q) {
+  vec3 h = q; h.z *= 1.0 / (1.0 - 0.42 * pow(abs(h.x) / 1.35, 2.2)); h.y -= 0.17;
+  float casco = sdBox3(h, vec3(1.3, 0.17, 0.36)) - 0.06;
+  float hueco = sdBox3(h - vec3(0.0, 0.12, 0.0), vec3(1.2, 0.17, 0.3)) - 0.04;
+  casco = max(casco, -hueco) * 0.55;
+  vec2 r = vec2(casco, 1.0);
+  float banco = sdBox3(q - vec3(0.12, 0.3, 0.0), vec3(0.09, 0.02, 0.36)) - 0.01;
+  if (banco < r.x) r = vec2(banco, 7.0);
+  float horq = min(sdCap(q, vec3(0.0, 0.3, -0.4), vec3(0.0, 0.5, -0.42), 0.015), sdCap(q, vec3(0.0, 0.3, 0.4), vec3(0.0, 0.5, 0.42), 0.015));
+  if (horq < r.x) r = vec2(horq, 13.0);
+  return r;
+}
+float remos(vec3 q, Pose P, vec3 chumI, vec3 chumD, float largo) {
+  vec3 dI = normalize(chumI - P.manoI), dD = normalize(chumD - P.manoD);
+  vec3 palaI = chumI + dI * largo, palaD = chumD + dD * largo;
+  float r = min(sdCap(q, P.manoI, palaI, 0.025), sdCap(q, P.manoD, palaD, 0.025));
+  return min(r, min(sdCap(q, palaI - dI * 0.45, palaI, 0.06), sdCap(q, palaD - dD * 0.45, palaD, 0.06)));
+}
+/* farol a kerosene: base, tubo de vidrio emisivo, tapa y asa */
+vec2 farol(vec3 q) {
+  float base = sdCil(q, 0.025, 0.055);
+  float vidrio = sdCil(q - vec3(0.0, 0.1, 0.0), 0.075, 0.045);
+  float tapa = sdCil(q - vec3(0.0, 0.2, 0.0), 0.02, 0.05);
+  tapa = min(tapa, sdCil(q - vec3(0.0, 0.235, 0.0), 0.02, 0.025));
+  float asa = sdToro(vec3(q.x, (q.y - 0.26) * 1.0, q.z * 0.5), 0.07, 0.008);
+  asa = max(asa, -q.y + 0.25);
+  vec2 r = vec2(min(min(base, tapa), asa), 13.0);
+  if (vidrio < r.x) r = vec2(vidrio, 6.0);
+  return r;
+}
+
+/* ---------- el perro (marco local: mira a -x, parado sobre y = 0) ---------- */
+vec2 perro(vec3 q, float ladra) {
+  float cab = 0.03 * ladra;
+  float cuerpo = sdCap(q, vec3(-0.2, 0.42, 0.0), vec3(0.22, 0.4, 0.0), 0.13);
+  cuerpo = smin(cuerpo, sdElip(q - vec3(-0.15, 0.4, 0.0), vec3(0.16, 0.15, 0.14)), 0.05); /* pecho */
+  vec3 h = q - vec3(-0.42, 0.56 + cab, 0.0); h.xy = rot(-0.2 * ladra) * h.xy;
+  float cabeza = sdElip(h, vec3(0.1, 0.085, 0.08));
+  cabeza = smin(cabeza, sdCap(h, vec3(-0.05, -0.02, 0.0), vec3(-0.2, -0.05, 0.0), 0.04), 0.03); /* hocico */
+  cabeza = smin(cabeza, sdElip(h - vec3(0.03, 0.06, -0.08), vec3(0.03, 0.06, 0.015)), 0.01);   /* orejas */
+  cabeza = smin(cabeza, sdElip(h - vec3(0.03, 0.06, 0.08), vec3(0.03, 0.06, 0.015)), 0.01);
+  float cuello = sdCap(q, vec3(-0.22, 0.45, 0.0), vec3(-0.4, 0.55, 0.0), 0.08);
+  float d = smin(cuerpo, smin(cuello, cabeza, 0.04), 0.04);
+  float patas = 1e3;
+  for (int i = 0; i < 4; i++) { vec3 b = vec3(i < 2 ? -0.17 : 0.17, 0.3, (i == 0 || i == 2) ? -0.08 : 0.08); patas = min(patas, smin(sdCap(q, b, b + vec3(0.0, -0.15, 0.0), 0.035), sdCap(q, b + vec3(0.0, -0.15, 0.0), b + vec3(-0.03, -0.3, 0.0), 0.03), 0.02)); }
+  d = smin(d, patas, 0.03);
+  float cola = sdCap(q, vec3(0.3, 0.45, 0.0), vec3(0.45, 0.65 + 0.05 * sin(ladra * 20.0), 0.0), 0.025);
+  d = smin(d, cola, 0.02);
+  return vec2(d, 34.0);
+}
+
+/* ---------- la lancha colectiva (marco local: eje x, proa en +x, 9 m de eslora) ---------- */
+vec2 lancha(vec3 q) {
+  /* casco con arrufo y proa afinada */
+  vec3 h = q; float x01 = clamp((h.x + 4.5) / 9.0, 0.0, 1.0);
+  float ancho = 1.0 - 0.75 * pow(max(h.x - 1.5, 0.0) / 3.2, 1.8) - 0.15 * pow(max(-h.x - 3.2, 0.0) / 1.3, 2.0);
+  h.z /= max(ancho, 0.05);
+  float arrufo = 0.12 * pow(abs(h.x) / 4.5, 2.0);
+  float casco = sdBox3(h - vec3(0.0, 0.6 + arrufo * 0.5, 0.0), vec3(4.5, 0.6 + arrufo * 0.5, 1.25)) - 0.08;
+  casco = max(casco, -(sdBox3(h - vec3(-0.3, 1.15, 0.0), vec3(4.0, 0.5, 1.1)) - 0.05)); /* ahuecado */
+  casco = smax(casco, -(-h.y + 0.25 - 0.25 * abs(h.z)), 0.3); /* el fondo en V suave */
+  casco *= 0.7;
+  vec2 r = vec2(casco, 19.0);
+  float banda = max(casco - 0.03, abs(q.y - 1.05 - arrufo * 0.3) - 0.07);
+  if (banda < r.x - 0.001) r = vec2(banda, 21.0);
+  /* cabina: paredes con ventanas repetidas, techo, timonera adelante */
+  float cab = sdBox3(q - vec3(-0.6, 1.72, 0.0), vec3(3.1, 0.62, 1.05)) - 0.03;
+  float xv = mod(q.x + 0.6 + 0.65, 1.3) - 0.65;
+  float ventanas = sdBox3(vec3(xv, q.y - 1.9, 0.0), vec3(0.48, 0.3, 2.0));
+  ventanas = max(ventanas, -(abs(q.x + 0.6) - 2.6)); /* sin ventanas en los extremos */
+  float paredes = max(cab, -ventanas);
+  paredes = max(paredes, -sdBox3(q - vec3(-0.6, 1.72, 0.0), vec3(2.95, 0.55, 0.95)));
+  if (paredes < r.x) r = vec2(paredes, 20.0);
+  float vidrio = max(sdBox3(q - vec3(-0.6, 1.9, 0.0), vec3(3.0, 0.3, 1.03)), -sdBox3(q - vec3(-0.6, 1.9, 0.0), vec3(3.0, 0.4, 1.0)));
+  vidrio = max(vidrio, ventanas);
+  if (vidrio < r.x) r = vec2(vidrio, 22.0);
+  float techo = sdBox3(q - vec3(-0.6, 2.38, 0.0), vec3(3.3, 0.05, 1.2)) - 0.03;
+  techo = min(techo, sdBox3(q - vec3(-0.6, 2.42, 0.0), vec3(3.2, 0.1 - 0.07 * abs(q.z), 1.1)));
+  if (techo < r.x) r = vec2(techo, 23.0);
+  float timon = sdBox3(q - vec3(2.9, 1.75, 0.0), vec3(0.5, 0.7, 0.85)) - 0.04;
+  timon = max(timon, -sdBox3(q - vec3(2.9, 2.0, 0.0), vec3(0.6, 0.3, 0.7)));
+  if (timon < r.x) r = vec2(timon, 20.0);
+  float vidT = sdBox3(q - vec3(2.9, 2.0, 0.0), vec3(0.45, 0.3, 0.8));
+  if (vidT < r.x) r = vec2(vidT, 22.0);
+  float techoT = sdBox3(q - vec3(2.9, 2.5, 0.0), vec3(0.65, 0.04, 1.0));
+  if (techoT < r.x) r = vec2(techoT, 23.0);
+  float mastil = sdCap(q, vec3(2.9, 2.5, 0.0), vec3(2.9, 3.4, 0.0), 0.02);
+  mastil = min(mastil, sdCap(q, vec3(2.9, 3.2, -0.25), vec3(2.9, 3.2, 0.25), 0.012));
+  if (mastil < r.x) r = vec2(mastil, 13.0);
+  float baranda = sdCap(q, vec3(3.4, 1.35, -0.6), vec3(4.3, 1.35, 0.0), 0.02);
+  baranda = min(baranda, sdCap(q, vec3(3.4, 1.35, 0.6), vec3(4.3, 1.35, 0.0), 0.02));
+  baranda = min(baranda, sdCap(q, vec3(-4.3, 1.3, -0.9), vec3(-4.3, 1.3, 0.9), 0.02));
+  if (baranda < r.x) r = vec2(baranda, 13.0);
+  /* neumáticos como defensas */
+  float def = 1e3;
+  for (int i = 0; i < 3; i++) { float x = -2.5 + 1.8 * float(i); def = min(def, sdCilZ(vec3(q.x - x, q.y - 0.75, abs(q.z) - 1.25 * ancho), 0.1, 0.25)); }
+  def = max(def, -sdCilZ(vec3(q.x - (-2.5 + 1.8 * floor((q.x + 3.4) / 1.8)), q.y - 0.75, abs(q.z) - 1.25 * ancho), 0.2, 0.13));
+  if (def < r.x) r = vec2(def, 9.0);
+  return r;
+}
+
+/* ---------- la casa: dos plantas sobre pilotes, galería al frente (-z), escalera al muelle; h relativo al pie ---------- */
+/* materiales: 10 paredes, 11 techo, 12 ventana prendida, 39 ventana apagada, 13 postes, 14 tablas, 24 toalla */
+vec2 casa(vec3 h, float ventanas /* bits: 1 cocina, 2 arriba izq, 4 arriba der */, float puertaAbierta, float toalla) {
+  vec2 r = vec2(1e3, 0.0);
+  float postes = 1e3;
+  for (int i = 0; i < 3; i++) { float x = -1.6 + 1.6 * float(i); postes = min(postes, min(sdCil(h - vec3(x, 0.6, -1.2), 0.66, 0.08), sdCil(h - vec3(x, 0.6, 1.2), 0.66, 0.08))); }
+  r = vec2(postes, 13.0);
+  /* planta baja: 1.2 a 3.7; primer piso: 3.7 a 6.1 */
+  float cuerpo = sdBox3(h - vec3(0.0, 3.65, 0.0), vec3(1.9, 2.45, 1.4)) - 0.01;
+  float hv = 1e3; /* huecos de ventanas y puerta */
+  hv = min(hv, sdBox3(h - vec3(-1.5, 2.35, -1.4), vec3(0.26, 0.45, 0.2)));    /* angosta, a la izquierda de la puerta */
+  hv = min(hv, sdBox3(h - vec3(1.0, 2.35, -1.4), vec3(0.38, 0.45, 0.2)));     /* la cocina */
+  hv = min(hv, sdBox3(h - vec3(0.0, 2.1, -1.4), vec3(0.4, 0.9, 0.2)));        /* la puerta */
+  hv = min(hv, sdBox3(h - vec3(-1.0, 4.85, -1.4), vec3(0.36, 0.45, 0.2)));    /* arriba */
+  hv = min(hv, sdBox3(h - vec3(1.0, 4.85, -1.4), vec3(0.36, 0.45, 0.2)));
+  hv = min(hv, sdBox3(h - vec3(-1.9, 2.35, 0.3), vec3(0.2, 0.42, 0.36)));     /* costados */
+  hv = min(hv, sdBox3(h - vec3(1.9, 4.85, 0.3), vec3(0.2, 0.42, 0.36)));
+  cuerpo = max(cuerpo, -hv);
+  cuerpo = max(cuerpo, -sdBox3(h - vec3(0.0, 3.65, 0.0), vec3(1.8, 2.5, 1.3)));           /* hueca */
+  if (cuerpo < r.x) r = vec2(cuerpo, 10.0);
+  float pisos = min(sdBox3(h - vec3(0.0, 1.22, 0.0), vec3(1.85, 0.04, 1.35)), sdBox3(h - vec3(0.0, 3.68, 0.0), vec3(1.85, 0.05, 1.35)));
+  if (pisos < r.x) r = vec2(pisos, 14.0);
+  float tabique = sdBox3(h - vec3(0.0, 2.45, 1.32), vec3(1.85, 1.25, 0.03)); /* pared del fondo de la cocina */
+  tabique = min(tabique, sdBox3(h - vec3(0.4, 2.0, 1.05), vec3(0.9, 0.05, 0.3)));  /* la mesada */
+  if (tabique < r.x) r = vec2(tabique, 30.0);
+  /* marcos que sobresalen y parante del medio */
+  float marcos = 1e3;
+  for (int i = 0; i < 4; i++) {
+    vec3 c = vec3(i == 0 ? -1.5 : i == 2 ? -1.0 : 1.0, i < 2 ? 2.35 : 4.85, -1.4);
+    float an = i == 0 ? 0.26 : 0.38;
+    float mk = sdBox3(h - c, vec3(an + 0.05, 0.5, 0.04)); mk = max(mk, -sdBox3(h - c, vec3(an - 0.01, 0.44, 0.2)));
+    mk = min(mk, sdBox3(h - c, vec3(0.015, 0.45, 0.03)));
+    marcos = min(marcos, mk);
+  }
+  if (marcos < r.x) r = vec2(marcos, 13.0);
+  /* vidrios: prendidos o apagados */
+  float vCoc = sdBox3(h - vec3(1.0, 2.35, -1.34), vec3(0.38, 0.45, 0.005));
+  float vDer = sdBox3(h - vec3(-1.5, 2.35, -1.34), vec3(0.26, 0.45, 0.005));
+  float vAI = sdBox3(h - vec3(-1.0, 4.85, -1.34), vec3(0.36, 0.45, 0.005));
+  float vAD = sdBox3(h - vec3(1.0, 4.85, -1.34), vec3(0.36, 0.45, 0.005));
+  float vLat = min(sdBox3(h - vec3(-1.84, 2.35, 0.3), vec3(0.005, 0.42, 0.36)), sdBox3(h - vec3(1.84, 4.85, 0.3), vec3(0.005, 0.42, 0.36)));
+  float coc = mod(ventanas, 2.0), ai = mod(floor(ventanas / 2.0), 2.0), ad = mod(floor(ventanas / 4.0), 2.0);
+  if (vCoc < r.x) r = vec2(vCoc, coc > 0.5 ? 12.0 : 39.0);
+  if (vDer < r.x) r = vec2(vDer, 39.0);
+  if (vAI < r.x) r = vec2(vAI, ai > 0.5 ? 12.0 : 39.0);
+  if (vAD < r.x) r = vec2(vAD, ad > 0.5 ? 12.0 : 39.0);
+  if (vLat < r.x) r = vec2(vLat, 39.0);
+  /* la puerta: cerrada en el hueco, o abierta contra la pared de afuera, a la izquierda del hueco */
+  float puerta = puertaAbierta > 0.5 ? sdBox3(h - vec3(-0.8, 2.1, -1.45), vec3(0.4, 0.88, 0.02)) : sdBox3(h - vec3(0.0, 2.1, -1.33), vec3(0.39, 0.88, 0.02));
+  if (puerta < r.x) r = vec2(puerta, 13.0);
+  /* entrepiso visible desde afuera: una línea de tablas */
+  float cornisa = sdBox3(h - vec3(0.0, 3.7, -1.42), vec3(1.92, 0.04, 0.04));
+  if (cornisa < r.x) r = vec2(cornisa, 13.0);
+  /* techo a dos aguas sobre el eje x, chapa, con alero y chimenea */
+  float techo = max(max((h.y - 6.05) + 0.6 * abs(h.z) - 1.0, -(h.y - 6.02)), abs(h.x) - 2.15);
+  techo = max(techo, abs(h.z) - 1.75);
+  if (techo < r.x) r = vec2(techo, 11.0);
+  float chimenea = sdBox3(h - vec3(1.2, 6.7, 0.4), vec3(0.12, 0.35, 0.12));
+  if (chimenea < r.x) r = vec2(chimenea, 10.0);
+  /* galería al frente con baranda y una mesa */
+  float galeria = sdBox3(h - vec3(0.0, 1.17, -2.05), vec3(1.9, 0.03, 0.65));
+  if (galeria < r.x) r = vec2(galeria, 14.0);
+  float baranda = sdCap(h, vec3(-1.85, 1.65, -2.68), vec3(1.85, 1.65, -2.68), 0.025);
+  baranda = min(baranda, sdCap(h, vec3(-1.85, 1.65, -2.68), vec3(-1.85, 1.65, -1.45), 0.025));
+  baranda = min(baranda, sdCap(h, vec3(1.85, 1.65, -2.68), vec3(1.85, 1.65, -1.45), 0.025));
+  for (int i = 0; i < 7; i++) { float x = -1.85 + 0.617 * float(i); if (i != 3) baranda = min(baranda, sdCil(h - vec3(x, 1.42, -2.68), 0.23, 0.03)); }
+  baranda = min(baranda, min(sdCil(h - vec3(-1.85, 1.42, -2.0), 0.23, 0.03), sdCil(h - vec3(1.85, 1.42, -2.0), 0.23, 0.03)));
+  /* columnas de la galería que sostienen el alero del primer piso */
+  baranda = min(baranda, min(sdCil(h - vec3(-1.85, 2.45, -2.66), 1.25, 0.05), sdCil(h - vec3(1.85, 2.45, -2.66), 1.25, 0.05)));
+  if (baranda < r.x) r = vec2(baranda, 13.0);
+  float alero = sdBox3(h - vec3(0.0, 3.75, -2.05), vec3(1.95, 0.03, 0.7));
+  if (alero < r.x) r = vec2(alero, 14.0);
+  /* la mesa de la abuela, en la galería a la derecha */
+  float mesa = sdBox3(h - vec3(1.1, 1.85, -2.1), vec3(0.45, 0.02, 0.35)) - 0.01;
+  for (int i = 0; i < 4; i++) { vec3 pata = vec3(1.1 + (i < 2 ? -0.4 : 0.4), 1.5, -2.1 + (mod(float(i), 2.0) < 0.5 ? -0.3 : 0.3)); mesa = min(mesa, sdBox3(h - pata, vec3(0.025, 0.32, 0.025))); }
+  if (mesa < r.x) r = vec2(mesa, 29.0);
+  /* la escalera: cinco escalones del muelle (y 0.3) a la galería (1.2), bajando hacia -z, en el hueco de la baranda */
+  float esc = 1e3;
+  for (int i = 0; i < 5; i++) { float y = 0.38 + 0.18 * float(i); float z = -3.75 + 0.26 * float(i); esc = min(esc, sdBox3(h - vec3(0.0, y, z), vec3(0.5, 0.02, 0.14))); }
+  esc = min(esc, min(sdBox3(h - vec3(-0.5, 0.8, -3.2), vec3(0.025, 0.55, 0.65)), sdBox3(h - vec3(0.5, 0.8, -3.2), vec3(0.025, 0.55, 0.65)))); /* zancas */
+  esc = min(esc, min(sdCap(h, vec3(-0.5, 0.9, -3.85), vec3(-0.5, 2.0, -2.75), 0.025), sdCap(h, vec3(0.5, 0.9, -3.85), vec3(0.5, 2.0, -2.75), 0.025))); /* pasamanos */
+  if (esc < r.x) r = vec2(esc, 14.0);
+  /* el muelle, al pie de la escalera y hacia la izquierda, con sus postes */
+  float muelle = sdBox3(h - vec3(-0.8, 0.3, -4.1), vec3(1.6, 0.025, 0.45));
+  if (muelle < r.x) r = vec2(muelle, 14.0);
+  float pm = 1e3;
+  for (int i = 0; i < 3; i++) { float x = -2.2 + 1.3 * float(i); pm = min(pm, min(sdCil(h - vec3(x, 0.05, -4.5), 0.45, 0.05), sdCil(h - vec3(x, 0.05, -3.7), 0.45, 0.05))); }
+  if (pm < r.x) r = vec2(pm, 13.0);
+  /* la toalla colgada en la baranda, a la derecha de la escalera, que se mueve con el viento */
+  if (toalla > 0.5) {
+    vec3 tq = h - vec3(0.9, 1.4, -2.68);
+    float ondula = 0.03 * sin(tq.y * 9.0 + uT * 3.0) * smoothstep(0.0, -0.4, tq.y) + 0.02 * sin(tq.x * 11.0 - uT * 4.1) * smoothstep(0.0, -0.3, tq.y);
+    float toa = sdBox3(tq - vec3(0.0, 0.0, ondula - 0.02 * smoothstep(0.0, -0.4, tq.y)), vec3(0.3, 0.27, 0.012 + 0.025 * smoothstep(-0.05, 0.05, tq.y) * step(-0.05, tq.y))) - 0.01;
+    if (toa < 0.01) gToalla = tq;
+    if (toa < r.x) r = vec2(toa, 24.0);
+  }
+  return r;
+}
+/* sauce: c relativo al pie del tronco */
+vec2 sauce(vec3 c, float t, float semilla, float viento) {
+  float esc = 0.85 + 0.5 * hash1(semilla + 2.0); c /= esc;
+  vec2 r = vec2(sdCap(c, vec3(0.0, -0.3, 0.0), vec3(0.05, 2.1, 0.0), 0.14 + 0.03 * semilla / 20.0), 16.0);
+  float sway = (0.04 + 0.1 * viento) * sin(t * (1.0 + viento) + semilla);
+  vec3 cc = c - vec3(0.05 + sway, 2.6, 0.0);
+  float copa = length(cc * vec3(0.85, 1.3, 0.85)) - 1.45 + 0.5 * fbm4(cc.xy * 1.6 + cc.z * 1.3 + semilla) + 0.12 * noise(cc.xz * 7.0 + cc.y * 5.0);
+  copa = smin(copa, length((cc - vec3(0.9, -0.3, 0.6)) * vec3(0.9, 1.4, 0.9)) - 0.9 + 0.4 * fbm4(cc.yz * 2.0 + semilla), 0.5);
+  copa = smin(copa, length((cc - vec3(-0.8, -0.1, -0.7)) * vec3(0.9, 1.4, 0.9)) - 0.85 + 0.4 * fbm4(cc.xy * 2.0 + semilla + 3.0), 0.5);
+  vec3 cu = c - vec3(0.05 + sway * 0.5, 0.0, 0.0);
+  vec2 celda = floor(cu.xz * 5.0), loc = fract(cu.xz * 5.0) - 0.5;
+  float hay = step(0.5, noise(celda * 0.7 + semilla)) * step(length(celda / 5.0), 1.0);
+  float largo = 0.9 + 1.2 * noise(celda * 1.3 + semilla + 5.0);
+  float hebra = mix(1.0, length(loc) / 5.0 - 0.018 + 0.5 * (1.0 - hay), hay);
+  hebra = max(hebra, max(cu.y - 2.3, (2.45 - largo) - cu.y));
+  float foll = min(copa, hebra);
+  if (foll < r.x) r = vec2(foll, 15.0);
+  r.x *= esc;
+  return r;
+}
+/* una orilla con sauces repetidos a lo largo de x, a la distancia z0 (positivo: enfrente); devuelve (dist, mat) */
+vec2 orilla(vec3 p, float t, float z0, float lado, float semilla, float viento) {
+  /* barranca de barro */
+  float borde = z0 + lado * (5.0 * (noise(p.xx * 0.04 + semilla) - 0.5) + 1.2 * noise(p.xx * 0.25 + semilla) + 0.3 * noise(p.xx * 1.1 + semilla));
+  float dz = lado * (p.z - borde);
+  float alto = 0.1 + 0.3 * smoothstep(0.0, 3.0, dz) + 0.08 * fbm4(p.xz * 1.6 + semilla);
+  float barranca = smax(p.y - alto, -dz, 0.6);
+  vec2 r = vec2(barranca, 17.0);
+  /* sauces cada 7 m, corridos con ruido */
+  float celda = floor(p.x / 7.0);
+  vec3 base = vec3(celda * 7.0 + 3.5 + 2.0 * (hash1(celda + semilla) - 0.5), 0.0, borde + lado * (1.6 + 1.5 * hash1(celda * 3.1 + semilla)));
+  vec3 c = p - base;
+  float ds = length(c - vec3(0.0, 2.2, 0.0)) - 3.6;
+  if (ds < 0.2) { vec2 m = sauce(c, t, hash1(celda + semilla * 2.0) * 20.0, viento); if (m.x < r.x) r = m; } else if (ds < r.x) r = vec2(ds, 0.0);
+  return r;
+}
+
+/* ---------- cielo ---------- */
+vec3 skyBase(vec3 d, Clima c, vec3 sd) {
+  float h = clamp(d.y, 0.0, 1.0);
+  vec3 arribaN = vec3(0.012, 0.018, 0.035), horizN = vec3(0.06, 0.07, 0.09);
+  vec3 arribaD = vec3(0.40, 0.44, 0.50), horizD = vec3(0.66, 0.67, 0.68);
+  vec3 arribaA = vec3(0.22, 0.30, 0.46), horizA = vec3(1.0, 0.62, 0.32);
+  vec3 arriba = mix(mix(arribaN, arribaD, c.luz), arribaA, c.alba), horiz = mix(mix(horizN, horizD, c.luz), horizA, c.alba);
+  vec3 col = mix(horiz, arriba, pow(h, 0.45));
+  float s = max(dot(d, sd), 0.0);
+  col += (vec3(1.0, 0.7, 0.4) * pow(s, 18.0) * 1.2 + vec3(1.0, 0.85, 0.6) * pow(s, 400.0) * 2.5) * c.alba;
+  return col;
+}
+vec3 sky(vec3 d, float t) {
+  Clima c = clima(t); vec3 sd = sunDir(t);
+  vec3 col = skyBase(d, c, sd);
+  vec2 uv = d.xz / max(d.y, 0.02);
+  float n = fbm(uv * 0.55 + c.corriente * 0.0 + vec2(t * 0.06 * (1.0 + c.viento), t * 0.02)), n2 = fbm4(uv * 1.3 - vec2(t * 0.1 * (1.0 + c.viento), 0.0));
+  float cob = c.nubes;
+  float cl = smoothstep(cob - 0.45, cob + 0.05, n * 0.7 + n2 * 0.3);
+  float s = max(dot(d, sd), 0.0);
+  vec3 nubeN = vec3(0.045, 0.05, 0.065), nubeD = vec3(0.52, 0.53, 0.55) * (0.75 + 0.5 * n2), nubeA = vec3(0.9, 0.55, 0.42) * (0.6 + 0.6 * s);
+  vec3 nube = mix(mix(nubeN, nubeD, c.luz), nubeA, c.alba * 0.8);
+  nube += vec3(1.0, 0.95, 0.9) * uFlash * 0.9 * (0.5 + 0.5 * n);
+  col = mix(col, nube, cl * smoothstep(0.0, 0.25, d.y));
+  vec2 sp = d.xz / max(d.y, 0.05) * 60.0;
+  float st = step(0.9975, hash(floor(sp))) * (1.0 - cl) * (1.0 - c.luz) * (1.0 - c.alba) * smoothstep(0.05, 0.3, d.y);
+  col += vec3(0.9, 0.9, 1.0) * st * (0.5 + 0.5 * sin(t * 3.0 + hash(floor(sp)) * 20.0));
+  col += vec3(0.75, 0.8, 1.0) * uFlash * 0.35;
+  float ang = atan(d.x, d.z);
+  float monte = 0.008 + 0.016 * fbm4(vec2(ang * 9.0, 0.0)) + 0.005 * noise(vec2(ang * 60.0, 1.0));
+  vec3 colMonte = mix(mix(vec3(0.02, 0.025, 0.035), vec3(0.4, 0.42, 0.42), c.luz), vec3(0.3, 0.22, 0.2), c.alba);
+  col = mix(col, colMonte, (1.0 - smoothstep(monte - 0.004, monte + 0.004, d.y)) * step(0.0, d.y) * 0.9);
+  return col;
+}
+
+/* ---------- marcha, normal, oclusión y sombras ---------- */
+bool envolvente(vec3 ro, vec3 rd, vec3 c, float R, out float t0, out float t1) {
+  vec3 oc = ro - c; float b = dot(oc, rd), cc = dot(oc, oc) - R * R, h = b * b - cc;
+  if (h < 0.0) return false; h = sqrt(h); t0 = max(-b - h, 0.0); t1 = -b + h; return t1 > 0.0;
+}
+vec2 marchar(vec3 ro, vec3 rd, float t, float tmax) {
+  float d = 0.02; float t1 = min(tmax, ALCANCE);
+  for (int i = 0; i < PASOS; i++) {
+    vec3 p = ro + rd * d;
+    vec2 m = mapaMundo(p, t);
+    if (m.x < 0.0015 * d) return vec2(d, m.y);
+    d += m.x * 0.85;
+    if (d > t1) break;
+  }
+  return vec2(-1.0, 0.0);
+}
+vec3 normal(vec3 p, float t) {
+  vec2 e = vec2(0.004, 0.0);
+  return normalize(vec3(mapaMundo(p + e.xyy, t).x - mapaMundo(p - e.xyy, t).x, mapaMundo(p + e.yxy, t).x - mapaMundo(p - e.yxy, t).x, mapaMundo(p + e.yyx, t).x - mapaMundo(p - e.yyx, t).x));
+}
+float ao(vec3 p, vec3 n, float t) { float o = 0.0, s = 1.0; for (int i = 1; i <= 5; i++) { float h = 0.015 * float(i); float d = mapaMundo(p + n * h, t).x; o += (h - d) * s; s *= 0.7; } return clamp(1.0 - 2.2 * o, 0.0, 1.0); }
+float sombra(vec3 p, vec3 l, float t) {
+  float res = 1.0, d = 0.03; vec3 rd = normalize(l - p); float maxd = length(l - p) - 0.1;
+  for (int i = 0; i < 14; i++) { float h = mapaMundo(p + rd * d, t).x; res = min(res, 10.0 * h / d); d += clamp(h, 0.02, 0.25); if (res < 0.01 || d > maxd) break; }
+  return clamp(res, 0.0, 1.0);
+}
+float sombraDir(vec3 p, vec3 dir, float t) {
+  float res = 1.0, d = 0.05;
+  for (int i = 0; i < 16; i++) { float h = mapaMundo(p + dir * d, t).x; res = min(res, 8.0 * h / d); d += clamp(h, 0.03, 0.5); if (res < 0.01 || d > 12.0) break; }
+  return clamp(res, 0.0, 1.0);
+}
+
+/* ---------- materiales ---------- */
+struct Material { vec3 alb; vec3 emis; float brillo; float piel; };
+Material material(vec3 p, inout vec3 n, float mat, float t) {
+  Material m; m.alb = vec3(0.3); m.emis = vec3(0.0); m.brillo = 0.3; m.piel = 0.0;
+  Clima c = clima(t);
+  if (mat < 1.5) { m.alb = vec3(0.26, 0.15, 0.08) * (0.8 + 0.4 * noise(p.xy * 30.0 + p.z)); m.brillo = 1.0; }
+  else if (mat < 2.5) { m.alb = vec3(0.1, 0.13, 0.1); n = normalize(n + 0.14 * vec3(noise(p.yz * 45.0) - 0.5, noise(p.xz * 45.0 + 3.0) - 0.5, noise(p.xy * 45.0 + 7.0) - 0.5)); m.brillo = 0.5; }
+  else if (mat < 3.5) {
+    /* piel: barba, pelo, cejas, boca y ojos pintados según la posición en la cabeza */
+    mapaMundo(p, t); vec3 hc = gHC;
+    float barba = gBarba * smoothstep(-0.02, -0.05, hc.y) * step(hc.x, -0.01) * step(-0.14, hc.y) * (0.5 + 0.5 * noise(hc.yz * 90.0));
+    float pelo = step(0.5, gPelo) * smoothstep(0.0, 0.03, hc.x) * step(-0.06, hc.y) * step(hc.y, 0.09);
+    pelo = max(pelo, step(0.038, hc.y) * step(hc.y, 0.058) * step(hc.x, -0.09) * step(0.015, abs(hc.z)) * step(abs(hc.z), 0.07));
+    vec3 tonoPiel = mix(vec3(0.58, 0.45, 0.38), vec3(0.66, 0.51, 0.44), gMujer);
+    m.alb = mix(tonoPiel, vec3(0.14, 0.11, 0.09), max(barba * 0.75, pelo));
+    m.alb *= 1.0 - 0.7 * step(abs(hc.y + 0.058), 0.0035) * step(hc.x, -0.098) * step(abs(hc.z), 0.027);
+    /* ojos: iris y pupila sobre el globo, debajo del párpado */
+    vec2 oz = vec2(hc.y - 0.007, abs(hc.z) - 0.042);
+    float almendra = length(oz / vec2(0.0055, 0.0135));
+    float enGlobo = step(hc.x, -0.095) * step(almendra, 1.0);
+    float iris = length(oz / vec2(0.0055, 0.0055));
+    m.alb = mix(m.alb, vec3(0.85, 0.82, 0.8), enGlobo);
+    m.alb = mix(m.alb, mix(vec3(0.25, 0.17, 0.1), vec3(0.2, 0.3, 0.25), gMujer), enGlobo * step(iris, 1.0));
+    m.alb = mix(m.alb, vec3(0.02), enGlobo * step(iris, 0.45));
+    m.alb *= 1.0 - 0.35 * step(hc.x, -0.095) * step(abs(almendra - 1.15), 0.2); /* la línea de las pestañas */
+    float labio = step(hc.x, -0.098) * step(abs(hc.z), 0.028) * step(abs(hc.y + 0.058), 0.011);
+    m.alb = mix(m.alb, vec3(0.55, 0.3, 0.28), labio * (0.35 + 0.45 * gMujer));
+    m.brillo = 0.4 + 1.5 * enGlobo; m.piel = 1.0 - max(barba, pelo);
+  }
+  else if (mat < 4.5) { m.alb = vec3(0.12, 0.1, 0.08) * (0.85 + 0.3 * noise(p.xz * 60.0)); m.brillo = 0.6; }
+  else if (mat < 5.5) { m.alb = vec3(0.35, 0.25, 0.14); m.brillo = 0.8; }
+  else if (mat < 6.5) { m.emis = vec3(1.0, 0.72, 0.38) * 4.0; }
+  else if (mat < 7.5) m.alb = vec3(0.3, 0.2, 0.1);
+  else if (mat < 9.5) { m.alb = vec3(0.06, 0.05, 0.05); m.brillo = 1.2; }
+  else if (mat < 10.5) {
+    float tabla = fract(p.y * 7.0); float junta = smoothstep(0.0, 0.08, tabla) * smoothstep(1.0, 0.92, tabla);
+    m.alb = mix(vec3(0.2, 0.26, 0.2), vec3(0.3, 0.24, 0.16), smoothstep(0.4, 0.7, fbm4(p.xy * 3.0 + p.z))) * (0.6 + 0.4 * junta) * (0.85 + 0.3 * noise(p.xy * 40.0 + p.z * 7.0));
+    n = normalize(n + 0.25 * vec3(0.0, (junta - 1.0) * 0.5, 0.0) + 0.06 * (noise(p.xy * 50.0) - 0.5)); m.brillo = 0.5;
+#ifdef MARCA
+    float barro = smoothstep(MARCA + 0.02, MARCA - 0.06, p.y + 0.03 * noise(p.xz * 9.0)); m.alb = mix(m.alb, vec3(0.17, 0.12, 0.075) * (0.7 + 0.5 * noise(p.xy * 25.0)), barro * 0.95); m.alb = mix(m.alb, vec3(0.5, 0.45, 0.35), step(abs(p.y - MARCA), 0.012) * 0.6); m.brillo += 0.5 * barro;
+#endif
+  }
+  else if (mat < 11.5) { float onda = 0.5 + 0.5 * sin(p.x * 60.0); m.alb = vec3(0.16, 0.12, 0.1) * (0.7 + 0.5 * onda) * (0.7 + 0.5 * noise(p.xz * 6.0)); n = normalize(n + 0.2 * vec3(cos(p.x * 60.0), 0.0, 0.0)); m.brillo = 1.2; }
+  else if (mat < 12.5) { float cortina = 0.6 + 0.4 * noise(vec2(p.x * 25.0 + p.z * 25.0, p.y * 3.0)); m.emis = vec3(1.0, 0.78, 0.45) * (0.85 + 0.15 * noise(vec2(t * 7.0, 0.0))) * 2.8 * cortina; }
+  else if (mat < 13.5) { m.alb = vec3(0.1, 0.08, 0.06) * (0.8 + 0.4 * noise(p.xy * 25.0 + p.z)); m.brillo = 1.0;
+#ifdef MARCA
+    m.alb = mix(m.alb, vec3(0.16, 0.12, 0.08), smoothstep(MARCA + 0.03, MARCA - 0.1, p.y) * 0.8);
+#endif
+  }
+  else if (mat < 14.5) { float tabla = fract(p.x * 6.0); float junta = smoothstep(0.0, 0.06, tabla) * smoothstep(1.0, 0.94, tabla); m.alb = vec3(0.3, 0.22, 0.14) * (0.5 + 0.5 * junta) * (0.8 + 0.4 * noise(p.xz * 30.0)); m.brillo = 1.0;
+#ifdef MARCA
+    float barro = smoothstep(MARCA + 0.05, MARCA - 0.1, p.y) * (0.5 + 0.5 * noise(p.xz * 4.0)); m.alb = mix(m.alb, vec3(0.22, 0.16, 0.1), barro * 0.9); m.brillo += barro;
+#endif
+  }
+  else if (mat < 15.5) { m.alb = mix(vec3(0.08, 0.14, 0.06), vec3(0.2, 0.26, 0.1), noise(p.xz * 8.0 + p.y)); n = normalize(n + 0.5 * vec3(noise(p.yz * 30.0) - 0.5, noise(p.xz * 30.0) - 0.5, noise(p.xy * 30.0) - 0.5)); m.brillo = 0.4; }
+  else if (mat < 16.5) { m.alb = vec3(0.14, 0.1, 0.07) * (0.7 + 0.5 * noise(vec2(p.y * 20.0, atan(p.x, p.z) * 8.0))); m.brillo = 0.3; }
+  else if (mat < 17.5) { float pasto = smoothstep(0.35, 0.6, fbm4(p.xz * 1.5)) * smoothstep(0.15, 0.5, p.y); m.alb = mix(vec3(0.13, 0.09, 0.06) * (0.7 + 0.5 * noise(p.xz * 12.0)), vec3(0.12, 0.16, 0.06) * (0.7 + 0.6 * noise(p.xz * 30.0)), pasto); n = normalize(n + 0.3 * pasto * vec3(noise(p.xz * 40.0) - 0.5, 0.0, noise(p.zx * 40.0) - 0.5)); m.brillo = 0.9 - 0.7 * pasto; }
+  else if (mat < 19.5) { m.alb = vec3(0.3, 0.17, 0.08) * (0.75 + 0.5 * noise(vec2(p.x * 3.0 + p.z * 3.0, p.y * 40.0))) * (1.0 - 0.4 * smoothstep(0.7, 0.2, p.y)); m.brillo = 1.4; } /* casco de madera barnizada, con la línea de agua sucia */
+  else if (mat < 20.5) { m.alb = vec3(0.78, 0.77, 0.73) * (0.85 + 0.2 * noise(p.xy * 8.0 + p.z)); m.brillo = 0.8; } /* cabina pintada de blanco */
+  else if (mat < 21.5) { m.alb = vec3(0.08, 0.16, 0.38); m.brillo = 1.0; }
+  else if (mat < 22.5) { m.alb = vec3(0.04, 0.05, 0.06); m.brillo = 3.0; }
+  else if (mat < 23.5) { m.alb = vec3(0.6, 0.6, 0.58) * (0.8 + 0.3 * noise(p.xz * 5.0)); m.brillo = 0.6; }
+  else if (mat < 24.5) { mapaMundo(p, t); vec3 tq = gToalla; vec2 cel = vec2(fract(tq.x * 10.0) - 0.5, (tq.y + 0.2) * 10.0); float flor = step(length(cel), 0.3) * step(abs(tq.y + 0.2), 0.05); float centro = step(length(cel), 0.1); float tira = step(abs(tq.y + 0.2), 0.065); m.alb = mix(mix(vec3(0.45, 0.68, 0.82), vec3(0.4, 0.6, 0.72), tira), mix(vec3(0.85, 0.45, 0.55), vec3(0.95, 0.85, 0.4), centro), flor) * (0.8 + 0.4 * noise(p.xy * 120.0 + p.z * 120.0)); m.brillo = 0.1; }
+  else if (mat < 25.5) { m.alb = vec3(0.16, 0.055, 0.05); n = normalize(n + 0.12 * vec3(noise(p.yz * 45.0) - 0.5, noise(p.xz * 45.0 + 3.0) - 0.5, noise(p.xy * 45.0 + 7.0) - 0.5)); m.brillo = 0.5; }
+  else if (mat < 26.5) { m.alb = vec3(0.6, 0.55, 0.35); n = normalize(n + 0.1 * vec3(noise(p.yz * 40.0) - 0.5, noise(p.xz * 40.0 + 3.0) - 0.5, noise(p.xy * 40.0 + 7.0) - 0.5)); m.brillo = 1.6; }
+  else if (mat < 27.5) { mapaMundo(p, t); vec3 hc = gHC; float hebra = noise(vec2(atan(hc.z, hc.x) * 40.0, hc.y * 6.0)); m.alb = mix(vec3(0.1, 0.075, 0.06), vec3(0.28, 0.19, 0.12), gMujer * 0.6) * (0.5 + 1.0 * hebra); n = normalize(n + 0.25 * vec3(0.0, hebra - 0.5, 0.0) + 0.15 * (noise(hc.xz * 120.0) - 0.5)); m.brillo = 0.7; }
+  else if (mat < 28.5) { m.alb = vec3(0.07, 0.09, 0.16) * (0.85 + 0.3 * noise(p.xz * 60.0)); m.brillo = 0.4; }
+  else if (mat < 29.5) { m.alb = vec3(0.42, 0.33, 0.2) * (0.75 + 0.4 * noise(vec2(p.x * 40.0, p.z * 4.0))); m.brillo = 0.4; }
+  else if (mat < 30.5) { m.alb = vec3(0.55, 0.6, 0.52) * (0.85 + 0.25 * noise(p.xy * 20.0 + p.z * 20.0)); m.brillo = 0.2; }
+  else if (mat < 31.5) { m.alb = vec3(0.9, 0.85, 0.7); m.emis = vec3(1.0, 0.7, 0.35) * 0.6; m.brillo = 0.3; }
+  else if (mat < 32.5) { float onda = 0.5 + 0.5 * sin(p.x * 50.0 + p.z * 50.0); m.alb = mix(vec3(0.3, 0.3, 0.3), vec3(0.3, 0.16, 0.1), smoothstep(0.4, 0.7, fbm4(p.xy * 2.0 + p.z * 2.0))) * (0.7 + 0.4 * onda); m.brillo = 1.2; }
+  else if (mat < 33.5) { float tabla = fract(p.z * 8.0); m.alb = vec3(0.4, 0.33, 0.22) * (0.5 + 0.5 * smoothstep(0.0, 0.1, tabla) * smoothstep(1.0, 0.9, tabla)); m.brillo = 0.8; }
+  else if (mat < 34.5) { m.alb = vec3(0.03, 0.028, 0.025); n = normalize(n + 0.3 * vec3(noise(p.yz * 60.0) - 0.5, noise(p.xz * 60.0 + 3.0) - 0.5, noise(p.xy * 60.0 + 7.0) - 0.5)); m.brillo = 1.0; }
+  else if (mat < 35.5) { m.alb = vec3(0.6, 0.5, 0.35) * (0.8 + 0.3 * noise(p.xy * 50.0 + p.z * 50.0)); m.brillo = 0.1; }
+  else if (mat < 36.5) { m.alb = vec3(0.5, 0.42, 0.3) * (0.7 + 0.5 * noise(vec2(p.x * 80.0 + p.z * 80.0, p.y * 80.0))); m.brillo = 0.2; }
+  else if (mat < 38.5) { m.emis = vec3(1.0, 0.95, 0.8) * 5.0; }
+  else if (mat < 39.5) { m.alb = vec3(0.03, 0.035, 0.045); m.brillo = 3.5; }
+  else if (mat < 41.5) { m.alb = vec3(0.3, 0.33, 0.4); n = normalize(n + 0.1 * vec3(noise(p.yz * 50.0) - 0.5, noise(p.xz * 50.0 + 3.0) - 0.5, noise(p.xy * 50.0 + 7.0) - 0.5)); m.brillo = 0.1; }
+  else { m.alb = vec3(0.3); }
+  return m;
+}
+
+/* ---------- iluminación ---------- */
+vec3 ambiente(Clima c) { return mix(mix(vec3(0.03, 0.04, 0.06), vec3(0.5, 0.52, 0.55), c.luz), vec3(0.45, 0.38, 0.38), c.alba * 0.7); }
+vec3 sombrear(vec3 p, vec3 n, vec3 rd, float mat, float t) {
+  Clima c = clima(t);
+  Material m = material(p, n, mat, t);
+  if (dot(m.emis, m.emis) > 0.0 && m.brillo < 0.001) return m.emis;
+  float oc = ao(p, n, t);
+  vec3 amb = ambiente(c) * (0.55 + 0.45 * n.y);
+  vec3 col = m.alb * amb * oc + m.emis;
+  vec3 sd = sunDir(t); vec3 rf = reflect(rd, n);
+  if (c.alba > 0.02) { float sol = max(dot(n, sd), 0.0) * 1.4 * c.alba * sombraDir(p + n * 0.02, sd, t); col += m.alb * vec3(1.0, 0.8, 0.6) * sol; col += vec3(1.0, 0.85, 0.6) * pow(max(dot(rf, sd), 0.0), 60.0) * c.alba * 0.8 * m.brillo; }
+  if (c.luz > 0.02 && c.alba < 0.5) { float cen = max(dot(n, vec3(0.0, 1.0, 0.0)), 0.0) * 0.35 * c.luz * (0.4 + 0.6 * sombraDir(p + n * 0.02, normalize(vec3(0.2, 1.0, -0.3)), t)); col += m.alb * vec3(0.95, 0.97, 1.0) * cen; }
+  for (int i = 0; i < NLUCES; i++) {
+    Luz L = luz(i, t); if (L.inten <= 0.0) continue;
+    vec3 lv = L.pos - p; float ld = length(lv); lv /= ld;
+    float sh = i < NSOMBRAS ? sombra(p, L.pos, t) : 1.0;
+    float dif = max(dot(n, lv), 0.0) * L.inten / (1.0 + ld * ld * 1.2) * sh;
+    col += m.alb * L.col * dif * (0.5 + 0.5 * oc);
+    col += L.col * pow(max(dot(rf, lv), 0.0), 40.0) * 0.6 * L.inten / (1.0 + ld * ld) * m.brillo * sh;
+    col += vec3(0.9, 0.35, 0.2) * m.piel * pow(max(dot(rd, lv), 0.0), 6.0) * 0.5 * L.inten / (1.0 + ld * ld);
+  }
+  float rim = pow(1.0 - max(dot(n, -rd), 0.0), 3.0);
+  vec3 cielo = sky(normalize(vec3(n.x, abs(n.y) + 0.2, n.z)), t);
+  col += cielo * rim * 0.5 * oc * m.brillo;
+  col += vec3(0.7, 0.75, 1.0) * uFlash * max(dot(n, normalize(vec3(-0.3, 1.0, -0.4))), 0.0) * 2.4 * m.alb;
+  return col;
+}
+
+/* ---------- el agua ---------- */
+vec3 agua(vec3 ro, vec3 rd, float tw, float t, vec3 hzCol) {
+  Clima c = clima(t);
+  vec3 pos = ro + rd * tw;
+  float dist = tw;
+  float amp = 0.03 + 0.07 * c.viento;
+  vec2 wp = pos.xz * 0.8 + c.corriente * t;
+  float e = 0.02;
+  float h0 = fbm(wp) * amp, hx = fbm(wp + vec2(e, 0.0)) * amp, hz = fbm(wp + vec2(0.0, e)) * amp;
+  vec2 wq = pos.xz * 4.0 + c.corriente * t * 2.5 + vec2(0.0, t * 0.6 * c.viento);
+  float a2 = 0.004 + 0.01 * c.viento;
+  h0 += noise(wq) * a2; hx += noise(wq + vec2(e * 5.0, 0.0)) * a2; hz += noise(wq + vec2(0.0, e * 5.0)) * a2;
+  vec3 n = normalize(vec3(h0 - hx, e * 0.9 + 0.012 * dist, h0 - hz));
+  float rip = noise(pos.xz * 14.0 + t * 6.0) * c.lluvia * 0.5;
+  vec4 ex = aguaExtra(pos, t);
+  n = normalize(n + vec3(rip - 0.25 * c.lluvia + ex.x, 0.0, rip * 0.7 + ex.z) * 0.08);
+  vec3 refl = reflect(rd, n); refl.y = abs(refl.y) + 0.01;
+  vec3 rcol = sky(refl, t);
+  vec2 rh = marchar(pos + n * 0.01, refl, t, ALCANCE);
+  if (rh.x > 0.0) { vec3 rp = pos + refl * rh.x; vec3 rn = normal(rp, t); vec3 rc = sombrear(rp, rn, refl, rh.y, t); rcol = mix(rcol, mix(rc, hzCol, (1.0 - exp(-rh.x * c.niebla)) * 0.5), 0.9); }
+  float fr = mix(0.14, 1.0, pow(1.0 - max(dot(-rd, n), 0.0), 3.5));
+  vec3 aguaBase = mix(mix(vec3(0.015, 0.02, 0.03), vec3(0.17, 0.13, 0.085), c.luz), vec3(0.16, 0.11, 0.07), c.alba);
+  vec3 col = mix(aguaBase, rcol, fr);
+  col = mix(col, vec3(0.75, 0.72, 0.65) * (0.3 + 0.7 * c.luz + 0.4 * c.alba), clamp(ex.y, 0.0, 1.0));
+  col = mix(col, vec3(0.1, 0.09, 0.05) * (0.3 + 0.7 * c.luz), clamp(ex.w, 0.0, 1.0));
+  for (int i = 0; i < NLUCES; i++) {
+    Luz L = luz(i, t); if (L.inten <= 0.0) continue;
+    vec3 lv = L.pos - pos; float ld = length(lv); lv /= ld;
+    col += L.col * max(dot(n, lv), 0.0) * 0.25 * L.inten / (1.0 + ld * ld * 0.8);
+    col += L.col * pow(max(dot(refl, lv), 0.0), 120.0) * 2.0 * L.inten / (1.0 + ld * 0.3);
+  }
+  vec3 sd = sunDir(t);
+  col += vec3(1.0, 0.75, 0.45) * pow(max(dot(refl, sd), 0.0), 60.0) * 1.8 * c.alba;
+  col += vec3(0.6, 0.7, 1.0) * pow(max(dot(refl, normalize(vec3(-0.3, 0.5, 1.0))), 0.0), 200.0) * 0.6 * (1.0 - c.luz) * (1.0 - fbm4(pos.xz * 0.3 + t * 0.1));
+  vec2 gc = pos.xz * 60.0 + floor(t * 12.0); float drops = step(0.996, hash(floor(gc))) * smoothstep(0.5, 0.2, length(fract(gc) - 0.5)) * c.lluvia;
+  col += vec3(0.5, 0.55, 0.65) * drops * (1.0 - smoothstep(0.0, 5.0, dist)) * 0.5;
+  col = mix(col, hzCol, (1.0 - exp(-dist * c.niebla)) * 0.9);
+  col += vec3(0.7, 0.75, 1.0) * uFlash * 0.2;
+  return col;
+}
+/* cámara que mira a un punto */
+void mirar(vec3 ro, vec3 obj, vec2 uv, float zoom, float rollo, out vec3 rd) {
+  vec3 f = normalize(obj - ro); vec3 r = normalize(cross(f, vec3(0.0, 1.0, 0.0))); vec3 u = cross(r, f);
+  vec2 q = rot(rollo) * uv;
+  rd = normalize(f * zoom + r * q.x + u * q.y);
+}
+</script>
+<script id="glsl-main" type="x-shader/x-fragment">
+void main() {
+  vec2 frag = gl_FragCoord.xy;
+  vec2 uv = (frag - 0.5 * uRes) / uRes.y;
+  float t = uT;
+  Clima c = clima(t);
+  vec3 ro, rd; camara(t, uv, ro, rd);
+  float nivel = nivelAgua(t);
+  vec3 hzCol = sky(normalize(vec3(rd.x, 0.004, rd.z)), t);
+  vec3 col;
+  float tw = (rd.y < 0.0 && ro.y > nivel) ? (nivel - ro.y) / rd.y : 1e5;
+  vec2 hit = marchar(ro, rd, t, tw);
+  if (hit.x > 0.0) {
+    vec3 p = ro + rd * hit.x; vec3 n = normal(p, t);
+    col = sombrear(p, n, rd, hit.y, t);
+    col = mix(col, hzCol, (1.0 - exp(-hit.x * c.niebla)) * 0.6);
+  } else if (tw > 1e4) {
+    col = sky(rd, t);
+    col = mix(col, hzCol, (1.0 - smoothstep(0.0, 0.12, rd.y)) * mix(1.0, 0.7, max(c.luz, c.alba)));
+    if (uRayo.y > 0.001) {
+      float yy = clamp((uv.y + 0.02) / 0.5, 0.0, 1.0);
+      float x0 = uRayo.x + 0.07 * (noise(vec2(yy * 7.0 + uRayo.z, 0.0)) - 0.5) + 0.03 * (noise(vec2(yy * 23.0 + uRayo.z, 3.0)) - 0.5);
+      float dx = abs(uv.x - x0);
+      float nucleo = smoothstep(0.0025, 0.0, dx), halo = smoothstep(0.08, 0.0, dx) * 0.35;
+      float enAltura = step(-0.02, uv.y) * step(uv.y, 0.4) * smoothstep(0.4, 0.28, uv.y);
+      float x1 = x0 + 0.05 + 0.12 * yy; float rama = smoothstep(0.0018, 0.0, abs(uv.x - x1)) * step(0.15, yy) * step(yy, 0.5) * 0.7;
+      col += vec3(0.85, 0.9, 1.0) * (nucleo + halo + rama) * enAltura * uRayo.y * 2.5;
+    }
+  } else {
+    col = agua(ro, rd, tw, t, hzCol);
+  }
+  /* halo de las luces en el aire húmedo */
+  for (int i = 0; i < NLUCES; i++) {
+    Luz L = luz(i, t); if (L.inten <= 0.0) continue;
+    vec3 lv = L.pos - ro; float ld = length(lv); float ang = max(dot(rd, lv / ld), 0.0);
+    col += L.col * (pow(ang, 900.0) * 1.2 + pow(ang, 60.0) * 0.08) * min(L.inten, 1.5) * (0.5 + 0.5 * c.lluvia);
+  }
+  /* lluvia en pantalla */
+  if (c.lluvia > 0.001) {
+    for (int k = 0; k < 3; k++) {
+      float capa = float(k); float esc = 60.0 + capa * 50.0;
+      vec2 ru = (frag / uRes.y) * vec2(esc, esc * 0.22);
+      ru.x += ru.y * (0.3 + 0.7 * c.viento) + capa * 7.0; ru.y += t * (9.0 + capa * 3.5);
+      vec2 cell = floor(ru); float rnd = hash(cell + capa * 11.0); float xoff = fract(ru.x) - 0.5;
+      float gota = step(0.72 + capa * 0.06, rnd) * smoothstep(0.07, 0.0, abs(xoff)) * smoothstep(0.0, 0.25, fract(ru.y)) * smoothstep(1.0, 0.55, fract(ru.y));
+      col += vec3(0.55, 0.6, 0.75) * gota * c.lluvia * (0.18 - capa * 0.04) * (1.0 + uFlash) * (0.4 + 0.6 * c.luz + 0.6 * (1.0 - c.luz));
+    }
+  }
+  vec2 q = frag / uRes;
+  float vig = pow(16.0 * q.x * q.y * (1.0 - q.x) * (1.0 - q.y), 0.22);
+  col *= mix(0.55, 1.0, vig);
+  col += (hash(frag + fract(t * 13.0)) - 0.5) * 0.02;
+  col = max(col, 0.0) * 0.95;
+  col = (col * (2.51 * col + 0.03)) / (col * (2.43 * col + 0.59) + 0.14);
+  col = pow(col, vec3(1.0 / 1.05));
+  col *= uFundido;
+  gl_FragColor = vec4(col, 1.0);
+}
+</script>
+<script id="glsl-00-portada" type="x-shader/x-fragment">
+/* Portada: el arroyo de noche con la tormenta lejos, sin nada más; el texto va por encima */
+Clima clima(float t) { return Clima(0.0, 0.0, 0.8, 0.25, 0.03, 0.5, vec2(-0.3, 0.1)); }
+vec3 sunDir(float t) { return normalize(vec3(0.5, 0.1, 1.0)); }
+float nivelAgua(float t) { return 0.0; }
+Luz luz(int i, float t) { return Luz(vec3(0.0), vec3(0.0), 0.0); }
+vec4 aguaExtra(vec3 pos, float t) { return vec4(0.0); }
+vec2 mapaMundo(vec3 p, float t) { return orilla(p, t, 34.0, 1.0, 3.0, 0.5); }
+void camara(float t, vec2 uv, out vec3 ro, out vec3 rd) { ro = vec3(0.0, 0.9, -2.0); mirar(ro, vec3(2.0, 1.3, 30.0), uv + vec2(0.0, 0.002 * sin(t * 0.7)), 1.3, 0.0, rd); }
+</script>
+<script id="glsl-01-lancha" type="x-shader/x-fragment">
+/* Escena 1: la lancha colectiva entra al arroyo del Fraile, jueves al mediodía, cielo gris de pared */
+Clima clima(float t) { return Clima(0.85, 0.0, 0.9, 0.0, 0.022, 0.35, vec2(-0.4, 0.0)); }
+vec3 sunDir(float t) { return normalize(vec3(0.3, 0.6, 0.5)); }
+float nivelAgua(float t) { return 0.0; }
+Luz luz(int i, float t) { return Luz(vec3(0.0), vec3(0.0), 0.0); }
+vec3 posLancha(float t) { return vec3(34.0 - 3.1 * t, 0.0 - 0.02 * sin(t * 1.1), 8.0); }
+/* al marco local de la lancha: va hacia -x, la proa local (+x) apunta a -x del mundo */
+vec3 aLancha(vec3 p, float t) {
+  vec3 q = p - posLancha(t); q.x = -q.x; q.z = -q.z;
+  q.xy = rot(0.012 * sin(t * 0.9)) * q.xy; q.yz = rot(0.02 * sin(t * 0.7 + 1.0)) * q.yz;
+  return q;
+}
+vec2 mapaMundo(vec3 p, float t) {
+  vec2 r = orilla(p, t, 23.0, 1.0, 1.0, 0.3);          /* la orilla de enfrente */
+  r = u2(r, orilla(p, t, -13.0, -1.0, 11.0, 0.3));      /* la de acá */
+  float db = length(p - (posLancha(t) + vec3(0.0, 1.5, 0.0))) - 6.2;
+  if (db < 0.3) {
+    vec3 q = aLancha(p, t);
+    vec2 m = lancha(q);
+    /* Verónica, sentada junto a la ventana del lado de acá, con la bolsa en la falda */
+    vec3 qv = q - vec3(-1.2, 0.78, 0.7); qv.x = -qv.x; qv.z = -qv.z;
+    if (length(qv - vec3(0.0, 0.7, 0.0)) < 1.3) {
+      Pose P = poseSentada(); P.yaw = 0.35 * smoothstep(3.0, 5.0, t) - 0.25 * smoothstep(8.0, 10.0, t); P.pitch = -0.1;
+      vec2 v = persona(qv, P, aspectoVeronica());
+      float bolsa = sdBox3(qv - vec3(-0.3, 0.6, 0.0), vec3(0.12, 0.14, 0.2)) - 0.03;
+      v = u2(v, vec2(bolsa, 35.0));
+      m = u2(m, v);
+    }
+    /* otro pasajero más adelante, mirando al frente, y el lanchero de pie en la timonera */
+    vec3 qp = q - vec3(0.8, 0.78, -0.7); qp.x = -qp.x; qp.z = -qp.z;
+    if (length(qp - vec3(0.0, 0.7, 0.0)) < 1.3) m = u2(m, persona(qp, poseSentada(), Aspecto(0.0, 0.3, 1.0, 1.0, 0.0, 0.5, 2.0, 1.02)));
+    vec3 ql = q - vec3(2.75, 0.75, 0.0); ql.x = -ql.x; ql.z = -ql.z;
+    if (length(ql - vec3(0.0, 0.9, 0.0)) < 1.3) { Pose L = poseDePie(0.0, 0.0); L.manoI = vec3(-0.35, 1.05, -0.18); L.manoD = vec3(-0.35, 1.05, 0.18); L.codoI = vec3(-0.12, 1.1, -0.26); L.codoD = vec3(-0.12, 1.1, 0.26); m = u2(m, persona(ql, L, Aspecto(0.0, 0.6, 1.0, 1.0, 0.0, 0.7, 41.0, 1.0))); }
+    float timonD = sdToro(vec3(ql.x + 0.35, ql.z, ql.y - 1.05), 0.2, 0.015);
+    m = u2(m, vec2(timonD, 13.0));
+    r = u2(r, m);
+  } else if (db < r.x) r = vec2(db, 0.0);
+  return r;
+}
+vec4 aguaExtra(vec3 pos, float t) {
+  vec3 q = aLancha(pos, t);
+  float b = -q.x - 4.5;                        /* metros detrás de la popa */
+  float lat = abs(q.z);
+  float brazo = abs(lat - 0.33 * b - 1.3);
+  float kelvin = step(0.0, b) * exp(-b * 0.03) * smoothstep(1.6, 0.0, brazo) * sin(5.0 * (lat - 0.33 * b) + b * 0.4) * 0.45;
+  float estelaCentro = step(0.0, b) * exp(-b * 0.06) * smoothstep(2.2, 0.4, lat) * (sin(b * 2.5 - t * 4.0 + 3.0 * noise(q.xz * 0.5)) * 0.35 + 0.6 * (noise(q.xz * 2.0 - vec2(t * 1.5, 0.0)) - 0.5));
+  float proa = step(2.0, q.x) * step(q.x, 6.0) * smoothstep(2.4, 1.3, lat) * sin((lat + (6.0 - q.x) * 0.5) * 9.0) * 0.6;
+  float espuma = smoothstep(1.65, 1.2, lat) * step(-4.6, q.x) * step(q.x, 3.8) * (0.4 + 0.6 * noise(q.xz * 6.0 + t * 3.0));
+  espuma += step(0.0, b) * exp(-b * 0.35) * smoothstep(1.5, 0.5, lat) * (0.3 + 0.7 * noise(q.xz * 4.0 - vec2(t * 2.0, 0.0)));
+  espuma += step(2.0, q.x) * smoothstep(1.8, 1.1, lat) * exp(-max(q.x - 3.5, 0.0)) * 0.6 * noise(q.xz * 8.0 + t * 5.0);
+  return vec4(kelvin + estelaCentro + proa, espuma * 0.8, (kelvin + estelaCentro) * 0.7, 0.0);
+}
+void camara(float t, vec2 uv, out vec3 ro, out vec3 rd) {
+  vec2 tiemblo = vec2(0.002 * sin(t * 1.3), 0.0025 * sin(t * 0.9 + 1.0));
+  if (t < 12.0) {
+    /* desde la orilla de acá, a ras del agua, la lancha pasa de derecha a izquierda */
+    ro = vec3(0.0, 0.9, -1.5);
+    vec3 obj = vec3(posLancha(t).x * 0.6, 1.6, 8.0);
+    mirar(ro, obj, uv + tiemblo, 1.4, 0.0, rd);
+  } else {
+    /* desde la popa, mirando la estela y las orillas que se cierran */
+    vec3 q = vec3(-4.3, 2.55, 0.35); vec3 L = posLancha(t);
+    ro = L + vec3(-q.x, q.y, -q.z);
+    vec3 obj = L + vec3(18.0, 0.0, -2.0);
+    mirar(ro, obj, uv + tiemblo * 0.6, 1.1, 0.012 * sin(t * 0.9), rd);
+  }
+}
+</script>
+<script id="glsl-02-puerta" type="x-shader/x-fragment">
+/* Escena 2: la casa con la puerta abierta y la toalla en la baranda; Verónica sube con la bolsa */
+Clima clima(float t) { return Clima(0.8, 0.0, 0.92, 0.0, 0.015, 0.45, vec2(-0.3, 0.0)); }
+vec3 sunDir(float t) { return normalize(vec3(0.3, 0.6, 0.5)); }
+float nivelAgua(float t) { return 0.05; }
+Luz luz(int i, float t) { return Luz(vec3(0.3, 3.3, 0.4), vec3(1.0, 0.8, 0.55), 0.9); } /* la lamparita de la cocina */
+vec4 aguaExtra(vec3 pos, float t) { return vec4(0.0); }
+/* el recorrido de Verónica: parada en el muelle, camina hasta la escalera, sube, se detiene en el último escalón */
+float avanceMuelle(float t) { return smoothstep(5.0, 9.0, t); }
+float avanceEsc(float t) { return smoothstep(9.0, 13.5, t); }
+vec3 posVero(float t) {
+  float a = avanceMuelle(t), b = avanceEsc(t);
+  vec3 p = vec3(mix(-1.7, 0.0, a), 0.33, mix(-4.2, -3.95, a));
+  p.z = mix(p.z, -2.75, b); p.y = mix(0.33, 1.12, b) + 0.015 * sin(b * 5.0 * 2.0 * PI) * step(0.01, b) * step(b, 0.99);
+  return p;
+}
+float dirVero(float t) { return mix(mix(-PI * 0.5 + 0.6, -PI, smoothstep(4.0, 5.5, t)), -PI * 0.5, smoothstep(8.0, 9.5, t)); } /* mira a la casa (+z), camina a +x, sube hacia +z: para mirar al ángulo φ del mundo, el marco local gira φ + π */
+vec2 mapaMundo(vec3 p, float t) {
+  vec2 r = casa(p, 0.0, 1.0, 1.0);
+  float ds = length(p - vec3(-6.0, 1.5, 6.0)) - 4.0;
+  if (ds < 0.2) r = u2(r, sauce(p - vec3(-6.0, 0.0, 6.0), t, 4.0, 0.45)); else if (ds < r.x) r = vec2(ds, 0.0);
+  float ds2 = length(p - vec3(6.5, 1.5, 4.0)) - 4.0;
+  if (ds2 < 0.2) r = u2(r, sauce(p - vec3(6.5, 0.0, 4.0), t, 11.0, 0.45)); else if (ds2 < r.x) r = vec2(ds2, 0.0);
+  /* la barranca detrás de la casa */
+  float alto = 0.15 + 0.2 * smoothstep(-1.0, 3.0, p.z) + 0.06 * fbm4(p.xz * 1.5);
+  float tierra = smax(p.y - alto, -(p.z + 0.5 + 0.8 * noise(p.xx * 0.4)), 0.8);
+  r = u2(r, vec2(tierra, 17.0));
+  /* la chata amarrada al muelle */
+  vec3 qc = p - vec3(-2.6, 0.03, -5.1); qc.y += 0.02 * sin(t * 1.3); qc.xy = rot(0.02 * sin(t * 1.1)) * qc.xy;
+  float dc = length(qc - vec3(0.0, 0.3, 0.0)) - 1.8;
+  if (dc < 0.2) r = u2(r, chata(qc)); else if (dc < r.x) r = vec2(dc, 0.0);
+  /* Verónica */
+  vec3 pv = posVero(t);
+  float dv = length(p - (pv + vec3(0.0, 0.9, 0.0))) - 1.4;
+  if (dv < 0.2) {
+    vec3 q = rotY(p - pv, dirVero(t));
+    float paso = max(avanceMuelle(t) * (1.0 - avanceMuelle(t)) * 4.0, avanceEsc(t) * (1.0 - avanceEsc(t)) * 4.0);
+    paso = smoothstep(0.0, 0.3, paso);
+    float fase = t * 2.0 * PI / 0.95;
+    Pose P = poseDePie(fase, paso);
+    float sube = avanceEsc(t) * (1.0 - avanceEsc(t)) * 4.0;
+    P.pecho.x -= 0.04 * sube; P.hom.x -= 0.07 * sube; P.cab.x -= 0.08 * sube;
+    P.homI.x -= 0.07 * sube; P.homD.x -= 0.07 * sube;
+    /* la bolsa en la mano izquierda, la derecha en el pasamanos al subir */
+    P.manoI = P.homI + vec3(0.03, -0.56, -0.06); P.codoI = P.homI + vec3(0.03, -0.29, -0.05); P.agarreI = vec3(1.0, 0.0, 0.0);
+    if (sube > 0.1) { P.manoD = vec3(-0.35, 0.98, 0.5); P.codoD = vec3(-0.12, 0.95, 0.38); P.agarreD = vec3(-1.0, 0.0, 0.0); }
+    P.yaw = 0.3 * smoothstep(13.5, 15.0, t) - 0.3 * smoothstep(1.0, 3.0, t) * (1.0 - smoothstep(4.0, 5.5, t));
+    P.pitch = -0.15 * sube + 0.1 * smoothstep(13.5, 15.0, t);
+    vec2 v = persona(q, P, aspectoVeronica());
+    vec3 mb = P.manoI * 0.94;
+    float bolsa = sdBox3(q - (mb + vec3(0.0, -0.3, 0.0)), vec3(0.13, 0.19, 0.07)) - 0.03;
+    bolsa = min(bolsa, sdCap(q, mb + vec3(0.0, -0.12, 0.0), mb + vec3(0.0, -0.12, 0.0) + vec3(0.1, 0.0, 0.0), 0.012));
+    bolsa = min(bolsa, sdCap(q, mb + vec3(0.0, -0.12, 0.0), mb + vec3(0.0, -0.12, 0.0) + vec3(-0.1, 0.0, 0.0), 0.012));
+    r = u2(r, u2(v, vec2(bolsa, 35.0)));
+  } else if (dv < r.x) r = vec2(dv, 0.0);
+  /* Ana, de espaldas en la cocina, lavando una taza; se la ve por la puerta */
+  vec3 pa = vec3(-0.05, 1.26, 0.78);
+  float da = length(p - (pa + vec3(0.0, 0.9, 0.0))) - 1.3;
+  if (da < 0.2) {
+    vec3 q = rotY(p - pa, -PI * 0.5);
+    Pose P = poseDePie(0.0, 0.0);
+    P.manoI = vec3(-0.3, 0.98, -0.12); P.manoD = vec3(-0.3, 1.0, 0.1); P.codoI = vec3(-0.08, 1.05, -0.22); P.codoD = vec3(-0.08, 1.05, 0.22);
+    P.manoI.y += 0.02 * sin(t * 6.0); P.manoD.x -= 0.02 * sin(t * 6.0);
+    P.pitch = -0.25;
+    r = u2(r, persona(q, P, Aspecto(1.0, 0.0, 3.0, 0.0, 0.0, 0.0, 41.0, 0.92)));
+  } else if (da < r.x) r = vec2(da, 0.0);
+  return r;
+}
+void camara(float t, vec2 uv, out vec3 ro, out vec3 rd) {
+  vec2 tiemblo = vec2(0.0015 * sin(t * 1.1), 0.002 * sin(t * 0.8 + 1.0));
+  vec3 pv = posVero(t);
+  float a = smoothstep(4.5, 9.5, t), b = smoothstep(9.5, 14.0, t), c = smoothstep(14.0, 19.5, t);
+  /* desde atrás, a la derecha, baja; acompaña por el muelle y sube detrás de ella; al final se asoma por encima del hombro a la puerta */
+  vec3 ro0 = vec3(1.1, 1.25, -7.2), ro1 = vec3(1.6, 1.5, -5.6), ro2 = vec3(0.9, 2.5, -4.4), ro3 = vec3(0.7, 2.7, -3.55);
+  ro = mix(mix(mix(ro0, ro1, a), ro2, b), ro3, c);
+  vec3 obj0 = vec3(-0.9, 1.5, -2.2), obj1 = vec3(pv.x * 0.5, 1.9, -1.8), obj2 = vec3(-0.1, 2.1, -1.4), obj3 = vec3(-0.1, 1.95, 0.8);
+  vec3 obj = mix(mix(mix(obj0, obj1, a), obj2, b), obj3, c);
+  mirar(ro, obj, uv + tiemblo, mix(1.3, 1.6, c), 0.0, rd);
+}
+</script>
+<script id="glsl-05-hombre" type="x-shader/x-fragment">
+/* Escena 5: amanecer gris del sábado; desde la galería (el muelle ya está bajo el agua), Verónica mira a la otra orilla,
+   donde un hombre rema una chata entre los sauces del recreo abandonado */
+Clima clima(float t) { return Clima(0.38, 0.12, 0.9, 0.45, 0.045, 0.6, vec2(-0.9, 0.0)); }
+vec3 sunDir(float t) { return normalize(vec3(-0.6, 0.08, -1.0)); }
+float nivelAgua(float t) { return 1.0; }
+Luz luz(int i, float t) { return Luz(vec3(0.0), vec3(0.0), 0.0); }
+float corte(float t) { return step(11.0, t); }
+vec3 posChata(float t) { return vec3(-7.0 + 0.55 * t, 1.0, -26.5 + 0.05 * t); }
+float remo(float t) { return sin(t * 2.0 * PI / 2.6); }
+vec3 aChata(vec3 p, float t) {
+  vec3 q = p - posChata(t);
+  q.y -= 0.04 * sin(t * 1.5) + 0.02 * sin(t * 2.9 + q.x);
+  q.yz = rot(0.04 * sin(t * 1.2)) * q.yz; q.xy = rot(0.02 * sin(t * 1.6 + 1.0)) * q.xy;
+  return q;
+}
+vec2 mapaMundo(vec3 p, float t) {
+  vec2 r = orilla(p, t, -31.0, -1.0, 21.0, 0.6);   /* el recreo abandonado, enfrente */
+  /* la casa, solo en la primera toma */
+  if (corte(t) < 0.5) {
+    vec2 m = casa(p, 1.0, 0.0, 0.0); if (m.x < r.x) r = m;
+    vec3 pv = vec3(0.0, 1.2, -2.3);
+    float dv = length(p - (pv + vec3(0.0, 0.9, 0.0))) - 1.4;
+    if (dv < 0.2) {
+      vec3 q = rotY(p - pv, PI * 0.5);           /* mira a -z */
+      Pose P = poseDePie(0.0, 0.0);
+      P.manoI = vec3(-0.28, 1.65, -0.2); P.codoI = vec3(-0.08, 1.35, -0.25); P.agarreI = vec3(0.0, -1.0, 0.0); /* apoyada en la baranda */
+      P.manoD = vec3(-0.28, 1.65, 0.2); P.codoD = vec3(-0.08, 1.35, 0.25); P.agarreD = vec3(0.0, -1.0, 0.0);
+      P.yaw = -0.25 + 0.15 * smoothstep(3.0, 8.0, t); P.pitch = -0.05;
+      vec2 v = persona(q, P, aspectoVeronica()); if (v.x < r.x) r = v;
+    } else if (dv < r.x) r = vec2(dv, 0.0);
+  }
+  /* la chata con el hombre, lejos */
+  float db = length(p - (posChata(t) + vec3(0.0, 0.5, 0.0))) - 2.8;
+  if (db < 0.2) {
+    vec3 q = aChata(p, t);
+    vec2 m = chata(q);
+    float a = remo(t);
+    Pose P = poseRemando(a);
+    /* zurdo, rema «al revés»: la mano izquierda va más adelante y el cuerpo gira apenas */
+    P.manoI.x -= 0.06; P.manoD.x += 0.04; P.yaw = 0.35; P.pitch = 0.1;
+    m = u2(m, persona(q, P, aspectoMartin()));
+    m = u2(m, vec2(remos(q, P, vec3(0.0, 0.46, -0.42), vec3(0.0, 0.46, 0.42), 2.1), 5.0));
+    r = u2(r, m);
+  } else if (db < r.x) r = vec2(db, 0.0);
+  return r;
+}
+vec4 aguaExtra(vec3 pos, float t) {
+  vec3 q = aChata(pos, t);
+  float estela = exp(-abs(q.z) * 2.5) * exp(-max(-q.x, 0.0) * 0.6) * step(q.x, 1.2) * 0.6 * sin(q.x * 18.0 - t * 6.0);
+  float espuma = smoothstep(0.5, 0.3, abs(q.z)) * step(-3.0, q.x) * step(q.x, -1.2) * 0.3 * noise(q.xz * 5.0 + t * 2.0);
+  /* hojas y ramas que lleva la corriente */
+  vec2 h = pos.xz + vec2(0.9 * t, 0.0);
+  float hojas = step(0.86, noise(h * 1.5)) * step(0.6, noise(h * 6.0 + 2.0)) * 0.7;
+  return vec4(estela, espuma, estela * 0.5, hojas);
+}
+void camara(float t, vec2 uv, out vec3 ro, out vec3 rd) {
+  vec2 tiemblo = vec2(0.0015 * sin(t * 1.1), 0.002 * sin(t * 0.8 + 1.0));
+  if (corte(t) < 0.5) {
+    /* detrás de Verónica, en la galería, por encima de su hombro hacia la otra orilla */
+    float a = smoothstep(0.0, 11.0, t);
+    ro = vec3(mix(0.7, 0.9, a), 2.55, -1.5);
+    vec3 obj = vec3(mix(-2.5, -1.0, a), 1.5, -26.0);
+    mirar(ro, obj, uv + tiemblo, mix(0.9, 1.15, a), 0.0, rd);
+  } else {
+    /* teleobjetivo sobre el hombre, desde el agua, siguiéndolo */
+    vec3 c = posChata(t);
+    ro = vec3(c.x - 9.0, 1.7, c.z + 7.5);
+    mirar(ro, c + vec3(0.1, 0.8, 0.0), uv + tiemblo * 1.5, 2.6, 0.0, rd);
+  }
+}
+</script>
+<script id="glsl-08-farol" type="x-shader/x-fragment">
+/* Escena 8: el muelle de Elías a las 4.20. Ana agarrada a un poste con el agua al pecho; Verónica llega en la chata y la chata
+   se da vuelta; la puerta de chapa del galpón se abre y sale un farol que baja hasta el agua; el Negro ladra en el pallet;
+   el que trae el farol lo cuelga del gancho del poste y la luz cae sobre los tres. */
+#define NIVEL 1.35
+Clima clima(float t) { return Clima(0.0, 0.0, 0.9, 0.55, 0.07, 1.0, vec2(-1.2, 0.0)); }
+vec3 sunDir(float t) { return normalize(vec3(0.5, 0.1, 1.0)); }
+float nivelAgua(float t) { return NIVEL; }
+float suelo(vec3 p) { return -0.3 + 0.28 * clamp(p.z, 0.0, 5.0) + 0.05 * fbm4(p.xz * 1.5); }
+/* el farol: adentro del galpón, baja a la puerta, viene por el agua en alto y queda colgado del gancho del poste */
+float abrePuerta(float t) { return smoothstep(8.5, 9.8, t); }
+vec3 posMartin(float t) {
+  float a = smoothstep(10.5, 17.5, t);
+  vec3 p = vec3(mix(0.25, 0.35, a), 0.0, mix(4.85, 2.05, a));
+  p.y = suelo(p) - 0.02;
+  return p;
+}
+vec3 posFarol(float t) {
+  vec3 m = posMartin(t);
+  vec3 enMano = m + vec3(-0.3, 1.72, -0.35) + vec3(0.02 * sin(t * 3.0), 0.03 * sin(t * 2.3), 0.03 * sin(t * 2.7));
+  vec3 adentro = vec3(1.2, 1.9, 6.5);
+  vec3 gancho = vec3(0.12, 2.1, 1.05);
+  vec3 p = mix(adentro, m + vec3(-0.28, 1.2, -0.3), smoothstep(8.8, 10.2, t));
+  p = mix(p, enMano, smoothstep(10.2, 10.8, t));
+  p = mix(p, gancho, smoothstep(17.6, 19.0, t));
+  return p;
+}
+Luz luz(int i, float t) {
+  if (i == 0) return Luz(posFarol(t) + vec3(0.0, 0.1, 0.0), vec3(1.0, 0.72, 0.38), 3.2 * (0.9 + 0.1 * noise(vec2(t * 9.0, 0.0))) * smoothstep(8.6, 9.2, t));
+  return Luz(vec3(-1.0, 2.0, 7.0), vec3(1.0, 0.75, 0.45), 0.3 * smoothstep(8.6, 9.4, t)); /* el resplandor adentro del galpón */
+}
+/* la chata de Verónica: llega remando desde la izquierda, se da vuelta a los 4.2 y queda panza arriba yéndose con la corriente */
+float vuelco(float t) { return smoothstep(4.2, 5.1, t); }
+vec3 posChata(float t) {
+  float v = vuelco(t);
+  vec3 p = vec3(-9.0 + 1.75 * min(t, 4.2) + 0.45 * max(t - 5.1, 0.0), NIVEL - 0.05 - 0.35 * v + 0.25 * sin(v * PI), -0.6 + 0.3 * smoothstep(5.0, 12.0, t));
+  return p;
+}
+vec3 aChata(vec3 p, float t) {
+  vec3 q = p - posChata(t);
+  float v = vuelco(t);
+  q.yz = rot(PI * v + 0.05 * sin(t * 1.4)) * q.yz;
+  q.y -= 0.03 * sin(t * 1.9 + q.x);
+  q.xy = rot(0.03 * sin(t * 1.6) + 0.15 * sin(v * PI)) * q.xy;
+  return q;
+}
+float remo(float t) { return sin(t * 2.0 * PI / 1.9 + 0.3 * sin(t * 1.7)); }
+vec2 galpon(vec3 p, float t) {
+  vec3 g = p - vec3(0.0, 1.1, 7.0);
+  float caja = sdBox3(g - vec3(0.0, 1.5, 0.0), vec3(2.6, 1.5, 2.0));
+  caja = max(caja, -sdBox3(g - vec3(0.0, 1.5, 0.0), vec3(2.5, 1.45, 1.9)));     /* hueco */
+  caja = max(caja, -sdBox3(g - vec3(0.0, 1.05, -2.0), vec3(0.85, 1.1, 0.3)));    /* el hueco de la puerta */
+  float techo = max(max((g.y - 3.0) + 0.3 * abs(g.x) - 0.85, -(g.y - 2.98)), max(abs(g.x) - 2.8, abs(g.z) - 2.3));
+  vec2 r = vec2(min(caja, techo), 32.0);
+  /* la puerta corrediza: corre hacia +x por un riel */
+  float ab = abrePuerta(t);
+  float puerta = sdBox3(g - vec3(1.72 * ab, 1.05, -2.1), vec3(0.88, 1.1, 0.03));
+  float riel = sdBox3(g - vec3(0.9, 2.25, -2.1), vec3(1.9, 0.04, 0.06));
+  if (min(puerta, riel) < r.x) r = vec2(min(puerta, riel), 32.0);
+  return r;
+}
+vec2 mapaMundo(vec3 p, float t) {
+  float s = suelo(p);
+  vec2 r = vec2(p.y - s, 17.0);
+  /* el galpón y, más alta y a la izquierda, la casa de Elías, apagada */
+  float dg = length(p - vec3(0.0, 2.5, 7.0)) - 4.5;
+  if (dg < 0.2) r = u2(r, galpon(p, t)); else if (dg < r.x) r = vec2(dg, 0.0);
+  float dcasa = length(p - vec3(-9.0, 4.5, 12.0)) - 7.5;
+  if (dcasa < 0.2) r = u2(r, casa(p - vec3(-9.0, 1.2, 12.0), 0.0, 0.0, 0.0)); else if (dcasa < r.x) r = vec2(dcasa, 0.0);
+  /* el muelle hundido: tablas bajo el agua y seis postes altos con un gancho */
+  float muelle = sdBox3(p - vec3(0.0, 0.3, 0.6), vec3(2.0, 0.025, 1.0));
+  float postes = 1e3;
+  for (int i = 0; i < 3; i++) { float x = -1.5 + 1.5 * float(i); postes = min(postes, min(sdCil(p - vec3(x, 1.1, 0.0), 1.25, 0.06), sdCil(p - vec3(x, 1.1, 1.2), 1.25, 0.06))); }
+  float gancho = sdCap(p, vec3(0.0, 2.3, 1.2), vec3(0.12, 2.38, 1.05), 0.012);
+  r = u2(r, vec2(min(muelle, min(postes, gancho)), 13.0));
+  /* el pallet atado a la puerta, flotando, con el Negro parado encima */
+  vec3 qp = p - vec3(1.7, NIVEL - 0.04 + 0.03 * sin(t * 1.7), 4.35); qp.xy = rot(0.04 * sin(t * 1.3)) * qp.xy;
+  float dp = length(qp - vec3(0.0, 0.3, 0.0)) - 1.3;
+  if (dp < 0.2) {
+    float pallet = sdBox3(qp, vec3(0.6, 0.06, 0.4));
+    pallet = max(pallet, -min(sdBox3(qp - vec3(-0.3, 0.0, 0.0), vec3(0.06, 0.03, 0.5)), sdBox3(qp - vec3(0.3, 0.0, 0.0), vec3(0.06, 0.03, 0.5))));
+    float ladra = smoothstep(9.3, 9.6, t) * (0.5 + 0.5 * sin(t * 14.0)) * step(fract(t * 0.5), 0.6);
+    vec2 d = perro(rotY(qp - vec3(0.05, 0.06, -0.05), PI * 0.5 + 0.3), ladra);
+    r = u2(r, u2(vec2(pallet, 33.0), d));
+  } else if (dp < r.x) r = vec2(dp, 0.0);
+  /* la chata y Verónica remando hasta el vuelco */
+  vec3 pc = posChata(t);
+  float dc = length(p - (pc + vec3(0.0, 0.3, 0.0))) - 2.7;
+  if (dc < 0.2) {
+    vec3 q = aChata(p, t);
+    vec2 m = chata(q);
+    if (t < 4.6) {
+      Pose P = poseRemando(remo(t));
+      m = u2(m, persona(q, P, aspectoVeronica()));
+      m = u2(m, vec2(remos(q, P, vec3(0.0, 0.46, -0.42), vec3(0.0, 0.46, 0.42), 2.1), 5.0));
+    }
+    r = u2(r, m);
+  } else if (dc < r.x) r = vec2(dc, 0.0);
+  /* Ana, agarrada al poste de adelante; Verónica sale del agua al lado, del otro lado del poste */
+  vec3 pa = vec3(0.38, suelo(vec3(0.38, 0.0, 1.25)) + 0.1, 1.25);
+  float da = length(p - (pa + vec3(0.0, 1.0, 0.0))) - 1.2;
+  if (da < 0.2) {
+    vec3 q = rotY(p - pa, PI);  /* mira al poste, hacia -x */
+    Pose P = poseDePie(0.0, 0.0);
+    P.manoI = vec3(-0.36, 1.55, 0.05); P.manoD = vec3(-0.36, 1.45, -0.05); P.codoI = vec3(-0.2, 1.3, -0.25); P.codoD = vec3(-0.2, 1.2, 0.25);
+    P.agarreI = vec3(-1.0, 0.0, 0.0); P.agarreD = vec3(-1.0, 0.0, 0.0);
+    P.cab.y += 0.04 * sin(t * 1.7); P.pitch = 0.25 - 0.2 * smoothstep(17.0, 19.0, t); P.yaw = -0.3 + 0.5 * smoothstep(9.0, 11.0, t);
+    r = u2(r, persona(q, P, aspectoAna()));
+  } else if (da < r.x) r = vec2(da, 0.0);
+  if (t > 5.0) {
+    float sube = smoothstep(5.2, 6.4, t);
+    vec3 pv = vec3(-0.45, suelo(vec3(-0.45, 0.0, 1.3)) + 0.1 - 0.9 * (1.0 - sube), 1.3);
+    float dv = length(p - (pv + vec3(0.0, 1.0, 0.0))) - 1.2;
+    if (dv < 0.2) {
+      vec3 q = rotY(p - pv, 0.0); /* mira a -x: hacia el poste y Ana... el poste le queda atrás: gira */
+      q = rotY(p - pv, PI * 0.9);
+      Pose P = poseDePie(0.0, 0.0);
+      P.manoI = vec3(-0.3, 1.5, -0.15); P.manoD = vec3(-0.32, 1.4, 0.12); P.codoI = vec3(-0.15, 1.25, -0.28); P.codoD = vec3(-0.15, 1.15, 0.28);
+      P.agarreI = vec3(-1.0, 0.0, 0.0); P.agarreD = vec3(-1.0, 0.0, 0.0);
+      P.cab.y += 0.03 * sin(t * 2.1 + 1.0); P.yaw = 0.5 * smoothstep(9.0, 11.0, t) - 0.4 * smoothstep(19.0, 21.0, t); P.pitch = 0.2;
+      r = u2(r, persona(q, P, aspectoVeronica()));
+    } else if (dv < r.x) r = vec2(dv, 0.0);
+  }
+  /* Martín: sale del galpón con el farol en alto, viene con el agua al pecho y lo cuelga del gancho */
+  if (t > 8.9) {
+    vec3 pm = posMartin(t);
+    float dm = length(p - (pm + vec3(0.0, 1.2, 0.0))) - 1.5;
+    if (dm < 0.2) {
+      vec3 q = rotY(p - pm, PI * 0.5); /* mira a -z */
+      float cam = smoothstep(10.5, 11.0, t) * (1.0 - smoothstep(17.0, 17.5, t));
+      float fase = t * 2.0 * PI / 1.6;
+      Pose P = poseDePie(fase, cam * 0.5);
+      float alto = smoothstep(10.2, 10.8, t) * (1.0 - smoothstep(18.6, 19.4, t));
+      vec3 enMano = vec3(-0.35, 2.0, 0.3), colgando = vec3(-0.5, 1.5, 0.28);
+      P.manoD = mix(vec3(-0.3, 1.25, 0.28), mix(colgando, enMano, alto), smoothstep(9.0, 9.4, t));
+      P.manoD = mix(P.manoD, vec3(-0.3, 1.3, 0.25), smoothstep(19.0, 19.8, t));
+      P.codoD = mix(P.homD + vec3(-0.1, -0.3, 0.1), vec3(-0.18, 1.62, 0.35), alto); P.agarreD = vec3(0.0, 1.0, 0.0);
+      /* el brazo izquierdo abre el agua */
+      P.manoI = vec3(-0.45 - 0.1 * sin(fase * 0.5) * cam, 1.25, -0.3); P.codoI = vec3(-0.2, 1.3, -0.3); P.agarreI = vec3(-1.0, 0.0, 0.0);
+      P.yaw = 0.15 * sin(t * 0.8); P.pitch = -0.1 + 0.3 * smoothstep(19.0, 21.0, t);
+      vec2 m = persona(q, P, aspectoMartin());
+      r = u2(r, m);
+    } else if (dm < r.x) r = vec2(dm, 0.0);
+  }
+  /* el farol, con su asa, donde esté */
+  vec3 pf = posFarol(t);
+  float df = length(p - (pf + vec3(0.0, 0.12, 0.0))) - 0.45;
+  if (df < 0.2) { vec3 qf = p - pf; qf.xz = rot(t * 0.3) * qf.xz; r = u2(r, farol(qf)); } else if (df < r.x) r = vec2(df, 0.0);
+  return r;
+}
+vec4 aguaExtra(vec3 pos, float t) {
+  /* espuma contra los postes y la chata, y hojas que pasan */
+  float esp = 0.0;
+  for (int i = 0; i < 3; i++) { float x = -1.5 + 1.5 * float(i); esp += smoothstep(0.35, 0.08, length(pos.xz - vec2(x, 0.0))) + smoothstep(0.35, 0.08, length(pos.xz - vec2(x, 1.2))); }
+  vec3 q = aChata(pos, t);
+  esp += smoothstep(0.55, 0.3, abs(q.z)) * step(-1.5, q.x) * step(q.x, 1.5) * 0.4 * noise(q.xz * 5.0 + t * 3.0);
+  esp += (1.0 - smoothstep(4.2, 7.0, t)) * smoothstep(4.15, 4.5, t) * smoothstep(2.5, 0.5, length(pos.xz - posChata(t).xz)) * noise(pos.xz * 4.0 + t * 6.0) * 1.5;
+  float estela = step(t, 4.3) * exp(-abs(q.z) * 2.5) * exp(-max(-q.x, 0.0) * 0.6) * step(q.x, 1.2) * 0.6 * sin(q.x * 18.0 - t * 6.0);
+  vec2 h = pos.xz + vec2(1.2 * t, 0.0);
+  float hojas = step(0.85, noise(h * 1.5)) * step(0.55, noise(h * 6.0 + 2.0)) * 0.7;
+  return vec4(estela, esp * (0.4 + 0.6 * noise(pos.xz * 7.0 + t * 4.0)), estela * 0.5, hojas);
+}
+void camara(float t, vec2 uv, out vec3 ro, out vec3 rd) {
+  vec2 tiemblo = vec2(0.003 * sin(t * 1.4) + 0.002 * sin(t * 3.1), 0.004 * sin(t * 1.1 + 1.0));
+  float a = smoothstep(8.0, 19.0, t), b = smoothstep(19.5, 24.0, t);
+  /* desde el agua, a la izquierda del muelle; se acerca despacio mientras viene el farol; al final, la cara de Martín bajo la luz */
+  vec3 ro1 = mix(vec3(-3.6, 1.95, -2.6), vec3(-2.2, 1.85, -1.2), a);
+  vec3 obj1 = mix(vec3(0.3, 1.7, 2.5), vec3(0.3, 1.8, 2.2), a);
+  vec3 ro2 = vec3(-0.75, 1.85, 0.35), obj2 = vec3(0.3, 1.75, 2.0);
+  ro = mix(ro1, ro2, b); vec3 obj = mix(obj1, obj2, b);
+  mirar(ro, obj, uv + tiemblo, mix(1.25, 1.9, b), 0.0, rd);
+}
+</script>
+<script id="glsl-09-barro" type="x-shader/x-fragment">
+/* Escena 9: domingo a la tarde, el agua baja y el cielo se abre; la casa con la marca del agua, barro y dos personas baldeando */
+Clima clima(float t) { return Clima(0.75, 0.3, 0.55, 0.0, 0.012, 0.15, vec2(-0.25, 0.0)); }
+vec3 sunDir(float t) { return normalize(vec3(-0.7, 0.25, 0.5)); }
+float nivelAgua(float t) { return 0.55 - 0.004 * t; }
+Luz luz(int i, float t) { return Luz(vec3(0.0), vec3(0.0), 0.0); }
+vec4 aguaExtra(vec3 pos, float t) { vec2 h = pos.xz + vec2(0.25 * t, 0.0); float basura = step(0.88, noise(h * 1.2)) * step(0.55, noise(h * 5.0 + 1.0)) * 0.6; return vec4(0.0, 0.0, 0.0, basura); }
+vec2 mapaMundo(vec3 p, float t) {
+  vec2 r = casa(p, 0.0, 1.0, 0.0);
+  float ds = length(p - vec3(-6.0, 1.5, 6.0)) - 4.0;
+  if (ds < 0.2) r = u2(r, sauce(p - vec3(-6.0, 0.0, 6.0), t, 4.0, 0.15)); else if (ds < r.x) r = vec2(ds, 0.0);
+  float ds2 = length(p - vec3(6.5, 1.5, 4.0)) - 4.0;
+  if (ds2 < 0.2) r = u2(r, sauce(p - vec3(6.5, 0.0, 4.0), t, 11.0, 0.15)); else if (ds2 < r.x) r = vec2(ds2, 0.0);
+  float alto = 0.15 + 0.2 * smoothstep(-1.0, 3.0, p.z) + 0.06 * fbm4(p.xz * 1.5);
+  float tierra = smax(p.y - alto, -(p.z + 0.5 + 0.8 * noise(p.xx * 0.4)), 0.8);
+  r = u2(r, vec2(tierra, 17.0));
+  /* la chata, atada a la baranda, todavía */
+  vec3 qc = p - vec3(-2.9, 0.53, -3.4); qc.y += 0.02 * sin(t * 1.3);
+  float dc = length(qc - vec3(0.0, 0.3, 0.0)) - 1.8;
+  if (dc < 0.2) r = u2(r, chata(qc)); else if (dc < r.x) r = vec2(dc, 0.0);
+  /* Verónica baldea en la galería; Martín, en cuclillas, refriega con un trapo */
+  vec3 pv = vec3(-0.9, 1.2, -2.1);
+  float dv = length(p - (pv + vec3(0.0, 0.9, 0.0))) - 1.4;
+  if (dv < 0.2) {
+    vec3 q = rotY(p - pv, PI * 0.5 + 0.5);
+    Pose P = poseDePie(0.0, 0.0);
+    float sw = sin(t * 2.0 * PI / 1.6);
+    P.manoI = vec3(-0.25 - 0.15 * sw, 0.95, -0.28); P.manoD = vec3(-0.3 - 0.15 * sw, 1.0, 0.1); P.codoI = vec3(-0.05, 1.1, -0.3); P.codoD = vec3(-0.08, 1.12, 0.22);
+    P.agarreI = vec3(0.0, -1.0, 0.0); P.agarreD = vec3(0.0, -1.0, 0.0);
+    P.pecho.x -= 0.05; P.hom.x -= 0.1; P.cab.x -= 0.14; P.cab.y -= 0.04; P.homI.x -= 0.1; P.homD.x -= 0.1; P.pitch = -0.35;
+    vec2 v = persona(q, P, aspectoVeronica());
+    /* el palo del escobillón */
+    vec3 m1 = P.manoI * 0.94, m2 = P.manoD * 0.94; vec3 dir = normalize(m1 - m2);
+    float palo = sdCap(q, m2 - dir * 0.3, m1 + dir * 0.9, 0.015);
+    vec3 pie = m1 + dir * 0.9; float cepillo = sdBox3(q - pie - vec3(0.0, -0.05, 0.0), vec3(0.06, 0.04, 0.2));
+    r = u2(r, u2(v, u2(vec2(palo, 5.0), vec2(cepillo, 13.0))));
+  } else if (dv < r.x) r = vec2(dv, 0.0);
+  vec3 pm = vec3(1.0, 1.2, -2.4);
+  float dm = length(p - (pm + vec3(0.0, 0.7, 0.0))) - 1.3;
+  if (dm < 0.2) {
+    vec3 q = rotY(p - pm, PI * 0.5 - 0.8);
+    Pose P = poseSentada(); P.cad.y -= 0.1; P.pecho.y -= 0.1; P.hom.y -= 0.1; P.cab.y -= 0.12; P.homI.y -= 0.1; P.homD.y -= 0.1; P.rodI.y += 0.05; P.rodD.y += 0.05;
+    float sw = sin(t * 2.0 * PI / 1.1);
+    P.manoI = vec3(-0.45 + 0.12 * sw, 0.08, -0.15); P.manoD = vec3(-0.3, 0.42, 0.18); P.codoI = vec3(-0.1, 0.35, -0.25); P.codoD = vec3(0.0, 0.5, 0.25);
+    P.agarreI = vec3(0.0, -1.0, 0.0); P.agarreD = vec3(0.0, -1.0, 0.0); P.pitch = -0.45;
+    vec2 v = persona(q, P, aspectoMartin());
+    float balde = sdCil(q - vec3(-0.75, 0.15, 0.25), 0.14, 0.14); balde = max(balde, -sdCil(q - vec3(-0.75, 0.2, 0.25), 0.14, 0.12));
+    r = u2(r, u2(v, vec2(balde, 28.0)));
+  } else if (dm < r.x) r = vec2(dm, 0.0);
+  return r;
+}
+void camara(float t, vec2 uv, out vec3 ro, out vec3 rd) {
+  vec2 tiemblo = vec2(0.001 * sin(t * 1.1), 0.0015 * sin(t * 0.8 + 1.0));
+  float a = smoothstep(0.0, 12.0, t), b = smoothstep(12.5, 20.0, t);
+  /* desde el agua, acercándose despacio a la casa; al final la cámara sube al cielo para el título */
+  ro = mix(vec3(2.5, 1.3, -14.0), vec3(1.2, 1.6, -8.0), a);
+  vec3 obj = mix(vec3(-0.3, 2.3, 0.0), vec3(-2.0, 14.0, 4.0), b * b);
+  mirar(ro, obj, uv + tiemblo, 1.35, 0.0, rd);
+}
+</script>
+<script>
+"use strict";
+/* ---- síntesis de sonido: todo sale de osciladores, ruido y filtros de WebAudio ----
+   sonidos(ctx, maestro, T0, desde, dur) devuelve una caja de herramientas para una escena: T0 es el instante absoluto del
+   segundo 0 de la escena, desde son los segundos locales que se saltan (al mover la barra), dur la duración de la escena. */
+function sonidos(ctx, maestro, T0, desde, dur) {
+  const S = { fuentes: [] };
+  const A = (tt) => T0 + tt;                                /* tiempo absoluto de un instante local */
+  const ini = (tt) => T0 + Math.max(tt, desde);              /* arranque, nunca antes de «desde» */
+  const pasado = (t1) => t1 <= desde;
+  if (!ctx.__ruidos) ctx.__ruidos = {};
+  const ruido = (seg) => { seg = Math.ceil(seg); if (ctx.__ruidos[seg]) return ctx.__ruidos[seg]; const b = ctx.createBuffer(1, ctx.sampleRate * seg, ctx.sampleRate); const d = b.getChannelData(0); let s = 12345 + seg; for (let i = 0; i < d.length; i++) { s = (s * 1664525 + 1013904223) >>> 0; d[i] = (s / 2147483648) - 1; } ctx.__ruidos[seg] = b; return b; };
+  let semilla = Math.round(T0 * 1000) % 1000 + 7; const azar = () => { semilla = (semilla * 9301 + 49297) % 233280; return semilla / 233280; };
+  const gan = (v, dest) => { const g = ctx.createGain(); g.gain.value = v; g.connect(dest || maestro); return g; };
+  const filtro = (tipo, f, q, dest) => { const x = ctx.createBiquadFilter(); x.type = tipo; x.frequency.value = f; if (q !== undefined) x.Q.value = q; x.connect(dest); return x; };
+  const fuenteRuido = (t0, t1, dest) => { const s = ctx.createBufferSource(); s.buffer = ruido(t1 - t0 + 1); s.loop = true; s.connect(dest); s.start(ini(t0)); s.stop(A(t1)); S.fuentes.push(s); return s; };
+  const osc = (tipo, f, t0, t1, dest) => { const o = ctx.createOscillator(); o.type = tipo; o.frequency.value = f; o.connect(dest); o.start(ini(t0)); o.stop(A(t1)); S.fuentes.push(o); return o; };
+  const lfo = (f, prof, param, t0, t1, tipo) => { const o = ctx.createOscillator(); o.type = tipo || "sine"; o.frequency.value = f; const g = ctx.createGain(); g.gain.value = prof; o.connect(g); g.connect(param); o.start(ini(t0)); o.stop(A(t1)); S.fuentes.push(o); return o; };
+  /* envolvente: sube en «at», baja exponencial hasta t1 */
+  const env = (g, t0, at, pico, t1) => { g.gain.setValueAtTime(0, A(t0)); g.gain.linearRampToValueAtTime(pico, A(t0) + at); g.gain.exponentialRampToValueAtTime(0.0005, A(t1)); };
+  /* una reverberación corta, para los interiores */
+  const reverb = () => { if (ctx.__rev) return ctx.__rev; const seg = 1.4, b = ctx.createBuffer(2, ctx.sampleRate * seg, ctx.sampleRate); for (let c = 0; c < 2; c++) { const d = b.getChannelData(c); let s = 777 + c; for (let i = 0; i < d.length; i++) { s = (s * 1664525 + 1013904223) >>> 0; d[i] = ((s / 2147483648) - 1) * Math.pow(1 - i / d.length, 3.5); } } const cv = ctx.createConvolver(); cv.buffer = b; const g = ctx.createGain(); g.gain.value = 0.35; cv.connect(g); g.connect(maestro); ctx.__rev = cv; return cv; };
+
+  /* viento: ruido por un pasabanda que baila, con ráfagas */
+  S.viento = (t0, t1, v0, v1, f) => { if (pasado(t1)) return; const g = gan(0); g.gain.setValueAtTime(0.55 * v0, A(t0)); g.gain.linearRampToValueAtTime(0.55 * v1, A(t1)); const bp = filtro("bandpass", f || 380, 0.7, g); lfo(0.23, 180, bp.frequency, t0, t1); lfo(0.071, 0.2 * (v0 + v1), g.gain, t0, t1); fuenteRuido(t0, t1, bp); };
+  S.lluvia = (t0, t1, v0, v1, f) => { if (pasado(t1)) return; const g = gan(0); g.gain.setValueAtTime(0.16 * v0 * 6, A(t0)); g.gain.linearRampToValueAtTime(0.16 * v1 * 6, A(t1)); const hp = filtro("highpass", f || 3200, undefined, g); fuenteRuido(t0, t1, hp); };
+  S.trueno = (tt) => { const t1 = tt + 3.0; if (pasado(t1)) return; const g = gan(0); const f = filtro("lowpass", 220, undefined, g); f.frequency.setValueAtTime(220, A(tt)); f.frequency.exponentialRampToValueAtTime(60, A(tt) + 2.6); env(g, tt, 0.15, 0.9, t1); const s = ctx.createBufferSource(); s.buffer = ruido(3); s.connect(f); s.start(ini(tt)); s.stop(A(t1)); S.fuentes.push(s); };
+  /* el motor diésel de la lancha colectiva: dos osciladores graves con golpeteo y escape */
+  S.motor = (t0, t1) => { if (pasado(t1)) return; const g = gan(0); g.gain.setValueAtTime(0, A(t0)); g.gain.linearRampToValueAtTime(0.14, A(t0) + 1.5); g.gain.setValueAtTime(0.14, A(t1) - 1.0); g.gain.linearRampToValueAtTime(0, A(t1)); const lp = filtro("lowpass", 320, 1.5, g); const o1 = osc("sawtooth", 37, t0, t1, lp), o2 = osc("square", 74, t0, t1, lp); lfo(0.4, 1.2, o1.frequency, t0, t1); lfo(0.4, 2.4, o2.frequency, t0, t1); const am = gan(0.5, lp); lfo(18.5, 0.5, am.gain, t0, t1, "square"); const esc = filtro("lowpass", 500, undefined, am); fuenteRuido(t0, t1, esc); };
+  S.oleaje = (t0, t1, v) => { if (pasado(t1)) return; const g = gan(v); const lp = filtro("lowpass", 520, undefined, g); lfo(0.15, v * 0.6, g.gain, t0, t1); fuenteRuido(t0, t1, lp); };
+  S.corriente = (t0, t1, v) => { if (pasado(t1)) return; const g = gan(v * 0.3); const bp = filtro("bandpass", 900, 0.5, g); lfo(0.6, v * 0.1, g.gain, t0, t1); lfo(0.17, 300, bp.frequency, t0, t1); fuenteRuido(t0, t1, bp); };
+  S.chapoteo = (t0, t1) => { if (pasado(t1)) return; const g = gan(0.1); const bp = filtro("bandpass", 1300, 0.8, g); lfo(1.3, 0.06, g.gain, t0, t1); lfo(2.1, 0.04, g.gain, t0, t1); lfo(0.37, 400, bp.frequency, t0, t1); fuenteRuido(t0, t1, bp); };
+  S.canilla = (t0, t1) => { if (pasado(t1)) return; const g = gan(0); g.gain.setValueAtTime(0, A(t0)); g.gain.linearRampToValueAtTime(0.045, A(t0) + 0.3); g.gain.setValueAtTime(0.045, A(t1) - 0.3); g.gain.linearRampToValueAtTime(0, A(t1)); const hp = filtro("highpass", 2600, undefined, g); lfo(7, 0.012, g.gain, t0, t1); fuenteRuido(t0, t1, hp); };
+  S.respiracion = (t0, t1) => { if (pasado(t1)) return; const g = gan(0.0); const bp = filtro("bandpass", 800, 1.0, g); lfo(0.45, 0.05, g.gain, t0, t1); g.gain.value = 0.05; fuenteRuido(t0, t1, bp); };
+  /* pájaros: 1 un silbido, 2 tres notas que bajan (benteveo), 3 un trino */
+  S.pajaro = (tt, tipo) => { const t1 = tt + 0.9; if (pasado(t1)) return; const g = gan(0); const o = osc("sine", 2200, tt, t1, g); const tp = A(tt);
+    if (tipo === 2) { for (let k = 0; k < 3; k++) { const tk = tp + k * 0.17; o.frequency.setValueAtTime(2600 - k * 300, tk); o.frequency.exponentialRampToValueAtTime(1900 - k * 250, tk + 0.12); g.gain.setValueAtTime(0, tk); g.gain.linearRampToValueAtTime(0.05, tk + 0.02); g.gain.linearRampToValueAtTime(0, tk + 0.14); } }
+    else if (tipo === 3) { for (let k = 0; k < 6; k++) { const tk = tp + k * 0.09; o.frequency.setValueAtTime(3200, tk); o.frequency.exponentialRampToValueAtTime(3800, tk + 0.04); g.gain.setValueAtTime(0, tk); g.gain.linearRampToValueAtTime(0.035, tk + 0.01); g.gain.linearRampToValueAtTime(0, tk + 0.07); } }
+    else { o.frequency.setValueAtTime(2200, tp); o.frequency.exponentialRampToValueAtTime(3100, tp + 0.12); o.frequency.exponentialRampToValueAtTime(2400, tp + 0.25); g.gain.setValueAtTime(0, tp); g.gain.linearRampToValueAtTime(0.06, tp + 0.03); g.gain.linearRampToValueAtTime(0, tp + 0.3); } };
+  /* pasos en madera: golpe sordo más un poco de ruido */
+  S.pasos = (t0, t1, periodo) => { for (let tt = t0; tt < t1; tt += periodo * (0.9 + 0.2 * azar())) { const te = tt + 0.25; if (pasado(te)) continue; const g = gan(0); env(g, tt, 0.006, 0.5, te); const o = osc("sine", 90, tt, te, g); o.frequency.exponentialRampToValueAtTime(45, A(tt) + 0.12); const gr = gan(0); env(gr, tt, 0.004, 0.25, tt + 0.09); const lp = filtro("lowpass", 700, undefined, gr); const s = ctx.createBufferSource(); s.buffer = ruido(1); s.connect(lp); s.start(ini(tt)); s.stop(A(te)); S.fuentes.push(s); } };
+  /* chapas y maderas que crujen con el viento, cada tanto */
+  S.chapas = (t0, t1, nivel) => { for (let tt = t0 + 1.5; tt < t1; tt += 2.0 + 4.0 * azar()) { const te = tt + 0.5; if (pasado(te)) continue; const g = gan(0); env(g, tt, 0.05, 0.08 * nivel, te); const bp = filtro("bandpass", 900 + 900 * azar(), 9, g); const s = ctx.createBufferSource(); s.buffer = ruido(1); s.connect(bp); s.start(ini(tt)); s.stop(A(te)); S.fuentes.push(s); } };
+  S.vidrios = (t0, t1) => { for (let tt = t0 + 2.0; tt < t1; tt += 2.5 + 3.0 * azar()) { const te = tt + 0.45; if (pasado(te)) continue; const g = gan(0); env(g, tt, 0.03, 0.05, te); const bp = filtro("bandpass", 2600, 2.5, g); lfo(22, 0.04, g.gain, tt, te, "square"); const s = ctx.createBufferSource(); s.buffer = ruido(1); s.connect(bp); s.start(ini(tt)); s.stop(A(te)); S.fuentes.push(s); } };
+  S.madera = (t0, t1) => { for (let tt = t0 + 1.0; tt < t1; tt += 3.5 + 4.5 * azar()) { const te = tt + 0.9; if (pasado(te)) continue; const g = gan(0); env(g, tt, 0.25, 0.07, te); const bp = filtro("bandpass", 210, 6, g); const o = osc("sawtooth", 85, tt, te, bp); o.frequency.exponentialRampToValueAtTime(58, A(te)); lfo(11, 0.5, g.gain, tt, te); } };
+  S.goteo = (t0, t1) => { const rv = reverb(); for (let tt = t0 + 0.3; tt < t1; tt += 0.35 + 1.1 * azar()) { const te = tt + 0.2; if (pasado(te)) continue; const g = ctx.createGain(); g.connect(maestro); g.connect(rv); const f0 = 900 + 800 * azar(); const o = osc("sine", f0, tt, te, g); o.frequency.exponentialRampToValueAtTime(f0 * 0.55, A(tt) + 0.07); g.gain.setValueAtTime(0, A(tt)); g.gain.linearRampToValueAtTime(0.045, A(tt) + 0.004); g.gain.exponentialRampToValueAtTime(0.0005, A(te)); } };
+  /* el grupo electrógeno: ronronea y se apaga tosiendo */
+  S.grupo = (t0, t1) => { if (pasado(t1)) return; const g = gan(0); g.gain.setValueAtTime(0, A(t0)); g.gain.linearRampToValueAtTime(0.045, A(t0) + 0.8); g.gain.setValueAtTime(0.045, A(t1) - 1.2); g.gain.linearRampToValueAtTime(0, A(t1)); const lp = filtro("lowpass", 380, 1.0, g); const o1 = osc("sawtooth", 50, t0, t1, lp), o2 = osc("square", 100, t0, t1, lp); o1.frequency.setValueAtTime(50, A(t1) - 1.2); o1.frequency.exponentialRampToValueAtTime(18, A(t1)); o2.frequency.setValueAtTime(100, A(t1) - 1.2); o2.frequency.exponentialRampToValueAtTime(36, A(t1)); const am = gan(0.5, lp); lfo(25, 0.5, am.gain, t0, t1, "square"); fuenteRuido(t0, t1, filtro("lowpass", 300, undefined, am)); };
+  /* la radio AM con el aviso de Prefectura: un murmullo de voz sin palabras, con estática */
+  S.radio = (t0, t1) => { if (pasado(t1)) return; const g = gan(0); g.gain.setValueAtTime(0, A(t0)); g.gain.linearRampToValueAtTime(0.04, A(t0) + 0.5); g.gain.setValueAtTime(0.04, A(t1) - 0.6); g.gain.linearRampToValueAtTime(0, A(t1)); const bp = filtro("bandpass", 700, 1.2, g); const o = osc("sawtooth", 118, t0, t1, bp); lfo(5.3, 4, o.frequency, t0, t1); lfo(0.9, 14, o.frequency, t0, t1, "triangle"); lfo(3.7, 350, bp.frequency, t0, t1, "triangle"); lfo(1.3, 200, bp.frequency, t0, t1); const am = gan(0.5, g); lfo(4.1, 0.5, am.gain, t0, t1, "square"); osc("sawtooth", 118, t0, t1, am).detune.value = 7; const est = gan(0.012); fuenteRuido(t0, t1, filtro("bandpass", 2200, 1.0, est)); };
+  /* la remada: palada en el agua, golpe de la horquilla y el arrastre; desprolijo agrega azar */
+  S.remada = (t0, t1, periodo, vol, desprolijo) => { for (let tt = t0; tt < t1; tt += periodo * (1.0 + 0.4 * desprolijo * (azar() - 0.5))) { const te = tt + 0.9; if (pasado(te)) continue; const v = vol * (0.7 + 0.6 * azar());
+      const gs = gan(0); env(gs, tt, 0.03, 0.5 * v, tt + 0.35); const s = ctx.createBufferSource(); s.buffer = ruido(1); s.connect(filtro("bandpass", 1500, 0.9, gs)); s.start(ini(tt)); s.stop(A(tt + 0.4)); S.fuentes.push(s);
+      const ga = gan(0); ga.gain.setValueAtTime(0, A(tt) + 0.1); ga.gain.linearRampToValueAtTime(0.3 * v, A(tt) + 0.4); ga.gain.exponentialRampToValueAtTime(0.0005, A(te)); const s2 = ctx.createBufferSource(); s2.buffer = ruido(1); s2.connect(filtro("lowpass", 600, undefined, ga)); s2.start(ini(tt + 0.1)); s2.stop(A(te)); S.fuentes.push(s2);
+      const gk = gan(0); const tk = tt + 0.55; env(gk, tk, 0.003, 0.35 * v, tk + 0.08); const ok = osc("sine", 320, tk, tk + 0.1, gk); ok.frequency.exponentialRampToValueAtTime(160, A(tk) + 0.06); } };
+  S.perro = (tt, n, vol) => { for (let k = 0; k < n; k++) { const tk = tt + k * (0.3 + 0.1 * azar()), te = tk + 0.16; if (pasado(te)) continue; const g = gan(0); env(g, tk, 0.015, vol, te); const f1 = filtro("bandpass", 650, 2.5, g), f2 = filtro("bandpass", 1400, 3, g); const o = osc("sawtooth", 360, tk, te, f1); o.connect(f2); o.frequency.setValueAtTime(330, A(tk)); o.frequency.linearRampToValueAtTime(420, A(tk) + 0.05); o.frequency.exponentialRampToValueAtTime(240, A(te)); } };
+  S.golpe = (tt) => { const te = tt + 0.5; if (pasado(te)) return; const g = gan(0); env(g, tt, 0.006, 0.7, te); const o = osc("sine", 70, tt, te, g); o.frequency.exponentialRampToValueAtTime(35, A(tt) + 0.2); const gr = gan(0); env(gr, tt, 0.004, 0.5, tt + 0.3); const s = ctx.createBufferSource(); s.buffer = ruido(1); s.connect(filtro("lowpass", 240, undefined, gr)); s.start(ini(tt)); s.stop(A(te)); S.fuentes.push(s); };
+  S.vuelco = (tt) => { const te = tt + 2.2; if (pasado(te)) return; const g = gan(0); env(g, tt, 0.04, 0.8, te); const lp = filtro("lowpass", 900, undefined, g); lp.frequency.setValueAtTime(900, A(tt)); lp.frequency.exponentialRampToValueAtTime(180, A(te)); const s = ctx.createBufferSource(); s.buffer = ruido(3); s.connect(lp); s.start(ini(tt)); s.stop(A(te)); S.fuentes.push(s); S.golpe(tt + 0.05); const gh = gan(0); gh.gain.setValueAtTime(0, A(tt) + 0.3); gh.gain.linearRampToValueAtTime(0.25, A(tt) + 0.6); gh.gain.exponentialRampToValueAtTime(0.0005, A(te)); const s2 = ctx.createBufferSource(); s2.buffer = ruido(3); s2.connect(filtro("highpass", 1800, undefined, gh)); s2.start(ini(tt + 0.3)); s2.stop(A(te)); S.fuentes.push(s2); };
+  /* la puerta corrediza de chapa: rodamiento rugoso y resonancias de metal, y el golpe final */
+  S.chapa = (tt) => { const te = tt + 1.6; if (pasado(te)) return; const g = gan(0); g.gain.setValueAtTime(0, A(tt)); g.gain.linearRampToValueAtTime(0.3, A(tt) + 0.15); g.gain.setValueAtTime(0.3, A(tt) + 1.1); g.gain.linearRampToValueAtTime(0, A(tt) + 1.3); const bp = filtro("bandpass", 2400, 1.2, g); lfo(13, 0.2, g.gain, tt, te, "triangle"); const s = ctx.createBufferSource(); s.buffer = ruido(2); s.connect(bp); s.start(ini(tt)); s.stop(A(te)); S.fuentes.push(s);
+    for (const [f, v] of [[1750, 0.06], [2690, 0.04], [4100, 0.025]]) { const gm = gan(0); env(gm, tt + 1.25, 0.003, v, te); osc("sine", f, tt + 1.25, te, gm); }
+    const gk = gan(0); env(gk, tt + 1.25, 0.004, 0.5, tt + 1.5); const s2 = ctx.createBufferSource(); s2.buffer = ruido(1); s2.connect(filtro("lowpass", 500, undefined, gk)); s2.start(ini(tt + 1.25)); s2.stop(A(te)); S.fuentes.push(s2); };
+  /* piano sintetizado: tres parciales con decaimiento */
+  S.nota = (tt, f, vol, d) => { const te = tt + d; if (pasado(te)) return; for (const [k, v] of [[1, 1.0], [2.001, 0.4], [3.003, 0.15], [4.01, 0.05]]) { const g = gan(0); g.gain.setValueAtTime(0, A(tt)); g.gain.linearRampToValueAtTime(vol * v, A(tt) + 0.008); g.gain.exponentialRampToValueAtTime(0.0004, A(te)); osc("sine", f * k, tt, te, g); } };
+  S.motivo = (tt, vol) => { const notas = [[0, 146.83], [0.7, 174.61], [1.4, 164.81], [2.1, 130.81], [3.0, 146.83]]; for (const [d, f] of notas) S.nota(tt + d, f, 0.14 * vol, 3.2); S.nota(tt + 3.0, 73.42, 0.1 * vol, 5.0); };
+  S.acorde = (tt, d) => { for (const [fr, vol, dly] of [[146.83, 0.10, 0], [220.0, 0.07, 0.3], [293.66, 0.06, 0.6], [369.99, 0.05, 0.9], [493.88, 0.035, 1.3]]) { const ta = tt + dly, te = tt + d; if (pasado(te)) continue; const g = gan(0); g.gain.setValueAtTime(0, A(ta)); g.gain.linearRampToValueAtTime(vol, A(ta) + 1.6); g.gain.setValueAtTime(vol, A(te) - 1.5); g.gain.linearRampToValueAtTime(0, A(te)); const g2 = gan(0.25, g); osc("sine", fr, ta, te, g); osc("triangle", fr * 2.003, ta, te, g2); } };
+  return S;
+}
+/* ---- la línea de tiempo: una escena por shader ---- */
+const ESCENAS = [
+  { id: "00-portada", nombre: "Portada", dur: 6, defines: "#define NLUCES 1\n#define PASOS 40", fin: 1.5, fout: 1.0,
+    textos: [{ desde: 1.0, hasta: 5.2, clase: "", html: '<span class="titulo">SUDESTADA</span><br><span class="chico">el corto, a partir de la novela</span>' }],
+    sonido: (S) => { S.viento(0, 6, 0.25, 0.25); S.nota(1.2, 73.42, 0.16, 4.5); S.nota(1.25, 110.0, 0.05, 4.0); } },
+  { id: "01-lancha", nombre: "La lancha colectiva", dur: 22, defines: "#define NLUCES 1\n#define NSOMBRAS 0\n#define PASOS 100\n#define ALCANCE 90.0", fin: 1.2, fout: 0.8,
+    textos: [{ desde: 1.0, hasta: 4.5, clase: "arriba-izq", html: '<span class="cartel">Jueves</span>' }, { desde: 15.5, hasta: 21.0, clase: "abajo", html: "«Necesito que vengas. No por teléfono.»" }],
+    sonido: (S) => { S.viento(0, 22, 0.2, 0.25); S.motor(0, 22); S.oleaje(0, 22, 0.12); S.pajaro(6.5, 1); S.pajaro(12.2, 2); } },
+  { id: "02-puerta", nombre: "La puerta abierta", dur: 20, defines: "#define NLUCES 1\n#define NSOMBRAS 1\n#define PASOS 100", fin: 0.8, fout: 0.8,
+    textos: [{ desde: 15.0, hasta: 19.5, clase: "abajo", html: "«Soy la pareja de Martín. ¿Vos sos la hermana?»" }],
+    sonido: (S) => { S.viento(0, 20, 0.3, 0.45); S.oleaje(0, 20, 0.06); S.pasos(5.5, 13.5, 0.95); S.chapas(0, 20, 0.5); S.canilla(9.5, 16.0); } },
+  { id: "03-viento", nombre: "El viento gira", dur: 20, defines: "#define NLUCES 2\n#define NSOMBRAS 1\n#define PASOS 100", fin: 1.0, fout: 1.0, rayos: [[11.0, -0.45]],
+    textos: [{ desde: 1.0, hasta: 4.0, clase: "arriba-izq", html: '<span class="cartel">Jueves, a la noche</span>' }, { desde: 14.5, hasta: 19.3, clase: "abajo", html: "«Viene sudestada. Si te vas, andate hoy.»" }],
+    sonido: (S) => { S.viento(0, 20, 0.5, 0.9); S.radio(0.5, 7.5); S.lluvia(8, 20, 0.0, 0.2); S.trueno(11.6); S.vidrios(0, 20); S.oleaje(0, 20, 0.1); } },
+  { id: "04-escalera", nombre: "El agua sube por la escalera", dur: 22, defines: "#define NLUCES 2\n#define NSOMBRAS 2\n#define PASOS 90\n#define ALCANCE 30.0", fin: 1.0, fout: 0.0,
+    textos: [{ desde: 1.0, hasta: 4.0, clase: "arriba-izq", html: '<span class="cartel">Viernes</span>' }, { desde: 12.0, hasta: 17.5, clase: "abajo", html: "«Ella no va a dejarme ir. No lo dice así.»" }],
+    sonido: (S) => { S.viento(0, 22, 0.18, 0.25, 900); S.goteo(0, 22); S.madera(0, 22); S.grupo(0, 19.8); S.motivo(5.0, 0.35); } },
+  { id: "05-hombre", nombre: "El hombre de la chata", dur: 22, defines: "#define NLUCES 1\n#define NSOMBRAS 0\n#define PASOS 100\n#define ALCANCE 70.0", fin: 1.2, fout: 0.8,
+    textos: [{ desde: 1.0, hasta: 4.0, clase: "arriba-izq", html: '<span class="cartel">Sábado, de madrugada</span>' }, { desde: 15.0, hasta: 20.0, clase: "abajo", html: "«Remaba raro. Como al revés.»" }],
+    sonido: (S) => { S.viento(0, 22, 0.35, 0.6); S.lluvia(0, 22, 0.14, 0.14); S.corriente(0, 22, 0.25); S.remada(2, 17, 2.6, 0.12, 0.6); S.perro(9.0, 2, 0.25); } },
+  { id: "06-chata", nombre: "La chata", dur: 22, defines: "#define NLUCES 1\n#define NSOMBRAS 0\n#define PASOS 100", fin: 0.6, fout: 0.8,
+    textos: [{ desde: 16.5, hasta: 21.0, clase: "abajo", html: "«¿Qué querés, morirte vos también?»" }],
+    sonido: (S) => { S.viento(0, 22, 0.4, 0.6); S.lluvia(0, 22, 0.12, 0.12); S.corriente(0, 22, 0.5); S.remada(0, 9, 1.9, 0.5, 0.3); S.golpe(9.4); S.perro(12.5, 3, 0.4); S.respiracion(2, 20); } },
+  { id: "07-luz", nombre: "La luz en el galpón", dur: 18, defines: "#define NLUCES 2\n#define NSOMBRAS 1\n#define PASOS 80\n#define ALCANCE 400.0", fin: 1.0, fout: 1.0,
+    textos: [{ desde: 1.0, hasta: 4.0, clase: "arriba-izq", html: '<span class="cartel">Sábado, a la noche</span>' }, { desde: 12.0, hasta: 17.0, clase: "abajo", html: "«Una luz de farol, quieta, que no era un reflejo.»" }],
+    sonido: (S) => { S.viento(0, 18, 0.5, 0.95, 1200); S.lluvia(0, 18, 0.3, 0.3, 1800); S.madera(0, 18); } },
+  { id: "08-farol", nombre: "Salí del agua", dur: 28, defines: "#define NLUCES 2\n#define NSOMBRAS 1\n#define PASOS 110", fin: 1.0, fout: 1.5, rayos: [[2.4, 0.3], [6.3, -0.5]],
+    textos: [{ desde: 1.0, hasta: 4.0, clase: "arriba-izq", html: '<span class="cartel">Domingo, 4.20</span>' }, { desde: 23.0, hasta: 27.5, clase: "abajo", html: "«Salí del agua, Martín.»" }],
+    sonido: (S) => { S.viento(0, 28, 0.6, 1.0); S.lluvia(0, 28, 0.15, 0.1); S.corriente(0, 28, 0.5); S.trueno(2.9); S.remada(0, 4.2, 1.9, 0.5, 0.4); S.vuelco(4.2); S.trueno(6.9); S.chapa(8.5); S.perro(9.5, 5, 0.6); S.perro(12.0, 3, 0.5); S.chapoteo(10, 20); S.motivo(19.0, 0.9); } },
+  { id: "09-barro", nombre: "Barro", dur: 23, defines: "#define NLUCES 1\n#define NSOMBRAS 0\n#define PASOS 100\n#define MARCA 2.1", fin: 1.5, fout: 2.0,
+    textos: [{ desde: 1.0, hasta: 4.0, clase: "arriba-izq", html: '<span class="cartel">Domingo, a la tarde</span>' }, { desde: 13.0, hasta: 19.0, clase: "", html: '<span class="titulo">SUDESTADA</span>' }, { desde: 19.6, hasta: 22.6, clase: "", html: '<span class="chico">a partir de la novela · Programador nocturno · 2026</span>' }],
+    sonido: (S) => { S.viento(0, 23, 0.12, 0.1); S.oleaje(0, 23, 0.05); S.pajaro(2.0, 1); S.pajaro(5.5, 3); S.pajaro(9.0, 2); S.acorde(12.0, 11.0); S.pajaro(16.0, 1); } },
+];
+let acum = 0; for (const e of ESCENAS) { e.inicio = acum; acum += e.dur; }
+const DUR = acum;
+
+const canvas = document.getElementById("c"), capa = document.getElementById("capa"), textoDiv = document.getElementById("texto"), textoP = document.getElementById("textoP"), avance = document.getElementById("avance"), aviso = document.getElementById("aviso"), cargando = document.getElementById("cargando");
+const gl = canvas.getContext("webgl", { antialias: false, preserveDrawingBuffer: true, powerPreference: "high-performance" });
+const paralelo = gl && gl.getExtension("KHR_parallel_shader_compile");
+let buf;
+const fuente = (id) => { const s = document.getElementById(id); return s ? s.textContent : null; };
+/* arma y compila el programa de una escena: cabecera + comun + escena + main; si la escena no tiene shader todavía, usa el de la portada */
+function compilar(i) {
+  const e = ESCENAS[i]; if (e.prog) return e;
+  const cuerpo = fuente("glsl-" + e.id) || fuente("glsl-00-portada");
+  const src = (e.defines || "") + "\n" + fuente("glsl-comun") + "\n" + cuerpo + "\n" + fuente("glsl-main");
+  const vs = "attribute vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }";
+  const mk = (tipo, s) => { const sh = gl.createShader(tipo); gl.shaderSource(sh, s); gl.compileShader(sh); return sh; };
+  const prog = gl.createProgram(); const fsh = mk(gl.FRAGMENT_SHADER, src); gl.attachShader(prog, mk(gl.VERTEX_SHADER, vs)); gl.attachShader(prog, fsh); gl.linkProgram(prog);
+  e.prog = prog; e.fsh = fsh; e.src = src; e.lista = false;
+  return e;
+}
+function asegurar(i) {
+  const e = compilar(i); if (e.lista) return e;
+  if (!gl.getProgramParameter(e.prog, gl.LINK_STATUS)) { const log = gl.getShaderInfoLog(e.fsh) || gl.getProgramInfoLog(e.prog); throw new Error("escena " + e.id + ": " + log); }
+  e.u = {}; for (const n of ["uRes", "uT", "uFlash", "uRayo", "uFundido"]) e.u[n] = gl.getUniformLocation(e.prog, n);
+  e.loc = gl.getAttribLocation(e.prog, "p"); e.lista = true;
+  return e;
+}
+function usar(e) { gl.useProgram(e.prog); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.enableVertexAttribArray(e.loc); gl.vertexAttribPointer(e.loc, 2, gl.FLOAT, false, 0, 0); }
+/* escala de render: fija según el selector o automática */
+let escalaAuto = 1.0, tiempos = [];
+function escala() { const cal = document.getElementById("calidad"); const v = cal ? cal.value : "1"; return v === "auto" ? escalaAuto : parseFloat(v); }
+function ajustar() {
+  const dpr = Math.min(escala(), Math.min(devicePixelRatio || 1, 2));
+  const w = Math.max(160, Math.round(canvas.clientWidth * dpr)), h = Math.max(90, Math.round(canvas.clientHeight * dpr));
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  gl.viewport(0, 0, w, h);
+  const est = document.getElementById("estado"); if (est) est.textContent = `${w}×${h}`;
+}
+function adaptar(ms) {
+  const cal = document.getElementById("calidad"); if (!cal || cal.value !== "auto") return;
+  tiempos.push(ms); if (tiempos.length < 12) return;
+  const prom = tiempos.reduce((a, b) => a + b, 0) / tiempos.length; tiempos = [];
+  if (prom > 45 && escalaAuto > 0.3) escalaAuto = Math.max(0.3, escalaAuto * 0.75);
+  else if (prom < 18 && escalaAuto < 1.5) escalaAuto = Math.min(1.5, escalaAuto * 1.15);
+}
+/* relámpagos por escena: [instante, x en pantalla] */
+function flash(e, t) { let f = 0; for (const [r] of e.rayos || []) { const d = t - r; if (d >= 0) f += Math.exp(-d * 14) + 0.6 * Math.exp(-Math.max(0, d - 0.12) * 18) * (d > 0.1 ? 1 : 0); } return Math.min(1.2, f); }
+function rayo(e, t) { const rs = e.rayos || []; for (let i = 0; i < rs.length; i++) { const d = t - rs[i][0]; if (d >= 0 && d < 0.22) return [rs[i][1], d < 0.08 ? 1 : d < 0.11 ? 0.2 : Math.max(0, 1 - (d - 0.11) / 0.11), i * 17.3 + rs[i][0]]; } return [0, 0, 0]; }
+const suave = (a, b, x) => { const k = Math.max(0, Math.min(1, (x - a) / (b - a))); return k * k * (3 - 2 * k); };
+function fundido(e, t) { const fin = e.fin ?? 1.0, fout = e.fout ?? 0.8; let f = 1; if (fin > 0) f *= suave(0, fin, t); if (fout > 0) f *= 1 - suave(e.dur - fout, e.dur, t); return f; }
+function escenaEn(tg) { let i = ESCENAS.length - 1; while (i > 0 && ESCENAS[i].inicio > tg) i--; return i; }
+let actual = -1;
+function dibujar(tg) {
+  tg = Math.max(0, Math.min(DUR - 0.001, tg));
+  const i = escenaEn(tg); const e = asegurar(i); const t = tg - e.inicio;
+  if (i !== actual) { actual = i; marcarEscena(i); if (i + 1 < ESCENAS.length) compilar(i + 1); }
+  usar(e);
+  const r = rayo(e, t);
+  gl.uniform2f(e.u.uRes, canvas.width, canvas.height); gl.uniform1f(e.u.uT, t); gl.uniform1f(e.u.uFlash, flash(e, t)); gl.uniform3f(e.u.uRayo, r[0], r[1], r[2]); gl.uniform1f(e.u.uFundido, fundido(e, t));
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  /* intertítulos */
+  let tx = null; for (const x of e.textos || []) if (t >= x.desde && t < x.hasta) tx = x;
+  if (tx) { if (textoP.dataset.html !== tx.html) { textoP.innerHTML = tx.html; textoP.dataset.html = tx.html; } textoDiv.className = "texto visible " + (tx.clase || ""); } else textoDiv.classList.remove("visible");
+  avance.style.width = (tg / DUR * 100).toFixed(2) + "%";
+}
+
+/* ---- reproducción ---- */
+let inicio = 0, raf = 0, corriendo = false, ultimo = 0;
+function cuadro(now) {
+  const tg = (now - inicio) / 1000;
+  if (ultimo) adaptar(now - ultimo); ultimo = now;
+  ajustar();
+  try { dibujar(tg); } catch (e) { console.error(e); aviso.textContent = String(e.message || e); aviso.style.display = "block"; detener(); return; }
+  if (tg < DUR) raf = requestAnimationFrame(cuadro); else terminar();
+}
+function reproducir(desde) {
+  if (!gl) return;
+  desde = desde || 0;
+  capa.classList.add("oculta"); corriendo = true;
+  sonar(desde);
+  inicio = performance.now() - desde * 1000; ultimo = 0; tiempos = []; cancelAnimationFrame(raf); raf = requestAnimationFrame(cuadro);
+}
+function detener() { corriendo = false; cancelAnimationFrame(raf); callar(); }
+function terminar() { detener(); textoDiv.classList.remove("visible"); capa.querySelector("h1").textContent = "Fin"; capa.querySelector("p").textContent = "Sudestada, el corto. ¿Otra vez?"; document.getElementById("play").textContent = "↻ Otra vez"; capa.classList.remove("oculta"); if (grabadora && grabadora.state === "recording") grabadora.stop(); }
+function saltar(tg) { if (corriendo) reproducir(tg); else { ajustar(); try { dibujar(tg); } catch (e) { console.error(e); } } }
+
+/* ---- sonido ---- */
+let actx, maestro, destinoGrab, fuentes = [];
+function sonar(desde) {
+  if (!actx) { actx = new (window.AudioContext || window.webkitAudioContext)(); destinoGrab = actx.createMediaStreamDestination(); }
+  if (actx.state === "suspended") actx.resume();
+  callar();
+  maestro = actx.createGain(); maestro.connect(actx.destination); maestro.connect(destinoGrab);
+  fuentes = programar(actx, maestro, actx.currentTime + 0.05 - desde, desde);
+}
+function callar() { for (const f of fuentes) { try { f.stop(); } catch (e) { /* ya parada */ } } fuentes = []; if (maestro) { try { maestro.disconnect(); } catch (e) { /* nada */ } } }
+/* programa toda la banda de sonido: T0 es el instante absoluto del segundo 0 del corto; desde, los segundos que se saltan */
+function programar(ctx, m, T0, desde) {
+  const todas = [];
+  for (const e of ESCENAS) {
+    if (e.inicio + e.dur <= desde) continue;
+    const S = sonidos(ctx, m, T0 + e.inicio, Math.max(0, desde - e.inicio), e.dur);
+    e.sonido(S); for (const f of S.fuentes) todas.push(f);
+  }
+  return todas;
+}
+
+/* ---- la barra de tiempo y la lista de escenas ---- */
+const barra = document.getElementById("barra"), cortes = document.getElementById("cortes"), listaEsc = document.getElementById("escenas");
+for (const e of ESCENAS) { if (e.inicio > 0) { const d = document.createElement("div"); d.className = "corte"; d.style.left = (e.inicio / DUR * 100) + "%"; cortes.appendChild(d); } }
+barra.addEventListener("pointerdown", (ev) => { const r = barra.getBoundingClientRect(); saltar((ev.clientX - r.left) / r.width * DUR); });
+ESCENAS.forEach((e, i) => { const b = document.createElement("button"); b.type = "button"; b.className = "sec" + (fuente("glsl-" + e.id) ? "" : " falta"); b.textContent = `${i}. ${e.nombre}`; b.title = fuente("glsl-" + e.id) ? `${e.dur} s` : "todavía sin escena propia"; b.addEventListener("click", () => saltar(e.inicio)); listaEsc.appendChild(b); e.boton = b; });
+function marcarEscena(i) { ESCENAS.forEach((e, k) => e.boton && e.boton.classList.toggle("actual", k === i)); }
+
+/* ---- grabar a webm con el audio ---- */
+let grabadora = null;
+function grabar() {
+  if (!("MediaRecorder" in window) || !canvas.captureStream) { alert("Tu navegador no graba video desde canvas."); return; }
+  if (!actx) { actx = new (window.AudioContext || window.webkitAudioContext)(); destinoGrab = actx.createMediaStreamDestination(); }
+  const stream = canvas.captureStream(60); for (const tr of destinoGrab.stream.getAudioTracks()) stream.addTrack(tr);
+  const tipo = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"].find((t) => MediaRecorder.isTypeSupported(t)) || "";
+  const partes = []; grabadora = new MediaRecorder(stream, { mimeType: tipo || undefined, videoBitsPerSecond: 12e6 });
+  grabadora.ondataavailable = (e) => { if (e.data.size) partes.push(e.data); };
+  grabadora.onstop = () => { const url = URL.createObjectURL(new Blob(partes, { type: "video/webm" })); const a = document.createElement("a"); a.href = url; a.download = "sudestada-el-corto.webm"; a.click(); setTimeout(() => URL.revokeObjectURL(url), 5000); };
+  grabadora.start(100); reproducir(0);
+}
+
+/* ---- arranque ---- */
+const qs = new URLSearchParams(location.search);
+try {
+  if (!gl) throw new Error("sin WebGL");
+  buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  escalaAuto = 0.5; ajustar();
+  const qe = qs.get("escena"), qt = qs.get("t");
+  if (qe !== null || qt !== null) {
+    /* un cuadro fijo, para pruebas y para el render: ?t=segundos (global) o ?escena=N&t=segundos (local) */
+    document.getElementById("calidad").value = "1"; capa.style.display = "none"; textoDiv.style.transition = "none"; ajustar();
+    const tg = qe !== null ? ESCENAS[Math.max(0, Math.min(ESCENAS.length - 1, parseInt(qe, 10)))].inicio + parseFloat(qt || "0") : parseFloat(qt);
+    dibujar(tg);
+  } else dibujar(0.001);
+} catch (e) { aviso.style.display = "block"; aviso.textContent = "Tu navegador no pudo iniciar WebGL: " + (e.message || e); document.getElementById("play").disabled = true; console.error(e); }
+window.__listo = true;
+window.__render = (tg) => { document.getElementById("calidad").value = "1"; capa.style.display = "none"; textoDiv.style.transition = "none"; ajustar(); dibujar(tg); return true; };
+window.__fuente = (i) => compilar(i).src;
+window.__escenas = () => ESCENAS.map((e) => ({ id: e.id, nombre: e.nombre, dur: e.dur, inicio: e.inicio, propia: !!fuente("glsl-" + e.id) }));
+window.__probarTodas = () => { const r = []; for (let i = 0; i < ESCENAS.length; i++) { try { asegurar(i); r.push({ id: ESCENAS[i].id, ok: true }); } catch (e) { r.push({ id: ESCENAS[i].id, ok: false, error: String(e.message || e) }); } } return r; };
+document.getElementById("play").addEventListener("click", () => reproducir(0));
+document.getElementById("otra").addEventListener("click", () => reproducir(0));
+document.getElementById("grabar").addEventListener("click", grabar);
+document.getElementById("calidad").addEventListener("change", () => { ajustar(); if (!corriendo) dibujar(Math.max(0.001, (performance.now() - inicio) / 1000 * (inicio ? 1 : 0))); });
+addEventListener("resize", () => { ajustar(); if (!corriendo) dibujar(actual >= 0 ? Math.max(0.001, (performance.now() - inicio) / 1000) : 0.001); });
+/* el sonido entero renderizado a WAV sin parlantes (para el .mp4) */
+window.__wav = async (desde, hasta) => {
+  desde = desde || 0; hasta = hasta || DUR;
+  const sr = 44100, off = new OfflineAudioContext(1, Math.ceil(sr * (hasta - desde)), sr); const m = off.createGain(); m.connect(off.destination); programar(off, m, -desde, desde);
+  const b = await off.startRendering(); const d = b.getChannelData(0); const out = new DataView(new ArrayBuffer(44 + d.length * 2));
+  const str = (o, s) => { for (let i = 0; i < s.length; i++) out.setUint8(o + i, s.charCodeAt(i)); };
+  str(0, "RIFF"); out.setUint32(4, 36 + d.length * 2, true); str(8, "WAVE"); str(12, "fmt "); out.setUint32(16, 16, true); out.setUint16(20, 1, true); out.setUint16(22, 1, true); out.setUint32(24, sr, true); out.setUint32(28, sr * 2, true); out.setUint16(32, 2, true); out.setUint16(34, 16, true); str(36, "data"); out.setUint32(40, d.length * 2, true);
+  for (let i = 0; i < d.length; i++) out.setInt16(44 + i * 2, Math.max(-1, Math.min(1, d[i])) * 32767, true);
+  let bin = ""; const u8 = new Uint8Array(out.buffer); for (let i = 0; i < u8.length; i += 8192) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 8192)); return btoa(bin);
+};
+</script>
+</body>
+</html>

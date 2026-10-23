@@ -418,5 +418,19 @@
   "detalle": "Una prueba de hasta dónde llega la gráfica sin librerías ni imágenes: la chata y el remero son geometría 3D por raymarching, con la luz del farol, sombras suaves y reflejos en el agua; el cielo con nubes, las olas, la lluvia, los relámpagos con su rayo, los sauces y la casa salen del mismo fragment shader, y el viento, los truenos y el acorde del amanecer, de WebAudio. Se puede grabar a video desde el navegador y hay un .mp4 ya renderizado.",
   "destacado": false,
   "actualizado": "2026-10-22"
+ },
+ {
+  "slug": "sudestada-el-corto",
+  "nombre": "Sudestada, el corto",
+  "categoria": "experimentos",
+  "descripcion": "Una película animada de tres minutos a partir de la novela: una casa sobre pilotes, una crecida y un farol en el agua, dibujada en WebGL puro con un shader por escena y sonido sintetizado.",
+  "estado": "en curso",
+  "probar": "experimentos/sudestada-el-corto/",
+  "desde": "2026-10-23",
+  "icono": "🎥",
+  "para": "todos",
+  "detalle": "Nueve escenas en orden de la novela (la lancha colectiva, la puerta abierta con la toalla en la baranda, el viento que gira, el agua por la escalera, el hombre de la chata, la chata que se da vuelta, la luz en el galpón, el farol en el agua y el barro del final), cada una un fragment shader con raymarching, tres personajes con el rig del remero de Diez segundos, intertítulos con frases de la novela y una banda de sonido de WebAudio. Se reproduce en el navegador con calidad automática y se renderiza a .mp4 de a una escena por noche.",
+  "destacado": false,
+  "actualizado": "2026-10-23"
  }
 ]
