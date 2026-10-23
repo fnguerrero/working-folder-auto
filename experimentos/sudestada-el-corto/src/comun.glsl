@@ -285,7 +285,7 @@ vec2 lancha(vec3 q) {
   float arrufo = 0.12 * pow(abs(h.x) / 4.5, 2.0);
   float casco = sdBox3(h - vec3(0.0, 0.6 + arrufo * 0.5, 0.0), vec3(4.5, 0.6 + arrufo * 0.5, 1.25)) - 0.08;
   casco = max(casco, -(sdBox3(h - vec3(-0.3, 1.15, 0.0), vec3(4.0, 0.5, 1.1)) - 0.05)); /* ahuecado */
-  casco = smax(casco, -(-h.y + 0.25 - 0.25 * abs(h.z)), 0.3); /* el fondo en V suave */
+  casco = smax(casco, 0.28 * abs(h.z) - h.y, 0.3); /* el fondo en V suave: más hondo en la quilla */
   casco *= 0.7;
   vec2 r = vec2(casco, 19.0);
   float banda = max(casco - 0.03, abs(q.y - 1.05 - arrufo * 0.3) - 0.07);

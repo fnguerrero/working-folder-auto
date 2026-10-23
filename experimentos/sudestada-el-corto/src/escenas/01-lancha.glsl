@@ -3,7 +3,7 @@ Clima clima(float t) { return Clima(0.85, 0.0, 0.9, 0.0, 0.022, 0.35, vec2(-0.4,
 vec3 sunDir(float t) { return normalize(vec3(0.3, 0.6, 0.5)); }
 float nivelAgua(float t) { return 0.0; }
 Luz luz(int i, float t) { return Luz(vec3(0.0), vec3(0.0), 0.0); }
-vec3 posLancha(float t) { return vec3(34.0 - 3.1 * t, 0.0 - 0.02 * sin(t * 1.1), 8.0); }
+vec3 posLancha(float t) { return vec3(34.0 - 3.1 * t, -0.38 - 0.02 * sin(t * 1.1), 8.0); }
 /* al marco local de la lancha: va hacia -x, la proa local (+x) apunta a -x del mundo */
 vec3 aLancha(vec3 p, float t) {
   vec3 q = p - posLancha(t); q.x = -q.x; q.z = -q.z;
