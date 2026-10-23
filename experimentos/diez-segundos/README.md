@@ -20,7 +20,9 @@ que podés meterle para ver qué onda»).
   los 4 segundos quieto, para pruebas.
 - `diez-segundos.mp4`: el corto renderizado a 1280×720 y 30 fps con el sonido, para verlo sin abrir la página o
   mandarlo por WhatsApp. Lo genera `render.js` (Chromium headless con WebGL por software + ffmpeg); el audio lo
-  renderiza la misma página con `OfflineAudioContext` a WAV.
+  renderiza la misma página con `OfflineAudioContext` a WAV. Por software cada cuadro tarda medio minuto, así que
+  `render.js cuadros <dir> <desde> <hasta>` permite partir los 300 cuadros en varios procesos y `render.js armar <dir>`
+  junta todo en el .mp4.
 - `cuadro-noche.jpg` y `cuadro-amanecer.jpg`: dos fotogramas.
 - `tests/corto.e2e.js`: Playwright a 360 y 1280 px: el shader compila, el cuadro de la noche y el del amanecer tienen
   imagen y son distintos, Reproducir arranca, sin scroll horizontal ni errores en consola.
@@ -48,12 +50,18 @@ que podés meterle para ver qué onda»).
 - **Agua:** un plano; las olas son FBM animado y la normal sale por diferencias finitas; refleja el cielo y la
   silueta de la orilla (distorsionada por las olas), con Fresnel, brillo del sol y la luna, ondas y gotas de lluvia
   que desaparecen al amanecer, y niebla hacia el color del horizonte para que no se marque la línea.
-- **Orilla:** casa, techo, galería, chimenea, muelle y pilotes como campos de distancia 2D; sauces como copas con
-  ruido más una cortina de ramas colgantes que se mueven con el viento. Las ventanas parpadean y se apagan al amanecer.
+- **Orilla, en 3D:** la casa es geometría marchada por rayo, como el remero: seis pilotes, el cuerpo de tablas
+  horizontales (la junta entre tablas perturba la normal), techo de chapa acanalada oxidada, chimenea, dos ventanas
+  hundidas en la pared con marco y parante, con el vidrio emisivo y una cortina de ruido, una puerta, galería al frente
+  con baranda, y un muelle de tablas sobre postes. Detrás, una barranca de barro baja e irregular que entra al agua.
+  Los sauces son tres: tronco, copa desplazada con ruido y una cortina de ramas colgantes (hebras verticales donde el
+  ruido las pone, de largo desparejo) que se mecen con el viento. Lejos, en el horizonte, una línea de monte. Todo
+  recibe luz del farol, de las ventanas (dos luces puntuales cálidas que bañan la galería, el muelle y el agua
+  cercana) y del sol del amanecer con sombras suaves, y todo se refleja en el agua marchando el rayo reflejado.
 - **Lluvia:** tres capas de estrías en diagonal, en espacio de pantalla, que se van entre los 4,5 y los 8,5 s.
 - **Rayo:** tres relámpagos en instantes fijos (así el corto es siempre el mismo), cada uno con doble destello y una
   línea quebrada con una rama secundaria.
-- **Cámara:** leve avance y balanceo. Viñeta, grano, tonemap suave, fundido de entrada y de salida.
+- **Cámara:** leve balanceo y un avance hacia el remero. Viñeta, grano, mapeo de color ACES, fundido de entrada y de salida.
 - **Sonido:** ruido blanco con un pasabanda que baila (viento) y un pasaaltos (lluvia), ruido grave con envolvente
   después de cada relámpago (truenos), un acorde de Re mayor con sexta que entra a los 6,5 s y un pájaro a los 8,6 s.
 
