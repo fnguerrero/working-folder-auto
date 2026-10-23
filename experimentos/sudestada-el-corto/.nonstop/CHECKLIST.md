@@ -17,10 +17,12 @@
 - [x] Escena 9, barro y título.
 - [x] `render.js`: por escena a `video/escena-NN.mp4`, `armar` concatena y pega el audio.
 - [x] `tests/corto.e2e.js` a 360 y 1280 px; `tests/ver.js` para mirar cuadros.
-- [~] Render de los segmentos que se pueda esta noche: la portada quedó en `video/escena-00.mp4`; las demás se lanzaron en cadena (1, 9, 5, 2, 3) y las que terminen antes del corte quedan commiteadas.
+- [~] Render de los segmentos que se pueda esta noche: la portada quedó en `video/escena-00.mp4` a 1280 px; el resto se renderiza en cadena **en borrador a 640 px escalado** (un proceso: tres Chromium a la vez rinden peor que uno) y cada segmento que termina se commitea solo. Medido: ~11 s por cuadro a 640 px en la escena 1 (unas 2 h por escena de 22 s); a 1280 px, 30 a 90 s por cuadro.
 - [x] README, `proyectos.json` (en curso), tabla del README raíz, `noche-en-curso` en el issue, comentario de avance.
 
 ## Noches siguientes
+- [ ] Bajar el costo por cuadro antes de re-renderizar a más resolución: el rayo reflejado en el agua marcha la escena entera con AO y sombras (hacerlo con menos pasos y sin AO ni sombra), la normal evalúa `mapaMundo` seis veces más la del material (reusar), y las escenas con dos luces con sombra duplican la marcha de sombras. Objetivo: 3 a 4 s por cuadro a 640 px y menos de 20 s a 1280.
+- [ ] Seguir la cadena de segmentos (`render.js escena N 1 640`) hasta tener el borrador entero, `armar`, y recién después re-renderizar a resolución completa escena por escena.
 - [ ] Pulir lo que quedó flojo a primera vista: la lancha colectiva (más casco visible, parantes entre ventanas, cabina más baja), la escena 4 (la lámpara domina el cuadro; que se vea más el agua subiendo y la mesa por la puerta), la 6 (el tronco y el remo perdido casi no se ven), caras (los ojos de Verónica todavía grandes de frente), y la bolsa de Verónica, que es una caja.
 - [ ] Escuchar la banda de sonido entera (niveles relativos entre escenas, el motivo del piano) y ajustar.
 - [ ] Renderizar los segmentos que falten (`node render.js escena N`), `armar` y revisar el `.mp4` cuadro por cuadro en los cortes.
