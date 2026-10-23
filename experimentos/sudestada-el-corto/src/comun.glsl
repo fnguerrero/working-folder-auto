@@ -546,15 +546,15 @@ Material material(vec3 p, inout vec3 n, float mat, float t) {
     m.alb *= 1.0 - 0.7 * step(abs(hc.y + 0.058), 0.0035) * step(hc.x, -0.098) * step(abs(hc.z), 0.027);
     /* ojos: iris y pupila sobre el globo, debajo del párpado */
     vec2 oz = vec2(hc.y - 0.007, abs(hc.z) - 0.042);
-    float almendra = length(oz / vec2(0.0055, 0.0135));
+    float almendra = length(oz / vec2(0.0047, 0.013));
     float enGlobo = step(hc.x, -0.095) * step(almendra, 1.0);
-    float iris = length(oz / vec2(0.0055, 0.0055));
+    float iris = length(oz / vec2(0.0048, 0.0048));
     m.alb = mix(m.alb, vec3(0.85, 0.82, 0.8), enGlobo);
     m.alb = mix(m.alb, mix(vec3(0.25, 0.17, 0.1), vec3(0.2, 0.3, 0.25), gMujer), enGlobo * step(iris, 1.0));
     m.alb = mix(m.alb, vec3(0.02), enGlobo * step(iris, 0.45));
     m.alb *= 1.0 - 0.35 * step(hc.x, -0.095) * step(abs(almendra - 1.15), 0.2); /* la línea de las pestañas */
     float labio = step(hc.x, -0.098) * step(abs(hc.z), 0.028) * step(abs(hc.y + 0.058), 0.011);
-    m.alb = mix(m.alb, vec3(0.55, 0.3, 0.28), labio * (0.35 + 0.45 * gMujer));
+    m.alb = mix(m.alb, vec3(0.5, 0.3, 0.28), labio * (0.25 + 0.3 * gMujer));
     m.brillo = 0.4 + 1.5 * enGlobo; m.piel = 1.0 - max(barba, pelo);
   }
   else if (mat < 4.5) { m.alb = vec3(0.12, 0.1, 0.08) * (0.85 + 0.3 * noise(p.xz * 60.0)); m.brillo = 0.6; }
@@ -596,7 +596,7 @@ Material material(vec3 p, inout vec3 n, float mat, float t) {
   else if (mat < 27.5) { mapaMundo(p, t); vec3 hc = gHC; float hebra = noise(vec2(atan(hc.z, hc.x) * 40.0, hc.y * 6.0)); m.alb = mix(vec3(0.1, 0.075, 0.06), vec3(0.28, 0.19, 0.12), gMujer * 0.6) * (0.5 + 1.0 * hebra); n = normalize(n + 0.25 * vec3(0.0, hebra - 0.5, 0.0) + 0.15 * (noise(hc.xz * 120.0) - 0.5)); m.brillo = 0.7; }
   else if (mat < 28.5) { m.alb = vec3(0.07, 0.09, 0.16) * (0.85 + 0.3 * noise(p.xz * 60.0)); m.brillo = 0.4; }
   else if (mat < 29.5) { m.alb = vec3(0.42, 0.33, 0.2) * (0.75 + 0.4 * noise(vec2(p.x * 40.0, p.z * 4.0))); m.brillo = 0.4; }
-  else if (mat < 30.5) { m.alb = vec3(0.55, 0.6, 0.52) * (0.85 + 0.25 * noise(p.xy * 20.0 + p.z * 20.0)); m.brillo = 0.2; }
+  else if (mat < 30.5) { float tabla = fract(p.y * 6.0); float junta = smoothstep(0.0, 0.06, tabla) * smoothstep(1.0, 0.94, tabla); m.alb = vec3(0.5, 0.56, 0.48) * (0.7 + 0.3 * junta) * (0.9 + 0.2 * noise(p.xy * 30.0 + p.z * 30.0)) * (0.85 + 0.3 * smoothstep(0.3, 0.7, fbm4(p.xz * 2.0 + p.y))); m.brillo = 0.15; } /* pared interior pintada, de tablas */
   else if (mat < 31.5) { m.alb = vec3(0.9, 0.85, 0.7); m.emis = vec3(1.0, 0.7, 0.35) * 0.6; m.brillo = 0.3; }
   else if (mat < 32.5) { float onda = 0.5 + 0.5 * sin(p.x * 50.0 + p.z * 50.0); m.alb = mix(vec3(0.3, 0.3, 0.3), vec3(0.3, 0.16, 0.1), smoothstep(0.4, 0.7, fbm4(p.xy * 2.0 + p.z * 2.0))) * (0.7 + 0.4 * onda); m.brillo = 1.2; }
   else if (mat < 33.5) { float tabla = fract(p.z * 8.0); m.alb = vec3(0.4, 0.33, 0.22) * (0.5 + 0.5 * smoothstep(0.0, 0.1, tabla) * smoothstep(1.0, 0.9, tabla)); m.brillo = 0.8; }
