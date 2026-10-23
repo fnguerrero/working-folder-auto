@@ -957,10 +957,14 @@ vec2 mapaMundo(vec3 p, float t) {
     P.yaw = 0.3 * smoothstep(13.5, 15.0, t) - 0.3 * smoothstep(1.0, 3.0, t) * (1.0 - smoothstep(4.0, 5.5, t));
     P.pitch = -0.15 * sube + 0.1 * smoothstep(13.5, 15.0, t);
     vec2 v = persona(q, P, aspectoVeronica());
-    vec3 mb = P.manoI * 0.94;
-    float bolsa = sdBox3(q - (mb + vec3(0.0, -0.3, 0.0)), vec3(0.13, 0.19, 0.07)) - 0.03;
-    bolsa = min(bolsa, sdCap(q, mb + vec3(0.0, -0.12, 0.0), mb + vec3(0.0, -0.12, 0.0) + vec3(0.1, 0.0, 0.0), 0.012));
-    bolsa = min(bolsa, sdCap(q, mb + vec3(0.0, -0.12, 0.0), mb + vec3(0.0, -0.12, 0.0) + vec3(-0.1, 0.0, 0.0), 0.012));
+    /* la bolsa de siempre: de tela, llena, que cuelga de la mano por dos manijas */
+    vec3 mb = P.manoI * 0.94 + vec3(0.0, -0.04, 0.0);
+    vec3 cb = mb + vec3(0.0, -0.36, 0.0);
+    vec3 qb = q - cb; qb.x *= 1.0 - 0.15 * smoothstep(-0.2, 0.2, qb.y);
+    float bolsa = sdBox3(qb, vec3(0.14, 0.17, 0.06 + 0.03 * smoothstep(0.15, -0.15, qb.y))) - 0.035;
+    bolsa = smin(bolsa, sdElip(qb - vec3(0.0, -0.08, 0.0), vec3(0.15, 0.12, 0.1)), 0.05);
+    bolsa += 0.004 * noise(qb.xy * 40.0 + qb.z * 30.0);
+    for (int k = 0; k < 2; k++) { float sx = k == 0 ? -0.09 : 0.09; bolsa = min(bolsa, sdCap(q, mb, cb + vec3(sx, 0.16, 0.03), 0.011)); bolsa = min(bolsa, sdCap(q, mb, cb + vec3(sx, 0.16, -0.03), 0.011)); }
     r = u2(r, u2(v, vec2(bolsa, 35.0)));
   } else if (dv < r.x) r = vec2(dv, 0.0);
   /* Ana, de espaldas en la cocina, lavando una taza; se la ve por la puerta */
