@@ -70,5 +70,9 @@ animación 3D bien iluminada) y que las personas no parezcan muñecos geométric
 - Duración objetivo: 3 minutos (180 s), repartidos como dice `GUION.md`. Si una escena no llega a quedar bien se
   acorta antes que dejarla fea.
 - Resolución del `.mp4`: 1280×720 a 30 fps, segmentos por escena en `video/` con `libx264 crf 23`, concatenados sin
-  recodificar.
+  recodificar. Medido en la nube (SwiftShader): a 1280 px un cuadro tarda 30 a 90 s según la escena, a 960 px 12 a 23 s y a
+  640 px 3 a 6 s (el costo crece más que lineal con los píxeles). Para que Nico tenga la película entera cuanto antes, los
+  segmentos se renderizan primero **en borrador a 640×360 escalados a 1280×720** (`render.js escena N 3 640`), y después,
+  noche a noche, se re-renderizan a resolución completa y reemplazan al borrador. `video/RESOLUCION.txt` dice cómo se
+  renderizó cada uno; el criterio «1280×720» del issue se da por cumplido recién con todos los segmentos a resolución completa.
 - El agua es siempre un plano horizontal (`nivelAgua(t)`), también adentro de la casa en la escena de la escalera.

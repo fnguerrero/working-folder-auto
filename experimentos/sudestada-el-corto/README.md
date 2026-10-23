@@ -26,8 +26,10 @@ vuelta, la luz en el galpón, el farol en el agua («Salí del agua, Martín») 
   reproductor. `node build.js` arma `index.html` con todo adentro.
 - `render.js`: renderiza a 1280×720 y 30 fps con Chromium headless (WebGL por software) y ffmpeg, **de a una escena**
   (`node render.js escena 8`), a `video/escena-NN.mp4`; `node render.js armar` concatena los segmentos que haya desde
-  la escena 0 y les pega el audio renderizado con `OfflineAudioContext`. Por software cada cuadro tarda varios segundos,
-  así que el `.mp4` se completa noche a noche.
+  la escena 0 y les pega el audio renderizado con `OfflineAudioContext`. Por software un cuadro a 1280 px tarda de 30 a
+  90 s según la escena (y a 640 px, de 3 a 6 s), así que los segmentos se hacen primero en **borrador a 640×360 escalado
+  a 1280×720** (`node render.js escena 8 3 640`) y se van reemplazando por la versión a resolución completa noche a noche.
+  `video/RESOLUCION.txt` dice cómo está renderizado cada uno; `sudestada-el-corto.mp4` es el armado más reciente.
 - `tests/corto.e2e.js`: Playwright a 360 y 1280 px: compilan los shaders de las diez escenas, cada escena con shader propio
   tiene imagen, Reproducir arranca, saltar desde la lista cambia de escena, sin scroll horizontal ni errores en consola.
   `tests/ver.js` renderiza un cuadro de una escena a PNG, para mirarlo mientras se trabaja.
