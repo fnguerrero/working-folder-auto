@@ -64,7 +64,8 @@ async function abrir(url, ancho) {
   await browser.close(); srv.close();
   fs.writeFileSync(path.join(tmp, "lista.txt"), segs.map((f) => `file '${f}'`).join("\n"));
   const salida = path.join(__dirname, "sudestada-el-corto.mp4");
-  execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", path.join(tmp, "lista.txt"), "-i", path.join(tmp, "audio.wav"), "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", "-shortest", salida]);
+  /* se recodifica (crf 27) para que el archivo quede chico: el repo es público y git guarda cada versión entera */
+  execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", path.join(tmp, "lista.txt"), "-i", path.join(tmp, "audio.wav"), "-c:v", "libx264", "-preset", "slow", "-crf", "27", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-shortest", salida]);
   fs.rmSync(tmp, { recursive: true, force: true });
   console.log(`listo: ${salida}, ${segs.length} escenas, ${Math.round(hasta)} s, ${Math.round(fs.statSync(salida).size / 1024)} KB`);
 })().catch((e) => { console.error(e); process.exit(1); });

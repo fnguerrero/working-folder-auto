@@ -21,6 +21,7 @@
 - [x] README, `proyectos.json` (en curso), tabla del README raíz, `noche-en-curso` en el issue, comentario de avance.
 
 ## Noches siguientes
+- [ ] Tamaño del repo: cada `armar` commiteado suma decenas de MB a la historia (GitHub avisó a los 58 MB). De ahora en más `armar` recodifica a crf 27 y el `.mp4` se commitea **una sola vez por noche**, al final; los segmentos de `video/` se reemplazan solo cuando cambian de verdad.
 - [ ] Bajar el costo por cuadro antes de re-renderizar a más resolución: el rayo reflejado en el agua marcha la escena entera con AO y sombras (hacerlo con menos pasos y sin AO ni sombra), la normal evalúa `mapaMundo` seis veces más la del material (reusar), y las escenas con dos luces con sombra duplican la marcha de sombras. Objetivo: 3 a 4 s por cuadro a 640 px y menos de 20 s a 1280.
 - [ ] Seguir la cadena de segmentos (`render.js escena N 1 640`) hasta tener el borrador entero, `armar`, y recién después re-renderizar a resolución completa escena por escena.
 - [ ] Pulir lo que quedó flojo a primera vista: la lancha colectiva (más casco visible, parantes entre ventanas, cabina más baja), la escena 4 (la lámpara domina el cuadro; que se vea más el agua subiendo y la mesa por la puerta), la 6 (el tronco y el remo perdido casi no se ven), caras (los ojos de Verónica todavía grandes de frente), y la bolsa de Verónica, que es una caja.
