@@ -4,14 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
-<meta name="description" content="Sudestada, el corto: una película animada de tres minutos a partir de la novela, hecha en WebGL puro con un shader por escena, raymarching y sonido sintetizado.">
+<meta name="description" content="Sudestada, el corto: una película animada a partir de la novela, con diálogos con voz, hecha en WebGL puro con un shader por escena, raymarching y sonido sintetizado.">
 <title>Sudestada, el corto</title>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
-  html, body { margin: 0; min-height: 100%; background: #05070c; color: #e8e4dc; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  body { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 100vh; padding: 16px; gap: 12px; }
-  @media (min-height: 760px) { body { justify-content: center; } }
+  html, body { margin: 0; height: 100%; background: #05070c; color: #e8e4dc; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; justify-content: safe center; min-height: 100vh; padding: 16px; gap: 12px; } /* «safe»: si el contenido no entra, arranca arriba en vez de perderse por encima del borde */
   .marco { position: relative; flex-shrink: 0; width: min(100%, 1120px); aspect-ratio: 16 / 9; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
   canvas { display: block; width: 100%; height: 100%; }
   .capa { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 20px; transition: opacity .4s; background: rgba(0,0,0,.35); }
@@ -30,9 +29,14 @@
   .texto p.titulo { font-style: normal; font-size: clamp(2rem, 9vw, 5.6rem); letter-spacing: .14em; line-height: 1; }
   .texto p.chico { font-style: normal; font-size: clamp(.8rem, 2.2vw, 1.1rem); letter-spacing: .18em; text-transform: uppercase; color: #cfc8ba; }
   .texto p.cartel { font-style: normal; font-size: clamp(.95rem, 2.8vw, 1.5rem); letter-spacing: .12em; color: #d8d2c6; }
-  .sub { position: absolute; left: 6%; right: 6%; bottom: 9%; text-align: center; font: 400 clamp(.85rem, 2.4vw, 1.25rem)/1.35 system-ui, sans-serif; color: #e8e4dc; text-shadow: 0 1px 6px rgba(0,0,0,.95), 0 0 14px rgba(0,0,0,.8); opacity: 0; transition: opacity .3s; pointer-events: none; }
-  .sub.visible { opacity: .92; }
-  .controles { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; width: min(100%, 1120px); }
+  .texto.nota { align-items: flex-start; justify-content: flex-end; padding: 3% 3% 0 0; }
+  .texto.nota p { font: 400 clamp(.6rem, 1.6vw, .8rem)/1.3 system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.5); }
+  /* subtítulos de las voces: chicos, sin cursiva, abajo */
+  .sub { position: absolute; left: 0; right: 0; bottom: 7%; display: flex; justify-content: center; padding: 0 6%; pointer-events: none; opacity: 0; transition: opacity .25s; text-align: center; }
+  .sub.visible { opacity: 1; }
+  .sub p { margin: 0; font: 400 clamp(.85rem, 2.5vw, 1.35rem)/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,.95), 0 0 14px rgba(0,0,0,.8); max-width: 40ch; background: rgba(0,0,0,.28); padding: .15em .5em; border-radius: 4px; }
+  @media (max-width: 520px) { .capa p:not(.aviso) { display: none; } .capa h1 { font-size: 1.8rem; } } /* en el celular el cuadro mide 180 px de alto: solo el título y el botón */
+  .controles { display: flex; flex-shrink: 0; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; width: min(100%, 1120px); }
   .meta { color: #8e897f; font-size: .85rem; text-align: center; max-width: 70ch; }
   .meta a { color: #cfc8ba; }
   /* barra de tiempo con la que se salta, y los cortes de escena marcados */
@@ -40,7 +44,7 @@
   .barra .fondo { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255,255,255,.18); }
   .barra .corte { position: absolute; bottom: 0; width: 2px; height: 4px; background: rgba(0,0,0,.6); }
   .barra .avance { position: absolute; left: 0; bottom: 0; height: 4px; width: 0; background: rgba(255,255,255,.75); }
-  .escenas { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; width: min(100%, 1120px); }
+  .escenas { display: flex; flex-shrink: 0; flex-wrap: wrap; gap: 6px; justify-content: center; width: min(100%, 1120px); }
   .escenas button { font-size: .8rem; padding: 6px 12px; min-height: 32px; }
   .escenas button.actual { background: #e8e4dc; color: #0b0d12; }
   .escenas button.falta { opacity: .45; }
@@ -52,12 +56,12 @@
 <div class="marco" id="marco">
   <canvas id="c" width="1280" height="720"></canvas>
   <div class="texto" id="texto"><p id="textoP"></p></div>
-  <div class="sub" id="sub"></div>
+  <div class="sub" id="sub"><p id="subP"></p></div>
   <div class="cargando" id="cargando"></div>
   <div class="barra" id="barra"><div class="fondo"></div><div id="cortes"></div><div class="avance" id="avance"></div></div>
   <div class="capa" id="capa">
     <h1>Sudestada</h1>
-    <p>El corto. Tres minutos a partir de la novela: una casa sobre pilotes, una crecida y un farol en el agua. Dibujado en shaders, con sonido.</p>
+    <p>El corto, a partir de la novela: una casa sobre pilotes, una crecida, un farol en el agua y una firma. Dibujado en shaders, con voces. En construcción: las escenas que todavía no tienen imagen se escuchan.</p>
     <button type="button" id="play">▶ Reproducir</button>
     <p class="aviso" id="aviso">Tu navegador no pudo iniciar WebGL. Probá en Chrome o Firefox actualizados.</p>
   </div>
@@ -67,11 +71,10 @@
   <button type="button" class="sec" id="otra">↻ Desde el principio</button>
   <button type="button" class="sec" id="grabar">⏺ Grabar y descargar (.webm)</button>
   <a class="meta" href="sudestada-el-corto.mp4" download id="mp4">⬇ Bajar el .mp4</a>
-  <label class="meta"><input type="checkbox" id="voces" checked> Voces <span id="vocesNota" class="meta"></span></label>
   <label class="meta">Calidad <select id="calidad"><option value="auto" selected>automática</option><option value="1.5">alta</option><option value="1">media</option><option value="0.6">baja</option><option value="0.4">mínima</option></select></label>
   <span class="meta" id="estado"></span>
 </div>
-<p class="meta">Si va a los saltos, la calidad automática baja sola la resolución hasta que fluya; también la podés fijar. Tocá la barra de abajo del cuadro para saltar, o el nombre de una escena. Los diálogos los dice la voz en castellano de tu propio navegador (en Windows suele ser la de Argentina); si no tiene ninguna, quedan los carteles. WebGL puro, sin librerías ni imágenes: cada escena es un fragment shader con raymarching; el viento, la lluvia, el motor, los remos y el piano, de WebAudio. <a href="../../escritos/sudestada/">Leer la novela</a> · <a href="../diez-segundos/">Diez segundos</a>, de donde sale el motor · <a href="../../">← Volver a la vitrina</a></p>
+<p class="meta">Si va a los saltos, la calidad automática baja sola la resolución hasta que fluya; también la podés fijar. Tocá la barra de abajo del cuadro para saltar, o el nombre de una escena. WebGL puro, sin librerías ni imágenes: cada escena es un fragment shader con raymarching; el viento, la lluvia, el motor, los remos y el piano, de WebAudio. Las voces son de <a href="https://github.com/rhasspy/piper">Piper</a>, sintetizadas en la nube (son los únicos archivos de audio). <a href="../../escritos/sudestada/">Leer la novela</a> · <a href="../diez-segundos/">Diez segundos</a>, de donde sale el motor · <a href="../../">← Volver a la vitrina</a></p>
 <!--SHADERS-->
 <!--SCRIPTS-->
 </body>

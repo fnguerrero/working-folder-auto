@@ -8,7 +8,8 @@ const escenas = fs.readdirSync(path.join(src, "escenas")).filter((f) => f.endsWi
 const bloque = (id, cuerpo) => `<script id="${id}" type="x-shader/x-fragment">\n${cuerpo.trim()}\n</script>`;
 let shaders = [bloque("glsl-comun", leer("comun.glsl")), bloque("glsl-main", leer("main.glsl"))];
 for (const f of escenas) shaders.push(bloque("glsl-" + f.replace(/\.glsl$/, ""), leer("escenas/" + f)));
-const scripts = `<script>\n"use strict";\n${leer("sonido.js").trim()}\n${leer("reproductor.js").trim()}\n</script>`;
+const lineas = JSON.parse(fs.readFileSync(path.join(__dirname, "voces", "lineas.json"), "utf8")).map(({ id, quien, variante, escena, t, texto, dur }) => ({ id, quien, variante: variante || "normal", escena, t, texto, dur }));
+const scripts = `<script>\n"use strict";\nconst LINEAS = ${JSON.stringify(lineas)};\n${leer("sonido.js").trim()}\n${leer("reproductor.js").trim()}\n</script>`;
 let html = leer("pagina.html").replace("<!--SHADERS-->", shaders.join("\n")).replace("<!--SCRIPTS-->", scripts);
 fs.writeFileSync(path.join(__dirname, "index.html"), html);
-console.log("index.html:", Math.round(html.length / 1024), "KB,", escenas.length, "escenas");
+console.log("index.html:", Math.round(html.length / 1024), "KB,", escenas.length, "escenas con shader,", lineas.length, "líneas de diálogo");

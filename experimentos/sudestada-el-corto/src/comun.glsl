@@ -47,6 +47,12 @@ float nivelAgua(float t);
 Luz luz(int i, float t);
 vec3 sunDir(float t);
 vec4 aguaExtra(vec3 pos, float t); /* xz: perturbación de la normal; y: espuma; w: hojas y basura oscura */
+vec2 gCuadro; /* uv del cuadro del velero (lo deja mapaMundo cuando el rayo toca el cuadro) */
+#ifdef PAPEL
+float papel(vec3 p, float t); /* cuánta tinta hay en ese punto del papel (lo define la escena) */
+#else
+float papel(vec3 p, float t) { return 0.0; }
+#endif
 
 /* ---------- personas: rig por postura y aspecto, en un marco local que mira a -x ---------- */
 struct Pose { vec3 cad, pecho, hom, cab, homI, homD, codoI, codoD, manoI, manoD, rodI, rodD, pieI, pieD, agarreI, agarreD; float yaw, pitch; };
@@ -55,19 +61,22 @@ struct Aspecto { float mujer, barba, pelo, gorra, sombrero, panza, matRopa, esca
 vec3 gHC; float gBarba = 0.0, gPelo = 0.0, gMujer = 0.0; vec3 gToalla;
 
 Pose poseDePie(float fase, float paso) {
-  /* parada o caminando hacia -x; fase en radianes, paso 0 (quieta) a 1 (caminando) */
+  /* parada o caminando hacia -x; fase en radianes, paso 0 (quieta) a 1 (caminando). Caminata con peso: la cadera baja un poco
+     al caminar y sube en el apoyo de cada pie, el cuerpo se balancea hacia el pie que apoya y los hombros contrarrotan. */
   Pose P;
   float s = sin(fase), c = cos(fase);
-  float sube = 0.02 * paso * abs(cos(fase));
-  P.cad = vec3(0.0, 0.93 + sube, 0.0); P.pecho = vec3(-0.02, 1.2 + sube, 0.0); P.hom = vec3(-0.03, 1.42 + sube, 0.0); P.cab = vec3(-0.03, 1.67 + sube, 0.0);
-  P.homI = P.hom + vec3(0.0, -0.03, -0.17); P.homD = P.hom + vec3(0.0, -0.03, 0.17);
+  float sube = 0.02 * paso * abs(c) - 0.025 * paso;
+  float vaiven = 0.02 * paso * c; /* hacia el pie que apoya */
+  P.cad = vec3(0.0, 0.93 + sube, vaiven); P.pecho = vec3(-0.02, 1.2 + sube, vaiven * 0.6); P.hom = vec3(-0.03, 1.42 + sube, vaiven * 0.3); P.cab = vec3(-0.03, 1.67 + sube, 0.0);
+  float giro = 0.04 * paso * s; /* los hombros giran al revés de las piernas */
+  P.homI = P.hom + vec3(giro, -0.03, -0.17); P.homD = P.hom + vec3(-giro, -0.03, 0.17);
   float bI = 0.3 * paso * s, bD = -0.3 * paso * s;
-  P.codoI = P.homI + vec3(0.04 + 0.2 * bI, -0.28, -0.03); P.codoD = P.homD + vec3(0.04 + 0.2 * bD, -0.28, 0.03);
-  P.manoI = P.codoI + vec3(0.02 + 0.22 * bI, -0.26, -0.01); P.manoD = P.codoD + vec3(0.02 + 0.22 * bD, -0.26, 0.01);
+  P.codoI = P.homI + vec3(0.04 + 0.16 * bI, -0.28, -0.03); P.codoD = P.homD + vec3(0.04 + 0.16 * bD, -0.28, 0.03);
+  P.manoI = P.codoI + vec3(0.02 + 0.2 * bI, -0.26, -0.01); P.manoD = P.codoD + vec3(0.02 + 0.2 * bD, -0.26, 0.01);
   P.agarreI = vec3(1.0, 0.0, 0.0); P.agarreD = vec3(1.0, 0.0, 0.0);
   float pI = paso * s, pD = -paso * s;
-  P.rodI = vec3(-0.3 * pI * 0.6 - 0.02 - 0.05 * paso * max(c, 0.0), 0.5 + 0.08 * paso * max(c, 0.0), -0.1); P.rodD = vec3(-0.3 * pD * 0.6 - 0.02 - 0.05 * paso * max(-c, 0.0), 0.5 + 0.08 * paso * max(-c, 0.0), 0.1);
-  P.pieI = vec3(-0.32 * pI, 0.06 + 0.07 * paso * max(c, 0.0) * abs(s), -0.11); P.pieD = vec3(-0.32 * pD, 0.06 + 0.07 * paso * max(-c, 0.0) * abs(s), 0.11);
+  P.rodI = vec3(-0.25 * pI * 0.6 - 0.02 - 0.05 * paso * max(c, 0.0), 0.5 + 0.08 * paso * max(c, 0.0), -0.1); P.rodD = vec3(-0.25 * pD * 0.6 - 0.02 - 0.05 * paso * max(-c, 0.0), 0.5 + 0.08 * paso * max(-c, 0.0), 0.1);
+  P.pieI = vec3(-0.25 * pI, 0.06 + 0.06 * paso * max(c, 0.0) * abs(s), -0.11); P.pieD = vec3(-0.25 * pD, 0.06 + 0.06 * paso * max(-c, 0.0) * abs(s), 0.11);
   P.yaw = 0.0; P.pitch = 0.0;
   return P;
 }
@@ -103,6 +112,30 @@ Aspecto aspectoMartin() { return Aspecto(0.0, 1.0, 1.0, 1.0, 0.0, 0.5, 2.0, 1.0)
 Aspecto aspectoMartinSombrero() { return Aspecto(0.0, 1.0, 1.0, 0.0, 1.0, 0.6, 2.0, 1.0); }
 Aspecto aspectoVeronica() { return Aspecto(1.0, 0.0, 2.0, 0.0, 0.0, 0.2, 25.0, 0.94); }
 Aspecto aspectoAna() { return Aspecto(1.0, 0.0, 3.0, 0.0, 0.0, 0.0, 26.0, 0.92); }
+
+/* ---------- cinemática inversa de dos huesos: ninguna mano se estira ni ninguna rodilla se dobla al revés ----------
+   a es la raíz (hombro o cadera), b el extremo (mano o pie) que la escena pide, l1 y l2 los largos reales de los dos huesos y
+   j la articulación del medio: entra como pista (de qué lado doblar) y sale ubicada a los largos exactos. Si b queda fuera
+   del alcance, se acerca a la raíz; si queda demasiado cerca, se aleja. lado es la dirección de doblez si la pista no sirve. */
+void ik2(vec3 a, inout vec3 b, float l1, float l2, inout vec3 j, vec3 lado, float holgura) {
+  vec3 d = b - a; float L = length(d);
+  vec3 u = d / max(L, 1e-4);
+  L = clamp(L, abs(l1 - l2) + 0.02, (l1 + l2) * holgura); b = a + u * L;
+  float x = (l1 * l1 - l2 * l2 + L * L) / (2.0 * L);
+  float h = sqrt(max(l1 * l1 - x * x, 0.0));
+  vec3 p = j - a; p -= u * dot(p, u);
+  float pl = length(p);
+  if (pl < 0.02) { p = lado - u * dot(lado, u); pl = length(p); }
+  j = a + u * x + p / max(pl, 1e-4) * h;
+}
+/* largos de los huesos del rig, en el marco local (A.escala los escala después): brazo 0,285, antebrazo 0,262; muslo 0,435, pantorrilla 0,445 */
+Pose resolver(Pose P) {
+  ik2(P.homI, P.manoI, 0.285, 0.262, P.codoI, vec3(0.6, -0.4, -0.7), 0.985);
+  ik2(P.homD, P.manoD, 0.285, 0.262, P.codoD, vec3(0.6, -0.4, 0.7), 0.985);
+  ik2(P.cad + vec3(0.0, 0.0, -0.1), P.pieI, 0.435, 0.445, P.rodI, vec3(-1.0, 0.0, 0.0), 0.995);
+  ik2(P.cad + vec3(0.0, 0.0, 0.1), P.pieD, 0.435, 0.445, P.rodD, vec3(-1.0, 0.0, 0.0), 0.995);
+  return P;
+}
 
 /* cabeza en el marco local de la cabeza (la cara mira a -x); devuelve (piel, pelo-geometría, gorra/sombrero) */
 vec3 cabeza(vec3 hc, Aspecto A) {
@@ -188,6 +221,7 @@ float mano(vec3 q, vec3 codo, vec3 m, vec3 agarre, float r) {
 /* devuelve (distancia, material); material 3 piel, A.matRopa ropa, 9 botas, 27 pelo, 28 gorra, 4 sombrero */
 vec2 persona(vec3 q, Pose P, Aspecto A) {
   q /= A.escala;
+  P = resolver(P);
   float m = A.mujer;
   float torso = sdCap(q, P.cad, P.pecho, 0.15 - 0.02 * m);
   torso = smin(torso, sdCap(q, P.pecho, P.hom, 0.135 - 0.015 * m), 0.08);
@@ -199,7 +233,8 @@ vec2 persona(vec3 q, Pose P, Aspecto A) {
   vec3 cab = P.cab;
   vec3 ejeCuello = normalize(cab - P.hom);
   float cuello = sdCap(q, P.hom, cab - ejeCuello * 0.08, 0.058 - 0.008 * m);
-  float collar = sdCap(q, P.hom + ejeCuello * 0.07, P.hom + ejeCuello * 0.13, 0.1 - 0.01 * m) ;
+  float camisa = step(41.5, A.matRopa); /* con camisa: cuello angosto, y pantalón oscuro de la cadera para abajo */
+  float collar = sdCap(q, P.hom + ejeCuello * 0.07, P.hom + ejeCuello * 0.13, mix(0.1 - 0.01 * m, 0.064, camisa));
   torso = smin(torso, collar, 0.03);
   float rb = 0.062 - 0.008 * m, ra = 0.052 - 0.007 * m;
   float brazos = min(smin(sdCap(q, P.homI, P.codoI, rb), sdCap(q, P.codoI, P.manoI, ra), 0.04), smin(sdCap(q, P.homD, P.codoD, rb), sdCap(q, P.codoD, P.manoD, ra), 0.04));
@@ -216,6 +251,7 @@ vec2 persona(vec3 q, Pose P, Aspecto A) {
   float piel = min(cz.x, min(manos, smin(cuello, nuez, 0.015)));
   if (min(piel, cz.y) < 0.01) { gHC = hc; gBarba = A.barba; gPelo = A.pelo; gMujer = m; }
   vec2 r = vec2(ropa, A.matRopa);
+  if (camisa > 0.5 && q.y < P.cad.y - 0.04) r.y = 49.0;
   if (botas < r.x) r = vec2(botas, 9.0);
   if (piel < r.x) r = vec2(piel, 3.0);
   if (cz.y < r.x) r = vec2(cz.y, 27.0);
@@ -606,6 +642,18 @@ Material material(vec3 p, inout vec3 n, float mat, float t) {
   else if (mat < 38.5) { m.emis = vec3(1.0, 0.95, 0.8) * 5.0; }
   else if (mat < 39.5) { m.alb = vec3(0.03, 0.035, 0.045); m.brillo = 3.5; }
   else if (mat < 41.5) { m.alb = vec3(0.3, 0.33, 0.4); n = normalize(n + 0.1 * vec3(noise(p.yz * 50.0) - 0.5, noise(p.xz * 50.0 + 3.0) - 0.5, noise(p.xy * 50.0 + 7.0) - 0.5)); m.brillo = 0.1; }
+  /* ---- la escribanía (escena 18) ---- */
+  else if (mat < 42.5) { m.alb = vec3(0.88, 0.87, 0.84) * (0.9 + 0.15 * noise(p.xy * 60.0 + p.z * 60.0)); n = normalize(n + 0.06 * vec3(noise(p.yz * 50.0) - 0.5, noise(p.xz * 50.0 + 3.0) - 0.5, noise(p.xy * 50.0 + 7.0) - 0.5)); m.brillo = 0.2; } /* camisa blanca */
+  else if (mat < 43.5) { m.alb = vec3(0.55, 0.68, 0.82) * (0.9 + 0.15 * noise(p.xy * 60.0 + p.z * 60.0)); m.brillo = 0.2; } /* camisa celeste */
+  else if (mat < 44.5) { m.alb = vec3(0.92, 0.9, 0.84) * (0.95 + 0.08 * noise(p.xz * 200.0)); m.alb = mix(m.alb, vec3(0.05, 0.06, 0.12), papel(p, t)); m.brillo = 0.15; } /* papel con lo escrito */
+  else if (mat < 45.5) { m.alb = vec3(0.12, 0.07, 0.04) * (0.8 + 0.4 * noise(vec2(p.x * 2.0 + p.z * 30.0, p.y * 40.0))); m.brillo = 3.0; } /* el escritorio, madera oscura con vidrio */
+  else if (mat < 46.5) { m.alb = vec3(0.72, 0.68, 0.58) * (0.9 + 0.15 * noise(p.xy * 6.0 + p.z * 6.0)) * (0.85 + 0.15 * smoothstep(0.0, 1.2, p.y)); m.brillo = 0.1; } /* pared pintada, con el zócalo más oscuro */
+  else if (mat < 47.5) { vec2 cel = floor(p.xz * 5.0); float j = smoothstep(0.0, 0.05, fract(p.x * 5.0)) * smoothstep(1.0, 0.95, fract(p.x * 5.0)) * smoothstep(0.0, 0.05, fract(p.z * 5.0)) * smoothstep(1.0, 0.95, fract(p.z * 5.0)); float cuad = mod(cel.x + cel.y, 2.0); m.alb = mix(vec3(0.55, 0.5, 0.42), vec3(0.3, 0.26, 0.22), cuad) * (0.85 + 0.2 * noise(p.xz * 30.0)) * (0.6 + 0.4 * j); m.brillo = 1.5; } /* baldosas de las de antes */
+  else if (mat < 48.5) { vec2 uv = vec2(p.x, p.y); mapaMundo(p, t); uv = gCuadro; float mar = smoothstep(0.2, 0.6, uv.y); vec3 cielo = mix(vec3(0.6, 0.7, 0.8), vec3(0.3, 0.45, 0.7), uv.y); vec3 agua = vec3(0.1, 0.25, 0.4) * (0.8 + 0.4 * noise(uv * 30.0)); float vela = step(abs(uv.x - 0.5 - 0.3 * (uv.y - 0.35)), 0.25 * (uv.y - 0.35) / 0.4) * step(0.35, uv.y) * step(uv.y, 0.78); float casco = step(abs(uv.x - 0.5), 0.22) * step(0.3, uv.y) * step(uv.y, 0.36); m.alb = mix(agua, cielo, mar); m.alb = mix(m.alb, vec3(0.9), vela); m.alb = mix(m.alb, vec3(0.25, 0.12, 0.08), casco); m.alb *= 0.8 + 0.2 * noise(uv * 80.0); m.brillo = 0.6; } /* el cuadro del velero */
+  else if (mat < 49.5) { m.alb = vec3(0.09, 0.09, 0.11); n = normalize(n + 0.1 * vec3(noise(p.yz * 40.0) - 0.5, noise(p.xz * 40.0 + 3.0) - 0.5, noise(p.xy * 40.0 + 7.0) - 0.5)); m.brillo = 0.3; } /* saco oscuro */
+  else if (mat < 50.5) { m.alb = vec3(0.4, 0.38, 0.36) * (0.9 + 0.15 * noise(p.xy * 50.0 + p.z * 50.0)); m.brillo = 0.2; } /* camisa gris del escribano */
+  else if (mat < 51.5) { m.alb = vec3(0.62, 0.5, 0.2); m.brillo = 2.5; } /* bronce */
+  else if (mat < 52.5) { m.alb = vec3(0.03); m.brillo = 2.0; } /* la lapicera, negra y pesada */
   else { m.alb = vec3(0.3); }
   return m;
 }

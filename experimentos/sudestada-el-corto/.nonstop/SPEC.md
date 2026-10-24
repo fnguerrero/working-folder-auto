@@ -4,11 +4,35 @@ Pedido #15 (`noche`, `grande`): https://github.com/fnguerrero/working-folder-aut
 
 ## Objetivo
 
-Un corto animado de 2 a 4 minutos, con sonido, que adapte imágenes y momentos de la novela
+(Primera versión, 23/10.) Un corto animado de 2 a 4 minutos, con sonido, que adapte imágenes y momentos de la novela
 [Sudestada](../../../escritos/sudestada/) con el motor que quedó armado en [Diez segundos](../../diez-segundos/):
 WebGL puro, un fragment shader por escena con raymarching para lo que tiene volumen, sonido sintetizado con WebAudio y
 render a `.mp4`. Lo que más le importa a Nico: que se vea lo más real posible dentro de lo que da el método (una
 animación 3D bien iluminada) y que las personas no parezcan muñecos geométricos.
+
+## Segunda versión (24/10): lo que pidió Nico al ver el borrador
+
+1. Que dure **unos diez minutos**. 2. **Mejor sonido.** 3. **Diálogos con voz** que suenen más o menos realistas (importantísimo).
+4. **Mucha mejor calidad de imagen y de movimiento** (en la escalera el muñeco se distorsionaba, la mano se estiraba y atravesaba
+la geometría). 5. **Un final con cierre y una moraleja.**
+
+Decisiones:
+- El guion se rehace en veinte escenas (`GUION.md`) siguiendo la novela de cerca, con las frases de los personajes tal como
+  están escritas, y termina donde termina la novela: en la escribanía, con las dos firmas juntas y la pregunta de Verónica.
+  La moraleja es la de la novela, dicha por Verónica y escrita en el cierre: «Cuando los hechos dicen lo que una ya pensaba, es
+  cuando menos hay que creerles», y «Preguntá. Y después, esperá.»
+- Las voces se sintetizan en la nube con Piper (`voces/generar.py`), una por personaje, y los `.ogg` van al repo: suenan igual
+  en el navegador y en el `.mp4`. Hugging Face está bloqueado desde la nube; las mismas voces están reempaquetadas en el release
+  `tts-models` de sherpa-onnx en GitHub, que sí se alcanza. Las voces se cargan al apretar Reproducir, se programan en WebAudio
+  como un efecto más y se subtitulan.
+- Movimiento: antes de sumar escenas se arregló el rig con cinemática inversa de dos huesos (largos de brazos y piernas acotados,
+  nada se estira), los pies en los escalones reales y una caminata más lenta y con peso. Cada escena nueva se termina al nivel de
+  Diez segundos antes de pasar a la siguiente, una o dos por noche.
+- Orden de las noches: (a) rig y movimiento, (b) voces, (c) guion largo con final, (d) sonido, (e) render.
+- Las escenas del guion nuevo que todavía no tienen shader se reproducen igual, sobre el shader de la portada, con el diálogo y
+  los subtítulos y una nota («escena todavía sin imagen»), para que la película se escuche entera mientras se hace.
+- El `.mp4` sigue siendo el borrador de la primera noche hasta que las escenas nuevas estén renderizadas: `armar` verifica que cada
+  segmento dure lo que dura su escena y no mezcla versiones.
 
 ## Alcance
 
@@ -76,3 +100,9 @@ animación 3D bien iluminada) y que las personas no parezcan muñecos geométric
   noche a noche, se re-renderizan a resolución completa y reemplazan al borrador. `video/RESOLUCION.txt` dice cómo se
   renderizó cada uno; el criterio «1280×720» del issue se da por cumplido recién con todos los segmentos a resolución completa.
 - El agua es siempre un plano horizontal (`nivelAgua(t)`), también adentro de la casa en la escena de la escalera.
+- **Voces (24/10):** Verónica es `es_AR-daniela-high`, la única voz argentina de Piper. Ana es la misma voz un 8 % más aguda y
+  más rápida (es de Zárate, la misma tonada; distinguirla por el timbre alcanza). No hay voces masculinas rioplatenses en Piper:
+  Martín, Elías, Acuña y Pereyra usan voces de España (`davefx`, `sharvard`) con el tono bajado y el texto escrito con seseo para
+  que no digan la zeta; la entonación sigue siendo peninsular, y si a Nico no le cierra, se cambia el modelo en `generar.py`.
+  Los gritos no se pueden sintetizar de verdad: se hacen con más volumen, compresión y un poco más de tono.
+- **Duración (24/10):** el guion suma 724 s; se recorta en el montaje a unos diez minutos cuando estén todas las escenas.

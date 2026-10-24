@@ -1,5 +1,33 @@
 # Bitácora del proyecto
 
+## 2026-10-24 (noche 2)
+
+- Nico vio el borrador y pidió otra película: diez minutos, voces, mejor movimiento, mejor sonido y un final con moraleja. Se tomó
+  en ese orden: primero el rig, después las voces, después el guion.
+- Rig: lo que se estiraba en la escalera era que la escena pedía la mano en el pasamanos a 65 cm del hombro con un brazo de 55. Ahora
+  `resolver(Pose)` aplica cinemática inversa de dos huesos a brazos y piernas (largos reales, articulación del lado de la pista) y
+  `persona()` la llama siempre; las escenas que cuelgan cosas de las manos (la bolsa, el farol, los remos, la linterna) la llaman
+  antes para que el objeto vaya donde quedó la mano. En la escalera, Verónica pisa los escalones reales: cada pie planta en un
+  nivel y pasa por el aire al siguiente con un arco que supera la nariz del escalón del medio; la cadera baja 5 cm y sube con el
+  empuje de la pierna de atrás (más tarde que el pie). Tropiezo: si el cuerpo sube linealmente con el pie, la pierna de atrás
+  queda a 99 cm de la cadera y se estira; con el retraso y la cadera baja queda a 93 y la holgura del IK (0,5 %) levanta el talón.
+- Voces: `pip install piper-tts` anda; las voces viven en Hugging Face, que está bloqueado, pero el release `tts-models` de
+  sherpa-onnx (GitHub) las tiene reempaquetadas tal cual (`vits-piper-<voz>.tar.bz2`, con el `.onnx` y el `.json`), y GitHub sí
+  se alcanza. Piper tiene una sola voz argentina (`es_AR-daniela-high`, mujer) y ninguna masculina rioplatense: los hombres salen de
+  voces de España bajadas de tono, con el seseo escrito en el texto («hise», «ves», «onse») para que no digan la zeta; la entonación
+  sigue siendo de allá. Medido el tono medio de cada voz (autocorrelación): daniela 185 Hz, davefx 142, sharvard 0 113, sharvard 1
+  200, claude (es_MX) 197 (es mujer, no sirvió para Martín). `es_MX-ale` no está en ese release. 96 líneas, 2 a 4 s de síntesis por
+  línea a 22 kHz, pasadas por ffmpeg (tono con `asetrate`+`atempo`, compresión, `loudnorm` a -19 LUFS, silencios recortados) a
+  Opus 32 kb/s: 254 s de voz, 1,3 MB en total.
+- Reproductor: las voces se cargan y decodifican al apretar Reproducir (seis a la vez, con contador), se programan como fuentes de
+  WebAudio y el bus de ambiente baja al 45 % mientras hablan; subtítulos en texto chico sin cursiva (los intertítulos quedan para
+  los carteles y el cierre). Cadena maestra con compresor y limitador. Los tiempos del guion son «no antes de»: si una línea
+  arranca antes de que termine la anterior, se corre.
+- Guion segunda versión: veinte escenas, 724 s, con las frases de la novela. Las nueve que existían se alargaron para el diálogo y
+  se renumeraron; las once nuevas se escuchan sobre la portada con una nota, para que la película exista entera mientras se hace.
+- Los segmentos viejos del `.mp4` se sacaron del árbol: no coinciden con el guion nuevo. El `.mp4` queda como borrador de la noche 1
+  (dice el README) y `armar` ahora verifica que cada segmento dure lo que dura su escena.
+
 ## 2026-10-23 (noche 1)
 
 - Spec, guion de nueve escenas (183 s) y checklist. Decisión: va en `experimentos/`, porque es ante todo el motor; la novela sigue en `escritos/`.

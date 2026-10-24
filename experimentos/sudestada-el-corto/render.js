@@ -7,6 +7,7 @@
      node render.js cuadros <n> <desde> <hasta> <dir> [ancho]   (interno) renderiza los cuadros [desde, hasta) de la escena n a <dir>
      node render.js armar                        concatena los segmentos que haya en video/ (en orden, solo escenas seguidas desde la 0),
                                                  renderiza el audio de ese tramo con OfflineAudioContext y arma sudestada-el-corto.mp4
+   El audio incluye las voces (voces/*.ogg), que el OfflineAudioContext decodifica desde el servidor local.
    Siempre con NODE_PATH=/opt/node-tools/node_modules. */
 "use strict";
 const http = require("node:http"); const fs = require("node:fs"); const path = require("node:path"); const os = require("node:os"); const { execFileSync, spawn } = require("node:child_process");
@@ -56,7 +57,9 @@ async function abrir(url, ancho) {
   }
   /* armar: concatena los segmentos seguidos desde la escena 0 y les pega el audio */
   const { srv, url } = await servir(); const { browser, page, escenas } = await abrir(url);
-  const segs = []; for (let i = 0; i < escenas.length; i++) { const f = path.join(__dirname, "video", `escena-${nn(i)}.mp4`); if (!fs.existsSync(f)) break; segs.push(f); }
+  /* solo entran los segmentos seguidos desde la 0 cuya duración coincide con la de la escena (si el guion cambió, el segmento viejo no sirve) */
+  const segs = []; for (let i = 0; i < escenas.length; i++) { const f = path.join(__dirname, "video", `escena-${nn(i)}.mp4`); if (!fs.existsSync(f)) break;
+    const d = parseFloat(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f]).toString()); if (Math.abs(d - escenas[i].dur) > 0.15) { console.log(`escena ${i}: el segmento dura ${d.toFixed(1)} s y la escena ${escenas[i].dur} s; hay que re-renderizarla`); break; } segs.push(f); }
   if (!segs.length) { console.log("no hay segmentos en video/"); await browser.close(); srv.close(); return; }
   const hasta = escenas[segs.length - 1].inicio + escenas[segs.length - 1].dur;
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "corto-armar-"));

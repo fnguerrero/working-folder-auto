@@ -423,14 +423,14 @@
   "slug": "sudestada-el-corto",
   "nombre": "Sudestada, el corto",
   "categoria": "experimentos",
-  "descripcion": "Una película animada de tres minutos a partir de la novela: una casa sobre pilotes, una crecida y un farol en el agua, dibujada en WebGL puro con un shader por escena y sonido sintetizado.",
+  "descripcion": "Una película animada a partir de la novela, con diálogos con voz: una casa sobre pilotes, una crecida, un farol en el agua y una firma, dibujada en WebGL puro con un shader por escena.",
   "estado": "en curso",
   "probar": "experimentos/sudestada-el-corto/",
   "desde": "2026-10-23",
   "icono": "🎥",
   "para": "todos",
-  "detalle": "Nueve escenas en orden de la novela (la lancha colectiva, la puerta abierta con la toalla en la baranda, el viento que gira, el agua por la escalera, el hombre de la chata, la chata que se da vuelta, la luz en el galpón, el farol en el agua y el barro del final), cada una un fragment shader con raymarching, tres personajes con el rig del remero de Diez segundos, intertítulos con frases de la novela y una banda de sonido de WebAudio. Se reproduce en el navegador con calidad automática y se renderiza a .mp4 de a una escena por noche.",
+  "detalle": "Veinte escenas que siguen la novela (la lancha colectiva, la puerta abierta, el viento que gira, el hombre de la chata, el agua por la escalera, la chata que se da vuelta, el farol en el agua, el barro, la escribanía del martes y el cierre con la moraleja), cada una un fragment shader con raymarching y las personas con un rig con cinemática inversa. Los diálogos son las frases de la novela, con voces sintetizadas con Piper y subtítulos; las escenas que todavía no tienen imagen se escuchan. Sonido de WebAudio, calidad automática, y un .mp4 que se va renderizando de a una escena por noche.",
   "destacado": false,
-  "actualizado": "2026-10-23"
+  "actualizado": "2026-10-24"
  }
 ]
