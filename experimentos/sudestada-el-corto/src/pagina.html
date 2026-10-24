@@ -9,9 +9,10 @@
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; background: #05070c; color: #e8e4dc; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 16px; gap: 12px; }
-  .marco { position: relative; width: min(100%, 1120px); aspect-ratio: 16 / 9; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+  html, body { margin: 0; min-height: 100%; background: #05070c; color: #e8e4dc; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 100vh; padding: 16px; gap: 12px; }
+  @media (min-height: 760px) { body { justify-content: center; } }
+  .marco { position: relative; flex-shrink: 0; width: min(100%, 1120px); aspect-ratio: 16 / 9; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
   canvas { display: block; width: 100%; height: 100%; }
   .capa { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 20px; transition: opacity .4s; background: rgba(0,0,0,.35); }
   .capa.oculta { opacity: 0; pointer-events: none; }
@@ -29,6 +30,8 @@
   .texto p.titulo { font-style: normal; font-size: clamp(2rem, 9vw, 5.6rem); letter-spacing: .14em; line-height: 1; }
   .texto p.chico { font-style: normal; font-size: clamp(.8rem, 2.2vw, 1.1rem); letter-spacing: .18em; text-transform: uppercase; color: #cfc8ba; }
   .texto p.cartel { font-style: normal; font-size: clamp(.95rem, 2.8vw, 1.5rem); letter-spacing: .12em; color: #d8d2c6; }
+  .sub { position: absolute; left: 6%; right: 6%; bottom: 9%; text-align: center; font: 400 clamp(.85rem, 2.4vw, 1.25rem)/1.35 system-ui, sans-serif; color: #e8e4dc; text-shadow: 0 1px 6px rgba(0,0,0,.95), 0 0 14px rgba(0,0,0,.8); opacity: 0; transition: opacity .3s; pointer-events: none; }
+  .sub.visible { opacity: .92; }
   .controles { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; width: min(100%, 1120px); }
   .meta { color: #8e897f; font-size: .85rem; text-align: center; max-width: 70ch; }
   .meta a { color: #cfc8ba; }
@@ -49,6 +52,7 @@
 <div class="marco" id="marco">
   <canvas id="c" width="1280" height="720"></canvas>
   <div class="texto" id="texto"><p id="textoP"></p></div>
+  <div class="sub" id="sub"></div>
   <div class="cargando" id="cargando"></div>
   <div class="barra" id="barra"><div class="fondo"></div><div id="cortes"></div><div class="avance" id="avance"></div></div>
   <div class="capa" id="capa">
@@ -63,10 +67,11 @@
   <button type="button" class="sec" id="otra">↻ Desde el principio</button>
   <button type="button" class="sec" id="grabar">⏺ Grabar y descargar (.webm)</button>
   <a class="meta" href="sudestada-el-corto.mp4" download id="mp4">⬇ Bajar el .mp4</a>
+  <label class="meta"><input type="checkbox" id="voces" checked> Voces <span id="vocesNota" class="meta"></span></label>
   <label class="meta">Calidad <select id="calidad"><option value="auto" selected>automática</option><option value="1.5">alta</option><option value="1">media</option><option value="0.6">baja</option><option value="0.4">mínima</option></select></label>
   <span class="meta" id="estado"></span>
 </div>
-<p class="meta">Si va a los saltos, la calidad automática baja sola la resolución hasta que fluya; también la podés fijar. Tocá la barra de abajo del cuadro para saltar, o el nombre de una escena. WebGL puro, sin librerías ni imágenes: cada escena es un fragment shader con raymarching; el viento, la lluvia, el motor, los remos y el piano, de WebAudio. <a href="../../escritos/sudestada/">Leer la novela</a> · <a href="../diez-segundos/">Diez segundos</a>, de donde sale el motor · <a href="../../">← Volver a la vitrina</a></p>
+<p class="meta">Si va a los saltos, la calidad automática baja sola la resolución hasta que fluya; también la podés fijar. Tocá la barra de abajo del cuadro para saltar, o el nombre de una escena. Los diálogos los dice la voz en castellano de tu propio navegador (en Windows suele ser la de Argentina); si no tiene ninguna, quedan los carteles. WebGL puro, sin librerías ni imágenes: cada escena es un fragment shader con raymarching; el viento, la lluvia, el motor, los remos y el piano, de WebAudio. <a href="../../escritos/sudestada/">Leer la novela</a> · <a href="../diez-segundos/">Diez segundos</a>, de donde sale el motor · <a href="../../">← Volver a la vitrina</a></p>
 <!--SHADERS-->
 <!--SCRIPTS-->
 </body>

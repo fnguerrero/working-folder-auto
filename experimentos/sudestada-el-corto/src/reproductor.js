@@ -1,33 +1,33 @@
 /* ---- la línea de tiempo: una escena por shader ---- */
 const ESCENAS = [
-  { id: "00-portada", nombre: "Portada", dur: 6, defines: "#define NLUCES 1\n#define PASOS 40", fin: 1.5, fout: 1.0,
+  { id: "00-portada", dialogos: [{ desde: 1.2, quien: "vero", texto: "Mi hermano llamó un martes a la noche. Dijo: necesito que vengas. No por teléfono." }], nombre: "Portada", dur: 6, defines: "#define NLUCES 1\n#define PASOS 40", fin: 1.5, fout: 1.0,
     textos: [{ desde: 1.0, hasta: 5.2, clase: "", html: '<span class="titulo">SUDESTADA</span><br><span class="chico">el corto, a partir de la novela</span>' }],
     sonido: (S) => { S.viento(0, 6, 0.25, 0.25); S.nota(1.2, 73.42, 0.16, 4.5); S.nota(1.25, 110.0, 0.05, 4.0); } },
-  { id: "01-lancha", nombre: "La lancha colectiva", dur: 22, defines: "#define NLUCES 1\n#define NSOMBRAS 0\n#define PASOS 100\n#define ALCANCE 90.0", fin: 1.2, fout: 0.8,
+  { id: "01-lancha", dialogos: [{ desde: 5.0, quien: "lanchero", texto: "¿Va a lo de Aldao? El arroyo anda alto. La del mediodía es la última que entra hasta el Fraile." }, { desde: 12.5, quien: "veroDice", texto: "Sí. A lo de Aldao." }, { desde: 16.0, quien: "vero", texto: "No por teléfono. Cinco sílabas y una pausa. La venía dando vuelta como se da vuelta un documento contra la luz." }], nombre: "La lancha colectiva", dur: 22, defines: "#define NLUCES 1\n#define NSOMBRAS 0\n#define PASOS 100\n#define ALCANCE 90.0", fin: 1.2, fout: 0.8,
     textos: [{ desde: 1.0, hasta: 4.5, clase: "arriba-izq", html: '<span class="cartel">Jueves</span>' }, { desde: 15.5, hasta: 21.0, clase: "abajo", html: "«Necesito que vengas. No por teléfono.»" }],
     sonido: (S) => { S.viento(0, 22, 0.2, 0.25); S.motor(0, 22); S.oleaje(0, 22, 0.12); S.pajaro(6.5, 1); S.pajaro(12.2, 2); } },
-  { id: "02-puerta", nombre: "La puerta abierta", dur: 20, defines: "#define NLUCES 1\n#define NSOMBRAS 1\n#define PASOS 100", fin: 0.8, fout: 0.8,
+  { id: "02-puerta", dialogos: [{ desde: 1.5, quien: "vero", texto: "La lancha de Martín no estaba. La chata sí. Y la puerta de la galería estaba abierta, con la hoja contra la pared." }, { desde: 9.5, quien: "vero", texto: "En la baranda había una toalla celeste, con flores. En esa casa no hay toallas con flores. Las toallas las compro yo." }, { desde: 15.5, quien: "ana", texto: "Soy la pareja de Martín. ¿Vos sos la hermana?" }], nombre: "La puerta abierta", dur: 20, defines: "#define NLUCES 1\n#define NSOMBRAS 1\n#define PASOS 100", fin: 0.8, fout: 0.8,
     textos: [{ desde: 15.0, hasta: 19.5, clase: "abajo", html: "«Soy la pareja de Martín. ¿Vos sos la hermana?»" }],
     sonido: (S) => { S.viento(0, 20, 0.3, 0.45); S.oleaje(0, 20, 0.06); S.pasos(5.5, 13.5, 0.95); S.chapas(0, 20, 0.5); S.canilla(9.5, 16.0); } },
-  { id: "03-viento", nombre: "El viento gira", dur: 20, defines: "#define NLUCES 2\n#define NSOMBRAS 1\n#define PASOS 100", fin: 1.0, fout: 1.0, rayos: [[11.0, -0.45]],
+  { id: "03-viento", dialogos: [{ desde: 2.0, quien: "ana", texto: "Martín salió el miércoles temprano, por un trabajo. No volvió. Tiene el teléfono apagado." }, { desde: 9.0, quien: "vero", texto: "Esa noche el viento giró, y el arroyo empezó a correr al revés." }, { desde: 15.0, quien: "elias", texto: "Viene sudestada, Verónica. Si te vas, andate hoy." }], nombre: "El viento gira", dur: 20, defines: "#define NLUCES 2\n#define NSOMBRAS 1\n#define PASOS 100", fin: 1.0, fout: 1.0, rayos: [[11.0, -0.45]],
     textos: [{ desde: 1.0, hasta: 4.0, clase: "arriba-izq", html: '<span class="cartel">Jueves, a la noche</span>' }, { desde: 14.5, hasta: 19.3, clase: "abajo", html: "«Viene sudestada. Si te vas, andate hoy.»" }],
     sonido: (S) => { S.viento(0, 20, 0.5, 0.9); S.radio(0.5, 7.5); S.lluvia(8, 20, 0.0, 0.2); S.trueno(11.6); S.vidrios(0, 20); S.oleaje(0, 20, 0.1); } },
-  { id: "04-escalera", nombre: "El agua sube por la escalera", dur: 22, defines: "#define NLUCES 2\n#define NSOMBRAS 2\n#define PASOS 90\n#define ALCANCE 30.0", fin: 1.0, fout: 0.0,
+  { id: "04-escalera", dialogos: [{ desde: 1.5, quien: "vero", texto: "El viernes a la noche el agua entró en la planta baja. Subimos lo que quedaba, a oscuras, con linternas." }, { desde: 11.5, quien: "vero", texto: "Sábado cinco de julio. Ella no va a dejarme ir. No lo dice así." }, { desde: 19.9, quien: "ana", texto: "Se cortó la luz." }], nombre: "El agua sube por la escalera", dur: 22, defines: "#define NLUCES 2\n#define NSOMBRAS 2\n#define PASOS 90\n#define ALCANCE 30.0", fin: 1.0, fout: 0.0,
     textos: [{ desde: 1.0, hasta: 4.0, clase: "arriba-izq", html: '<span class="cartel">Viernes</span>' }, { desde: 12.0, hasta: 17.5, clase: "abajo", html: "«Ella no va a dejarme ir. No lo dice así.»" }],
     sonido: (S) => { S.viento(0, 22, 0.18, 0.25, 900); S.goteo(0, 22); S.madera(0, 22); S.grupo(0, 19.8); S.motivo(5.0, 0.35); } },
-  { id: "05-hombre", nombre: "El hombre de la chata", dur: 22, defines: "#define NLUCES 1\n#define NSOMBRAS 0\n#define PASOS 100\n#define ALCANCE 70.0", fin: 1.2, fout: 0.8,
+  { id: "05-hombre", dialogos: [{ desde: 2.0, quien: "vero", texto: "A las seis de la mañana, del otro lado del arroyo, entre los sauces del recreo abandonado, había un hombre en una chata." }, { desde: 15.0, quien: "vero", texto: "Remaba raro. Como al revés." }], nombre: "El hombre de la chata", dur: 22, defines: "#define NLUCES 1\n#define NSOMBRAS 0\n#define PASOS 100\n#define ALCANCE 70.0", fin: 1.2, fout: 0.8,
     textos: [{ desde: 1.0, hasta: 4.0, clase: "arriba-izq", html: '<span class="cartel">Sábado, de madrugada</span>' }, { desde: 15.0, hasta: 20.0, clase: "abajo", html: "«Remaba raro. Como al revés.»" }],
     sonido: (S) => { S.viento(0, 22, 0.35, 0.6); S.lluvia(0, 22, 0.14, 0.14); S.corriente(0, 22, 0.25); S.remada(2, 17, 2.6, 0.12, 0.6); S.perro(9.0, 2, 0.25); } },
-  { id: "06-chata", nombre: "La chata", dur: 22, defines: "#define NLUCES 1\n#define NSOMBRAS 0\n#define PASOS 100", fin: 0.6, fout: 0.8,
+  { id: "06-chata", dialogos: [{ desde: 0.8, quien: "vero", texto: "Bajé la escalera sin ponerme las botas. Desaté la chata, calcé los remos, y salí." }, { desde: 9.6, quien: "vero", texto: "Un tronco." }, { desde: 16.5, quien: "ana", texto: "¿Qué querés? ¿Morirte vos también?" }], nombre: "La chata", dur: 22, defines: "#define NLUCES 1\n#define NSOMBRAS 0\n#define PASOS 100", fin: 0.6, fout: 0.8,
     textos: [{ desde: 16.5, hasta: 21.0, clase: "abajo", html: "«¿Qué querés, morirte vos también?»" }],
     sonido: (S) => { S.viento(0, 22, 0.4, 0.6); S.lluvia(0, 22, 0.12, 0.12); S.corriente(0, 22, 0.5); S.remada(0, 9, 1.9, 0.5, 0.3); S.golpe(9.4); S.perro(12.5, 3, 0.4); S.respiracion(2, 20); } },
-  { id: "07-luz", nombre: "La luz en el galpón", dur: 18, defines: "#define NLUCES 2\n#define NSOMBRAS 1\n#define PASOS 80\n#define ALCANCE 400.0", fin: 1.0, fout: 1.0,
+  { id: "07-luz", dialogos: [{ desde: 1.5, quien: "vero", texto: "Afuera era la noche de la sudestada: negra, sin orillas, con el ruido." }, { desde: 10.0, quien: "vero", texto: "Y por ese corredor, arroyo abajo, donde tenía que estar el galpón de Elías, vi una luz." }], nombre: "La luz en el galpón", dur: 18, defines: "#define NLUCES 2\n#define NSOMBRAS 1\n#define PASOS 80\n#define ALCANCE 400.0", fin: 1.0, fout: 1.0,
     textos: [{ desde: 1.0, hasta: 4.0, clase: "arriba-izq", html: '<span class="cartel">Sábado, a la noche</span>' }, { desde: 12.0, hasta: 17.0, clase: "abajo", html: "«Una luz de farol, quieta, que no era un reflejo.»" }],
     sonido: (S) => { S.viento(0, 18, 0.5, 0.95, 1200); S.lluvia(0, 18, 0.3, 0.3, 1800); S.madera(0, 18); } },
-  { id: "08-farol", nombre: "Salí del agua", dur: 28, defines: "#define NLUCES 2\n#define NSOMBRAS 1\n#define PASOS 110", fin: 1.0, fout: 1.5, rayos: [[2.4, 0.3], [4.55, -0.2], [6.3, -0.5]],
+  { id: "08-farol", dialogos: [{ desde: 0.8, quien: "veroDice", texto: "¡Ana!" }, { desde: 6.0, quien: "ana", texto: "¡Acá! ¡Agarrate del poste!" }, { desde: 12.0, quien: "vero", texto: "El que lo traía era alto. Venía con el agua al pecho, con el farol en alto." }, { desde: 19.5, quien: "vero", texto: "La gorra. La barba de cuatro días. Los ojos de mi madre." }, { desde: 23.5, quien: "veroDice", texto: "Salí del agua, Martín." }], nombre: "Salí del agua", dur: 28, defines: "#define NLUCES 2\n#define NSOMBRAS 1\n#define PASOS 110", fin: 1.0, fout: 1.5, rayos: [[2.4, 0.3], [4.55, -0.2], [6.3, -0.5]],
     textos: [{ desde: 1.0, hasta: 4.0, clase: "arriba-izq", html: '<span class="cartel">Domingo, 4.20</span>' }, { desde: 23.0, hasta: 27.5, clase: "abajo", html: "«Salí del agua, Martín.»" }],
     sonido: (S) => { S.viento(0, 28, 0.6, 1.0); S.lluvia(0, 28, 0.15, 0.1); S.corriente(0, 28, 0.5); S.trueno(2.9); S.remada(0, 4.2, 1.9, 0.5, 0.4); S.vuelco(4.2); S.trueno(5.0); S.trueno(6.9); S.chapa(8.5); S.perro(9.5, 5, 0.6); S.perro(12.0, 3, 0.5); S.chapoteo(10, 20); S.motivo(19.0, 0.9); } },
-  { id: "09-barro", nombre: "Barro", dur: 23, defines: "#define NLUCES 1\n#define NSOMBRAS 0\n#define PASOS 100\n#define MARCA 2.1", fin: 1.5, fout: 2.0,
+  { id: "09-barro", dialogos: [{ desde: 1.5, quien: "vero", texto: "El domingo a la tarde el agua bajó. La casa estaba llena de barro, y mi hermano, vivo, baldeando la galería." }, { desde: 8.5, quien: "vero", texto: "Yo vivo de decir si una firma es de quien dice ser. De mi hermano creía saberlo todo." }], nombre: "Barro", dur: 23, defines: "#define NLUCES 1\n#define NSOMBRAS 0\n#define PASOS 100\n#define MARCA 2.1", fin: 1.5, fout: 2.0,
     textos: [{ desde: 1.0, hasta: 4.0, clase: "arriba-izq", html: '<span class="cartel">Domingo, a la tarde</span>' }, { desde: 13.0, hasta: 19.0, clase: "", html: '<span class="titulo">SUDESTADA</span>' }, { desde: 19.6, hasta: 22.6, clase: "", html: '<span class="chico">a partir de la novela · Programador nocturno · 2026</span>' }],
     sonido: (S) => { S.viento(0, 23, 0.12, 0.1); S.oleaje(0, 23, 0.05); S.pajaro(2.0, 1); S.pajaro(5.5, 3); S.pajaro(9.0, 2); S.acorde(12.0, 11.0); S.pajaro(16.0, 1); } },
 ];
@@ -93,6 +93,7 @@ function dibujar(tg, esperar) {
   cargando.textContent = "";
   const t = tg - e.inicio;
   if (i !== actual) { actual = i; marcarEscena(i); if (corriendo && i + 1 < ESCENAS.length) compilar(i + 1); }
+  if (corriendo) hablar(e, t);
   usar(e);
   const r = rayo(e, t);
   gl.uniform2f(e.u.uRes, canvas.width, canvas.height); gl.uniform1f(e.u.uT, t); gl.uniform1f(e.u.uFlash, flash(e, t)); gl.uniform3f(e.u.uRayo, r[0], r[1], r[2]); gl.uniform1f(e.u.uFundido, fundido(e, t));
@@ -103,6 +104,42 @@ function dibujar(tg, esperar) {
   avance.style.width = (tg / DUR * 100).toFixed(2) + "%";
   return true;
 }
+
+/* ---- voces: los diálogos con las voces del propio navegador (speechSynthesis), la de castellano rioplatense si la hay ---- */
+const sintesis = "speechSynthesis" in window ? window.speechSynthesis : null;
+const subDiv = document.getElementById("sub");
+let vocesEs = [];
+function cargarVoces() {
+  if (!sintesis) return;
+  vocesEs = sintesis.getVoices().filter((v) => /^es([-_]|$)/i.test(v.lang));
+  const ar = vocesEs.filter((v) => /AR/i.test(v.lang));
+  vocesEs = ar.concat(vocesEs.filter((v) => !/AR/i.test(v.lang)));
+  const chk = document.getElementById("voces"); const nota = document.getElementById("vocesNota");
+  if (chk) { chk.disabled = vocesEs.length === 0; }
+  if (nota) nota.textContent = vocesEs.length ? `(${vocesEs[0].name.replace(/^Microsoft |^Google /, "")})` : "(tu navegador no tiene voz en castellano)";
+}
+if (sintesis) { cargarVoces(); sintesis.onvoiceschanged = cargarVoces; }
+const esMujer = (v) => /elena|sabina|helena|laura|paulina|m[oó]nica|luc[ií]a|dalia|elvira|abril|camila|esperanza|isidora|catalina|sofia|mia|teresa|ximena|yolanda|carlota|female|mujer/i.test(v.name);
+function vozPara(quien) {
+  if (!vocesEs.length) return null;
+  const mujeres = vocesEs.filter(esMujer), hombres = vocesEs.filter((v) => !esMujer(v));
+  const hombre = quien === "elias" || quien === "lanchero" || quien === "martin";
+  const lista = hombre ? (hombres.length ? hombres : vocesEs) : (mujeres.length ? mujeres : vocesEs);
+  /* Ana y Verónica con voces distintas si hay dos */
+  return lista[quien === "ana" && lista.length > 1 ? 1 : 0];
+}
+function decir(d) {
+  const chk = document.getElementById("voces");
+  if (!sintesis || !vocesEs.length || (chk && !chk.checked)) return;
+  const u = new SpeechSynthesisUtterance(d.texto);
+  const v = vozPara(d.quien); if (v) { u.voice = v; u.lang = v.lang; }
+  const perfil = { vero: [0.92, 0.95], veroDice: [1.0, 1.0], ana: [1.0, 1.12], elias: [0.82, 0.7], lanchero: [0.95, 0.8], martin: [0.9, 0.75] }[d.quien] || [0.95, 1.0];
+  u.rate = perfil[0]; u.pitch = perfil[1]; u.volume = 1.0;
+  if (subDiv) { subDiv.textContent = d.texto; subDiv.classList.add("visible"); u.onend = () => subDiv.classList.remove("visible"); u.onerror = u.onend; }
+  sintesis.speak(u);
+}
+function callarVoces() { if (sintesis) sintesis.cancel(); if (subDiv) subDiv.classList.remove("visible"); for (const e of ESCENAS) for (const d of e.dialogos || []) d.dicho = false; }
+function hablar(e, t) { for (const d of e.dialogos || []) { if (!d.dicho && t >= d.desde && t < d.desde + 2.0) { d.dicho = true; decir(d); } else if (t < d.desde) d.dicho = false; } }
 
 /* ---- reproducción ---- */
 let inicio = 0, raf = 0, corriendo = false, ultimo = 0;
@@ -116,13 +153,13 @@ function cuadro(now) {
 function reproducir(desde) {
   if (!gl) return;
   desde = desde || 0;
-  capa.classList.add("oculta"); corriendo = true;
+  capa.classList.add("oculta"); corriendo = true; callarVoces();
   /* con compilación en paralelo, se mandan a compilar todas las escenas de entrada y el driver las prepara de fondo */
   if (paralelo) for (let i = 0; i < ESCENAS.length; i++) compilar(i);
   sonar(desde);
   inicio = performance.now() - desde * 1000; ultimo = 0; tiempos = []; cancelAnimationFrame(raf); raf = requestAnimationFrame(cuadro);
 }
-function detener() { corriendo = false; cancelAnimationFrame(raf); callar(); }
+function detener() { corriendo = false; cancelAnimationFrame(raf); callar(); callarVoces(); }
 function terminar() { detener(); textoDiv.classList.remove("visible"); capa.querySelector("h1").textContent = "Fin"; capa.querySelector("p").textContent = "Sudestada, el corto. ¿Otra vez?"; document.getElementById("play").textContent = "↻ Otra vez"; capa.classList.remove("oculta"); if (grabadora && grabadora.state === "recording") grabadora.stop(); }
 function saltar(tg) { if (corriendo) reproducir(tg); else { ajustar(); try { dibujar(tg, true); } catch (e) { console.error(e); } } }
 
@@ -189,6 +226,7 @@ window.__probarTodas = () => { const r = []; for (let i = 0; i < ESCENAS.length;
 document.getElementById("play").addEventListener("click", () => reproducir(0));
 document.getElementById("otra").addEventListener("click", () => reproducir(0));
 document.getElementById("grabar").addEventListener("click", grabar);
+document.getElementById("voces").addEventListener("change", (ev) => { if (!ev.target.checked) callarVoces(); });
 document.getElementById("calidad").addEventListener("change", () => { ajustar(); if (!corriendo) dibujar(Math.max(0.001, (performance.now() - inicio) / 1000 * (inicio ? 1 : 0)), true); });
 addEventListener("resize", () => { ajustar(); if (!corriendo) dibujar(actual >= 0 ? Math.max(0.001, (performance.now() - inicio) / 1000) : 0.001, true); });
 /* el sonido entero renderizado a WAV sin parlantes (para el .mp4) */
