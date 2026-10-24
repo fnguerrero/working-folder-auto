@@ -14,7 +14,7 @@ vuelta, la luz en el galpón, el farol en el agua («Salí del agua, Martín») 
 
 ## Qué hay
 
-- `index.html`: el reproductor. Reproduce el corto entero (183 s), con barra de tiempo para saltar, lista de escenas,
+- `index.html`: el reproductor. Reproduce el corto entero (203 s), con barra de tiempo para saltar, lista de escenas,
   calidad automática (mide cuánto tarda cada cuadro y baja o sube la resolución de render sola, de 0,3× a 1,5×; también
   se puede fijar), «Grabar y descargar» (a `.webm` con el audio, en el navegador) y link al `.mp4`. Las escenas que todavía
   no tienen shader propio se ven con el de la portada y salen atenuadas en la lista. `?t=90` dibuja el cuadro del segundo 90

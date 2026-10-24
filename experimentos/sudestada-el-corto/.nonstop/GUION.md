@@ -1,6 +1,6 @@
 # Guion
 
-Nueve escenas, 183 segundos. Cada una es un shader. Los intertítulos son frases de la novela, en serif, sobre negro o
+Nueve escenas más la portada, 203 segundos (3:23). Cada una es un shader. Los intertítulos son frases de la novela, en serif, sobre negro o
 sobre la imagen. Las horas son las de la escaleta de la novela (jueves 9 a domingo 12 de octubre).
 
 | # | Escena | Dur. | Hora | Plano | Qué pasa | Qué se oye | Intertítulo |
@@ -16,7 +16,7 @@ sobre la imagen. Las horas son las de la escaleta de la novela (jueves 9 a domin
 | 8 | Salí del agua | 28 s | Domingo, 4.20 | El muelle de Elías, de noche, desde el agua. | Ana agarrada a un poste con el agua al pecho. Verónica llega en la chata; la chata se da vuelta; las dos en el río. La puerta corrediza de chapa del galpón se abre y sale un farol a kerosene que baja hasta el agua y viene balanceándose; el Negro ladra parado en el pallet que flota. El que lo trae, alto, con gorra, el agua al pecho, cuelga el farol del gancho del poste: la luz cae sobre los tres. Barba de cuatro días, los pómulos. Martín. | El viento al máximo, la chata que vuelca, el hierro de la puerta, el perro, el agua, y el motivo musical que vuelve. | «Salí del agua, Martín.» |
 | 9 | Barro | 23 s | Domingo, 15.00 | Desde el agua, la casa; el arroyo baja. Cámara que se acerca despacio. Último plano: el cielo. | Cielo que se abre, amarillo y gris, sin lluvia. La marca del agua en los pilotes y en las paredes; barro en la galería; la mesa de la abuela de pie otra vez. Dos personas baldeando en la galería. Un pájaro. Título. | Agua que baja, pájaros, un trapo mojado, el acorde del final. | «SUDESTADA» y «Programador nocturno, a partir de la novela» |
 
-Total: 183 s.
+Total: 203 s (la suma de la tabla; la primera versión decía 183 por un error de cuenta).
 
 ## Música
 
