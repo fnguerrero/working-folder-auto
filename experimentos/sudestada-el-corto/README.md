@@ -23,13 +23,15 @@ reproductor las pasa sobre un fondo oscuro con el diálogo y los subtítulos, y 
   no tienen shader propio se ven con el de la portada, con el diálogo, los subtítulos y una nota, y salen atenuadas en la
   lista. `?t=90` dibuja el cuadro del segundo 90 quieto; `?escena=8&t=14` el segundo 14 de la escena 8.
 - `voces/`: las líneas de diálogo (`lineas.json`: quién, en qué escena, desde cuándo, el texto y la duración real) y un
-  `.ogg` por línea (Opus mono a 32 kb/s; las 96 líneas, 4 minutos de voz, pesan 1,3 MB). `generar.py` las sintetiza con
+  `.ogg` por línea (Opus mono a 32 kb/s; las 109 líneas, cuatro minutos y medio de voz, pesan 1,5 MB). `generar.py` las sintetiza con
   [Piper](https://github.com/rhasspy/piper) (TTS neuronal, corre local) y ffmpeg: una voz por personaje (Verónica es
   `es_AR-daniela`, la única voz argentina de Piper; Ana la misma un 8 % más aguda; Martín, Elías, Acuña y Pereyra son voces
   de España bajadas de tono y con el seseo escrito en el texto para que no pronuncien la zeta), con variantes (voz en off,
   por teléfono, grito, del otro lado de una puerta) y normalización de volumen. Solo regenera lo que cambió. El reproductor
   las carga al apretar Reproducir, las programa en WebAudio junto con los efectos (el ambiente baja mientras alguien
-  habla) y las muestra como subtítulos; el render del `.mp4` las decodifica igual.
+  habla) y las muestra como subtítulos; la casilla «Voces» las apaga (quedan los subtítulos). El render del `.mp4` las
+  decodifica igual. Además del diálogo hay narración en off de Verónica (frases de la novela en primera persona), que
+  salieron de la versión con `speechSynthesis` que Nico armó en la sesión del 24/10.
 - `src/`: la fuente. `comun.glsl` es la librería (ruido, primitivas, el rig de persona por postura y aspecto, la chata, la
   lancha colectiva, la casa de dos plantas, el perro, los sauces, el cielo con tres regímenes, el agua, la iluminación y los
   materiales), `main.glsl` el `main()` común, `escenas/NN-*.glsl` una escena por archivo (cada una define el mundo, la

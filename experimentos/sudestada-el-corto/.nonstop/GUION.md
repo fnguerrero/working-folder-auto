@@ -56,6 +56,9 @@ igual en el navegador y en el `.mp4`.
   pasa con seseo escrito («hiso», «ves», «onse»).
 - **Elías:** `es_ES-sharvard-medium`, hablante 0 (grave, 113 Hz), más lento todavía: setenta y un años. Con el mismo seseo.
 - **Acuña:** `davefx` sin bajar, parejo y cortés. **Pereyra:** `sharvard` 0 un 5 % más agudo, con la voz de los que leen en voz alta.
+  **El lanchero** (una línea en la 1): `sharvard` 0 un 10 % más agudo.
+- **Narración en off de Verónica** (frases de la novela en primera persona) en las escenas 2, 4, 5, 7, 8, 13, 15 y 17, además del
+  diálogo: salieron de la versión con las voces del navegador que Nico armó en la sesión del 24/10 a la madrugada.
 
 ## Música
 

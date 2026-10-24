@@ -214,6 +214,7 @@ function programar(ctx, m, T0, desde) {
       const b = cache[l.id]; const t0 = e.inicio + l.t, t1 = t0 + (b ? b.duration : (l.dur || 2));
       if (t1 <= desde) continue;
       const vol = l.variante === "off" ? 0.95 : 1.0;
+      const chk = document.getElementById("voces"); if (chk && !chk.checked) continue; /* sin voces: quedan los subtítulos */
       if (b) { const src = ctx.createBufferSource(); src.buffer = b; const g = ctx.createGain(); g.gain.value = vol; src.connect(g); g.connect(m); src.start(T0 + Math.max(t0, desde), Math.max(0, desde - t0)); S.fuentes.push(src); }
       /* el ambiente baja a la mitad mientras habla y vuelve despacio */
       const baja = l.variante === "grito" ? 0.7 : 0.45;
@@ -266,6 +267,7 @@ window.__probarTodas = () => { const r = []; for (let i = 0; i < ESCENAS.length;
 document.getElementById("play").addEventListener("click", () => reproducir(0));
 document.getElementById("otra").addEventListener("click", () => reproducir(0));
 document.getElementById("grabar").addEventListener("click", grabar);
+document.getElementById("voces").addEventListener("change", () => { if (corriendo) reproducir(Math.max(0, (performance.now() - inicio) / 1000)); });
 document.getElementById("calidad").addEventListener("change", () => { ajustar(); if (!corriendo) dibujar(Math.max(0.001, (performance.now() - inicio) / 1000 * (inicio ? 1 : 0)), true); });
 addEventListener("resize", () => { ajustar(); if (!corriendo) dibujar(actual >= 0 ? Math.max(0.001, (performance.now() - inicio) / 1000) : 0.001, true); });
 /* el sonido entero renderizado a WAV sin parlantes (para el .mp4) */

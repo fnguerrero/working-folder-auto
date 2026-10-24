@@ -25,6 +25,10 @@
   arranca antes de que termine la anterior, se corre.
 - Guion segunda versión: veinte escenas, 724 s, con las frases de la novela. Las nueve que existían se alargaron para el diálogo y
   se renumeraron; las once nuevas se escuchan sobre la portada con una nota, para que la película exista entera mientras se hace.
+- A las 03.19 Nico, en la sesión, pusheó una versión con las voces del propio navegador (`speechSynthesis`, con narración en primera
+  persona) y un arreglo del marco en pantallas bajas; chocó con esta noche al pushear. Se rebasó quedándose con las voces de Piper
+  (suenan igual en todos lados y entran en el `.mp4`) y se tomaron de la suya la casilla «Voces» y las líneas de narración, que ahora
+  también dice daniela. Son 109 líneas, 4,5 minutos de voz, 1,5 MB.
 - Los segmentos viejos del `.mp4` se sacaron del árbol: no coinciden con el guion nuevo. El `.mp4` queda como borrador de la noche 1
   (dice el README) y `armar` ahora verifica que cada segmento dure lo que dura su escena.
 

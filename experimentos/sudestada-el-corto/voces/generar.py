@@ -24,6 +24,7 @@ PERSONAJES = {
     "elias":    dict(modelo="es_ES-sharvard-medium", hablante=0, tono=1.0, largo=1.12, seseo=True),
     "acuna":    dict(modelo="es_ES-davefx-medium", hablante=0, tono=1.0, largo=1.0, seseo=True),
     "pereyra":  dict(modelo="es_ES-sharvard-medium", hablante=0, tono=1.05, largo=1.1, seseo=True),
+    "lanchero": dict(modelo="es_ES-sharvard-medium", hablante=0, tono=1.1, largo=1.0, seseo=True),
 }
 # filtros de ffmpeg por variante (después del tono): normal = voz en escena; off = voz interior, más cerca y más seca;
 # telefono = por el teléfono; grito = más fuerte y un poco más agudo; puerta = del otro lado de una puerta

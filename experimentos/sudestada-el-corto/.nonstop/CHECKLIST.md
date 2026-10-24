@@ -34,6 +34,7 @@
 - [x] **Escena 18, «Martes, once»** (la final): la escribanía (cáscara con ventana al este y puerta, escritorio con vidrio y cajoneras, los dos papeles con el texto impreso, la carpeta, la lupa, el ventilador que gira, el cuadro del velero, cuatro sillas), Pereyra con anteojos de media luna, Acuña de celeste, Martín afeitado con camisa blanca, Verónica de saco; la firma «Verónica Beatriz Aldao» como curva paramétrica (la V, la cola que baja del renglón, «erónica» con lazos, el salto, «Aldao») que se dibuja en el papel con la pausa de los nueve años (y Martín la hace de corrido, con el arrastre), la lapicera en la mano que sigue la punta; once planos de cámara y la vereda con sol. Medido: 20 a 30 s por cuadro a 640 px (tres veces las otras escenas).
 - [x] `tests/ver.js` acepta varios tiempos por proceso (el JIT de SwiftShader cuesta 50 a 110 s por proceso).
 - [x] Bug en el celular que encontró el e2e a 360 px: con veinte botones de escena la página desborda y el cuadro (flex con `aspect-ratio`) se achicaba a cero y quedaba por encima del borde; `flex-shrink: 0`, `justify-content: safe center` y la portada sin párrafo en pantallas angostas.
+- [x] Mientras corría la noche, Nico (en la sesión, 03.19) pusheó una versión con las voces del navegador (`speechSynthesis`): quedó reemplazada por las voces de Piper, y se conservaron la casilla «Voces» para apagarlas y sus trece líneas de narración en off de Verónica (más el lanchero), sintetizadas con Piper.
 - [x] README, SPEC, bitácora; e2e a 360 y 1280 px; comentario en #15.
 
 ## Noches siguientes (en orden)
