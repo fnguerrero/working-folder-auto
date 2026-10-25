@@ -460,5 +460,19 @@
   "detalle": "Creás un evento, cargás quiénes son y cada gasto (quién pagó y entre quiénes, en partes iguales, por partes, por porcentaje o con montos), y calcula cuánto puso cada uno, cuánto le tocaba y la menor cantidad de transferencias para quedar a mano, redondeadas a pesos. El resumen se copia listo para el grupo de WhatsApp; sin cuenta ni servidor, queda en el navegador.",
   "destacado": false,
   "actualizado": "2026-10-25"
+ },
+ {
+  "slug": "feriados-y-habiles",
+  "nombre": "Feriados y días hábiles",
+  "categoria": "herramientas",
+  "descripcion": "Los feriados de Argentina de 2024 a 2027 con su norma, una calculadora de plazos en días hábiles y la clase C# CalendarioArgentino para pegar.",
+  "estado": "terminado",
+  "probar": "herramientas/feriados-y-habiles/",
+  "desde": "2026-10-25",
+  "icono": "📅",
+  "para": "devs",
+  "detalle": "El calendario de feriados nacionales con los trasladables en su fecha real, los puentes y la ley o decreto de cada uno, y una calculadora: qué día cae 10 hábiles después del 15/10, cuántos hábiles hay entre dos fechas, si un día es feriado. La misma lista sale en JSON y en una clase C# con EsHabil, SumarHabiles y HabilesEntre, probada con .NET 8; confirmado hasta 2026 y 2027 a medias.",
+  "destacado": false,
+  "actualizado": "2026-10-25"
  }
 ]

@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Feriados y días hábiles</title>
+<style>
+  :root { --bg: #f4f4f1; --card: #fff; --fg: #1e1f1c; --muted: #6a6c64; --line: #e1e2db; --accent: #1f6f8b; --accent-fg: #fff; --ok: #2f7d4f; --medio: #b7791f; --mal: #c0392b; --code: #eceee8; --suave: rgba(31, 111, 139, .08);
+    --inamovible: #c0392b; --trasladable: #d9731a; --puente: #2f6fd0; --nolab: #8a4fbf; --finde: #ecece6; --finde-fg: #8a8c84; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #131412; --card: #1c1e1a; --fg: #ebece6; --muted: #a0a398; --line: #30332c; --accent: #6cc3e0; --accent-fg: #0b1d24; --ok: #7bd39b; --medio: #e4b55a; --mal: #f0867a; --code: #171915; --suave: rgba(108, 195, 224, .12);
+    --inamovible: #f0867a; --trasladable: #f2a35e; --puente: #7fa9f0; --nolab: #c39af0; --finde: #24261f; --finde-fg: #7c7f74; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.45; }
+  header { padding: 18px 16px 6px; max-width: 1100px; margin: 0 auto; }
+  h1 { margin: 0; font-size: 1.5rem; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  main { max-width: 1100px; margin: 0 auto; padding: 10px 16px 32px; display: grid; gap: 14px; }
+  @media (min-width: 900px) { main { grid-template-columns: 420px 1fr; align-items: start; } .ancho { grid-column: 1 / -1; } }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+  .panel h2 { margin: 0 0 10px; font-size: 1rem; }
+  h3.sub { margin: 12px 0 4px; font-size: .78rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  input[type=date], input[type=number], select { font: inherit; width: 100%; min-height: 42px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
+  label.campo { display: block; font-size: .85rem; color: var(--muted); margin-top: 8px; }
+  label.campo > span { display: block; margin-bottom: 2px; }
+  .dos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  label.check { display: flex; gap: 8px; align-items: flex-start; font-size: .88rem; margin-top: 8px; min-height: 40px; cursor: pointer; }
+  label.check input { width: 22px; height: 22px; margin: 1px 0 0; flex: none; accent-color: var(--accent); }
+  label.check small { display: block; color: var(--muted); font-size: .8rem; }
+  button { font: inherit; font-size: .85rem; min-height: 40px; padding: 6px 12px; border-radius: 999px; cursor: pointer; border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+  button:hover { border-color: var(--accent); }
+  button[aria-pressed="true"], button.primario { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0; }
+  .estado { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin-top: 10px; font-size: .88rem; }
+  .sello { display: inline-block; font-weight: 700; padding: 3px 10px; border-radius: 999px; font-size: .82rem; border: 2px solid var(--ok); color: var(--ok); }
+  .sello.medio { border-color: var(--medio); color: var(--medio); }
+  .estado p { margin: 0; flex: 1 1 260px; color: var(--muted); }
+  .resultado p { margin: 4px 0; font-size: .92rem; overflow-wrap: anywhere; }
+  .resultado p.grande { font-size: 1.35rem; font-weight: 700; margin: 2px 0 4px; line-height: 1.25; }
+  .resultado .pregunta { color: var(--muted); font-size: .88rem; margin: 0; }
+  .error { color: var(--mal); font-size: .92rem; margin: 6px 0 0; }
+  .lista { list-style: none; padding: 0; margin: 6px 0 0; display: grid; gap: 6px; }
+  .lista li { border-left: 4px solid var(--line); border-radius: 8px; padding: 6px 10px; background: var(--suave); font-size: .88rem; overflow-wrap: anywhere; }
+  .lista li b { font-weight: 600; }
+  .lista li small { display: block; color: var(--muted); }
+  .t-inamovible { border-left-color: var(--inamovible) !important; } .t-trasladable { border-left-color: var(--trasladable) !important; }
+  .t-turistico, .t-puente { border-left-color: var(--puente) !important; } .t-nolab { border-left-color: var(--nolab) !important; }
+  .aviso { border-left: 4px solid var(--medio); border-radius: 8px; padding: 8px 12px; background: var(--suave); font-size: .88rem; margin-top: 8px; }
+  .aviso ul { margin: 4px 0 0; padding-left: 18px; }
+  .leyenda { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .8rem; color: var(--muted); margin: 4px 0 10px; }
+  .leyenda span { display: inline-flex; align-items: center; gap: 5px; }
+  .leyenda i { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+  .meses { display: grid; gap: 16px; }
+  @media (min-width: 600px) { .meses { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 900px) { .meses { grid-template-columns: 1fr 1fr 1fr; } }
+  .mes h4 { margin: 0 0 4px; font-size: .9rem; text-transform: capitalize; }
+  .grilla { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
+  .grilla .cab { font-size: .7rem; color: var(--muted); text-align: center; padding: 2px 0; }
+  .dia { min-height: 40px; min-width: 0; padding: 0; border-radius: 8px; border: 1px solid transparent; background: transparent; font-size: .85rem; position: relative; }
+  .dia.finde { background: var(--finde); color: var(--finde-fg); }
+  .dia.inamovible, .dia.trasladable { background: var(--inamovible); color: #fff; font-weight: 700; }
+  .dia.trasladable { background: var(--trasladable); }
+  .dia.turistico, .dia.puente { background: var(--puente); color: #fff; font-weight: 700; }
+  .dia.nolab { background: transparent; border: 2px solid var(--nolab); color: var(--nolab); font-weight: 700; }
+  .dia.confirmar { background-image: repeating-linear-gradient(135deg, transparent 0 5px, rgba(255, 255, 255, .35) 5px 9px); }
+  .dia.original { border: 2px dashed var(--trasladable); }
+  .dia.hoy { outline: 2px solid var(--fg); outline-offset: -2px; }
+  .dia.marca::after { content: ""; position: absolute; left: 50%; bottom: 3px; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: currentColor; }
+  .dia.desde, .dia.hasta { box-shadow: 0 0 0 3px var(--accent) inset; }
+  .dia.elegido { box-shadow: 0 0 0 3px var(--fg) inset; }
+  @media (prefers-color-scheme: dark) { .dia.inamovible, .dia.trasladable, .dia.turistico, .dia.puente { color: #131412; } }
+  .detalle { margin-top: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: .86rem; margin-top: 8px; }
+  th, td { text-align: left; padding: 6px; border-top: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: .74rem; }
+  td.fecha { white-space: nowrap; }
+  td small { display: block; color: var(--muted); }
+  .tipo { display: inline-block; font-size: .74rem; font-weight: 600; padding: 1px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+  .tipo.inamovible { color: var(--inamovible); } .tipo.trasladable { color: var(--trasladable); } .tipo.turistico, .tipo.puente { color: var(--puente); } .tipo.nolab { color: var(--nolab); }
+  @media (max-width: 599px) { table.tabla, table.tabla tbody { display: block; } table.tabla thead { display: none; } table.tabla .tipo { white-space: normal; } table.tabla tr { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 10px; border-top: 1px solid var(--line); padding: 6px 0; } table.tabla td { border: 0; padding: 2px 0; } table.tabla td.que, table.tabla td.fuente { grid-column: 1 / -1; } }
+  pre { background: var(--code); padding: 10px 12px; border-radius: 8px; overflow: auto; font-size: .78rem; margin: 8px 0 0; white-space: pre; max-height: 420px; }
+  .fila { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+  .fila a { font-size: .88rem; color: var(--accent); min-height: 40px; display: inline-flex; align-items: center; }
+  .copiado { color: var(--ok); font-size: .82rem; }
+  .nota { font-size: .85rem; color: var(--muted); margin: 8px 0 0; }
+  .texto p, .texto li { font-size: .95rem; max-width: 80ch; }
+  .texto h2 { font-size: 1.15rem; margin: 16px 0 6px; }
+  .texto h2:first-child { margin-top: 0; }
+  code { background: var(--code); padding: 1px 5px; border-radius: 4px; font-size: .88em; overflow-wrap: anywhere; }
+  pre code { background: none; padding: 0; }
+  .oculto { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Feriados y días hábiles</h1>
+  <p>Los feriados nacionales de Argentina de 2024 a 2027, con los trasladables en su fecha real, los puentes y la norma de cada uno. Una calculadora de plazos («10 hábiles después del 15/10», «cuántos hábiles hay entre dos fechas», «¿el 20/11 es feriado?») y la misma lista en JSON y en una clase C# para pegar en tu proyecto.</p>
+  <div class="estado" id="estado" aria-label="Hasta cuándo está confirmado"></div>
+</header>
+<main>
+  <section class="panel" aria-label="Calculadora">
+    <h2>Calculadora de plazos</h2>
+    <div class="chips" id="modos" role="group" aria-label="Qué querés saber">
+      <button data-modo="sumar" aria-pressed="true">Sumar hábiles</button>
+      <button data-modo="entre" aria-pressed="false">Hábiles entre dos fechas</button>
+      <button data-modo="que" aria-pressed="false">¿Qué es este día?</button>
+    </div>
+    <div id="f-sumar">
+      <div class="dos">
+        <label class="campo"><span>Desde</span><input type="date" id="desde" min="2024-01-01" max="2027-12-31"></label>
+        <label class="campo"><span>Días hábiles</span><input type="number" id="n" value="10" step="1" inputmode="numeric"></label>
+      </div>
+      <p class="nota">Negativo para ir para atrás. Se cuenta desde el día siguiente.</p>
+    </div>
+    <div id="f-entre" class="oculto">
+      <div class="dos">
+        <label class="campo"><span>Desde</span><input type="date" id="a" min="2024-01-01" max="2027-12-31"></label>
+        <label class="campo"><span>Hasta</span><input type="date" id="b" min="2024-01-01" max="2027-12-31"></label>
+      </div>
+      <p class="nota">No cuenta el día de partida y sí el de llegada.</p>
+    </div>
+    <div id="f-que" class="oculto">
+      <label class="campo"><span>Fecha</span><input type="date" id="dia" min="2024-01-01" max="2027-12-31"></label>
+    </div>
+    <h3 class="sub">Qué cuenta como no hábil</h3>
+    <p class="nota" style="margin-top:0">Sábados, domingos y feriados, siempre. Además:</p>
+    <label class="check"><input type="checkbox" id="opPuentes" checked><span>Los puentes (días no laborables con fines turísticos)<small>El Estado no trabaja; en el privado decide el empleador. Los de 2024 fueron feriados y cuentan siempre.</small></span></label>
+    <label class="check"><input type="checkbox" id="opJueves"><span>El Jueves Santo<small>Día no laborable: optativo para el empleador privado; la administración pública nacional no trabaja.</small></span></label>
+    <h3 class="sub">Ejemplos</h3>
+    <div class="chips" id="ejemplos"></div>
+  </section>
+
+  <section class="panel resultado" aria-label="Resultado" aria-live="polite">
+    <h2>Resultado</h2>
+    <div id="resultado"></div>
+  </section>
+
+  <section class="panel ancho" aria-label="Calendario">
+    <h2>Calendario</h2>
+    <div class="chips" id="anios" role="group" aria-label="Año"></div>
+    <div class="leyenda" aria-hidden="true">
+      <span><i style="background:var(--inamovible)"></i>Inamovible</span>
+      <span><i style="background:var(--trasladable)"></i>Trasladable (fecha real)</span>
+      <span><i style="border:2px dashed var(--trasladable)"></i>Donde caía</span>
+      <span><i style="background:var(--puente)"></i>Puente</span>
+      <span><i style="border:2px solid var(--nolab)"></i>No laborable</span>
+      <span><i style="background:var(--finde)"></i>Fin de semana</span>
+    </div>
+    <div class="aviso oculto" id="avisoAnio"></div>
+    <div class="meses" id="meses"></div>
+    <div class="detalle" id="detalle"><p class="nota">Tocá un día para ver qué es.</p></div>
+  </section>
+
+  <section class="panel ancho" aria-label="Lista del año">
+    <h2 id="tituloTabla">La lista</h2>
+    <table class="tabla"><thead><tr><th>Fecha</th><th>Tipo</th><th>Qué</th><th>Fuente</th></tr></thead><tbody id="tabla"></tbody></table>
+  </section>
+
+  <section class="panel ancho" aria-label="Para pegar">
+    <h2>Para pegar en tu proyecto</h2>
+    <div class="chips" id="pestanias" role="group" aria-label="Formato">
+      <button data-pes="cs" aria-pressed="true">Clase C#</button>
+      <button data-pes="json" aria-pressed="false">JSON</button>
+    </div>
+    <p class="nota" id="notaCodigo"></p>
+    <pre id="codigo"></pre>
+    <div class="fila">
+      <button id="copiar" class="primario">Copiar C#</button>
+      <a id="bajar" href="csharp/CalendarioArgentino.cs" download>Bajar CalendarioArgentino.cs</a>
+      <span class="copiado oculto" id="copiado">Copiado.</span>
+    </div>
+  </section>
+
+  <section class="panel ancho texto" aria-label="Cómo se cuenta">
+    <h2>Cómo se arma el calendario</h2>
+    <p><strong>Inamovibles.</strong> La Ley 27.399 fija doce: 1/1, Carnaval (lunes y martes, 48 y 47 días antes de Pascua), 24/3, 2/4, Viernes Santo, 1/5, 25/5, 20/6, 9/7, 8/12 y 25/12. Caigan donde caigan, ahí quedan; si es domingo, se pierde.</p>
+    <p><strong>Trasladables.</strong> Son cuatro: 17/6 (Güemes), 17/8 (San Martín), 12/10 (Diversidad Cultural) y 20/11 (Soberanía Nacional). El artículo 6 de la ley los mueve solos: si caen martes o miércoles, al lunes anterior; si caen jueves o viernes, al lunes siguiente. Si caen lunes, sábado o domingo, la ley no dice nada. Desde el <strong>Decreto 614/2025</strong> (28/8/2025), los de fin de semana los puede pasar la Jefatura de Gabinete al viernes anterior o al lunes siguiente, caso por caso: así el 12/10/2025, domingo, se adelantó al viernes 10 (Resolución 139/2025). El 20/11/2027 cae sábado y todavía no se sabe qué van a hacer.</p>
+    <p><strong>Puentes.</strong> El Poder Ejecutivo puede fijar hasta tres días por año «con fines turísticos», en lunes o viernes (art. 7 de la ley). Hasta 2024 se declaraban <em>feriados</em> (Decreto 106/2023); desde 2025 son <em>días no laborables</em> (Decreto 1027/2024 para 2025, Resolución 164/2025 de la Jefatura de Gabinete para 2026). La diferencia importa para el sueldo: en un feriado se cobra doble si se trabaja; en un día no laborable, el empleador privado decide si se trabaja y se paga normal. Para plazos, la administración pública no atiende, por eso la calculadora los cuenta como no hábiles salvo que destildes la opción.</p>
+    <p><strong>Jueves Santo</strong> es día no laborable por la misma ley. Hay otros días no laborables solo para quienes profesan una religión (Pascua y Año Nuevo judíos, Iom Kipur, fin del Ramadán, Fiesta del Sacrificio, Año Nuevo islámico) y el 24 de abril para la comunidad armenia; no están en la lista porque no cambian los días hábiles en general.</p>
+    <h2>Qué no tiene</h2>
+    <ul>
+      <li>Feriados provinciales y municipales (patronos, fundaciones, el 2/4 en algunas provincias que ya es nacional, etc.).</li>
+      <li>Las ferias judiciales de enero y julio, ni los asuetos de cada organismo. Si tu plazo es judicial, sumá la feria a mano.</li>
+      <li>Feriados extraordinarios que se decreten después de la fecha de consulta (como el del censo o el de la final del Mundial en su momento).</li>
+      <li>Años antes de 2024 o después de 2027: la calculadora y la clase C# tiran error en vez de inventar.</li>
+    </ul>
+    <h2>Qué hay que actualizar cada diciembre</h2>
+    <p>Cuando sale la norma de los puentes del año que viene (suele publicarse entre noviembre y fines de diciembre), se agrega el año a la lista con sus trasladables, y se revisa si la Jefatura de Gabinete movió algún trasladable que caía en fin de semana. Después se regenera el C# y el JSON y se sube <code>UltimoAnio</code>. Las cuentas de Carnaval y Semana Santa salen de la fecha de Pascua, que la página calcula y los tests controlan contra la lista.</p>
+    <h2>Fuentes</h2>
+    <p>Ley 27.399 (feriados nacionales y días no laborables, arts. 6 y 7 para traslados y puentes); <a href="https://www.argentina.gob.ar/normativa/nacional/norma-395689/texto">Decreto 106/2023</a> (feriados con fines turísticos 2024); <a href="https://www.argentina.gob.ar/normativa/nacional/decreto-1027-2024-406417/texto">Decreto 1027/2024</a> (días no laborables con fines turísticos 2025, Boletín Oficial del 21/11/2024); <a href="https://www.argentina.gob.ar/normativa/nacional/decreto-614-2025-416911/texto">Decreto 614/2025</a> (trasladables de fin de semana, 28/8/2025); <a href="https://www.argentina.gob.ar/normativa/nacional/norma-417061/texto">Resolución 139/2025</a> de la Jefatura de Gabinete (12/10/2025 al viernes 10); <a href="https://www.argentina.gob.ar/normativa/nacional/resoluci%C3%B3n-164-2025-421799/texto">Resolución 164/2025</a> de la Jefatura de Gabinete (días no laborables con fines turísticos 2026, Boletín Oficial del 26/12/2025). El calendario de cada año también está en <a href="https://www.argentina.gob.ar/interior/feriados-nacionales-2026">argentina.gob.ar</a>. <span id="consultado"></span></p>
+  </section>
+</main>
+<script src="logica.js"></script>
+<script>
+(function () {
+  "use strict";
+  const F = window.Feriados;
+  const $ = (s) => document.querySelector(s);
+  const el = { estado: $("#estado"), modos: $("#modos"), desde: $("#desde"), n: $("#n"), a: $("#a"), b: $("#b"), dia: $("#dia"), opPuentes: $("#opPuentes"), opJueves: $("#opJueves"),
+    ejemplos: $("#ejemplos"), resultado: $("#resultado"), anios: $("#anios"), avisoAnio: $("#avisoAnio"), meses: $("#meses"), detalle: $("#detalle"), tabla: $("#tabla"), tituloTabla: $("#tituloTabla"),
+    pestanias: $("#pestanias"), codigo: $("#codigo"), notaCodigo: $("#notaCodigo"), copiar: $("#copiar"), bajar: $("#bajar"), copiado: $("#copiado") };
+  const CLAVE = "feriados-y-habiles";
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const claseTipo = (t) => (t === "no laborable" ? "nolab" : t);
+
+  function hoyIso() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+  const HOY = hoyIso();
+  const enRango = (iso) => (iso < `${F.PRIMER_ANIO}-01-01` ? `${F.PRIMER_ANIO}-01-01` : iso > `${F.ULTIMO_ANIO}-12-31` ? `${F.ULTIMO_ANIO}-12-31` : iso);
+  const BASE = enRango(HOY);
+
+  let modo = "sumar", anio = +BASE.slice(0, 4), pestania = "cs", elegido = null, marcas = {};
+
+  function cargar() {
+    try {
+      const g = JSON.parse(localStorage.getItem(CLAVE) || "{}");
+      if (["sumar", "entre", "que"].includes(g.modo)) modo = g.modo;
+      if (typeof g.puentes === "boolean") el.opPuentes.checked = g.puentes;
+      if (typeof g.jueves === "boolean") el.opJueves.checked = g.jueves;
+    } catch (e) { /* sin localStorage */ }
+  }
+  function guardar() {
+    try { localStorage.setItem(CLAVE, JSON.stringify({ modo, puentes: el.opPuentes.checked, jueves: el.opJueves.checked })); } catch (e) { /* sin localStorage */ }
+  }
+  const opciones = () => ({ puentesNoHabiles: el.opPuentes.checked, juevesSantoNoHabil: el.opJueves.checked });
+
+  // --- Estado de los años ---
+  function renderEstado() {
+    const sellos = Object.entries(F.ANIOS).map(([a, i]) => `<span class="sello${i.completo ? "" : " medio"}" title="${esc(i.resumen)}">${a} ${i.completo ? "✓" : "a medias"}</span>`).join(" ");
+    const completo = Math.max(...Object.entries(F.ANIOS).filter(([, i]) => i.completo).map(([a]) => +a));
+    const prox = F.proximoFeriado(BASE);
+    const p = F.partes(F.CONSULTADO);
+    let texto = `Confirmado hasta ${completo} entero. ${F.ULTIMO_ANIO}: están los feriados de la ley; faltan los puentes y saber si el 20/11 (sábado) se mueve. Lista consultada el ${p.dia}/${p.mes}/${p.anio}.`;
+    if (prox && HOY >= `${F.PRIMER_ANIO}-01-01` && HOY <= `${F.ULTIMO_ANIO}-12-31`) {
+      const faltan = F.aDia(prox.fecha) - F.aDia(HOY);
+      texto += ` Próximo feriado: <strong>${esc(F.corta(prox.fecha))}</strong>, ${esc(prox.nombre)}${faltan === 0 ? " (hoy)" : faltan === 1 ? " (mañana)" : ` (faltan ${faltan} días)`}.`;
+    }
+    el.estado.innerHTML = `${sellos}<p id="estadoTexto">${texto}</p>`;
+    $("#consultado").textContent = `Consultado el ${p.dia}/${p.mes}/${p.anio}.`;
+  }
+
+  // --- Calculadora ---
+  function ponerModo(m) {
+    modo = m;
+    for (const b of el.modos.querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.modo === m));
+    for (const k of ["sumar", "entre", "que"]) $("#f-" + k).classList.toggle("oculto", k !== m);
+  }
+
+  const itemDia = (x, extra) => {
+    const m = x.motivos[0];
+    const tipo = m ? claseTipo(m.tipo) : "";
+    const nombres = x.motivos.map((f) => esc(f.nombre)).join(" y ");
+    const detalle = m ? `${esc(F.TIPOS[m.tipo].nombre)} · ${esc(m.fuente)}${m.nota ? ` · ${esc(m.nota)}` : ""}` : "";
+    return `<li class="t-${tipo}"><b>${esc(F.corta(x.fecha))}</b> · ${nombres}${extra || ""}<small>${detalle}</small></li>`;
+  };
+
+  /* Si la cuenta toca un año incompleto, avisa. */
+  function avisoIncompleto(a, b) {
+    const desde = Math.min(+a.slice(0, 4), +b.slice(0, 4)), hasta = Math.max(+a.slice(0, 4), +b.slice(0, 4));
+    const malos = [];
+    for (let y = desde; y <= hasta; y++) if (F.ANIOS[y] && !F.ANIOS[y].completo) malos.push(y);
+    if (!malos.length) return "";
+    return `<div class="aviso"><b>Ojo:</b> la cuenta pasa por ${malos.join(", ")}, que todavía no está completo. Si se decreta un puente en el medio o se mueve el 20/11/2027, el resultado cambia.</div>`;
+  }
+
+  function calcular() {
+    const o = opciones();
+    marcas = {};
+    let html = "";
+    try {
+      if (modo === "sumar") {
+        const desde = el.desde.value, n = el.n.value.trim();
+        if (!desde) throw new F.ErrorFecha("Elegí la fecha de partida.");
+        if (!/^-?\d+$/.test(n)) throw new F.ErrorFecha("La cantidad de días tiene que ser un número entero.");
+        const r = F.sumarHabiles(desde, +n, o);
+        const k = Math.abs(+n);
+        const pregunta = +n === 0 ? `Desde el ${F.corta(desde)}, el primer día hábil` : `${k} día${k === 1 ? "" : "s"} hábil${k === 1 ? "" : "es"} ${+n > 0 ? "después" : "antes"} del ${F.corta(desde)}`;
+        html += `<p class="pregunta">${esc(pregunta)}</p><p class="grande" id="resFecha">${esc(F.larga(r.fecha))}</p>`;
+        html += `<p>${Math.abs(r.corridos)} día${Math.abs(r.corridos) === 1 ? "" : "s"} corrido${Math.abs(r.corridos) === 1 ? "" : "s"}${+n !== 0 ? ", contando desde el día siguiente" : ""}.`;
+        if (+n !== 0 && !F.esHabil(desde, o)) html += ` El ${esc(F.corta(desde))} no es hábil, pero se cuenta igual desde el día siguiente.`;
+        html += "</p>";
+        if (r.salteados.length || r.finesDeSemana) {
+          html += `<h3 class="sub">En el camino se saltean</h3><p>${r.finesDeSemana} día${r.finesDeSemana === 1 ? "" : "s"} de fin de semana${r.salteados.length ? ` y ${r.salteados.length} más:` : "."}</p>`;
+          if (r.salteados.length) html += `<ul class="lista" id="salteados">${r.salteados.map((x) => itemDia(x)).join("")}</ul>`;
+        }
+        html += avisoIncompleto(desde, r.fecha);
+        marcas = { desde, hasta: r.fecha, saltos: r.salteados.map((x) => x.fecha) };
+      } else if (modo === "entre") {
+        const a = el.a.value, b = el.b.value;
+        if (!a || !b) throw new F.ErrorFecha("Elegí las dos fechas.");
+        const r = F.habilesEntre(a, b, o);
+        const [ini, fin] = F.aDia(b) < F.aDia(a) ? [b, a] : [a, b];
+        html += `<p class="pregunta">Del ${esc(F.corta(a))} al ${esc(F.corta(b))}</p><p class="grande" id="resHabiles">${r.habiles} día${Math.abs(r.habiles) === 1 ? "" : "s"} hábil${Math.abs(r.habiles) === 1 ? "" : "es"}</p>`;
+        html += `<p>${Math.abs(r.corridos)} días corridos, sin contar el ${esc(F.corta(ini))} y contando el ${esc(F.corta(fin))}. ${r.finesDeSemana} de fin de semana.${r.habiles < 0 ? " Da negativo porque la segunda fecha es anterior." : ""}</p>`;
+        if (r.noHabiles.length) html += `<h3 class="sub">Feriados y no laborables en el medio</h3><ul class="lista" id="noHabiles">${r.noHabiles.map((x) => itemDia(x)).join("")}</ul>`;
+        if (r.habilesConAviso.length) html += `<h3 class="sub">Contados como hábiles</h3><ul class="lista">${r.habilesConAviso.map((x) => itemDia(x, " (según las opciones de abajo)")).join("")}</ul>`;
+        html += avisoIncompleto(a, b);
+        marcas = { desde: ini, hasta: fin, saltos: r.noHabiles.map((x) => x.fecha) };
+      } else {
+        const d = el.dia.value;
+        if (!d) throw new F.ErrorFecha("Elegí una fecha.");
+        html += explicarDia(d, o, true);
+        marcas = { desde: d };
+      }
+    } catch (e) {
+      if (!(e instanceof F.ErrorFecha)) throw e;
+      html = `<p class="error" id="resError">${esc(e.message)}</p>`;
+    }
+    el.resultado.innerHTML = html;
+    const destino = marcas.hasta || marcas.desde;
+    if (destino && F.ANIOS[+destino.slice(0, 4)]) anio = +destino.slice(0, 4);
+    renderCalendario();
+    guardar();
+  }
+
+  function explicarDia(d, o, grande) {
+    const i = F.infoDia(d, o);
+    let html = `<p class="pregunta">${esc(F.larga(d))}</p><p class="${grande ? "grande" : ""}" id="${grande ? "resDia" : "detDia"}"><strong>${esc(i.resumen)}</strong></p>`;
+    if (i.motivos.length) html += `<ul class="lista">${i.motivos.map((m) => itemDia({ fecha: d, motivos: [m] })).join("")}</ul>`;
+    if (i.movido) html += `<p>Acá caía el ${esc(i.movido.nombre)}, que se pasó al <strong>${esc(F.corta(i.movido.fecha))}</strong> (${esc(i.movido.fuente)}).</p>`;
+    const conf = i.motivos.find((m) => m.aConfirmar);
+    if (conf) html += `<div class="aviso">A confirmar: ${esc(conf.nota)}</div>`;
+    if (i.siguienteHabil) html += `<p>${i.habil ? "Hábil siguiente" : "Próximo hábil"}: ${esc(F.corta(i.siguienteHabil))}.</p>`;
+    const prox = F.proximoFeriado(F.sumarDias(d, 1));
+    if (prox) html += `<p>Próximo feriado: ${esc(F.corta(prox.fecha))}, ${esc(prox.nombre)}.</p>`;
+    return html;
+  }
+
+  // --- Calendario ---
+  function renderAnios() {
+    el.anios.innerHTML = Object.keys(F.ANIOS).map((a) => `<button data-anio="${a}" aria-pressed="${+a === anio}">${a}</button>`).join("");
+  }
+
+  function renderCalendario() {
+    for (const b of el.anios.querySelectorAll("button")) b.setAttribute("aria-pressed", String(+b.dataset.anio === anio));
+    const info = F.ANIOS[anio];
+    el.avisoAnio.classList.toggle("oculto", info.completo);
+    el.avisoAnio.innerHTML = info.completo ? "" : `<b>${anio} todavía no está completo.</b><ul>${info.pendiente.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>`;
+    const lista = F.feriadosDe(anio);
+    const porFecha = new Map();
+    for (const f of lista) { if (!porFecha.has(f.fecha)) porFecha.set(f.fecha, []); porFecha.get(f.fecha).push(f); }
+    const originales = new Map(lista.filter((f) => f.original).map((f) => [f.original, f]));
+    const saltos = new Set(marcas.saltos || []);
+    let html = "";
+    for (let m = 1; m <= 12; m++) {
+      const primero = `${anio}-${String(m).padStart(2, "0")}-01`;
+      const dias = new Date(Date.UTC(anio, m, 0)).getUTCDate();
+      const offset = (F.diaSemana(primero) + 6) % 7; // la semana arranca el lunes
+      let celdas = ["lu", "ma", "mi", "ju", "vi", "sá", "do"].map((d) => `<span class="cab" aria-hidden="true">${d}</span>`).join("");
+      for (let k = 0; k < offset; k++) celdas += "<span></span>";
+      for (let d = 1; d <= dias; d++) {
+        const iso = `${anio}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+        const fs = porFecha.get(iso) || [];
+        const cls = ["dia"];
+        if (F.esFinDeSemana(iso)) cls.push("finde");
+        const principal = fs.find((f) => F.TIPOS[f.tipo].feriado) || fs[0];
+        if (principal) cls.push(claseTipo(principal.tipo));
+        if (fs.some((f) => f.aConfirmar)) cls.push("confirmar");
+        if (originales.has(iso)) cls.push("original");
+        if (iso === HOY) cls.push("hoy");
+        if (iso === marcas.desde) cls.push("desde");
+        if (iso === marcas.hasta) cls.push("hasta");
+        if (saltos.has(iso)) cls.push("marca");
+        if (iso === elegido) cls.push("elegido");
+        let etiqueta = F.larga(iso);
+        if (fs.length) etiqueta += ": " + fs.map((f) => f.nombre).join(" y ");
+        if (originales.has(iso)) etiqueta += `: acá caía ${originales.get(iso).nombre}, se pasó al ${F.corta(originales.get(iso).fecha)}`;
+        celdas += `<button class="${cls.join(" ")}" data-fecha="${iso}" aria-label="${esc(etiqueta)}" title="${esc(etiqueta)}">${d}</button>`;
+      }
+      html += `<div class="mes"><h4>${F.MESES[m - 1]}</h4><div class="grilla">${celdas}</div></div>`;
+    }
+    el.meses.innerHTML = html;
+    renderTabla();
+  }
+
+  function renderTabla() {
+    el.tituloTabla.textContent = `La lista de ${anio}`;
+    el.tabla.innerHTML = F.feriadosDe(anio).map((f) => {
+      const t = claseTipo(f.tipo);
+      const orig = f.original ? `<small>caía ${esc(F.corta(f.original))}</small>` : "";
+      return `<tr><td class="fecha">${esc(F.corta(f.fecha))}${orig}</td><td><span class="tipo ${t}">${esc(F.TIPOS[f.tipo].nombre)}</span></td><td class="que">${esc(f.nombre)}${f.nota ? `<small>${esc(f.nota)}</small>` : ""}</td><td class="fuente">${esc(f.fuente)}</td></tr>`;
+    }).join("");
+  }
+
+  // --- Código ---
+  const CODIGO = { cs: F.csharp(), json: F.json() };
+  function renderCodigo() {
+    for (const b of el.pestanias.querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.pes === pestania));
+    el.codigo.textContent = CODIGO[pestania];
+    el.copiar.textContent = pestania === "cs" ? "Copiar C#" : "Copiar JSON";
+    el.bajar.textContent = pestania === "cs" ? "Bajar CalendarioArgentino.cs" : "Bajar feriados.json";
+    el.bajar.setAttribute("href", pestania === "cs" ? "csharp/CalendarioArgentino.cs" : "feriados.json");
+    el.notaCodigo.innerHTML = pestania === "cs"
+      ? "Un solo archivo, sin paquetes: .NET 6 o más nuevo (usa <code>DateOnly</code>). <code>EsHabil</code>, <code>SumarHabiles</code>, <code>HabilesEntre</code>, <code>ProximoHabil</code>, <code>QueEs</code> y <code>EsFeriado</code>, con los feriados embebidos. Fuera de " + F.PRIMER_ANIO + "–" + F.ULTIMO_ANIO + " tira <code>ArgumentOutOfRangeException</code> en vez de adivinar."
+      : "Toda la lista con tipo, fecha original de los trasladados, fuente y nota, más hasta qué año está completa y qué falta confirmar.";
+  }
+
+  async function copiar() {
+    const texto = CODIGO[pestania];
+    let ok = false;
+    try { await navigator.clipboard.writeText(texto); ok = true; } catch (e) {
+      const t = document.createElement("textarea");
+      t.value = texto; t.style.position = "fixed"; t.style.opacity = "0";
+      document.body.appendChild(t); t.select();
+      try { ok = document.execCommand("copy"); } catch (e2) { ok = false; }
+      t.remove();
+    }
+    el.copiado.textContent = ok ? "Copiado." : "No se pudo copiar: seleccioná el texto a mano.";
+    el.copiado.classList.remove("oculto");
+    setTimeout(() => el.copiado.classList.add("oculto"), 2500);
+  }
+
+  // --- Ejemplos ---
+  const EJEMPLOS = [
+    { t: "10 hábiles desde el 15/10/2026", m: "sumar", desde: "2026-10-15", n: 10 },
+    { t: "3 hábiles desde el 19/11/2026", m: "sumar", desde: "2026-11-19", n: 3 },
+    { t: "¿El 20/11/2026 es feriado?", m: "que", dia: "2026-11-20" },
+    { t: "Hábiles de octubre 2026", m: "entre", a: "2026-09-30", b: "2026-10-31" },
+    { t: "5 hábiles antes del 13/7/2026", m: "sumar", desde: "2026-07-13", n: -5 },
+    { t: "Semana Santa 2027", m: "sumar", desde: "2027-03-23", n: 2 },
+  ];
+  el.ejemplos.innerHTML = EJEMPLOS.map((e, i) => `<button data-ej="${i}">${esc(e.t)}</button>`).join("");
+  el.ejemplos.addEventListener("click", (ev) => {
+    const b = ev.target.closest("button[data-ej]");
+    if (!b) return;
+    const e = EJEMPLOS[+b.dataset.ej];
+    if (e.desde) { el.desde.value = e.desde; el.n.value = e.n; }
+    if (e.a) { el.a.value = e.a; el.b.value = e.b; }
+    if (e.dia) el.dia.value = e.dia;
+    ponerModo(e.m);
+    calcular();
+    if (window.innerWidth < 900) el.resultado.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  // --- Eventos ---
+  el.modos.addEventListener("click", (ev) => { const b = ev.target.closest("button[data-modo]"); if (b) { ponerModo(b.dataset.modo); calcular(); } });
+  for (const i of [el.desde, el.n, el.a, el.b, el.dia, el.opPuentes, el.opJueves]) { i.addEventListener("input", calcular); i.addEventListener("change", calcular); }
+  el.anios.addEventListener("click", (ev) => { const b = ev.target.closest("button[data-anio]"); if (b) { anio = +b.dataset.anio; renderCalendario(); } });
+  el.meses.addEventListener("click", (ev) => {
+    const b = ev.target.closest("button[data-fecha]");
+    if (!b) return;
+    elegido = b.dataset.fecha;
+    el.detalle.innerHTML = explicarDia(elegido, opciones(), false) + `<div class="fila"><button id="usarDia">Usar este día en la calculadora</button></div>`;
+    for (const x of el.meses.querySelectorAll(".elegido")) x.classList.remove("elegido");
+    b.classList.add("elegido");
+  });
+  el.detalle.addEventListener("click", (ev) => {
+    if (!ev.target.closest("#usarDia") || !elegido) return;
+    if (modo === "sumar") el.desde.value = elegido;
+    else if (modo === "entre") { el.b.value = elegido; }
+    else el.dia.value = elegido;
+    calcular();
+    el.resultado.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  });
+  el.pestanias.addEventListener("click", (ev) => { const b = ev.target.closest("button[data-pes]"); if (b) { pestania = b.dataset.pes; renderCodigo(); } });
+  el.copiar.addEventListener("click", copiar);
+
+  // --- Arranque ---
+  cargar();
+  el.desde.value = BASE; el.dia.value = BASE; el.a.value = BASE;
+  let fin30 = F.sumarDias(BASE, 30);
+  if (fin30 > `${F.ULTIMO_ANIO}-12-31`) fin30 = `${F.ULTIMO_ANIO}-12-31`;
+  el.b.value = fin30;
+  renderEstado();
+  renderAnios();
+  ponerModo(modo);
+  renderCodigo();
+  calcular();
+})();
+</script>
+</body>
+</html>

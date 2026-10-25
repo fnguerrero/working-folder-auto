@@ -1,0 +1,586 @@
+{
+  "fuente": "https://fnguerrero.github.io/working-folder-auto/herramientas/feriados-y-habiles/",
+  "consultado": "2026-10-25",
+  "desde": 2024,
+  "hasta": 2027,
+  "completoHasta": 2026,
+  "pendiente": [
+    "2027: Los días no laborables con fines turísticos (hasta tres por año, en lunes o viernes) todavía no se fijaron.",
+    "2027: El 20/11 (Soberanía Nacional) cae sábado: por el Decreto 614/2025 la Jefatura de Gabinete puede pasarlo al viernes 19 o al lunes 22, o dejarlo donde está."
+  ],
+  "tipos": {
+    "inamovible": "Feriado inamovible",
+    "trasladable": "Feriado trasladable",
+    "turistico": "Feriado con fines turísticos",
+    "puente": "Día no laborable con fines turísticos",
+    "no laborable": "Día no laborable"
+  },
+  "feriados": [
+    {
+      "fecha": "2024-01-01",
+      "nombre": "Año Nuevo",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2024-02-12",
+      "nombre": "Carnaval",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2024-02-13",
+      "nombre": "Carnaval",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2024-03-24",
+      "nombre": "Día Nacional de la Memoria por la Verdad y la Justicia",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2024-03-28",
+      "nombre": "Jueves Santo",
+      "tipo": "no laborable",
+      "feriado": false,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2024-03-29",
+      "nombre": "Viernes Santo",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2024-04-01",
+      "nombre": "Feriado con fines turísticos (puente)",
+      "tipo": "turistico",
+      "feriado": true,
+      "fuente": "Decreto 106/2023"
+    },
+    {
+      "fecha": "2024-04-02",
+      "nombre": "Día del Veterano y de los Caídos en la Guerra de Malvinas",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2024-05-01",
+      "nombre": "Día del Trabajador",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2024-05-25",
+      "nombre": "Día de la Revolución de Mayo",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2024-06-17",
+      "nombre": "Paso a la Inmortalidad del General Martín Miguel de Güemes",
+      "tipo": "trasladable",
+      "feriado": true,
+      "fuente": "Ley 27.399",
+      "nota": "Cae lunes: no se mueve."
+    },
+    {
+      "fecha": "2024-06-20",
+      "nombre": "Paso a la Inmortalidad del General Manuel Belgrano (Día de la Bandera)",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2024-06-21",
+      "nombre": "Feriado con fines turísticos (puente)",
+      "tipo": "turistico",
+      "feriado": true,
+      "fuente": "Decreto 106/2023"
+    },
+    {
+      "fecha": "2024-07-09",
+      "nombre": "Día de la Independencia",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2024-08-17",
+      "nombre": "Paso a la Inmortalidad del General José de San Martín",
+      "tipo": "trasladable",
+      "feriado": true,
+      "fuente": "Ley 27.399",
+      "nota": "Cae sábado: queda ahí."
+    },
+    {
+      "fecha": "2024-10-11",
+      "nombre": "Feriado con fines turísticos (puente)",
+      "tipo": "turistico",
+      "feriado": true,
+      "fuente": "Decreto 106/2023"
+    },
+    {
+      "fecha": "2024-10-12",
+      "nombre": "Día del Respeto a la Diversidad Cultural",
+      "tipo": "trasladable",
+      "feriado": true,
+      "fuente": "Ley 27.399",
+      "nota": "Cae sábado: queda ahí."
+    },
+    {
+      "fecha": "2024-11-18",
+      "nombre": "Día de la Soberanía Nacional",
+      "tipo": "trasladable",
+      "feriado": true,
+      "original": "2024-11-20",
+      "fuente": "Ley 27.399, art. 6",
+      "nota": "Caía miércoles 20/11 y pasa al lunes anterior."
+    },
+    {
+      "fecha": "2024-12-08",
+      "nombre": "Inmaculada Concepción de María",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2024-12-25",
+      "nombre": "Navidad",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2025-01-01",
+      "nombre": "Año Nuevo",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2025-03-03",
+      "nombre": "Carnaval",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2025-03-04",
+      "nombre": "Carnaval",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2025-03-24",
+      "nombre": "Día Nacional de la Memoria por la Verdad y la Justicia",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2025-04-02",
+      "nombre": "Día del Veterano y de los Caídos en la Guerra de Malvinas",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2025-04-17",
+      "nombre": "Jueves Santo",
+      "tipo": "no laborable",
+      "feriado": false,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2025-04-18",
+      "nombre": "Viernes Santo",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2025-05-01",
+      "nombre": "Día del Trabajador",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2025-05-02",
+      "nombre": "Día no laborable con fines turísticos (puente)",
+      "tipo": "puente",
+      "feriado": false,
+      "fuente": "Decreto 1027/2024"
+    },
+    {
+      "fecha": "2025-05-25",
+      "nombre": "Día de la Revolución de Mayo",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2025-06-16",
+      "nombre": "Paso a la Inmortalidad del General Martín Miguel de Güemes",
+      "tipo": "trasladable",
+      "feriado": true,
+      "original": "2025-06-17",
+      "fuente": "Ley 27.399, art. 6",
+      "nota": "Caía martes 17/6 y pasa al lunes anterior."
+    },
+    {
+      "fecha": "2025-06-20",
+      "nombre": "Paso a la Inmortalidad del General Manuel Belgrano (Día de la Bandera)",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2025-07-09",
+      "nombre": "Día de la Independencia",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2025-08-15",
+      "nombre": "Día no laborable con fines turísticos (puente)",
+      "tipo": "puente",
+      "feriado": false,
+      "fuente": "Decreto 1027/2024"
+    },
+    {
+      "fecha": "2025-08-17",
+      "nombre": "Paso a la Inmortalidad del General José de San Martín",
+      "tipo": "trasladable",
+      "feriado": true,
+      "fuente": "Ley 27.399",
+      "nota": "Cayó domingo y quedó ahí: el Decreto 614/2025, que permite mover los trasladables de fin de semana, salió el 28/8/2025."
+    },
+    {
+      "fecha": "2025-10-10",
+      "nombre": "Día del Respeto a la Diversidad Cultural",
+      "tipo": "trasladable",
+      "feriado": true,
+      "original": "2025-10-12",
+      "fuente": "Decreto 614/2025 y Resolución 139/2025 (Jefatura de Gabinete)",
+      "nota": "Cayó domingo y se adelantó al viernes anterior."
+    },
+    {
+      "fecha": "2025-11-21",
+      "nombre": "Día no laborable con fines turísticos (puente)",
+      "tipo": "puente",
+      "feriado": false,
+      "fuente": "Decreto 1027/2024"
+    },
+    {
+      "fecha": "2025-11-24",
+      "nombre": "Día de la Soberanía Nacional",
+      "tipo": "trasladable",
+      "feriado": true,
+      "original": "2025-11-20",
+      "fuente": "Ley 27.399, art. 6",
+      "nota": "Caía jueves 20/11 y pasa al lunes siguiente."
+    },
+    {
+      "fecha": "2025-12-08",
+      "nombre": "Inmaculada Concepción de María",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2025-12-25",
+      "nombre": "Navidad",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2026-01-01",
+      "nombre": "Año Nuevo",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2026-02-16",
+      "nombre": "Carnaval",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2026-02-17",
+      "nombre": "Carnaval",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2026-03-23",
+      "nombre": "Día no laborable con fines turísticos (puente)",
+      "tipo": "puente",
+      "feriado": false,
+      "fuente": "Resolución 164/2025 (Jefatura de Gabinete)"
+    },
+    {
+      "fecha": "2026-03-24",
+      "nombre": "Día Nacional de la Memoria por la Verdad y la Justicia",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2026-04-02",
+      "nombre": "Día del Veterano y de los Caídos en la Guerra de Malvinas",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2026-04-02",
+      "nombre": "Jueves Santo",
+      "tipo": "no laborable",
+      "feriado": false,
+      "fuente": "Ley 27.399",
+      "nota": "Coincide con Malvinas, así que es feriado igual."
+    },
+    {
+      "fecha": "2026-04-03",
+      "nombre": "Viernes Santo",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2026-05-01",
+      "nombre": "Día del Trabajador",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2026-05-25",
+      "nombre": "Día de la Revolución de Mayo",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2026-06-15",
+      "nombre": "Paso a la Inmortalidad del General Martín Miguel de Güemes",
+      "tipo": "trasladable",
+      "feriado": true,
+      "original": "2026-06-17",
+      "fuente": "Ley 27.399, art. 6",
+      "nota": "Caía miércoles 17/6 y pasa al lunes anterior."
+    },
+    {
+      "fecha": "2026-06-20",
+      "nombre": "Paso a la Inmortalidad del General Manuel Belgrano (Día de la Bandera)",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2026-07-09",
+      "nombre": "Día de la Independencia",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2026-07-10",
+      "nombre": "Día no laborable con fines turísticos (puente)",
+      "tipo": "puente",
+      "feriado": false,
+      "fuente": "Resolución 164/2025 (Jefatura de Gabinete)"
+    },
+    {
+      "fecha": "2026-08-17",
+      "nombre": "Paso a la Inmortalidad del General José de San Martín",
+      "tipo": "trasladable",
+      "feriado": true,
+      "fuente": "Ley 27.399",
+      "nota": "Cae lunes: no se mueve."
+    },
+    {
+      "fecha": "2026-10-12",
+      "nombre": "Día del Respeto a la Diversidad Cultural",
+      "tipo": "trasladable",
+      "feriado": true,
+      "fuente": "Ley 27.399",
+      "nota": "Cae lunes: no se mueve."
+    },
+    {
+      "fecha": "2026-11-23",
+      "nombre": "Día de la Soberanía Nacional",
+      "tipo": "trasladable",
+      "feriado": true,
+      "original": "2026-11-20",
+      "fuente": "Ley 27.399, art. 6",
+      "nota": "Caía viernes 20/11 y pasa al lunes siguiente."
+    },
+    {
+      "fecha": "2026-12-07",
+      "nombre": "Día no laborable con fines turísticos (puente)",
+      "tipo": "puente",
+      "feriado": false,
+      "fuente": "Resolución 164/2025 (Jefatura de Gabinete)"
+    },
+    {
+      "fecha": "2026-12-08",
+      "nombre": "Inmaculada Concepción de María",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2026-12-25",
+      "nombre": "Navidad",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2027-01-01",
+      "nombre": "Año Nuevo",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2027-02-08",
+      "nombre": "Carnaval",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2027-02-09",
+      "nombre": "Carnaval",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2027-03-24",
+      "nombre": "Día Nacional de la Memoria por la Verdad y la Justicia",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2027-03-25",
+      "nombre": "Jueves Santo",
+      "tipo": "no laborable",
+      "feriado": false,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2027-03-26",
+      "nombre": "Viernes Santo",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2027-04-02",
+      "nombre": "Día del Veterano y de los Caídos en la Guerra de Malvinas",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2027-05-01",
+      "nombre": "Día del Trabajador",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2027-05-25",
+      "nombre": "Día de la Revolución de Mayo",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2027-06-20",
+      "nombre": "Paso a la Inmortalidad del General Manuel Belgrano (Día de la Bandera)",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2027-06-21",
+      "nombre": "Paso a la Inmortalidad del General Martín Miguel de Güemes",
+      "tipo": "trasladable",
+      "feriado": true,
+      "original": "2027-06-17",
+      "fuente": "Ley 27.399, art. 6",
+      "nota": "Caía jueves 17/6 y pasa al lunes siguiente."
+    },
+    {
+      "fecha": "2027-07-09",
+      "nombre": "Día de la Independencia",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2027-08-16",
+      "nombre": "Paso a la Inmortalidad del General José de San Martín",
+      "tipo": "trasladable",
+      "feriado": true,
+      "original": "2027-08-17",
+      "fuente": "Ley 27.399, art. 6",
+      "nota": "Caía martes 17/8 y pasa al lunes anterior."
+    },
+    {
+      "fecha": "2027-10-11",
+      "nombre": "Día del Respeto a la Diversidad Cultural",
+      "tipo": "trasladable",
+      "feriado": true,
+      "original": "2027-10-12",
+      "fuente": "Ley 27.399, art. 6",
+      "nota": "Caía martes 12/10 y pasa al lunes anterior."
+    },
+    {
+      "fecha": "2027-11-20",
+      "nombre": "Día de la Soberanía Nacional",
+      "tipo": "trasladable",
+      "feriado": true,
+      "fuente": "Ley 27.399",
+      "nota": "Cae sábado. Por el Decreto 614/2025 la Jefatura de Gabinete puede pasarlo al viernes 19 o al lunes 22; todavía no lo definió.",
+      "aConfirmar": true
+    },
+    {
+      "fecha": "2027-12-08",
+      "nombre": "Inmaculada Concepción de María",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    },
+    {
+      "fecha": "2027-12-25",
+      "nombre": "Navidad",
+      "tipo": "inamovible",
+      "feriado": true,
+      "fuente": "Ley 27.399"
+    }
+  ]
+}
