@@ -1,0 +1,763 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#0f6b5c">
+<meta name="description" content="Repartir gastos en grupo: quién le debe cuánto a quién después de un asado, un viaje o un regalo.">
+<title>Dividir gastos</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icono.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: #f3f5f2; --card: #fff; --fg: #1b1f1d; --muted: #5f6964; --line: #dde3df;
+    --accent: #0f6b5c; --accent-fg: #fff; --suave: rgba(15, 107, 92, .08);
+    --debe: #b3412e; --cobra: #1d7a45; --aviso: #8a5a00; --aviso-bg: #fff4d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101413; --card: #181d1b; --fg: #e8ece9; --muted: #9aa59f; --line: #2b3330;
+      --accent: #43c2a8; --accent-fg: #06201b; --suave: rgba(67, 194, 168, .1);
+      --debe: #ff8a73; --cobra: #6fd69a; --aviso: #ffd27a; --aviso-bg: #2d2412;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.45; }
+  header { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); }
+  .barra { max-width: 1240px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 10px; min-height: 60px; }
+  .barra h1 { margin: 0; font-size: 1.2rem; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .barra .sub { display: block; font-size: .78rem; color: var(--muted); font-weight: 400; }
+  nav.tabs { max-width: 1240px; margin: 0 auto; padding: 0 16px 8px; display: flex; gap: 6px; }
+  nav.tabs button { flex: 1; }
+  nav.tabs button[aria-selected=true] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  main { max-width: 1240px; margin: 0 auto; padding: 14px 16px 40px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; min-width: 0; margin-bottom: 14px; }
+  .panel > h2 { margin: 0 0 10px; font-size: 1.05rem; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .panel > h2 small { font-weight: 400; color: var(--muted); font-size: .82rem; }
+  @media (min-width: 960px) {
+    nav.tabs { display: none; }
+    #vista-evento { display: grid; grid-template-columns: 300px minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+    #vista-evento > section { display: block !important; margin: 0; }
+  }
+  button, .boton { font: inherit; font-size: .92rem; min-height: 44px; padding: 8px 14px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--card); color: var(--fg); display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none; }
+  button:hover, .boton:hover { border-color: var(--accent); }
+  button:focus-visible, input:focus-visible, select:focus-visible, .boton:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button.primario { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); font-weight: 600; }
+  button.peligro { color: var(--debe); }
+  button.peligro.confirmar { background: var(--debe); border-color: var(--debe); color: #fff; }
+  button.icono { width: 44px; padding: 0; flex: none; }
+  .acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  input, select { font: inherit; font-size: 1rem; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--fg); min-height: 44px; width: 100%; min-width: 0; }
+  input[type=checkbox] { width: 22px; height: 22px; min-height: 0; accent-color: var(--accent); flex: none; margin: 0; }
+  label.campo { display: flex; flex-direction: column; gap: 4px; font-size: .84rem; color: var(--muted); }
+  label.campo.invalido input, label.campo.invalido select { border-color: var(--debe); }
+  .error { color: var(--debe); font-size: .84rem; margin: 4px 0 0; }
+  .fila2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pila { display: grid; gap: 10px; }
+  .nota { font-size: .85rem; color: var(--muted); margin: 8px 0 0; }
+  .vacio { color: var(--muted); font-size: .92rem; margin: 6px 0; }
+  ul.lista { list-style: none; margin: 0; padding: 0; }
+  ul.lista > li { border-top: 1px solid var(--line); padding: 10px 0; display: flex; align-items: center; gap: 10px; }
+  ul.lista > li:first-child { border-top: 0; }
+  .principal { flex: 1; min-width: 0; }
+  .principal b { display: block; overflow-wrap: anywhere; }
+  .principal span { display: block; font-size: .82rem; color: var(--muted); overflow-wrap: anywhere; }
+  .monto { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 600; }
+  .debe { color: var(--debe); } .cobra { color: var(--cobra); } .amano { color: var(--muted); }
+  .principal .chip { display: inline-block; }
+  #vista-eventos { max-width: 760px; margin: 0 auto; }
+  @media (min-width: 960px) { #sec-personas .fila2 { grid-template-columns: 1fr; } }
+  .chip { font-size: .78rem; padding: 2px 8px; border-radius: 999px; background: var(--suave); white-space: nowrap; }
+  /* Lista de eventos */
+  .evento-card { cursor: pointer; }
+  .evento-card:hover .principal b { color: var(--accent); }
+  #form-evento .fila2 { grid-template-columns: 1fr 150px; }
+  /* Formulario de gasto */
+  #form-gasto { border: 2px solid var(--accent); border-radius: 12px; padding: 12px; margin-bottom: 12px; background: var(--suave); }
+  .modos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 3px; }
+  .modos label { position: relative; display: flex; align-items: center; justify-content: center; min-height: 40px; border-radius: 9px; cursor: pointer; font-size: .86rem; text-align: center; }
+  .modos input { position: absolute; opacity: 0; pointer-events: none; }
+  .modos label:has(input:checked) { background: var(--accent); color: var(--accent-fg); font-weight: 600; }
+  .modos label:has(input:focus-visible) { outline: 2px solid var(--accent); }
+  .reparto { display: grid; gap: 2px; margin-top: 6px; }
+  .reparto .rp { display: grid; grid-template-columns: 1fr 96px 92px; align-items: center; gap: 8px; min-height: 44px; }
+  .reparto .rp.iguales { grid-template-columns: 22px 1fr 92px; cursor: pointer; }
+  .reparto .rp span.nom { overflow-wrap: anywhere; }
+  .reparto .rp .parte { text-align: right; font-size: .86rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .reparto .rp input[type=text] { text-align: right; padding: 6px 8px; }
+  .estado-reparto { font-size: .86rem; margin: 6px 0 0; }
+  .estado-reparto.ok { color: var(--cobra); }
+  /* Cuentas */
+  .total-grande { font-size: 1.6rem; font-weight: 700; margin: 0; font-variant-numeric: tabular-nums; }
+  table { border-collapse: collapse; width: 100%; font-size: .88rem; }
+  th, td { padding: 7px 4px; border-top: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; overflow-wrap: anywhere; }
+  th { color: var(--muted); font-weight: 600; font-size: .76rem; border-top: 0; }
+  .transf { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-top: 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .transf .quien { flex: 1 1 160px; min-width: 0; }
+  .transf .quien b { overflow-wrap: anywhere; }
+  .transf .quien span { display: block; font-size: .8rem; color: var(--muted); overflow-wrap: anywhere; }
+  .transf .monto { font-size: 1.1rem; }
+  .aviso { background: var(--aviso-bg); color: var(--aviso); border-radius: 10px; padding: 8px 10px; font-size: .85rem; margin: 10px 0 0; }
+  .ok-grande { font-size: 1.05rem; color: var(--cobra); font-weight: 600; margin: 8px 0; }
+  .interruptor { display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; font-size: .92rem; }
+  pre.resumen { white-space: pre-wrap; overflow-wrap: anywhere; font: .82rem/1.45 ui-monospace, Menlo, Consolas, monospace; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px; margin: 8px 0 0; }
+  details summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-size: .9rem; color: var(--muted); }
+  .copiado { color: var(--cobra); font-size: .86rem; align-self: center; }
+  .oculto { display: none !important; }
+  footer { max-width: 1240px; margin: 0 auto; padding: 0 16px 30px; color: var(--muted); font-size: .8rem; }
+  footer a { color: inherit; }
+</style>
+</head>
+<body>
+<header>
+  <div class="barra">
+    <button id="btn-volver" class="icono oculto" aria-label="Volver a los eventos">←</button>
+    <h1 id="titulo">Dividir gastos<span class="sub" id="subtitulo">Quién le debe cuánto a quién</span></h1>
+  </div>
+  <nav class="tabs oculto" id="tabs" role="tablist" aria-label="Secciones del evento">
+    <button role="tab" id="tab-personas" data-tab="personas" aria-selected="false">Personas</button>
+    <button role="tab" id="tab-gastos" data-tab="gastos" aria-selected="false">Gastos</button>
+    <button role="tab" id="tab-cuentas" data-tab="cuentas" aria-selected="true">Cuentas</button>
+  </nav>
+</header>
+
+<main>
+  <!-- Lista de eventos -->
+  <div id="vista-eventos">
+    <section class="panel">
+      <h2>Nuevo evento</h2>
+      <form id="form-evento" class="pila" novalidate>
+        <div class="fila2">
+          <label class="campo">Nombre<input id="ev-nombre" type="text" maxlength="80" placeholder="Asado del sábado, viaje a Córdoba…" autocomplete="off"></label>
+          <label class="campo">Fecha<input id="ev-fecha" type="date"></label>
+        </div>
+        <p class="error oculto" id="ev-error"></p>
+        <div class="acciones" style="margin-top:0">
+          <button type="submit" class="primario" id="btn-crear">Crear evento</button>
+          <button type="button" id="btn-ejemplo">Ver un ejemplo</button>
+          <label class="boton" id="lbl-importar">Importar evento (.json)<input id="in-importar" type="file" accept="application/json,.json" class="oculto"></label>
+        </div>
+        <p class="nota" id="import-estado" role="status"></p>
+      </form>
+    </section>
+    <section class="panel">
+      <h2>Tus eventos <small id="cant-eventos"></small></h2>
+      <ul class="lista" id="lista-eventos"></ul>
+    </section>
+    <section class="panel">
+      <h2>Cómo funciona</h2>
+      <p class="nota" style="margin-top:0">Creás un evento, cargás quiénes son y cada gasto: cuánto fue, quién pagó y entre quiénes se divide (en partes iguales, por partes, por porcentaje o con montos fijos). La app calcula cuánto puso cada uno, cuánto le tocaba y <b>la menor cantidad de transferencias</b> para quedar a mano, redondeadas a pesos enteros. Después copiás el resumen y lo pegás en el grupo.</p>
+      <p class="nota">Todo queda guardado en este navegador: no hay cuenta, ni servidor, ni publicidad. Para pasar un evento a otro celular, exportalo en un .json desde Cuentas e importalo allá.</p>
+    </section>
+  </div>
+
+  <!-- Un evento -->
+  <div id="vista-evento" class="oculto">
+    <section class="panel" id="sec-personas" role="tabpanel" aria-labelledby="tab-personas">
+      <h2>Personas <small id="cant-personas"></small></h2>
+      <form id="form-persona" class="pila" novalidate>
+        <div class="fila2">
+          <label class="campo">Nombre<input id="p-nombre" type="text" maxlength="40" autocomplete="off" placeholder="Juan"></label>
+          <label class="campo">Alias (opcional)<input id="p-alias" type="text" maxlength="60" autocomplete="off" placeholder="juan.mp"></label>
+        </div>
+        <p class="error oculto" id="p-error"></p>
+        <p class="nota oculto" id="p-nota" role="status" style="margin:0"></p>
+        <div class="acciones" style="margin-top:0">
+          <button type="submit" class="primario" id="btn-persona">Agregar</button>
+          <button type="button" id="btn-persona-cancelar" class="oculto">Cancelar</button>
+        </div>
+      </form>
+      <ul class="lista" id="lista-personas" style="margin-top:8px"></ul>
+    </section>
+
+    <section class="panel" id="sec-gastos" role="tabpanel" aria-labelledby="tab-gastos">
+      <h2>Gastos <small id="cant-gastos"></small></h2>
+      <p class="vacio oculto" id="gastos-sin-personas">Primero cargá quiénes son, en Personas.</p>
+      <button class="primario" id="btn-nuevo-gasto" style="width:100%;margin-bottom:10px">+ Agregar gasto</button>
+      <form id="form-gasto" class="pila oculto" novalidate>
+        <label class="campo" id="c-desc">¿En qué?<input id="g-desc" type="text" maxlength="60" autocomplete="off" placeholder="Carne, bebidas, nafta…"></label>
+        <div class="fila2">
+          <label class="campo" id="c-monto">Monto<input id="g-monto" type="text" inputmode="decimal" autocomplete="off" placeholder="12.500"></label>
+          <label class="campo">Fecha<input id="g-fecha" type="date"></label>
+        </div>
+        <label class="campo" id="c-pagador">Pagó<select id="g-pagador"></select></label>
+        <div>
+          <div class="campo" style="font-size:.84rem;color:var(--muted);margin-bottom:4px">Se divide</div>
+          <div class="modos" role="radiogroup" aria-label="Cómo se divide">
+            <label><input type="radio" name="modo" value="iguales" checked>Iguales</label>
+            <label><input type="radio" name="modo" value="partes">Partes</label>
+            <label><input type="radio" name="modo" value="porcentaje">%</label>
+            <label><input type="radio" name="modo" value="montos">Montos</label>
+          </div>
+          <p class="nota" id="ayuda-modo"></p>
+          <div class="reparto" id="reparto"></div>
+          <div class="acciones" id="atajos-reparto" style="margin-top:4px"></div>
+          <p class="estado-reparto" id="estado-reparto" role="status"></p>
+        </div>
+        <p class="error oculto" id="g-error"></p>
+        <div class="acciones" style="margin-top:0">
+          <button type="submit" class="primario" id="btn-guardar-gasto">Guardar gasto</button>
+          <button type="button" id="btn-cancelar-gasto">Cancelar</button>
+          <button type="button" id="btn-borrar-gasto" class="peligro oculto">Borrar gasto</button>
+        </div>
+      </form>
+      <ul class="lista" id="lista-gastos"></ul>
+    </section>
+
+    <section class="panel" id="sec-cuentas" role="tabpanel" aria-labelledby="tab-cuentas">
+      <h2>Cuentas</h2>
+      <p class="total-grande" id="total"></p>
+      <p class="nota" id="total-detalle" style="margin-top:2px"></p>
+      <div id="tabla-saldos"></div>
+      <h3 style="font-size:.98rem;margin:16px 0 0">Para quedar a mano</h3>
+      <div id="transferencias"></div>
+      <label class="interruptor"><input type="checkbox" id="chk-redondear" checked> Redondear las transferencias a pesos enteros</label>
+      <div id="pagos"></div>
+      <div class="acciones">
+        <button class="primario" id="btn-copiar">Copiar resumen</button>
+        <button id="btn-compartir" class="oculto">Compartir</button>
+        <span class="copiado oculto" id="copiado" role="status">Copiado, pegalo en el grupo</span>
+      </div>
+      <details id="ver-resumen"><summary>Ver el texto del resumen</summary><pre class="resumen" id="texto-resumen"></pre></details>
+      <h3 style="font-size:.98rem;margin:12px 0 0">El evento</h3>
+      <form id="form-editar-evento" class="pila" novalidate style="margin-top:8px">
+        <div class="fila2">
+          <label class="campo">Nombre<input id="ee-nombre" type="text" maxlength="80"></label>
+          <label class="campo">Fecha<input id="ee-fecha" type="date"></label>
+        </div>
+      </form>
+      <div class="acciones">
+        <button id="btn-exportar">Exportar (.json)</button>
+        <button id="btn-borrar-evento" class="peligro">Eliminar evento</button>
+      </div>
+    </section>
+  </div>
+</main>
+<footer>Sin cuenta ni servidor: los datos quedan en este navegador. <a href="../../">Más proyectos</a></footer>
+
+<script src="logica.js"></script>
+<script>
+"use strict";
+(function () {
+  const D = window.Dividir;
+  const $ = (s) => document.querySelector(s);
+  const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const pesos = D.formatoPesos;
+
+  /* ---------------------------------------------------------- estado */
+  let estado = D.estadoInicial();
+  try {
+    const crudo = localStorage.getItem(D.CLAVE);
+    if (crudo) estado = D.migrar(JSON.parse(crudo));
+  } catch (e) { /* sin localStorage o datos rotos: arranca vacío */ }
+  function guardar() {
+    try { localStorage.setItem(D.CLAVE, JSON.stringify(estado)); } catch (e) { /* modo privado o lleno */ }
+  }
+
+  let actual = null;        // evento abierto
+  let tab = "cuentas";
+  let editandoPersona = null;
+  let editandoGasto = null;  // id del gasto o "nuevo"
+  const confirmando = {};    // botones de dos toques
+
+  const buscar = (id) => estado.eventos.find((e) => e.id === id) || null;
+  const nombreDe = (id) => { const p = actual && actual.personas.find((x) => x.id === id); return p ? p.nombre : "?"; };
+
+  /* ---------------------------------------------------------- rutas */
+  // #/            lista de eventos
+  // #/e/<id>/<tab>  un evento
+  function ir(hash) { if (location.hash !== hash) location.hash = hash; else rutear(); }
+  function rutear() {
+    const m = location.hash.match(/^#\/e\/([^/]+)(?:\/(personas|gastos|cuentas))?/);
+    actual = m ? buscar(decodeURIComponent(m[1])) : null;
+    if (m && !actual) { history.replaceState(null, "", "#/"); }
+    if (actual) {
+      tab = m[2] || (actual.personas.length ? (actual.gastos.length ? "cuentas" : "gastos") : "personas");
+      editandoPersona = null;
+      if (editandoGasto && !actual.gastos.some((g) => g.id === editandoGasto)) editandoGasto = null;
+    }
+    pintar();
+    window.scrollTo(0, 0);
+  }
+  window.addEventListener("hashchange", rutear);
+
+  function pintar() {
+    $("#vista-eventos").classList.toggle("oculto", !!actual);
+    $("#vista-evento").classList.toggle("oculto", !actual);
+    $("#tabs").classList.toggle("oculto", !actual);
+    $("#btn-volver").classList.toggle("oculto", !actual);
+    if (!actual) {
+      $("#titulo").innerHTML = 'Dividir gastos<span class="sub">Quién le debe cuánto a quién</span>';
+      document.title = "Dividir gastos";
+      pintarEventos();
+      return;
+    }
+    $("#titulo").innerHTML = esc(actual.nombre) + '<span class="sub">' + esc(actual.fecha ? D.fechaCorta(actual.fecha) + " · " : "") +
+      actual.personas.length + (actual.personas.length === 1 ? " persona" : " personas") + "</span>";
+    document.title = actual.nombre + " · Dividir gastos";
+    ["personas", "gastos", "cuentas"].forEach((t) => {
+      $("#tab-" + t).setAttribute("aria-selected", String(t === tab));
+      $("#sec-" + t).classList.toggle("oculto", t !== tab);
+    });
+    pintarPersonas();
+    pintarGastos();
+    pintarCuentas();
+  }
+
+  /* ---------------------------------------------------------- eventos */
+  function pintarEventos() {
+    const lista = estado.eventos.slice().sort((a, b) => (b.creado || 0) - (a.creado || 0));
+    $("#cant-eventos").textContent = lista.length ? String(lista.length) : "";
+    $("#lista-eventos").innerHTML = lista.length ? lista.map((e) => {
+      const L = D.liquidar(e);
+      const pend = L.transferencias.length;
+      const estadoTxt = !e.gastos.length ? "sin gastos" : pend ? pend + (pend === 1 ? " transferencia pendiente" : " transferencias pendientes") : "todos a mano";
+      return '<li class="evento-card" data-evento="' + esc(e.id) + '"><div class="principal"><b>' + esc(e.nombre) + "</b><span>" +
+        esc(e.fecha ? D.fechaCorta(e.fecha) + " · " : "") + e.personas.length + (e.personas.length === 1 ? " persona" : " personas") + " · " + estadoTxt +
+        '</span></div><span class="monto">' + pesos(L.total) + "</span></li>";
+    }).join("") : '<li class="vacio">Todavía no hay eventos. Creá uno arriba o mirá el ejemplo.</li>';
+  }
+  $("#lista-eventos").addEventListener("click", (ev) => {
+    const li = ev.target.closest("[data-evento]");
+    if (li) ir("#/e/" + encodeURIComponent(li.dataset.evento));
+  });
+  $("#ev-fecha").value = D.fechaActual();
+  $("#form-evento").addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    const nombre = $("#ev-nombre").value.trim();
+    if (!nombre) { mostrarError("#ev-error", "Ponele un nombre."); $("#ev-nombre").focus(); return; }
+    mostrarError("#ev-error", "");
+    const e = D.nuevoEvento(nombre, $("#ev-fecha").value);
+    estado.eventos.push(e);
+    guardar();
+    $("#ev-nombre").value = "";
+    ir("#/e/" + encodeURIComponent(e.id) + "/personas");
+    setTimeout(() => $("#p-nombre").focus(), 0);
+  });
+  $("#btn-ejemplo").addEventListener("click", () => {
+    const e = D.ejemplo();
+    estado.eventos.push(e);
+    guardar();
+    ir("#/e/" + encodeURIComponent(e.id) + "/cuentas");
+  });
+  $("#in-importar").addEventListener("change", async (ev) => {
+    const archivo = ev.target.files && ev.target.files[0];
+    ev.target.value = "";
+    if (!archivo) return;
+    importarTexto(await archivo.text());
+  });
+  function importarTexto(texto) {
+    const r = D.eventoDeJSON(texto, estado.eventos);
+    if (!r.ok) { $("#import-estado").textContent = r.error; return false; }
+    r.evento.creado = Date.now();
+    estado.eventos.push(r.evento);
+    guardar();
+    $("#import-estado").textContent = "";
+    ir("#/e/" + encodeURIComponent(r.evento.id) + "/cuentas");
+    return true;
+  }
+  window.dividirImportarTexto = importarTexto; // para los tests
+
+  $("#btn-volver").addEventListener("click", () => ir("#/"));
+  $("#tabs").addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-tab]");
+    if (b && actual) ir("#/e/" + encodeURIComponent(actual.id) + "/" + b.dataset.tab);
+  });
+
+  function mostrarError(sel, texto) {
+    const el = $(sel);
+    el.textContent = texto;
+    el.classList.toggle("oculto", !texto);
+  }
+  // Botón de dos toques: el primero pregunta, el segundo hace. Vuelve solo a los 3 s.
+  function dosToques(boton, clave, textoConfirmar, accion) {
+    if (confirmando[clave]) { delete confirmando[clave]; accion(); return; }
+    Object.keys(confirmando).forEach((k) => delete confirmando[k]);
+    confirmando[clave] = true;
+    const original = boton.textContent;
+    boton.textContent = textoConfirmar;
+    boton.classList.add("confirmar");
+    setTimeout(() => {
+      if (!confirmando[clave]) return;
+      delete confirmando[clave];
+      if (boton.isConnected) { boton.textContent = original; boton.classList.remove("confirmar"); }
+    }, 3000);
+  }
+  function cambio() { guardar(); pintar(); }
+
+  /* ---------------------------------------------------------- personas */
+  function pintarPersonas() {
+    const L = D.liquidar(actual);
+    const saldo = {};
+    L.saldos.forEach((s) => { saldo[s.id] = s.saldo; });
+    $("#cant-personas").textContent = actual.personas.length ? String(actual.personas.length) : "";
+    $("#lista-personas").innerHTML = actual.personas.length ? actual.personas.map((p) => {
+      const s = saldo[p.id] || 0;
+      const chip = s > 0 ? '<span class="chip cobra">le deben ' + pesos(s) + "</span>" : s < 0 ? '<span class="chip debe">debe ' + pesos(-s) + "</span>" : '<span class="chip amano">a mano</span>';
+      return '<li data-persona="' + esc(p.id) + '"><div class="principal"><b>' + esc(p.nombre) + "</b>" + (p.alias ? "<span>" + esc(p.alias) + "</span>" : "") +
+        "<span>" + chip + '</span></div><button class="icono" data-accion="editar" aria-label="Editar a ' + esc(p.nombre) + '">✎</button>' +
+        '<button class="icono peligro" data-accion="borrar" aria-label="Sacar a ' + esc(p.nombre) + '">✕</button></li>';
+    }).join("") : '<li class="vacio">Cargá a cada uno: con el nombre alcanza. El alias es para que salga en el resumen al lado de quien cobra.</li>';
+    $("#btn-persona").textContent = editandoPersona ? "Guardar" : "Agregar";
+    $("#btn-persona-cancelar").classList.toggle("oculto", !editandoPersona);
+  }
+  $("#form-persona").addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    const r = D.normalizarPersona({ nombre: $("#p-nombre").value, alias: $("#p-alias").value }, actual, editandoPersona);
+    if (!r.ok) { mostrarError("#p-error", r.error); $("#p-nombre").focus(); return; }
+    mostrarError("#p-error", "");
+    if (editandoPersona) {
+      const i = actual.personas.findIndex((p) => p.id === editandoPersona);
+      actual.personas[i] = r.persona;
+    } else {
+      actual.personas.push(r.persona);
+    }
+    // Una persona nueva no entra sola en los gastos que ya estaban (puede haber llegado después).
+    const nota = !editandoPersona && actual.gastos.length
+      ? r.persona.nombre + " no entra en los " + actual.gastos.length + " gastos que ya estaban; si le toca alguno, editalo en Gastos." : "";
+    $("#p-nota").textContent = nota;
+    $("#p-nota").classList.toggle("oculto", !nota);
+    editandoPersona = null;
+    $("#p-nombre").value = ""; $("#p-alias").value = "";
+    cambio();
+    $("#p-nombre").focus();
+  });
+  $("#btn-persona-cancelar").addEventListener("click", () => {
+    editandoPersona = null; $("#p-nombre").value = ""; $("#p-alias").value = ""; mostrarError("#p-error", ""); pintarPersonas();
+  });
+  $("#lista-personas").addEventListener("click", (ev) => {
+    const b = ev.target.closest("button[data-accion]");
+    if (!b) return;
+    const id = b.closest("[data-persona]").dataset.persona;
+    const p = actual.personas.find((x) => x.id === id);
+    if (b.dataset.accion === "editar") {
+      editandoPersona = id;
+      $("#p-nombre").value = p.nombre; $("#p-alias").value = p.alias || "";
+      pintarPersonas();
+      $("#p-nombre").focus();
+      return;
+    }
+    const usos = D.usosDePersona(actual, id);
+    if (usos.total) {
+      mostrarError("#p-error", p.nombre + " aparece en " + (usos.gastos ? usos.gastos + (usos.gastos === 1 ? " gasto" : " gastos") : "") +
+        (usos.gastos && usos.pagos ? " y " : "") + (usos.pagos ? usos.pagos + (usos.pagos === 1 ? " pago" : " pagos") : "") + ": sacá a " + p.nombre + " de ahí antes.");
+      return;
+    }
+    dosToques(b, "persona-" + id, "¿Seguro?", () => {
+      actual.personas = actual.personas.filter((x) => x.id !== id);
+      mostrarError("#p-error", "");
+      cambio();
+    });
+  });
+
+  /* ---------------------------------------------------------- gastos */
+  const AYUDA = {
+    iguales: "Marcá entre quiénes se divide; a cada uno le toca lo mismo.",
+    partes: "Cuántas partes le tocan a cada uno: 2 para una pareja, 0,5 para un chico, 0 si no entra.",
+    porcentaje: "Qué porcentaje le toca a cada uno. Tienen que sumar 100\u00a0%.",
+    montos: "Cuánto le toca a cada uno, en pesos. Tienen que sumar el monto del gasto.",
+  };
+  // Lo que hay cargado en el formulario, como lo recibe normalizarGasto.
+  let modoPintado = "iguales"; // el modo con el que están dibujados los campos del reparto
+  function leerFormGasto() {
+    const modo = modoPintado;
+    const reparto = {};
+    document.querySelectorAll("#reparto [data-pid]").forEach((el) => {
+      reparto[el.dataset.pid] = modo === "iguales" ? el.checked : el.value;
+    });
+    return { id: editandoGasto === "nuevo" ? undefined : editandoGasto, desc: $("#g-desc").value, monto: $("#g-monto").value,
+      fecha: $("#g-fecha").value, pagador: $("#g-pagador").value, modo, reparto };
+  }
+  function pintarReparto(modo, valores) {
+    modoPintado = modo;
+    $("#ayuda-modo").textContent = AYUDA[modo];
+    $("#reparto").innerHTML = actual.personas.map((p) => {
+      const v = valores[p.id];
+      if (modo === "iguales")
+        return '<label class="rp iguales"><input type="checkbox" data-pid="' + esc(p.id) + '"' + (v ? " checked" : "") + '><span class="nom">' + esc(p.nombre) +
+          '</span><span class="parte" data-parte="' + esc(p.id) + '"></span></label>';
+      return '<label class="rp"><span class="nom">' + esc(p.nombre) + '</span><input type="text" inputmode="decimal" autocomplete="off" data-pid="' + esc(p.id) +
+        '" value="' + esc(v == null ? "" : v) + '" aria-label="' + esc(p.nombre) + '" placeholder="' + (modo === "porcentaje" ? "%" : modo === "montos" ? "$" : "0") +
+        '"><span class="parte" data-parte="' + esc(p.id) + '"></span></label>';
+    }).join("");
+    $("#atajos-reparto").innerHTML = modo === "iguales"
+      ? '<button type="button" data-atajo="todos">Todos</button><button type="button" data-atajo="nadie">Ninguno</button>'
+      : modo === "porcentaje" ? '<button type="button" data-atajo="parejo">Repartir parejo</button>'
+      : modo === "montos" ? '<button type="button" data-atajo="resto">Completar con lo que falta</button>' : "";
+    vistaPrevia();
+  }
+  // Valores del formulario a partir de un gasto guardado, en el formato que se tipea.
+  function valoresDe(g) {
+    const v = {};
+    actual.personas.forEach((p) => {
+      const x = g.reparto[p.id];
+      if (g.modo === "iguales") v[p.id] = x === true;
+      else if (x == null) v[p.id] = g.modo === "partes" ? "0" : "";
+      else if (g.modo === "partes") v[p.id] = String(x).replace(".", ",");
+      else if (g.modo === "porcentaje") v[p.id] = String(x / 100).replace(".", ",");
+      else v[p.id] = (x / 100).toFixed(2).replace(".", ",").replace(",00", "");
+    });
+    return v;
+  }
+  function valoresPorDefecto(modo) {
+    const v = {};
+    actual.personas.forEach((p) => { v[p.id] = modo === "iguales" ? true : modo === "partes" ? "1" : ""; });
+    return v;
+  }
+  function vistaPrevia() {
+    const r = D.normalizarGasto(leerFormGasto(), actual);
+    document.querySelectorAll("#reparto [data-parte]").forEach((el) => {
+      const c = r.partes[el.dataset.parte];
+      el.textContent = c ? pesos(c) : "";
+    });
+    const est = $("#estado-reparto");
+    const monto = r.gasto.monto;
+    if (!monto) { est.textContent = "Poné el monto para ver cuánto le toca a cada uno."; est.className = "estado-reparto"; return r; }
+    if (r.errores.reparto) { est.textContent = r.errores.reparto; est.className = "estado-reparto debe"; return r; }
+    const n = Object.keys(r.partes).length;
+    est.textContent = "Se divide entre " + n + (n === 1 ? " persona." : " personas.") + (r.gasto.modo === "iguales" && n > 1 ? " Cada uno: " + pesos(Math.floor(monto / n)) + (monto % n ? " (los centavos que sobran van a los primeros)" : "") + "." : "");
+    est.className = "estado-reparto ok";
+    return r;
+  }
+  function abrirGasto(id) {
+    editandoGasto = id;
+    const g = id === "nuevo" ? null : actual.gastos.find((x) => x.id === id);
+    $("#g-desc").value = g ? g.desc : "";
+    $("#g-monto").value = g ? (g.monto / 100).toFixed(2).replace(".", ",").replace(",00", "") : "";
+    $("#g-fecha").value = g ? g.fecha : (actual.fecha || D.fechaActual());
+    $("#g-pagador").innerHTML = actual.personas.map((p) => '<option value="' + esc(p.id) + '">' + esc(p.nombre) + "</option>").join("");
+    $("#g-pagador").value = g ? g.pagador : actual.personas[0].id;
+    const modo = g ? g.modo : "iguales";
+    document.querySelector("input[name=modo][value=" + modo + "]").checked = true;
+    ["#c-desc", "#c-monto", "#c-pagador"].forEach((s) => $(s).classList.remove("invalido"));
+    mostrarError("#g-error", "");
+    pintarReparto(modo, g ? valoresDe(g) : valoresPorDefecto(modo));
+    pintarGastos();
+    $("#g-desc").focus();
+  }
+  function cerrarGasto() { editandoGasto = null; pintarGastos(); }
+
+  function pintarGastos() {
+    const hayPersonas = actual.personas.length > 0;
+    $("#gastos-sin-personas").classList.toggle("oculto", hayPersonas);
+    $("#btn-nuevo-gasto").classList.toggle("oculto", !hayPersonas || !!editandoGasto);
+    $("#form-gasto").classList.toggle("oculto", !editandoGasto);
+    $("#btn-guardar-gasto").textContent = editandoGasto === "nuevo" ? "Guardar gasto" : "Guardar cambios";
+    $("#btn-borrar-gasto").classList.toggle("oculto", !editandoGasto || editandoGasto === "nuevo");
+    const total = actual.gastos.reduce((a, g) => a + g.monto, 0);
+    $("#cant-gastos").textContent = actual.gastos.length ? actual.gastos.length + " · " + pesos(total) : "";
+    const ordenados = actual.gastos.slice().sort((a, b) => (b.fecha || "").localeCompare(a.fecha || ""));
+    $("#lista-gastos").innerHTML = ordenados.length ? ordenados.map((g) => {
+      const ok = D.partesDeGasto(g, actual.personas.map((p) => p.id)).ok;
+      return '<li data-gasto="' + esc(g.id) + '"' + (g.id === editandoGasto ? ' class="oculto"' : "") + '><div class="principal"><b>' + esc(g.desc) + "</b><span>Pagó " + esc(nombreDe(g.pagador)) +
+        " · " + esc(D.entreQuienes(actual, g)) + (g.modo === "iguales" ? "" : " (" + D.NOMBRE_MODO[g.modo] + ")") + (g.fecha ? " · " + D.fechaCorta(g.fecha) : "") +
+        (ok ? "" : ' · <span class="debe" style="display:inline">no cuenta: revisalo</span>') +
+        '</span></div><span class="monto">' + pesos(g.monto) + '</span><button class="icono" data-accion="editar" aria-label="Editar o borrar ' + esc(g.desc) + '">✎</button></li>';
+    }).join("") : (hayPersonas ? '<li class="vacio">Sin gastos todavía.</li>' : "");
+  }
+  $("#btn-nuevo-gasto").addEventListener("click", () => abrirGasto("nuevo"));
+  $("#btn-cancelar-gasto").addEventListener("click", cerrarGasto);
+  $("#form-gasto").addEventListener("input", (ev) => { if (ev.target.name !== "modo") vistaPrevia(); });
+  $("#form-gasto").addEventListener("change", (ev) => {
+    if (ev.target.name !== "modo") return;
+    const modo = ev.target.value;
+    // Al cambiar de modo se arranca de algo razonable: los mismos que estaban marcados.
+    const antes = leerFormGasto();
+    const dentro = actual.personas.filter((p) => {
+      const v = antes.reparto[p.id];
+      return v === true || (typeof v === "string" && v.trim() !== "" && parseFloat(v.replace(",", ".")) > 0);
+    });
+    const v = {};
+    actual.personas.forEach((p) => {
+      const esta = dentro.some((x) => x.id === p.id);
+      v[p.id] = modo === "iguales" ? esta : modo === "partes" ? (esta ? "1" : "0") : "";
+    });
+    pintarReparto(modo, v);
+    if (modo === "porcentaje" && dentro.length) llenarParejo(dentro.map((p) => p.id));
+  });
+  function llenarParejo(ids) {
+    const partes = D.repartir(10000, ids.map(() => 1));
+    document.querySelectorAll("#reparto [data-pid]").forEach((el) => {
+      const i = ids.indexOf(el.dataset.pid);
+      el.value = i >= 0 ? String(partes[i] / 100).replace(".", ",") : "";
+    });
+    vistaPrevia();
+  }
+  $("#atajos-reparto").addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-atajo]");
+    if (!b) return;
+    const campos = Array.from(document.querySelectorAll("#reparto [data-pid]"));
+    if (b.dataset.atajo === "todos" || b.dataset.atajo === "nadie") {
+      campos.forEach((el) => { el.checked = b.dataset.atajo === "todos"; });
+      vistaPrevia();
+    } else if (b.dataset.atajo === "parejo") {
+      const con = campos.filter((el) => el.value.trim() !== "");
+      llenarParejo((con.length ? con : campos).map((el) => el.dataset.pid));
+    } else if (b.dataset.atajo === "resto") {
+      // Lo que falta asignar va al primero que está vacío (o al que paga).
+      const monto = D.aCentavos($("#g-monto").value);
+      if (!(monto > 0)) return;
+      let suma = 0;
+      campos.forEach((el) => { const c = D.aCentavos(el.value); if (c > 0) suma += c; });
+      const destino = campos.find((el) => el.value.trim() === "") || campos.find((el) => el.dataset.pid === $("#g-pagador").value);
+      const actualDestino = D.aCentavos(destino.value) > 0 ? D.aCentavos(destino.value) : 0;
+      const nuevo = monto - suma + actualDestino;
+      if (nuevo < 0) return;
+      destino.value = (nuevo / 100).toFixed(2).replace(".", ",").replace(",00", "");
+      vistaPrevia();
+    }
+  });
+  $("#form-gasto").addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    const r = D.normalizarGasto(leerFormGasto(), actual);
+    $("#c-desc").classList.toggle("invalido", !!r.errores.desc);
+    $("#c-monto").classList.toggle("invalido", !!r.errores.monto);
+    $("#c-pagador").classList.toggle("invalido", !!r.errores.pagador);
+    if (!r.ok) {
+      mostrarError("#g-error", Object.values(r.errores).join(" "));
+      return;
+    }
+    if (editandoGasto === "nuevo") actual.gastos.push(r.gasto);
+    else actual.gastos[actual.gastos.findIndex((g) => g.id === editandoGasto)] = r.gasto;
+    editandoGasto = null;
+    cambio();
+  });
+  $("#lista-gastos").addEventListener("click", (ev) => {
+    const b = ev.target.closest("button[data-accion]");
+    if (!b) return;
+    abrirGasto(b.closest("[data-gasto]").dataset.gasto);
+  });
+  $("#btn-borrar-gasto").addEventListener("click", (ev) => {
+    const id = editandoGasto;
+    dosToques(ev.currentTarget, "gasto-" + id, "¿Seguro? Tocá de nuevo", () => {
+      actual.gastos = actual.gastos.filter((g) => g.id !== id);
+      editandoGasto = null;
+      ev.currentTarget.textContent = "Borrar gasto";
+      ev.currentTarget.classList.remove("confirmar");
+      cambio();
+    });
+  });
+
+  /* ---------------------------------------------------------- cuentas */
+  function pintarCuentas() {
+    const L = D.liquidar(actual);
+    $("#total").textContent = pesos(L.total);
+    const n = actual.personas.length;
+    $("#total-detalle").textContent = !actual.gastos.length ? "Todavía no hay gastos." :
+      actual.gastos.length + (actual.gastos.length === 1 ? " gasto" : " gastos") + " entre " + n + (n === 1 ? " persona" : " personas") +
+      (L.invalidos ? ". " + L.invalidos + (L.invalidos === 1 ? " gasto no cuenta" : " gastos no cuentan") + " porque tienen el reparto mal: revisalos en Gastos." : ".");
+    const hayPagos = L.saldos.some((s) => s.enviado || s.recibido);
+    $("#tabla-saldos").innerHTML = n ? '<table><thead><tr><th>Quién</th><th>Puso</th><th>Le tocaba</th>' + (hayPagos ? "<th>Ya pasó / recibió</th>" : "") +
+      "<th>Saldo</th></tr></thead><tbody>" + L.saldos.map((s) => {
+        const cls = s.saldo > 0 ? "cobra" : s.saldo < 0 ? "debe" : "amano";
+        const txt = s.saldo > 0 ? "+" + pesos(s.saldo) : s.saldo < 0 ? pesos(s.saldo) : "a mano";
+        return "<tr><td>" + esc(s.nombre) + "</td><td>" + pesos(s.pagado) + "</td><td>" + pesos(s.consumido) + "</td>" +
+          (hayPagos ? "<td>" + pesos(s.enviado) + " / " + pesos(s.recibido) + "</td>" : "") + '<td class="' + cls + '"><b>' + txt + "</b></td></tr>";
+      }).join("") + "</tbody></table>" +
+      '<p class="nota">Saldo: lo que puso menos lo que le tocaba. En verde, le deben; en rojo, debe.</p>' : '<p class="vacio">Cargá las personas y los gastos.</p>';
+
+    const alias = {};
+    actual.personas.forEach((p) => { alias[p.id] = p.alias; });
+    let html = "";
+    if (!actual.gastos.length) html = '<p class="vacio">Cuando cargues gastos, acá aparece quién le pasa cuánto a quién.</p>';
+    else if (!L.transferencias.length) html = '<p class="ok-grande">Están todos a mano. 🙌</p>';
+    else {
+      html = '<p class="nota">' + L.transferencias.length + (L.transferencias.length === 1 ? " transferencia alcanza" : " transferencias alcanzan") +
+        ", y no hay forma de hacerlo con menos. Cuando alguien la haga, tocá «Ya la hizo».</p>";
+      html += L.transferencias.map((t, i) => '<div class="transf" data-transf="' + i + '"><div class="quien"><b>' + esc(nombreDe(t.de)) + "</b> le pasa a <b>" + esc(nombreDe(t.a)) + "</b>" +
+        (alias[t.a] ? "<span>Alias: " + esc(alias[t.a]) + "</span>" : "") + '</div><span class="monto">' + pesos(t.monto) +
+        '</span><button data-hecha="' + i + '">Ya la hizo</button></div>').join("");
+      if (L.redondeo.length) {
+        const max = L.redondeo.reduce((a, r) => Math.max(a, Math.abs(r.diferencia)), 0);
+        html += '<p class="aviso">Redondeado a pesos enteros: nadie pone ni recibe más de ' + pesos(max) + " de diferencia con la cuenta exacta.</p>";
+      }
+    }
+    $("#transferencias").innerHTML = html;
+    $("#transferencias").dataset.lista = JSON.stringify(L.transferencias);
+    $("#chk-redondear").checked = L.redondear;
+    $("#chk-redondear").closest("label").classList.toggle("oculto", !actual.gastos.length);
+
+    const pagos = actual.pagos || [];
+    $("#pagos").innerHTML = pagos.length ? '<h3 style="font-size:.92rem;margin:10px 0 0;color:var(--muted)">Transferencias ya hechas</h3><ul class="lista">' +
+      pagos.map((p) => '<li data-pago="' + esc(p.id) + '"><div class="principal"><b>' + esc(nombreDe(p.de)) + " → " + esc(nombreDe(p.a)) + "</b><span>" +
+        (p.fecha ? D.fechaCorta(p.fecha) : "") + '</span></div><span class="monto">' + pesos(p.monto) + '</span><button data-deshacer="' + esc(p.id) + '">Deshacer</button></li>').join("") +
+      "</ul>" : "";
+
+    $("#texto-resumen").textContent = D.resumenTexto(actual);
+    $("#btn-compartir").classList.toggle("oculto", typeof navigator.share !== "function");
+    $("#ee-nombre").value = actual.nombre;
+    $("#ee-fecha").value = actual.fecha || "";
+  }
+  $("#transferencias").addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-hecha]");
+    if (!b) return;
+    const t = JSON.parse($("#transferencias").dataset.lista)[Number(b.dataset.hecha)];
+    actual.pagos = actual.pagos || [];
+    actual.pagos.push({ id: D.nuevoId("t"), de: t.de, a: t.a, monto: t.monto, fecha: D.fechaActual() });
+    cambio();
+  });
+  $("#pagos").addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-deshacer]");
+    if (!b) return;
+    actual.pagos = actual.pagos.filter((p) => p.id !== b.dataset.deshacer);
+    cambio();
+  });
+  $("#chk-redondear").addEventListener("change", (ev) => { actual.redondear = ev.target.checked; cambio(); });
+
+  async function copiar(texto) {
+    try { await navigator.clipboard.writeText(texto); return true; } catch (e) { /* sigue con el plan B */ }
+    const area = document.createElement("textarea");
+    area.value = texto; area.setAttribute("readonly", ""); area.style.position = "fixed"; area.style.opacity = "0";
+    document.body.appendChild(area); area.select();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    area.remove();
+    return ok;
+  }
+  $("#btn-copiar").addEventListener("click", async () => {
+    const ok = await copiar(D.resumenTexto(actual));
+    const aviso = $("#copiado");
+    aviso.textContent = ok ? "Copiado, pegalo en el grupo" : "No se pudo copiar: abrí el texto de abajo y copialo a mano";
+    aviso.classList.remove("oculto");
+    if (!ok) $("#ver-resumen").open = true;
+    setTimeout(() => aviso.classList.add("oculto"), 4000);
+  });
+  $("#btn-compartir").addEventListener("click", () => {
+    navigator.share({ title: actual.nombre, text: D.resumenTexto(actual) }).catch(() => {});
+  });
+  $("#btn-exportar").addEventListener("click", () => {
+    const blob = new Blob([D.eventoAJSON(actual)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = D.nombreArchivo(actual);
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  $("#btn-borrar-evento").addEventListener("click", (ev) => {
+    dosToques(ev.currentTarget, "evento", "Tocá de nuevo para eliminarlo", () => {
+      estado.eventos = estado.eventos.filter((e) => e.id !== actual.id);
+      guardar();
+      ir("#/");
+    });
+  });
+  $("#form-editar-evento").addEventListener("change", () => {
+    const nombre = $("#ee-nombre").value.trim();
+    if (nombre) actual.nombre = nombre.slice(0, 80);
+    if (D.esFecha($("#ee-fecha").value)) actual.fecha = $("#ee-fecha").value;
+    cambio();
+  });
+  $("#form-editar-evento").addEventListener("submit", (ev) => ev.preventDefault());
+
+  rutear();
+  if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>

@@ -446,5 +446,19 @@
   "detalle": "Un memotest de 4, 6 u 8 pares con perro, gato, vaca, pato, león, oveja, chancho y pajarito, cada uno con su sonido hecho con WebAudio. Las cartas son grandes, dos distintas se cierran solas al segundo y al encontrar todos los pares cae confeti y aparece un botón grande para jugar de nuevo.",
   "destacado": false,
   "actualizado": "2026-10-25"
+ },
+ {
+  "slug": "dividir-gastos",
+  "nombre": "Dividir gastos",
+  "categoria": "apps",
+  "descripcion": "Quién le debe cuánto a quién después de un asado, un viaje o un regalo: saldos, la menor cantidad de transferencias y el resumen para WhatsApp.",
+  "estado": "terminado",
+  "probar": "apps/dividir-gastos/",
+  "desde": "2026-10-25",
+  "icono": "🤝",
+  "para": "todos",
+  "detalle": "Creás un evento, cargás quiénes son y cada gasto (quién pagó y entre quiénes, en partes iguales, por partes, por porcentaje o con montos), y calcula cuánto puso cada uno, cuánto le tocaba y la menor cantidad de transferencias para quedar a mano, redondeadas a pesos. El resumen se copia listo para el grupo de WhatsApp; sin cuenta ni servidor, queda en el navegador.",
+  "destacado": false,
+  "actualizado": "2026-10-25"
  }
 ]

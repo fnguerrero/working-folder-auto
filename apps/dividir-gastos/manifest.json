@@ -1,0 +1,14 @@
+{
+  "name": "Dividir gastos",
+  "short_name": "Dividir",
+  "description": "Quién le debe cuánto a quién después de un asado, un viaje o un regalo en grupo.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f6b5c",
+  "theme_color": "#0f6b5c",
+  "lang": "es-AR",
+  "icons": [
+    { "src": "icono.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
