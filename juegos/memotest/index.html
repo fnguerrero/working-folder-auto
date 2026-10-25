@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#fff3dc">
+<title>Memotest de animales</title>
+<style>
+  :root { --bg: #fff3dc; --fg: #3a2d1f; --tap: 48px; --w: 100px; --h: 130px; --gap: 10px; --cols: 4; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden;
+    -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+    touch-action: none; overscroll-behavior: none; }
+  body { display: flex; flex-direction: column;
+    padding: calc(8px + env(safe-area-inset-top)) calc(8px + env(safe-area-inset-right))
+             calc(8px + env(safe-area-inset-bottom)) calc(8px + env(safe-area-inset-left)); }
+
+  .barra { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: 0 0 auto; padding: 0 2px 8px; }
+  .barra h1 { margin: 0; font-size: 1.2rem; letter-spacing: -.01em; white-space: nowrap; }
+  .botones { display: flex; gap: 8px; align-items: center; }
+  .tamanos { display: flex; gap: 4px; padding: 3px; border-radius: 17px; background: rgba(58, 45, 31, .08); }
+  .botones button { min-height: var(--tap); min-width: var(--tap); border: 0; border-radius: 14px; padding: 0 12px;
+    font-family: inherit; font-weight: 700; font-size: 1.15rem; line-height: 1; color: var(--fg); background: #fff; box-shadow: 0 3px 0 rgba(0,0,0,.14);
+    cursor: pointer; touch-action: manipulation; display: inline-flex; align-items: center; justify-content: center; }
+  .tamanos button { padding: 0; box-shadow: none; background: transparent; }
+  .tamanos button svg { width: 30px; height: 30px; display: block; }
+  .botones button:focus-visible { outline: 3px solid #e8572a; outline-offset: 2px; }
+  .botones button[aria-pressed="true"] { background: #ffd166; }
+  .tamanos button[aria-pressed="true"] { background: #fff; box-shadow: 0 2px 0 rgba(0,0,0,.14); }
+
+  #tablero { flex: 1 1 auto; min-height: 0; position: relative; display: flex; align-items: center; justify-content: center; }
+  .grilla { display: grid; grid-template-columns: repeat(var(--cols), var(--w)); gap: var(--gap); }
+  .carta { position: relative; width: var(--w); height: var(--h); padding: 0; border: 0; background: transparent;
+    perspective: 900px; cursor: pointer; touch-action: manipulation; border-radius: 18px; outline: none; }
+  .carta:focus-visible { box-shadow: 0 0 0 4px #e8572a; }
+  .giro { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .38s cubic-bezier(.3, 1.3, .5, 1); }
+  .carta.abierta .giro { transform: rotateY(180deg); }
+  .cara { position: absolute; inset: 0; border-radius: 18px; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    box-shadow: 0 5px 0 rgba(0,0,0,.16), 0 8px 18px rgba(0,0,0,.1); overflow: hidden; display: flex; align-items: center; justify-content: center; }
+  .dorso { background-color: #ff8a5c;
+    background-image: radial-gradient(circle at 25% 25%, rgba(255,255,255,.28) 0 9%, transparent 10%),
+                      radial-gradient(circle at 75% 75%, rgba(255,255,255,.28) 0 9%, transparent 10%);
+    background-size: 34px 34px; border: 4px solid #fff; }
+  .dorso svg { width: 56%; max-width: 90px; }
+  .frente { transform: rotateY(180deg); background: var(--color, #fff); border: 4px solid #fff; }
+  .frente svg { width: 92%; height: 92%; max-height: 92%; }
+  .carta.encontrada .frente { border-color: #ffc93c; box-shadow: 0 5px 0 rgba(0,0,0,.16), 0 0 0 3px rgba(255, 201, 60, .45); }
+  .carta.encontrada .frente::after { content: "⭐"; position: absolute; top: 4px; right: 6px; font-size: clamp(14px, calc(var(--w) * .16), 26px); }
+  .carta.habla .frente svg { animation: habla .5s ease-in-out 2; }
+  .carta.festeja { animation: festeja .9s ease-out; z-index: 2; }
+  .carta.baila { animation: baila .7s ease-in-out infinite alternate; }
+  .carta.reparte { animation: reparte .35s ease-out backwards; }
+  @keyframes habla { 0%, 100% { transform: scale(1) rotate(0); } 30% { transform: scale(1.06) rotate(-4deg); } 70% { transform: scale(1.04) rotate(4deg); } }
+  @keyframes festeja { 0% { transform: none; } 25% { transform: translateY(-18%) scale(1.1) rotate(-7deg); } 50% { transform: translateY(0) scale(.97) rotate(4deg); }
+    70% { transform: translateY(-8%) scale(1.05) rotate(-3deg); } 100% { transform: none; } }
+  @keyframes baila { from { transform: rotate(-5deg) translateY(0); } to { transform: rotate(5deg) translateY(-6%); } }
+  @keyframes reparte { from { transform: scale(.4); opacity: 0; } }
+
+  #fiesta { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
+  #final { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 6; display: flex; flex-direction: column;
+    align-items: center; gap: 10px; pointer-events: none; }
+  #final[hidden] { display: none; }
+  #final .bravo { font-size: clamp(2.6rem, 12vmin, 5rem); line-height: 1; filter: drop-shadow(0 4px 6px rgba(0,0,0,.2)); }
+  #otraVez { pointer-events: auto; min-height: 96px; min-width: 220px; padding: 0 34px; border: 0; border-radius: 999px;
+    font-family: inherit; font-weight: 800; font-size: clamp(1.7rem, 7vmin, 2.4rem); line-height: 1; color: #fff; background: #2fb36d; box-shadow: 0 7px 0 #1f7d4b, 0 14px 30px rgba(0,0,0,.25);
+    cursor: pointer; touch-action: manipulation; animation: aparece .45s cubic-bezier(.3, 1.5, .5, 1); }
+  #otraVez:active { transform: translateY(4px); box-shadow: 0 3px 0 #1f7d4b; }
+  #otraVez:focus-visible { outline: 4px solid #3a2d1f; outline-offset: 4px; }
+  @keyframes aparece { from { transform: scale(.3); opacity: 0; } }
+
+  .ayuda { position: fixed; left: 50%; bottom: calc(12px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 4;
+    padding: 8px 14px; border-radius: 999px; background: rgba(58, 45, 31, .78); color: #fff; font-size: .9rem; pointer-events: none;
+    white-space: nowrap; transition: opacity .6s; }
+  .ayuda.oculta { opacity: 0; }
+  .lector { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  @media (max-width: 339px) { .barra h1 .palabra { display: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .giro { transition: none; }
+    .carta.habla .frente svg, .carta.festeja, .carta.baila, .carta.reparte, #otraVez { animation: none; }
+    .ayuda { transition: none; }
+  }
+</style>
+</head>
+<body>
+<header class="barra">
+  <h1>🐶 <span class="palabra">Memotest</span></h1>
+  <div class="botones">
+    <div class="tamanos" role="group" aria-label="Tamaño del tablero">
+      <button type="button" data-pares="4" aria-pressed="false" aria-label="4 pares" title="4 pares (tecla 4)"></button>
+      <button type="button" data-pares="6" aria-pressed="false" aria-label="6 pares" title="6 pares (tecla 6)"></button>
+      <button type="button" data-pares="8" aria-pressed="false" aria-label="8 pares" title="8 pares (tecla 8)"></button>
+    </div>
+    <button id="sonido" type="button" aria-pressed="true" aria-label="Sonido" title="Sonido (tecla M)">🔊</button>
+  </div>
+</header>
+<main id="tablero"><div id="grilla" class="grilla" aria-label="Cartas"></div></main>
+<canvas id="fiesta" aria-hidden="true"></canvas>
+<div id="final" hidden><div class="bravo" aria-hidden="true">🎉</div><button id="otraVez" type="button">¡Otra vez!</button></div>
+<div id="ayuda" class="ayuda">Tocá una carta y buscá su pareja</div>
+<div id="aviso" class="lector" aria-live="polite"></div>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (s) => document.querySelector(s);
+  const tablero = $("#tablero"), grilla = $("#grilla"), lienzo = $("#fiesta"), ctx = lienzo.getContext("2d");
+  const final = $("#final"), btnOtra = $("#otraVez"), btnSonido = $("#sonido"), ayuda = $("#ayuda"), aviso = $("#aviso");
+  const botonesTamano = [...document.querySelectorAll(".tamanos button")];
+  const reducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const rnd = (a, b) => a + Math.random() * (b - a);
+
+  // ---------- Dibujos (SVG, viewBox 0 0 100 100) ----------
+  const T = "#3a2d1f";
+  const ojo = (x, y, r = 4.2) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#22180f"/><circle cx="${x + r * 0.35}" cy="${y - r * 0.35}" r="${r * 0.34}" fill="#fff"/>`;
+  const anillo = (cx, cy, radio, n, r, color) => {
+    let s = ""; for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2; s += `<circle cx="${(cx + Math.cos(a) * radio).toFixed(1)}" cy="${(cy + Math.sin(a) * radio).toFixed(1)}" r="${r}" fill="${color}"/>`; }
+    return s;
+  };
+  const DIBUJOS = {
+    perro: `<ellipse cx="50" cy="54" rx="30" ry="28" fill="#c98b52"/><ellipse cx="62" cy="44" rx="9" ry="7" fill="#a8693a"/>
+      <ellipse cx="21" cy="50" rx="10" ry="22" fill="#7a4a26" transform="rotate(16 21 50)"/><ellipse cx="79" cy="50" rx="10" ry="22" fill="#7a4a26" transform="rotate(-16 79 50)"/>
+      <ellipse cx="50" cy="67" rx="17" ry="13" fill="#f3dcc0"/>${ojo(39, 47)}${ojo(61, 47)}
+      <path d="M46 71 q4 11 8 0 z" fill="#f06a7a"/><ellipse cx="50" cy="61" rx="6.5" ry="4.8" fill="#22180f"/>
+      <path d="M50 65 v4 M50 69 q-5 4 -9 1 M50 69 q5 4 9 1" stroke="${T}" stroke-width="2" fill="none" stroke-linecap="round"/>`,
+    gato: `<path d="M23 44 L27 11 L47 30 Z" fill="#f2a654"/><path d="M77 44 L73 11 L53 30 Z" fill="#f2a654"/>
+      <path d="M28 34 L30 19 L41 30 Z" fill="#f7c6c7"/><path d="M72 34 L70 19 L59 30 Z" fill="#f7c6c7"/>
+      <ellipse cx="50" cy="56" rx="30" ry="27" fill="#f2a654"/>
+      <path d="M50 30 v8 M42 31 l2 7 M58 31 l-2 7" stroke="#d9822b" stroke-width="3" stroke-linecap="round"/>
+      <ellipse cx="39" cy="51" rx="5" ry="6.5" fill="#5aa83a"/><ellipse cx="39" cy="51" rx="2" ry="5" fill="#111"/>
+      <ellipse cx="61" cy="51" rx="5" ry="6.5" fill="#5aa83a"/><ellipse cx="61" cy="51" rx="2" ry="5" fill="#111"/>
+      <ellipse cx="50" cy="67" rx="13" ry="9" fill="#fff3e3"/><path d="M46 61 h8 l-4 4 z" fill="#e57a8a"/>
+      <path d="M50 65 q-4 5 -8 2 M50 65 q4 5 8 2" stroke="${T}" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      <path d="M37 64 l-17 -3 M37 68 l-17 2 M63 64 l17 -3 M63 68 l17 2" stroke="${T}" stroke-width="1.5" stroke-linecap="round"/>`,
+    vaca: `<path d="M31 28 q-9 -9 -6 -18 q7 5 11 14 z" fill="#f4e3b5" stroke="${T}" stroke-width="1.5"/><path d="M69 28 q9 -9 6 -18 q-7 5 -11 14 z" fill="#f4e3b5" stroke="${T}" stroke-width="1.5"/>
+      <ellipse cx="17" cy="39" rx="12" ry="6.5" fill="#fff" stroke="${T}" stroke-width="2" transform="rotate(-18 17 39)"/><ellipse cx="18" cy="39" rx="6" ry="3" fill="#f7b5c2" transform="rotate(-18 18 39)"/>
+      <ellipse cx="83" cy="39" rx="12" ry="6.5" fill="#fff" stroke="${T}" stroke-width="2" transform="rotate(18 83 39)"/><ellipse cx="82" cy="39" rx="6" ry="3" fill="#f7b5c2" transform="rotate(18 82 39)"/>
+      <ellipse cx="50" cy="47" rx="25" ry="23" fill="#fff" stroke="${T}" stroke-width="2"/>
+      <path d="M31 36 q6 -12 15 -6 q3 8 -5 11 q-9 2 -10 -5 z" fill="#2b2b2b"/><ellipse cx="65" cy="33" rx="6" ry="4.5" fill="#2b2b2b"/>
+      ${ojo(40, 46)}${ojo(60, 46)}
+      <ellipse cx="50" cy="68" rx="22" ry="15" fill="#f7b5c2" stroke="${T}" stroke-width="2"/>
+      <ellipse cx="42" cy="66" rx="3.2" ry="4.2" fill="#b85a73"/><ellipse cx="58" cy="66" rx="3.2" ry="4.2" fill="#b85a73"/>
+      <path d="M43 75 q7 4 14 0" stroke="${T}" stroke-width="2" fill="none" stroke-linecap="round"/>`,
+    pato: `<path d="M80 62 l12 -12 l-2 16 z" fill="#ffd43b"/><ellipse cx="55" cy="68" rx="30" ry="17" fill="#ffd43b"/>
+      <circle cx="38" cy="38" r="17" fill="#ffd43b"/><path d="M50 64 q14 -12 26 0 q-12 10 -26 0 z" fill="#f2b400"/>
+      <path d="M23 39 q-13 -3 -15 4 q8 7 17 2 z" fill="#ff8c1a"/>${ojo(35, 33, 3.8)}<circle cx="42" cy="42" r="3.2" fill="#ffab91" opacity=".75"/>
+      <path d="M6 82 q11 -5 22 0 t22 0 t22 0 t22 0 V98 H6 Z" fill="#7cc6ee"/><path d="M14 89 q6 -2 12 0 M58 91 q6 -2 12 0" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" opacity=".8"/>`,
+    leon: `${anillo(50, 52, 30, 14, 12, "#b5651d")}<circle cx="50" cy="52" r="31" fill="#c8741f"/>
+      <circle cx="31" cy="33" r="7.5" fill="#f4b54a"/><circle cx="31" cy="33" r="3.8" fill="#d9822b"/><circle cx="69" cy="33" r="7.5" fill="#f4b54a"/><circle cx="69" cy="33" r="3.8" fill="#d9822b"/>
+      <ellipse cx="50" cy="55" rx="23" ry="22" fill="#f4b54a"/>${ojo(42, 50, 3.8)}${ojo(58, 50, 3.8)}
+      <ellipse cx="44" cy="64" rx="7.5" ry="6" fill="#fde6b0"/><ellipse cx="56" cy="64" rx="7.5" ry="6" fill="#fde6b0"/>
+      <path d="M45 57 h10 l-5 5 z" fill="#7a3e14"/><path d="M50 62 v3 M50 65 q-3 4 -7 2 M50 65 q3 4 7 2" stroke="${T}" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      <circle cx="41" cy="63" r="1" fill="${T}"/><circle cx="39" cy="66" r="1" fill="${T}"/><circle cx="59" cy="63" r="1" fill="${T}"/><circle cx="61" cy="66" r="1" fill="${T}"/>`,
+    oveja: `${anillo(50, 50, 27, 12, 12, "#e2ddd0")}${anillo(50, 50, 26, 12, 11, "#fff")}<circle cx="50" cy="50" r="27" fill="#fff"/>
+      <ellipse cx="22" cy="55" rx="11" ry="5.5" fill="#4a4a4a" transform="rotate(22 22 55)"/><ellipse cx="78" cy="55" rx="11" ry="5.5" fill="#4a4a4a" transform="rotate(-22 78 55)"/>
+      <ellipse cx="50" cy="59" rx="15" ry="19" fill="#4a4a4a"/>
+      <circle cx="43" cy="40" r="7" fill="#fff"/><circle cx="51" cy="37" r="7.5" fill="#fff"/><circle cx="58" cy="41" r="6.5" fill="#fff"/>
+      <circle cx="44" cy="55" r="4.5" fill="#fff"/><circle cx="56" cy="55" r="4.5" fill="#fff"/>${ojo(44, 56, 2.6)}${ojo(56, 56, 2.6)}
+      <ellipse cx="46.5" cy="67" rx="1.6" ry="1.2" fill="#f2a0b0"/><ellipse cx="53.5" cy="67" rx="1.6" ry="1.2" fill="#f2a0b0"/>
+      <path d="M45 71 q5 4 10 0" stroke="#d8d8d8" stroke-width="1.8" fill="none" stroke-linecap="round"/>`,
+    chancho: `<path d="M24 40 L21 13 L43 28 Z" fill="#f48fb1"/><path d="M76 40 L79 13 L57 28 Z" fill="#f48fb1"/>
+      <path d="M27 33 L26 21 L37 29 Z" fill="#e2709a"/><path d="M73 33 L74 21 L63 29 Z" fill="#e2709a"/>
+      <ellipse cx="50" cy="55" rx="31" ry="27" fill="#f8a5c2"/>
+      <circle cx="28" cy="63" r="5.5" fill="#f07aa5" opacity=".5"/><circle cx="72" cy="63" r="5.5" fill="#f07aa5" opacity=".5"/>
+      ${ojo(38, 47)}${ojo(62, 47)}<ellipse cx="50" cy="63" rx="14" ry="10" fill="#f06f9c"/>
+      <ellipse cx="45" cy="63" rx="3" ry="4.5" fill="#a83c66"/><ellipse cx="55" cy="63" rx="3" ry="4.5" fill="#a83c66"/>
+      <path d="M42 76 q8 5 16 0" stroke="#a83c66" stroke-width="2" fill="none" stroke-linecap="round"/>`,
+    pajarito: `<path d="M6 80 Q50 72 94 78" stroke="#8b5a2b" stroke-width="5" fill="none" stroke-linecap="round"/><ellipse cx="84" cy="71" rx="7" ry="3.5" fill="#6abf4b" transform="rotate(-25 84 71)"/>
+      <path d="M70 58 l21 -6 l-6 15 z" fill="#2f7fd6"/><ellipse cx="52" cy="54" rx="24" ry="22" fill="#4aa3ff"/>
+      <ellipse cx="46" cy="62" rx="14" ry="12" fill="#fff4c9"/><path d="M56 47 q17 4 16 17 q-14 2 -20 -8 z" fill="#2f7fd6"/>
+      <path d="M45 33 q2 -11 9 -9 q-2 6 -2 11 z" fill="#2f7fd6"/>${ojo(42, 46)}<path d="M30 49 l-11 3.5 l11 4.5 z" fill="#ffa62b"/>
+      <path d="M46 75 v6 M56 75 v6" stroke="#ffa62b" stroke-width="3" stroke-linecap="round"/>`,
+  };
+  const PATITA = `<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" fill="#fff" opacity=".95"/>
+    <g fill="#ff8a5c"><ellipse cx="50" cy="62" rx="17" ry="14"/><ellipse cx="30" cy="44" rx="7" ry="9"/><ellipse cx="43" cy="32" rx="7" ry="9"/><ellipse cx="57" cy="32" rx="7" ry="9"/><ellipse cx="70" cy="44" rx="7" ry="9"/></g></svg>`;
+
+  // ---------- Sonido (WebAudio, sin archivos) ----------
+  let sonidoActivo = true;
+  try { sonidoActivo = localStorage.getItem("memotest.sonido") !== "no"; } catch (e) { /* sin localStorage, da igual */ }
+  let ac = null, salida = null, ruidoBuf = null;
+  const registro = []; // para el e2e: qué sonidos se pidieron
+  function audio() {
+    if (!sonidoActivo) return null;
+    if (!ac) {
+      try {
+        ac = new (window.AudioContext || window.webkitAudioContext)();
+        const comp = ac.createDynamicsCompressor(); salida = ac.createGain(); salida.gain.value = 0.85;
+        salida.connect(comp); comp.connect(ac.destination);
+        ruidoBuf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
+        const d = ruidoBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      } catch (e) { ac = null; return null; }
+    }
+    if (ac.state === "suspended") ac.resume().catch(() => {});
+    return ac;
+  }
+  // Curva de frecuencia: [[segundos, valor], ...] con rampas lineales entre puntos.
+  function curva(param, t, puntos) { param.setValueAtTime(puntos[0][1], t); for (const [dt, v] of puntos.slice(1)) param.linearRampToValueAtTime(v, t + dt); }
+  function envolvente(a, t, ataque, sostener, caida, pico) {
+    const g = a.createGain(); g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(pico, t + ataque); g.gain.setValueAtTime(pico, t + ataque + sostener);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + ataque + sostener + caida); return g;
+  }
+  function filtro(a, tipo, f, q) { const fl = a.createBiquadFilter(); fl.type = tipo; fl.frequency.value = f; if (q) fl.Q.value = q; return fl; }
+  // Una voz: oscilador con curva de tono, cadena de filtros y envolvente; opcionalmente vibrato y trémolo.
+  function voz(a, { t, tipo = "sawtooth", tono, filtros = [], env, vibrato, tremolo, curvaFiltro }) {
+    const o = a.createOscillator(); o.type = tipo; curva(o.frequency, t, tono);
+    const fin = t + env[0] + env[1] + env[2];
+    if (vibrato) { const l = a.createOscillator(); const lg = a.createGain(); l.frequency.value = vibrato[0]; lg.gain.value = vibrato[1]; l.connect(lg); lg.connect(o.frequency); l.start(t); l.stop(fin + 0.05); }
+    let nodo = o;
+    filtros.forEach((fl, i) => { if (i === 0 && curvaFiltro) curva(fl.frequency, t, curvaFiltro); nodo.connect(fl); nodo = fl; });
+    const g = envolvente(a, t, env[0], env[1], env[2], env[3]); nodo.connect(g);
+    if (tremolo) {
+      const tr = a.createGain(); tr.gain.value = 1 - tremolo[1]; const l = a.createOscillator(); const lg = a.createGain();
+      l.frequency.value = tremolo[0]; lg.gain.value = tremolo[1]; l.connect(lg); lg.connect(tr.gain); l.start(t); l.stop(fin + 0.05);
+      g.connect(tr); tr.connect(salida);
+    } else g.connect(salida);
+    o.start(t); o.stop(fin + 0.05);
+  }
+  function ruido(a, { t, filtros, env, curvaFiltro }) {
+    const s = a.createBufferSource(); s.buffer = ruidoBuf; let nodo = s;
+    filtros.forEach((fl, i) => { if (i === 0 && curvaFiltro) curva(fl.frequency, t, curvaFiltro); nodo.connect(fl); nodo = fl; });
+    const g = envolvente(a, t, env[0], env[1], env[2], env[3]); nodo.connect(g); g.connect(salida);
+    s.start(t, Math.random()); s.stop(t + env[0] + env[1] + env[2] + 0.05);
+  }
+  const SONIDOS = {
+    perro(a, t) { // guau guau
+      for (const d of [0, 0.3]) {
+        voz(a, { t: t + d, tono: [[0, 330], [0.05, 520], [0.2, 250]], filtros: [filtro(a, "bandpass", 900, 2.5)], curvaFiltro: [[0, 600], [0.06, 1500], [0.2, 500]], env: [0.012, 0.07, 0.13, 0.7] });
+        voz(a, { t: t + d, tipo: "square", tono: [[0, 165], [0.05, 260], [0.2, 125]], filtros: [filtro(a, "lowpass", 700)], env: [0.012, 0.07, 0.12, 0.25] });
+        ruido(a, { t: t + d, filtros: [filtro(a, "bandpass", 1200, 1.5)], env: [0.005, 0.03, 0.07, 0.25] });
+      }
+    },
+    gato(a, t) { // miau
+      voz(a, { t, tono: [[0, 430], [0.18, 720], [0.5, 640], [0.85, 400]], vibrato: [6, 8], filtros: [filtro(a, "bandpass", 900, 3.5), filtro(a, "lowpass", 3500)],
+        curvaFiltro: [[0, 900], [0.2, 2300], [0.55, 1500], [0.85, 650]], env: [0.06, 0.55, 0.28, 0.55] });
+      voz(a, { t, tipo: "triangle", tono: [[0, 430], [0.18, 720], [0.5, 640], [0.85, 400]], env: [0.06, 0.55, 0.28, 0.12] });
+    },
+    vaca(a, t) { // muuu
+      voz(a, { t, tono: [[0, 120], [0.25, 165], [0.9, 150], [1.35, 105]], vibrato: [4.5, 3], filtros: [filtro(a, "lowpass", 400, 4)],
+        curvaFiltro: [[0, 350], [0.3, 800], [1, 600], [1.35, 300]], env: [0.18, 0.9, 0.35, 0.8] });
+      voz(a, { t, tono: [[0, 240], [0.25, 330], [0.9, 300], [1.35, 210]], filtros: [filtro(a, "lowpass", 600)], env: [0.18, 0.9, 0.35, 0.18] });
+    },
+    pato(a, t) { // cuac cuac
+      for (const d of [0, 0.24]) {
+        voz(a, { t: t + d, tipo: "square", tono: [[0, 520], [0.05, 580], [0.16, 420]], filtros: [filtro(a, "bandpass", 1300, 7), filtro(a, "lowpass", 2600)], env: [0.006, 0.08, 0.08, 1.1] });
+        voz(a, { t: t + d, tono: [[0, 260], [0.16, 210]], filtros: [filtro(a, "bandpass", 700, 3)], env: [0.006, 0.08, 0.08, 0.35] });
+      }
+    },
+    leon(a, t) { // grrroaar, de dibujito: que no asuste
+      voz(a, { t, tono: [[0, 95], [0.35, 150], [0.9, 120], [1.3, 75]], tremolo: [26, 0.6], filtros: [filtro(a, "lowpass", 300, 3)],
+        curvaFiltro: [[0, 300], [0.4, 1300], [0.9, 900], [1.3, 250]], env: [0.22, 0.7, 0.45, 0.85] });
+      ruido(a, { t, filtros: [filtro(a, "bandpass", 500, 1.2)], curvaFiltro: [[0, 300], [0.4, 900], [1.3, 250]], env: [0.25, 0.6, 0.45, 0.35] });
+    },
+    oveja(a, t) { // beee
+      voz(a, { t, tono: [[0, 320], [0.05, 520], [0.9, 470]], vibrato: [7.5, 26], tremolo: [7.5, 0.35], filtros: [filtro(a, "bandpass", 1100, 2.5), filtro(a, "lowpass", 3200)],
+        env: [0.04, 0.7, 0.25, 0.7] });
+    },
+    chancho(a, t) { // oinc oinc
+      for (const d of [0, 0.27]) {
+        voz(a, { t: t + d, tipo: "square", tono: [[0, 220], [0.06, 300], [0.18, 170]], tremolo: [38, 0.7], filtros: [filtro(a, "bandpass", 750, 2.5)],
+          curvaFiltro: [[0, 500], [0.06, 1200], [0.18, 600]], env: [0.01, 0.1, 0.09, 0.9] });
+        ruido(a, { t: t + d, filtros: [filtro(a, "bandpass", 600, 2)], env: [0.01, 0.08, 0.06, 0.18] });
+      }
+    },
+    pajarito(a, t) { // pío pío y un trino
+      [[0, 2300, 3500], [0.16, 2500, 3800], [0.32, 2200, 3300]].forEach(([d, f0, f1]) =>
+        voz(a, { t: t + d, tipo: "sine", tono: [[0, f0], [0.07, f1], [0.11, f0 * 1.1]], env: [0.008, 0.06, 0.05, 0.35] }));
+      voz(a, { t: t + 0.52, tipo: "sine", tono: [[0, 3000], [0.35, 3300]], vibrato: [28, 450], env: [0.02, 0.28, 0.08, 0.22] });
+    },
+  };
+  function notas(a, t, lista, tipo = "triangle", vol = 0.3) {
+    for (const [d, f, dur] of lista) voz(a, { t: t + d, tipo, tono: [[0, f]], env: [0.01, dur * 0.3, dur * 0.7, vol] });
+  }
+  const EFECTOS = {
+    par(a, t) { notas(a, t, [[0, 523, 0.18], [0.09, 659, 0.18], [0.18, 784, 0.2], [0.28, 1047, 0.35]]); notas(a, t + 0.28, [[0, 2093, 0.3]], "sine", 0.08); },
+    final(a, t) { notas(a, t, [[0, 523, 0.2], [0.15, 659, 0.2], [0.3, 784, 0.2], [0.45, 1047, 0.3], [0.7, 784, 0.18], [0.85, 1047, 0.7]]); notas(a, t + 0.85, [[0, 1319, 0.7], [0, 1568, 0.7]], "sine", 0.12); },
+    cierra(a, t) { voz(a, { t, tipo: "sine", tono: [[0, 620], [0.18, 420]], env: [0.01, 0.04, 0.16, 0.12] }); },
+  };
+  function sonar(nombre) {
+    registro.push({ nombre, conSonido: sonidoActivo });
+    if (registro.length > 200) registro.shift();
+    const a = audio(); if (!a || !salida) return;
+    const f = SONIDOS[nombre] || EFECTOS[nombre];
+    try { f(a, a.currentTime + 0.02); } catch (e) { /* un sonido que falla no rompe el juego */ }
+  }
+
+  // ---------- Animales y cartas ----------
+  const ANIMALES = [
+    { id: "perro", nombre: "perro", plural: "perros", color: "#ffe3b8" },
+    { id: "gato", nombre: "gato", plural: "gatos", color: "#c7efe5" },
+    { id: "vaca", nombre: "vaca", plural: "vacas", color: "#d4f2c0" },
+    { id: "pato", nombre: "pato", plural: "patos", color: "#d6efff" },
+    { id: "leon", nombre: "león", plural: "leones", color: "#e7dcff" },
+    { id: "oveja", nombre: "oveja", plural: "ovejas", color: "#ffd9d9" },
+    { id: "chancho", nombre: "chancho", plural: "chanchos", color: "#cfe3ff" },
+    { id: "pajarito", nombre: "pajarito", plural: "pajaritos", color: "#fff2b3" },
+  ];
+  const TAMANOS = [4, 6, 8];
+  let pares = 4;
+  try { const p = Number(localStorage.getItem("memotest.pares")); if (TAMANOS.includes(p)) pares = p; } catch (e) { /* da igual */ }
+  let cartas = [], abiertas = [], cierre = null, terminado = false, cols = 4, tocoAlguna = false, conTeclado = false;
+  const esperas = new Set(); // timeouts de festejos de la partida actual
+  function despues(ms, fn) { const id = setTimeout(() => { esperas.delete(id); fn(); }, ms); esperas.add(id); return id; }
+
+  function mezclar(lista) { for (let i = lista.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [lista[i], lista[j]] = [lista[j], lista[i]]; } return lista; }
+
+  function etiqueta(c, i) { return c.abierta ? `Carta ${i + 1}: ${c.animal.nombre}${c.encontrada ? ", encontrada" : ""}` : `Carta ${i + 1}, boca abajo`; }
+  function pintar(c) {
+    c.el.classList.toggle("abierta", c.abierta);
+    c.el.classList.toggle("encontrada", c.encontrada);
+    c.el.setAttribute("aria-label", etiqueta(c, c.i));
+  }
+  function repetirClase(el, clase, ms) { el.classList.remove(clase); void el.offsetWidth; el.classList.add(clase); clearTimeout(el["_" + clase]); el["_" + clase] = setTimeout(() => el.classList.remove(clase), ms); }
+
+  function nuevaPartida() {
+    clearTimeout(cierre); cierre = null;
+    for (const id of esperas) clearTimeout(id); esperas.clear();
+    terminado = false; abiertas = []; final.hidden = true; particulas.length = 0;
+    const elegidos = mezclar(ANIMALES.slice()).slice(0, pares);
+    cartas = mezclar(elegidos.concat(elegidos)).map((animal, i) => ({ i, animal, abierta: false, encontrada: false, el: null }));
+    grilla.textContent = "";
+    for (const c of cartas) {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "carta"; b.dataset.i = c.i;
+      b.style.setProperty("--color", c.animal.color);
+      if (!reducido) { b.classList.add("reparte"); b.style.animationDelay = `${c.i * 28}ms`; setTimeout(() => { b.classList.remove("reparte"); b.style.animationDelay = ""; }, 400 + c.i * 28); }
+      b.innerHTML = `<span class="giro"><span class="cara dorso">${PATITA}</span><span class="cara frente"><svg viewBox="0 0 100 100" aria-hidden="true">${DIBUJOS[c.animal.id]}</svg></span></span>`;
+      c.el = b; pintar(c); grilla.appendChild(b);
+    }
+    for (const b of botonesTamano) b.setAttribute("aria-pressed", String(Number(b.dataset.pares) === pares));
+    acomodar();
+  }
+
+  function cerrarAbiertas(conSonido) {
+    clearTimeout(cierre); cierre = null;
+    for (const i of abiertas) { cartas[i].abierta = false; pintar(cartas[i]); }
+    if (conSonido && abiertas.length) sonar("cierra");
+    abiertas = [];
+  }
+
+  function abrir(i) {
+    const c = cartas[i]; if (!c) return;
+    audio();
+    if (!tocoAlguna) { tocoAlguna = true; ayuda.classList.add("oculta"); }
+    if (c.encontrada) { sonar(c.animal.id); repetirClase(c.el, "festeja", 900); chispas(c.el, 8); return; }
+    if (c.abierta) { sonar(c.animal.id); repetirClase(c.el, "habla", 1000); return; }
+    if (abiertas.length >= 2) cerrarAbiertas(false); // no hace falta esperar el segundo: la nueva se abre ya
+    c.abierta = true; pintar(c); abiertas.push(i);
+    sonar(c.animal.id); repetirClase(c.el, "habla", 1000);
+    if (abiertas.length < 2) return;
+    const [a, b] = abiertas.map((k) => cartas[k]);
+    if (a.animal === b.animal) {
+      // El estado cambia ya (un tercer toque no las cierra); el festejo llega cuando terminan de darse vuelta.
+      a.encontrada = b.encontrada = true; abiertas = []; pintar(a); pintar(b);
+      terminado = cartas.every((k) => k.encontrada);
+      despues(reducido ? 150 : 420, () => {
+        for (const k of [a, b]) { repetirClase(k.el, "festeja", 900); chispas(k.el, reducido ? 6 : 16); }
+        sonar("par"); aviso.textContent = `¡Encontraste los ${a.animal.plural}!`;
+      });
+      if (terminado) despues(1100, ganar);
+    } else {
+      cierre = setTimeout(() => cerrarAbiertas(true), 1000);
+    }
+  }
+
+  function ganar() {
+    sonar("final"); aviso.textContent = "¡Encontraste todos los pares!";
+    confeti(reducido ? 50 : 170);
+    if (!reducido) cartas.forEach((c) => { c.el.style.animationDelay = `${(c.i % 4) * 90}ms`; c.el.classList.add("baila"); });
+    despues(reducido ? 200 : 900, () => { final.hidden = false; if (conTeclado) btnOtra.focus({ preventScroll: true }); });
+  }
+
+  // ---------- Tamaño de las cartas ----------
+  function acomodar() {
+    const n = cartas.length; if (!n) return;
+    const W = tablero.clientWidth, H = tablero.clientHeight;
+    const gap = Math.max(6, Math.min(14, Math.round(Math.min(W, H) / 45)));
+    let mejor = null;
+    for (let c = 1; c <= n; c++) {
+      if (n % c) continue;
+      const r = n / c;
+      const celdaW = (W - gap * (c - 1)) / c, celdaH = (H - gap * (r - 1)) / r;
+      const w = Math.min(celdaW, celdaH, 260); // nunca más anchas que altas; si sobra alto, se estiran un poco
+      const h = Math.min(celdaH, w * 1.45);
+      if (!mejor || w > mejor.w + 0.5) mejor = { c, w, h };
+    }
+    cols = mejor.c;
+    grilla.style.setProperty("--cols", mejor.c);
+    grilla.style.setProperty("--w", `${Math.floor(mejor.w)}px`);
+    grilla.style.setProperty("--h", `${Math.floor(mejor.h)}px`);
+    grilla.style.setProperty("--gap", `${gap}px`);
+  }
+
+  // ---------- Chispas y confeti (canvas) ----------
+  const particulas = [];
+  let corriendo = false, ultimoT = 0, tiempo = 0, dpr = 1;
+  const COLORES = ["#ff5d73", "#ffc93c", "#2fb36d", "#4aa3ff", "#b07cff", "#ff8a5c"];
+  function medirLienzo() { dpr = Math.min(2, window.devicePixelRatio || 1); lienzo.width = Math.round(innerWidth * dpr); lienzo.height = Math.round(innerHeight * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+  function chispas(el, n) {
+    const r = el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+    for (let i = 0; i < n; i++) {
+      const a = rnd(0, Math.PI * 2), v = rnd(120, 320);
+      particulas.push({ tipo: "estrella", x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 80, g: 260, r: rnd(5, 10), giro: rnd(0, 6), vg: rnd(-6, 6), vida: 1, caida: rnd(0.9, 1.4), c: COLORES[i % COLORES.length] });
+    }
+    arrancar();
+  }
+  function confeti(n) {
+    for (let i = 0; i < n; i++) {
+      particulas.push({ tipo: "papel", x: rnd(0, innerWidth), y: rnd(-innerHeight * 0.6, -10), vx: rnd(-40, 40), vy: rnd(80, 200), g: 40, w: rnd(7, 13), h: rnd(4, 8),
+        giro: rnd(0, 6), vg: rnd(-5, 5), fase: rnd(0, 6), vida: 1, caida: rnd(0.12, 0.22), c: COLORES[i % COLORES.length] });
+    }
+    arrancar();
+  }
+  function arrancar() { if (!corriendo && !document.hidden) { corriendo = true; ultimoT = performance.now(); requestAnimationFrame(cuadro); } }
+  function estrella(r) { ctx.beginPath(); for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2 - Math.PI / 2, rr = i % 2 ? r * 0.45 : r; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } ctx.closePath(); ctx.fill(); }
+  function cuadro(ahora) {
+    if (document.hidden || !particulas.length) { corriendo = false; ctx.clearRect(0, 0, innerWidth, innerHeight); return; }
+    const dt = Math.min(0.05, (ahora - ultimoT) / 1000); ultimoT = ahora; tiempo += dt;
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    for (let i = particulas.length - 1; i >= 0; i--) {
+      const p = particulas[i];
+      p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.giro += p.vg * dt;
+      if (p.tipo === "papel") { p.x += Math.sin(tiempo * 3 + p.fase) * 30 * dt; if (p.y > innerHeight * 0.7) p.vida -= dt * 1.5; else p.vida -= dt * p.caida * 0.4; }
+      else p.vida -= dt * p.caida;
+      if (p.vida <= 0 || p.y > innerHeight + 30) { particulas.splice(i, 1); continue; }
+      ctx.save(); ctx.globalAlpha = Math.min(1, p.vida * 2); ctx.translate(p.x, p.y); ctx.rotate(p.giro); ctx.fillStyle = p.c;
+      if (p.tipo === "papel") { ctx.scale(1, Math.cos(tiempo * 6 + p.fase)); ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); } else estrella(p.r);
+      ctx.restore();
+    }
+    requestAnimationFrame(cuadro);
+  }
+
+  // ---------- Entrada ----------
+  grilla.addEventListener("pointerdown", (ev) => {
+    const b = ev.target.closest(".carta"); if (!b) return;
+    if (ev.pointerType === "mouse" && ev.button !== 0) return;
+    ev.preventDefault(); abrir(Number(b.dataset.i));
+  });
+  // Con teclado (Enter o espacio sobre la carta enfocada) llega un click sin puntero: detail === 0.
+  grilla.addEventListener("click", (ev) => { const b = ev.target.closest(".carta"); if (b && ev.detail === 0) abrir(Number(b.dataset.i)); });
+  grilla.addEventListener("keydown", (ev) => {
+    const b = ev.target.closest(".carta"); if (!b) return;
+    const i = Number(b.dataset.i); const mov = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -cols, ArrowDown: cols }[ev.key];
+    if (mov === undefined) return;
+    ev.preventDefault(); const j = i + mov; if (j >= 0 && j < cartas.length) cartas[j].el.focus();
+  });
+  for (const b of botonesTamano) b.addEventListener("click", () => elegirTamano(Number(b.dataset.pares)));
+  function elegirTamano(p) {
+    pares = p; try { localStorage.setItem("memotest.pares", String(p)); } catch (e) { /* da igual */ }
+    nuevaPartida();
+  }
+  btnOtra.addEventListener("click", () => { audio(); nuevaPartida(); const primera = cartas[0]; if (primera && document.activeElement === btnOtra) primera.el.focus({ preventScroll: true }); });
+
+  function pintarSonido() { btnSonido.setAttribute("aria-pressed", String(sonidoActivo)); btnSonido.textContent = sonidoActivo ? "🔊" : "🔇"; }
+  function alternarSonido() {
+    sonidoActivo = !sonidoActivo; pintarSonido();
+    try { localStorage.setItem("memotest.sonido", sonidoActivo ? "si" : "no"); } catch (e) { /* da igual */ }
+    if (sonidoActivo) sonar("par"); else if (ac && ac.state === "running") ac.suspend().catch(() => {});
+  }
+  btnSonido.addEventListener("click", alternarSonido);
+  window.addEventListener("pointerdown", () => { conTeclado = false; }, true);
+  window.addEventListener("keydown", (ev) => {
+    conTeclado = true;
+    if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    if (ev.key === "m" || ev.key === "M") alternarSonido();
+    else if (["4", "6", "8"].includes(ev.key)) elegirTamano(Number(ev.key));
+  });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && particulas.length) arrancar(); });
+  window.addEventListener("resize", () => { medirLienzo(); acomodar(); });
+
+  // Dibujitos para los botones de tamaño: una grilla de cartas en miniatura.
+  for (const b of botonesTamano) {
+    const n = Number(b.dataset.pares) * 2, c = 4, r = n / c; // 4×2, 4×3 y 4×4
+    let s = ""; const w = 20 / c, h = 20 / r;
+    for (let y = 0; y < r; y++) for (let x = 0; x < c; x++) s += `<rect x="${(5 + x * w + 0.6).toFixed(2)}" y="${(5 + y * h + 0.6).toFixed(2)}" width="${(w - 1.2).toFixed(2)}" height="${(h - 1.2).toFixed(2)}" rx="0.8" fill="#ff8a5c"/>`;
+    b.innerHTML = `<svg viewBox="0 0 30 30" aria-hidden="true">${s}</svg>`;
+  }
+
+  pintarSonido(); medirLienzo(); nuevaPartida();
+
+  // Para las pruebas e2e.
+  window.__memotest = {
+    estado: () => ({
+      pares, cols, terminado, abiertas: abiertas.slice(), particulas: particulas.length, corriendo, tiempo,
+      cartas: cartas.map((c) => ({ animal: c.animal.id, abierta: c.abierta, encontrada: c.encontrada })),
+      sonidos: registro.map((r) => r.nombre), conSonido: registro.map((r) => r.conSonido),
+      audio: ac ? ac.state : "sin crear",
+    }),
+    animales: ANIMALES.map((a) => a.id),
+    tieneSonido: (id) => typeof SONIDOS[id] === "function",
+  };
+})();
+</script>
+</body>
+</html>

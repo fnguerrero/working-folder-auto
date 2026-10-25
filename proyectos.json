@@ -432,5 +432,19 @@
   "detalle": "Veinte escenas que siguen la novela (la lancha colectiva, la puerta abierta, el viento que gira, el hombre de la chata, el agua por la escalera, la chata que se da vuelta, el farol en el agua, el barro, la escribanía del martes y el cierre con la moraleja), cada una un fragment shader con raymarching y las personas con un rig con cinemática inversa. Los diálogos son las frases de la novela, con voces sintetizadas con Piper y subtítulos; las escenas que todavía no tienen imagen se escuchan. Sonido de WebAudio, calidad automática, y un .mp4 que se va renderizando de a una escena por noche.",
   "destacado": false,
   "actualizado": "2026-10-24"
+ },
+ {
+  "slug": "memotest",
+  "nombre": "Memotest de animales",
+  "categoria": "juegos",
+  "descripcion": "Cartas con ocho animales que suenan al darse vuelta; los pares festejan y se quedan abiertos. Para Valentín: sin puntaje ni perder.",
+  "estado": "terminado",
+  "probar": "juegos/memotest/",
+  "desde": "2026-10-25",
+  "icono": "🐶",
+  "para": "1+",
+  "detalle": "Un memotest de 4, 6 u 8 pares con perro, gato, vaca, pato, león, oveja, chancho y pajarito, cada uno con su sonido hecho con WebAudio. Las cartas son grandes, dos distintas se cierran solas al segundo y al encontrar todos los pares cae confeti y aparece un botón grande para jugar de nuevo.",
+  "destacado": false,
+  "actualizado": "2026-10-25"
  }
 ]
