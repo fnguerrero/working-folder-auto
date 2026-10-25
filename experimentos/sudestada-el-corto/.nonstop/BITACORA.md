@@ -1,5 +1,47 @@
 # Bitácora del proyecto
 
+## 2026-10-25 (noche 3)
+
+- Sin comentarios nuevos de Nico en #15. Se siguió el orden del checklist: primero bajar el costo por cuadro, después las escenas.
+- Costo por cuadro: la normal pasó de seis a cuatro evaluaciones del mapa (tetraedro), y el reflejo en el agua, que marchaba la
+  escena entera con oclusión y sombras, ahora usa la mitad de los pasos y sombrea sin oclusión ni sombras (`sombrearX(…, rapido)`).
+  Medido a 640 px: escena 1 de 5,5 a 4,3 s por cuadro (−22 %), escena 2 de 7,1 a 6,0 (−15 %). Comparadas las imágenes antes y
+  después: iguales a simple vista. De paso: las estrellas se veían de día (puntitos en el cielo gris de las escenas 1 y 3).
+- Escena 3: la coreografía de Elías (atar, subir, caminar, sentarse, levantarse, mirar el cielo) salió en tres pasadas. Lo que
+  falló primero: las cámaras apuntaban al pecho (las cabezas quedaban fuera de cuadro: la cabeza de una persona de pie está a
+  1,2 + 1,67 × escala), el `pelo` 4 (canoso) caía en la rama del pelo largo (`A.pelo > 2.5`) y Elías tenía melena gris, y el
+  pulóver con mucho ruido en la normal parecía piel de oso. Todos de pie eran un enterito de un solo material: ahora el
+  pantalón es oscuro de la cadera para abajo para todos, y el impermeable de Ana baja hasta medio muslo.
+- Escena 6: el papel sobre el mesón estaba hundido en la tapa (la tapa llega a 0,93 y el papel estaba en 0,922: se veía una
+  tira blanca) y después salió girado y espejado: la cámara desde el lado de la pared lo leía al revés. Quedó desde los ojos de
+  ella (cámara 13 cm delante de la cara, mirando abajo) con el papel derecho y las firmas en el medio del cuadro, por encima
+  del subtítulo. La derecha de alguien que mira a +x es +z (producto vectorial); el rig llama «D» al lado +z local, que para ese
+  giro cae en −z del mundo: no importa para la imagen, pero conviene no razonar «derecha» desde el rig.
+- Escenas 9 y 11: la cocina de arriba es un set aparte (no el primer piso de `casa()`, que es una caja hueca sin nada adentro),
+  con el piso en y = 0 y el agua 90 cm más abajo para que por las ventanas se vea la crecida. Lo que falló: el boleto doblado
+  aparecía sobre la mesa desde el primer cuadro (ahora está en el forro hasta que lo saca), las gotas del vidrio se dibujaban
+  sobre la pared de enfrente (`GOTAS_VIDRIO` es la distancia a partir de la cual el rayo «pasó por la ventana»: con 3 m
+  tomaba la pared del fondo; va 6), la toalla al cuello de Ana eran dos tubos de 9 cm que parecían orejeras (ahora es una banda
+  chata por la nuca con dos puntas que cuelgan), la pantalla del celular quedó cabeza abajo (el extremo lejos de la mano es el
+  de arriba) y el contraplano de Verónica «desde la puerta» la mostraba de nuca: la puerta está detrás de ella.
+- Escena 10: el semirrígido a escala real (4,6 m) parecía una lancha de Prefectura al lado de la casa; quedó de 3,9. La cámara
+  desde el agua tenía que ir a 10 m para que entraran la casa, el muelle hundido y el semirrígido.
+- Escenas 12 y 14: el primer piso de la casa no existía como interior (la 7 solo tenía la escalera y el entrepiso con un hueco en
+  el lugar equivocado: encima del tramo de abajo no había hueco y la cámara desde arriba veía piso). Ahora `interiorCasa()` tiene
+  el hueco donde van los escalones, barandas, el rellano del oeste con su ventana y la pieza de Martín con la puerta que gira.
+  Con `luz` 0 en el clima la vela sola no alcanzaba (todo negro salvo el halo): `luz` 0,08 da el ambiente mínimo de una casa de
+  noche, y la vela pasó de 1,9 a 4,2 de intensidad. El piso de arriba estaba 6 cm por encima del último escalón (se veía un
+  borde): el entrepiso bajó a 3,66-3,72. Y la cámara del final apuntaba a la pared al lado de la puerta: hay que calcular por dónde
+  pasa el rayo central en el plano del tabique antes de dar por buena una cámara que mira «a través» de un vano.
+- Escena 16: los cuatro estaban sentados de espaldas a la mesa (la regla «para mirar a φ el marco gira φ + π» hay que aplicarla
+  también al respaldo de la silla: `silla()` tiene el respaldo en +x local, el lado contrario a donde mira la persona, así que va
+  con el mismo giro que la persona, no con π más). Martín tenía el sombrero del remero de Diez segundos: ahora hay
+  `aspectoMartinSinGorra`. La boca de la cocina a leña como única luz dejaba a Martín a oscuras: su farol, todavía prendido sobre
+  la mesa, es la tercera luz y le ilumina la cara desde abajo.
+- Escena 19: salió a la primera; la garza en el poste es tres elipsoides y una cápsula.
+- Render: con `tests/ver.js` y el e2e corriendo a la vez, el render de fondo baja de 4-5 s por cuadro a 15-17: SwiftShader usa
+  todos los núcleos y se pisan. Se renderiza en una copia del proyecto para que los cambios de la noche no lo rompan.
+
 ## 2026-10-24 (noche 2)
 
 - Nico vio el borrador y pidió otra película: diez minutos, voces, mejor movimiento, mejor sonido y un final con moraleja. Se tomó

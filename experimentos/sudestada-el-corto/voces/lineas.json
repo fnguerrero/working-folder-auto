@@ -113,7 +113,7 @@
   "id": "03-elias-vi",
   "quien": "elias",
   "escena": "03-tinta",
-  "t": 6.0,
+  "t": 16.0,
   "texto": "Lo vi salir el miércoles a las seis. La maestra lo despidió en el muelle. No volvió.",
   "dur": 5.58
  },
@@ -121,7 +121,7 @@
   "id": "03-vero-dormias",
   "quien": "veronica",
   "escena": "03-tinta",
-  "t": 13.5,
+  "t": 23.0,
   "texto": "Me dijiste que dormías.",
   "dur": 1.34
  },
@@ -129,7 +129,7 @@
   "id": "03-ana-importa",
   "quien": "ana",
   "escena": "03-tinta",
-  "t": 16.0,
+  "t": 25.5,
   "texto": "Me levanté, lo despedí, me volví a dormir. ¿Importa?",
   "dur": 3.15
  },
@@ -137,7 +137,7 @@
   "id": "03-elias-sudestada",
   "quien": "elias",
   "escena": "03-tinta",
-  "t": 22.0,
+  "t": 30.0,
   "texto": "Viene sudestada, Verónica. Grande. Si te vas, andate hoy. Mañana no entra nadie.",
   "dur": 6.42
  },
@@ -145,7 +145,7 @@
   "id": "03-vero-mequedo",
   "quien": "veronica",
   "escena": "03-tinta",
-  "t": 31.0,
+  "t": 37.3,
   "texto": "Me quedo.",
   "dur": 0.53
  },
@@ -153,7 +153,7 @@
   "id": "03-ana-yase",
   "quien": "ana",
   "escena": "03-tinta",
-  "t": 33.5,
+  "t": 38.7,
   "texto": "Ya sé.",
   "dur": 0.51
  },

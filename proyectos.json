@@ -431,7 +431,7 @@
   "para": "todos",
   "detalle": "Veinte escenas que siguen la novela (la lancha colectiva, la puerta abierta, el viento que gira, el hombre de la chata, el agua por la escalera, la chata que se da vuelta, el farol en el agua, el barro, la escribanía del martes y el cierre con la moraleja), cada una un fragment shader con raymarching y las personas con un rig con cinemática inversa. Los diálogos son las frases de la novela, con voces sintetizadas con Piper y subtítulos; las escenas que todavía no tienen imagen se escuchan. Sonido de WebAudio, calidad automática, y un .mp4 que se va renderizando de a una escena por noche.",
   "destacado": false,
-  "actualizado": "2026-10-24"
+  "actualizado": "2026-10-25"
  },
  {
   "slug": "memotest",

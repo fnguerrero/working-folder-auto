@@ -133,6 +133,43 @@ float papel(vec3 p, float t); /* cuánta tinta hay en ese punto del papel (lo de
 float papel(vec3 p, float t) { return 0.0; }
 #endif
 
+/* ---- la firma: «Verónica Beatriz Aldao», en cm sobre el papel. s de 0 a 1 recorre la V, la cola que baja por debajo del renglón
+   y vuelve, «erónica», un salto en el aire y «Aldao». arrastre > 0,5 es la mano de Martín: el remate se arrastra hacia abajo.
+   tinta(uv, avance, pausa, arrastre) dice cuánta tinta hay en el punto uv (cm) con la firma hecha hasta avance; impreso() son
+   renglones de texto impreso. Las usan la escribanía (18) y el boleto del taller (6). ---- */
+vec2 tramo(float k, vec2 a, vec2 b, vec2 c, vec2 d, vec2 e, vec2 f) {
+  float u = k * 5.0; int i = int(floor(u)); float g = fract(u);
+  if (i == 0) return mix(a, b, g); if (i == 1) return mix(b, c, g); if (i == 2) return mix(c, d, g); if (i == 3) return mix(d, e, g); return mix(e, f, min(g + float(i - 4), 1.0));
+}
+vec2 firmaPunto(float s, float arrastre) {
+  if (s < 0.1) { float k = s / 0.1; return vec2(0.55 * k, 1.15 - 1.3 * k + 0.08 * sin(k * PI)); }                       /* la V, bajada */
+  if (s < 0.2) { float k = (s - 0.1) / 0.1; return vec2(0.55 + 0.5 * k, -0.15 + 1.35 * k - 0.08 * sin(k * PI)); }       /* la V, subida */
+  if (s < 0.38) { float k = (s - 0.2) / 0.18; return tramo(k, vec2(1.05, 1.2), vec2(1.12, 0.35), vec2(0.95, -0.65), vec2(0.6, -0.6), vec2(0.78, -0.05), vec2(1.3, 0.22)); } /* la cola larga */
+  if (s < 0.72) { float k = (s - 0.38) / 0.34; float r = 0.13 + 0.12 * step(abs(k - 0.3), 0.07); return vec2(1.3 + 1.9 * k + r * sin(k * 2.0 * PI * 7.0), 0.2 + r * (1.0 - cos(k * 2.0 * PI * 7.0)) * 0.9); } /* erónica */
+  if (s < 0.78) { float k = (s - 0.72) / 0.06; return mix(vec2(3.2, 0.22), vec2(3.55, 0.3), k); }                      /* la pluma en el aire */
+  if (s < 0.95) { float k = (s - 0.78) / 0.17; float r = 0.13 + 0.3 * exp(-k * k / 0.012); return vec2(3.55 + 1.5 * k + r * sin(k * 2.0 * PI * 5.0), 0.2 + r * (1.0 - cos(k * 2.0 * PI * 5.0)) * 0.9); } /* Aldao */
+  float k = (s - 0.95) / 0.05; return vec2(5.05 + (0.25 + 0.55 * arrastre) * k, 0.25 - (0.05 + 0.4 * arrastre) * k);   /* el remate: corto, o arrastrado por el zurdo */
+}
+float tinta(vec2 uv, float avance, float pausa, float arrastre) {
+  if (uv.x < -0.3 || uv.x > 6.2 || uv.y < -1.0 || uv.y > 1.6) return 0.0;
+  float d = 1e3; vec2 prev = firmaPunto(0.0, arrastre);
+  for (int i = 1; i <= 64; i++) {
+    float s = float(i) / 64.0; if (s > avance) break;
+    vec2 q = firmaPunto(s, arrastre);
+    bool salto = (s > 0.72 && s <= 0.785) || (pausa > 0.5 && s > 0.38 && s <= 0.4);
+    if (!salto) { vec2 pa = uv - prev, ba = q - prev; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); d = min(d, length(pa - ba * h)); }
+    prev = q;
+  }
+  return smoothstep(0.05, 0.022, d);
+}
+
+/* renglones de texto impreso: líneas grises con cortes, para que parezca una escritura */
+float impreso(vec2 uv, float desde, float hasta) {
+  float fila = fract(uv.y * 2.0); float linea = smoothstep(0.0, 0.08, fila) * smoothstep(0.35, 0.27, fila);
+  float palabra = step(0.25, noise(vec2(uv.x * 4.0, floor(uv.y * 2.0) * 3.0)));
+  return linea * palabra * step(desde, uv.y) * step(uv.y, hasta) * step(1.8, uv.x) * step(uv.x, 19.4) * 0.55;
+}
+
 /* ---------- personas: rig por postura y aspecto, en un marco local que mira a -x ---------- */
 struct Pose { vec3 cad, pecho, hom, cab, homI, homD, codoI, codoD, manoI, manoD, rodI, rodD, pieI, pieD, agarreI, agarreD; float yaw, pitch; };
 struct Aspecto { float mujer, barba, pelo, gorra, sombrero, panza, matRopa, escala; };
@@ -187,7 +224,48 @@ Pose poseSentada() {
   P.yaw = 0.0; P.pitch = 0.0;
   return P;
 }
+Pose poseSilla() {
+  /* sentada en una silla o banco (asiento a 0,45), mirando a -x, las manos sobre la mesa o la falda */
+  Pose P;
+  P.cad = vec3(0.1, 0.52, 0.0); P.pecho = vec3(0.07, 0.78, 0.0); P.hom = vec3(0.05, 0.97, 0.0); P.cab = vec3(0.03, 1.22, 0.0);
+  P.homI = P.hom + vec3(0.0, -0.03, -0.18); P.homD = P.hom + vec3(0.0, -0.03, 0.18);
+  P.codoI = vec3(0.06, 0.72, -0.24); P.codoD = vec3(0.06, 0.72, 0.24);
+  P.manoI = vec3(-0.3, 0.8, -0.12); P.manoD = vec3(-0.3, 0.8, 0.12);
+  P.agarreI = vec3(0.0, -1.0, 0.0); P.agarreD = vec3(0.0, -1.0, 0.0);
+  P.rodI = vec3(-0.36, 0.5, -0.11); P.rodD = vec3(-0.36, 0.5, 0.11);
+  P.pieI = vec3(-0.42, 0.05, -0.12); P.pieD = vec3(-0.42, 0.05, 0.12);
+  P.yaw = 0.0; P.pitch = 0.0;
+  return P;
+}
+/* mezcla de dos posturas (para sentarse, levantarse, agacharse); después conviene pasar por resolver() */
+Pose mezclarPose(Pose A, Pose B, float s) {
+  Pose P;
+  P.cad = mix(A.cad, B.cad, s); P.pecho = mix(A.pecho, B.pecho, s); P.hom = mix(A.hom, B.hom, s); P.cab = mix(A.cab, B.cab, s);
+  P.homI = mix(A.homI, B.homI, s); P.homD = mix(A.homD, B.homD, s); P.codoI = mix(A.codoI, B.codoI, s); P.codoD = mix(A.codoD, B.codoD, s);
+  P.manoI = mix(A.manoI, B.manoI, s); P.manoD = mix(A.manoD, B.manoD, s); P.rodI = mix(A.rodI, B.rodI, s); P.rodD = mix(A.rodD, B.rodD, s);
+  P.pieI = mix(A.pieI, B.pieI, s); P.pieD = mix(A.pieD, B.pieD, s); P.agarreI = mix(A.agarreI, B.agarreI, s); P.agarreD = mix(A.agarreD, B.agarreD, s);
+  P.yaw = mix(A.yaw, B.yaw, s); P.pitch = mix(A.pitch, B.pitch, s);
+  return P;
+}
+/* brazos cruzados: cada mano agarra el otro brazo por encima del codo */
+Pose brazosCruzados(Pose P, float alto) {
+  P.manoI = P.hom + vec3(-0.17, -0.3 + alto, 0.1); P.manoD = P.hom + vec3(-0.15, -0.34 + alto, -0.1);
+  P.codoI = P.homI + vec3(-0.08, -0.26, -0.06); P.codoD = P.homD + vec3(-0.08, -0.26, 0.06);
+  P.agarreI = vec3(0.3, -0.3, 1.0); P.agarreD = vec3(0.3, -0.3, -1.0);
+  return P;
+}
+Aspecto aspectoElias() { return Aspecto(0.0, 0.0, 4.0, 1.0, 0.0, 0.7, 53.0, 0.97); } /* 71 años: gorra, pulóver, panza, pelo canoso (pelo 4) */
+Aspecto aspectoEliasSinGorra() { return Aspecto(0.0, 0.0, 4.0, 0.0, 0.0, 0.7, 53.0, 0.97); }
+/* una gorra suelta (en la mano o sobre la rodilla): q relativo al centro de la copa, la visera hacia -x */
+float gorraSuelta(vec3 q) {
+  float copa = max(length(q * vec3(1.0, 1.6, 1.0)) - 0.1, -q.y - 0.005);
+  copa = max(copa, -(length(q * vec3(1.0, 1.6, 1.0)) - 0.09));
+  float visera = sdBox3(q - vec3(-0.11, 0.0, 0.0), vec3(0.06, 0.004, 0.065 - 0.3 * max(-q.x - 0.11, 0.0))) - 0.003;
+  return min(copa, visera);
+}
+Aspecto aspectoAcuna() { return Aspecto(0.0, 0.0, 1.0, 0.0, 0.0, 0.3, 43.0, 1.0); } /* 41, camisa celeste, afeitado */
 Aspecto aspectoMartin() { return Aspecto(0.0, 1.0, 1.0, 1.0, 0.0, 0.5, 2.0, 1.0); }
+Aspecto aspectoMartinSinGorra() { return Aspecto(0.0, 1.0, 1.0, 0.0, 0.0, 0.5, 2.0, 1.0); } /* sin la gorra, con la barba de cuatro días */
 Aspecto aspectoMartinSombrero() { return Aspecto(0.0, 1.0, 1.0, 0.0, 1.0, 0.6, 2.0, 1.0); }
 Aspecto aspectoVeronica() { return Aspecto(1.0, 0.0, 2.0, 0.0, 0.0, 0.2, 25.0, 0.94); }
 Aspecto aspectoAna() { return Aspecto(1.0, 0.0, 3.0, 0.0, 0.0, 0.0, 26.0, 0.92); }
@@ -258,8 +336,9 @@ vec3 cabeza(vec3 hc, Aspecto A) {
   if (A.pelo > 0.5) {
     float casquete = max(sdElip(e - vec3(0.015, 0.02, 0.0), vec3(0.125, 0.12, 0.1)), -0.035 - e.x - 0.5 * e.y); /* no tapa la cara */
     pelo = casquete;
+    if (A.pelo > 3.5) pelo = max(pelo, -e.y - 0.03); /* canoso y corto: nada por debajo de la nuca */
     if (A.pelo > 1.5 && A.pelo < 2.5) pelo = smin(pelo, sdElip(e - vec3(0.1, -0.01, 0.0), vec3(0.045, 0.04, 0.045)), 0.02); /* rodete */
-    if (A.pelo > 2.5) { float largo = max(sdElip(e - vec3(0.06, -0.12, 0.0), vec3(0.085, 0.24, 0.105)), -0.055 - e.x); largo = max(largo, -sdElip(e - vec3(0.02, 0.0, 0.0), vec3(0.11, 0.1, 0.085))); pelo = smin(pelo, largo, 0.02); }
+    if (A.pelo > 2.5 && A.pelo < 3.5) { float largo = max(sdElip(e - vec3(0.06, -0.12, 0.0), vec3(0.085, 0.24, 0.105)), -0.055 - e.x); largo = max(largo, -sdElip(e - vec3(0.02, 0.0, 0.0), vec3(0.11, 0.1, 0.085))); pelo = smin(pelo, largo, 0.02); }
   }
   /* gorra: copa sobre el cráneo y visera adelante; sombrero: ala y copa */
   float tapa = 1e3;
@@ -330,7 +409,9 @@ vec2 persona(vec3 q, Pose P, Aspecto A) {
   float piel = min(cz.x, min(manos, smin(cuello, nuez, 0.015)));
   if (min(piel, cz.y) < 0.01) { gHC = hc; gBarba = A.barba; gPelo = A.pelo; gMujer = m; }
   vec2 r = vec2(ropa, A.matRopa);
-  if (camisa > 0.5 && q.y < P.cad.y - 0.04) r.y = 49.0;
+  /* pantalón oscuro de la cadera para abajo (nadie anda en enterito); el impermeable largo de Ana (26) llega hasta medio muslo */
+  float largoAbrigo = 0.04 + 0.3 * step(25.5, A.matRopa) * step(A.matRopa, 26.5);
+  if (q.y < P.cad.y - largoAbrigo) r.y = 49.0;
   if (botas < r.x) r = vec2(botas, 9.0);
   if (piel < r.x) r = vec2(piel, 3.0);
   if (cz.y < r.x) r = vec2(cz.y, 27.0);
@@ -368,6 +449,34 @@ vec2 farol(vec3 q) {
   asa = max(asa, -q.y + 0.25);
   vec2 r = vec2(min(min(base, tapa), asa), 13.0);
   if (vidrio < r.x) r = vec2(vidrio, 6.0);
+  return r;
+}
+
+/* ---------- el semirrígido de Acuña (marco local: eje x, proa en +x, 4,6 m; flota con la línea de agua en y = 0) ---------- */
+/* materiales: 20 los tubos (gris claro), 23 la cubierta, 34 la consola y el motor, 22 el parabrisas */
+vec2 semirrigido(vec3 q) {
+  float x01 = clamp((q.x + 2.3) / 4.6, 0.0, 1.0);
+  float ancho = 0.95 - 0.75 * pow(max(q.x - 0.9, 0.0) / 1.4, 1.7);          /* los tubos se juntan en la proa */
+  float alto = 0.28 + 0.1 * pow(max(q.x - 0.5, 0.0) / 1.8, 2.0);           /* y la proa se levanta */
+  vec3 ht = vec3(q.x, q.y - alto, abs(q.z) - ancho);
+  float tubo = sdCilX(ht, 2.3, 0.26);
+  tubo = min(tubo, length(ht - vec3(2.3, 0.0, 0.0)) - 0.26);
+  tubo = min(tubo, length(ht - vec3(-2.3, 0.0, 0.0)) - 0.26);
+  vec2 r = vec2(tubo, 20.0);
+  float cubierta = sdBox3(q - vec3(-0.1, 0.12, 0.0), vec3(2.0, 0.05, ancho - 0.05)) - 0.02;
+  float casco = sdBox3(q - vec3(-0.1, -0.1, 0.0), vec3(2.1, 0.2, ancho - 0.1)) - 0.05; /* la V del casco bajo los tubos */
+  casco = smax(casco, 0.4 * abs(q.z) - q.y - 0.35, 0.2);
+  if (min(cubierta, casco) < r.x) r = vec2(min(cubierta, casco), 23.0);
+  float consola = sdBox3(q - vec3(0.2, 0.55, 0.0), vec3(0.25, 0.38, 0.35)) - 0.02;
+  float volante = sdToro(vec3(q.x - (-0.1), (q.y - 0.95) * 1.0, q.z).yxz, 0.14, 0.015);
+  consola = min(consola, volante);
+  float motor = sdBox3(q - vec3(-2.45, 0.55, 0.0), vec3(0.22, 0.28, 0.2)) - 0.03;
+  motor = min(motor, sdBox3(q - vec3(-2.45, 0.05, 0.0), vec3(0.08, 0.3, 0.05)));
+  if (min(consola, motor) < r.x) r = vec2(min(consola, motor), 34.0);
+  float parabrisas = sdBox3(q - vec3(0.45, 1.05, 0.0), vec3(0.015, 0.14, 0.34));
+  if (parabrisas < r.x) r = vec2(parabrisas, 22.0);
+  float bita = min(sdCil(q - vec3(2.0, 0.42, 0.0), 0.08, 0.025), sdCil(q - vec3(-2.0, 0.42, 0.6), 0.06, 0.02));
+  if (bita < r.x) r = vec2(bita, 13.0);
   return r;
 }
 
@@ -576,6 +685,154 @@ vec2 orilla(vec3 p, float t, float z0, float lado, float semilla, float viento) 
   return r;
 }
 
+float silla(vec3 q) {
+  /* silla de madera: asiento, respaldo y cuatro patas; q relativo al centro del asiento a nivel del piso, respaldo hacia +x */
+  float d = sdBox3(q - vec3(0.0, 0.45, 0.0), vec3(0.22, 0.02, 0.22)) - 0.01;
+  d = min(d, sdBox3(q - vec3(0.2, 0.72, 0.0), vec3(0.02, 0.25, 0.2)) - 0.005);
+  for (int i = 0; i < 4; i++) { vec3 pt = vec3(i < 2 ? -0.18 : 0.18, 0.22, mod(float(i), 2.0) < 0.5 ? -0.18 : 0.18); d = min(d, sdBox3(q - pt, vec3(0.02, 0.22, 0.02))); }
+  return d;
+}
+/* ---------- la cocina de arriba (escenas 9 y 11): el primer piso de la casa como set propio, con el piso en y = 0 ----------
+   Pieza de 3,6 × 2,3 × 2,6 con dos ventanas al frente (-z, al río) y una al costado (+x), la puerta al pasillo en la pared -x,
+   la mesa en el medio con dos sillas enfrentadas (Ana en +x mirando a -x, Verónica en -x mirando a +x), la mesada con la
+   cocina y la pava contra la pared del fondo (+z) y un estante con frascos. Materiales: 30 paredes, 14 piso, 33 cielorraso,
+   29 mesa y mesada, 13 sillas y marcos, 34 cocina, 23 pava. */
+vec2 gPantalla; /* uv de la pantalla del celular (lo deja mapaMundo cuando el rayo la toca) */
+vec2 cocinaArriba(vec3 p) {
+  vec2 r = vec2(1e3, 0.0);
+  float pieza = max(sdBox3(p - vec3(0.0, 1.3, 0.0), vec3(1.92, 1.42, 1.42)), -sdBox3(p - vec3(0.0, 1.3, 0.0), vec3(1.8, 1.3, 1.3)));
+  float huecos = min(sdBox3(p - vec3(-1.0, 1.15, -1.3), vec3(0.36, 0.45, 0.3)), sdBox3(p - vec3(1.0, 1.15, -1.3), vec3(0.36, 0.45, 0.3)));
+  huecos = min(huecos, sdBox3(p - vec3(1.8, 1.15, 0.3), vec3(0.3, 0.42, 0.36)));
+  huecos = min(huecos, sdBox3(p - vec3(-1.8, 1.0, 0.5), vec3(0.3, 1.0, 0.42)));
+  pieza = max(pieza, -huecos);
+  r = vec2(pieza, 30.0);
+  float piso = sdBox3(p - vec3(0.0, -0.06, 0.0), vec3(1.9, 0.06, 1.4));
+  if (piso < r.x) r = vec2(piso, 14.0);
+  float techo = sdBox3(p - vec3(0.0, 2.62, 0.0), vec3(1.9, 0.04, 1.4));
+  if (techo < r.x) r = vec2(techo, 33.0);
+  /* marcos de las ventanas con el parante del medio, y el de la puerta; el pasillo oscuro detrás de la puerta */
+  float marcos = 1e3;
+  for (int i = 0; i < 2; i++) { vec3 c = vec3(i == 0 ? -1.0 : 1.0, 1.15, -1.3); float mk = max(sdBox3(p - c, vec3(0.41, 0.5, 0.05)), -sdBox3(p - c, vec3(0.35, 0.44, 0.2))); mk = min(mk, sdBox3(p - c, vec3(0.015, 0.45, 0.04))); mk = min(mk, sdBox3(p - c - vec3(0.0, -0.5, 0.06), vec3(0.42, 0.02, 0.1))); marcos = min(marcos, mk); }
+  { vec3 c = vec3(1.8, 1.15, 0.3); float mk = max(sdBox3(p - c, vec3(0.05, 0.47, 0.41)), -sdBox3(p - c, vec3(0.2, 0.41, 0.35))); mk = min(mk, sdBox3(p - c, vec3(0.04, 0.42, 0.015))); marcos = min(marcos, mk); }
+  { vec3 c = vec3(-1.8, 1.0, 0.5); float mk = max(sdBox3(p - c, vec3(0.05, 1.05, 0.47)), -sdBox3(p - c, vec3(0.2, 1.0, 0.42))); marcos = min(marcos, mk); }
+  if (marcos < r.x) r = vec2(marcos, 13.0);
+  float pasillo = max(sdBox3(p - vec3(-2.6, 1.2, 0.5), vec3(0.75, 1.3, 0.8)), -sdBox3(p - vec3(-2.6, 1.2, 0.5), vec3(0.65, 1.2, 0.7)));
+  if (pasillo < r.x) r = vec2(pasillo, 30.0);
+  /* la mesa, en el medio, un poco hacia las ventanas */
+  float mesa = sdBox3(p - vec3(0.0, 0.74, -0.2), vec3(0.5, 0.02, 0.4)) - 0.01;
+  for (int i = 0; i < 4; i++) { vec3 pata = vec3(i < 2 ? -0.44 : 0.44, 0.36, -0.2 + (mod(float(i), 2.0) < 0.5 ? -0.34 : 0.34)); mesa = min(mesa, sdBox3(p - pata, vec3(0.025, 0.36, 0.025))); }
+  if (mesa < r.x) r = vec2(mesa, 29.0);
+  float sillas = min(silla(rotY(p - vec3(0.78, 0.0, -0.2), 0.0)), silla(rotY(p - vec3(-0.78, 0.0, -0.2), PI)));
+  if (sillas < r.x) r = vec2(sillas, 13.0);
+  /* la mesada con la cocina y la pava, el estante con frascos */
+  float mesada = sdBox3(p - vec3(-0.7, 0.45, 1.0), vec3(1.0, 0.45, 0.3));
+  mesada = max(mesada, -sdBox3(p - vec3(-0.7, 0.42, 0.98), vec3(0.95, 0.4, 0.3))); mesada = min(mesada, sdBox3(p - vec3(-0.7, 0.88, 1.0), vec3(1.02, 0.025, 0.32)));
+  if (mesada < r.x) r = vec2(mesada, 29.0);
+  float cocina = sdBox3(p - vec3(1.0, 0.45, 1.0), vec3(0.3, 0.45, 0.3)) - 0.01;
+  cocina = min(cocina, min(sdCil(p - vec3(0.85, 0.915, 0.9), 0.01, 0.07), sdCil(p - vec3(1.15, 0.915, 1.1), 0.01, 0.07)));
+  if (cocina < r.x) r = vec2(cocina, 34.0);
+  float pava = sdElip(p - vec3(0.85, 1.0, 0.9), vec3(0.1, 0.08, 0.1)); pava = min(pava, sdCap(p, vec3(0.85, 1.06, 0.9), vec3(0.85, 1.16, 0.9), 0.012)); pava = min(pava, sdCap(p, vec3(0.93, 1.0, 0.9), vec3(1.02, 1.08, 0.9), 0.012));
+  if (pava < r.x) r = vec2(pava, 23.0);
+  float estante = sdBox3(p - vec3(-0.9, 1.75, 1.2), vec3(0.6, 0.015, 0.1));
+  if (estante < r.x) r = vec2(estante, 13.0);
+  float frascos = 1e3;
+  for (int i = 0; i < 4; i++) frascos = min(frascos, sdCil(p - vec3(-1.35 + 0.3 * float(i), 1.85 + 0.02 * float(i), 1.2), 0.08 + 0.02 * float(i), 0.045));
+  if (frascos < r.x) r = vec2(frascos, 35.0);
+  return r;
+}
+
+/* ---------- el interior de la casa (escenas 12 y 14): la escalera de adentro (como en la 7) y el primer piso ----------
+   Planta baja de 1,2 a 3,7 con la escalera en dos tramos: nueve escalones pegados a la pared derecha (x 1,3) que suben hacia +z
+   hasta el descanso (y 2,8, z 1,25) y cinco que doblan hacia -x hasta el primer piso. Arriba, el hueco de la escalera ocupa la
+   franja z 0,75 a 1,75 (y sobre el tramo de abajo, x 0,75 a 1,85 desde z 0,1), así que el pasillo son dos franjas angostas a los
+   lados del hueco y el rellano del oeste (x -1,85 a -1,1), con la ventana del pasillo en la pared del oeste y la vela en el borde.
+   La pieza de Martín al frente (z -1,4 a 0,3, x -1,85 a 0,1) con su puerta al rellano en x -1,4, que se abre hacia adentro, y la
+   ventana al río; la otra puerta (x 0) cerrada. Materiales: 30 paredes, 14 piso y escalera, 13 puertas y marcos, 39 vidrios. */
+float sdPuertaMartin(vec3 h, float abierta) {
+  vec3 q = h - vec3(-1.8, 4.7, 0.3); q = rotY(q, -1.5 * abierta); /* gira sobre la jamba de -x hacia adentro de la pieza (-z) */
+  float hoja = sdBox3(q - vec3(0.4, 0.0, 0.0), vec3(0.39, 0.98, 0.02));
+  float picaporte = sdCap(q, vec3(0.72, -0.05, -0.03), vec3(0.72, -0.05, -0.08), 0.012);
+  picaporte = min(picaporte, sdCap(q, vec3(0.72, -0.05, -0.08), vec3(0.65, -0.05, -0.08), 0.009));
+  picaporte = min(picaporte, sdCap(q, vec3(0.72, -0.05, 0.03), vec3(0.72, -0.05, 0.08), 0.012));
+  picaporte = min(picaporte, sdCap(q, vec3(0.72, -0.05, 0.08), vec3(0.65, -0.05, 0.08), 0.009));
+  return min(hoja, picaporte);
+}
+vec2 interiorCasa(vec3 h, float puertaMartin) {
+  vec2 r = vec2(1e3, 0.0);
+  float cuarto = max(sdBox3(h - vec3(0.0, 3.6, 0.5), vec3(1.97, 2.55, 2.02)), -sdBox3(h - vec3(0.0, 3.6, 0.5), vec3(1.85, 2.45, 1.9)));
+  float huecos = sdBox3(h - vec3(0.0, 2.1, -1.4), vec3(0.4, 0.9, 0.3));
+  huecos = min(huecos, sdBox3(h - vec3(1.85, 2.4, 0.4), vec3(0.3, 0.42, 0.36)));
+  huecos = min(huecos, sdBox3(h - vec3(1.85, 4.85, 0.3), vec3(0.3, 0.42, 0.36)));
+  huecos = min(huecos, sdBox3(h - vec3(-1.85, 4.85, 1.2), vec3(0.3, 0.42, 0.36))); /* la ventana del pasillo, al oeste */
+  huecos = min(huecos, min(sdBox3(h - vec3(-1.0, 4.85, -1.4), vec3(0.36, 0.45, 0.3)), sdBox3(h - vec3(1.0, 4.85, -1.4), vec3(0.36, 0.45, 0.3))));
+  float pared = max(cuarto, -huecos);
+  r = vec2(pared, 30.0);
+  float vidrio = sdBox3(h - vec3(1.86, 2.4, 0.4), vec3(0.005, 0.42, 0.36));
+  vidrio = min(vidrio, sdBox3(h - vec3(1.86, 4.85, 0.3), vec3(0.005, 0.42, 0.36)));
+  vidrio = min(vidrio, sdBox3(h - vec3(-1.86, 4.85, 1.2), vec3(0.005, 0.42, 0.36)));
+  vidrio = min(vidrio, sdBox3(h - vec3(1.0, 4.85, -1.41), vec3(0.36, 0.45, 0.005)));
+  if (vidrio < r.x) r = vec2(vidrio, 39.0);
+  float marcos = max(sdBox3(h - vec3(1.85, 4.85, 0.3), vec3(0.06, 0.47, 0.41)), -sdBox3(h - vec3(1.85, 4.85, 0.3), vec3(0.2, 0.41, 0.35)));
+  marcos = min(marcos, max(sdBox3(h - vec3(-1.85, 4.85, 1.2), vec3(0.06, 0.47, 0.41)), -sdBox3(h - vec3(-1.85, 4.85, 1.2), vec3(0.2, 0.41, 0.35))));
+  marcos = min(marcos, sdBox3(h - vec3(-1.8, 4.42, 1.2), vec3(0.12, 0.02, 0.42))); /* el borde donde va la vela */
+  marcos = min(marcos, max(sdBox3(h - vec3(-1.0, 4.85, -1.4), vec3(0.41, 0.5, 0.06)), -sdBox3(h - vec3(-1.0, 4.85, -1.4), vec3(0.35, 0.44, 0.2))));
+  marcos = min(marcos, sdBox3(h - vec3(-1.0, 4.85, -1.4), vec3(0.015, 0.45, 0.05)));
+  if (marcos < r.x) r = vec2(marcos, 13.0);
+  /* el entrepiso con el hueco de la escalera */
+  float entre = sdBox3(h - vec3(0.0, 3.66, 0.5), vec3(1.85, 0.06, 1.9)); /* el piso de arriba queda en 3,72, a ras del último escalón */
+  entre = max(entre, -min(sdBox3(h - vec3(1.3, 3.66, 0.925), vec3(0.55, 0.2, 0.825)), sdBox3(h - vec3(0.375, 3.66, 1.25), vec3(1.475, 0.2, 0.5))));
+  if (entre < r.x) r = vec2(entre, 14.0);
+  /* la escalera */
+  float esc = 1e3;
+  for (int i = 0; i < 9; i++) { float y = 1.2 + 0.178 * float(i + 1); float z = -0.9 + 0.26 * float(i); esc = min(esc, sdBox3(h - vec3(1.3, y, z), vec3(0.5, 0.02, 0.14))); esc = min(esc, sdBox3(h - vec3(1.3, y - 0.09, z - 0.13), vec3(0.5, 0.09, 0.012))); }
+  float descanso = sdBox3(h - vec3(1.0, 2.8, 1.25), vec3(0.8, 0.03, 0.45));
+  esc = min(esc, descanso);
+  for (int i = 0; i < 5; i++) { float y = 2.8 + 0.18 * float(i + 1); float x = 0.0 - 0.26 * float(i); esc = min(esc, sdBox3(h - vec3(x, y, 1.25), vec3(0.14, 0.02, 0.5))); esc = min(esc, sdBox3(h - vec3(x + 0.13, y - 0.09, 1.25), vec3(0.012, 0.09, 0.5))); }
+  float zanca = sdBox3(h - vec3(0.8, 2.1, 0.2), vec3(0.03, 1.0, 1.3));
+  zanca = max(zanca, (h.y - 1.2) - 0.685 * (h.z + 0.9) - 0.25);
+  zanca = max(zanca, -(h.y - 1.2) + 0.685 * (h.z + 0.9) - 0.4);
+  esc = min(esc, zanca);
+  float pasamanos = sdCap(h, vec3(0.8, 2.1, -0.95), vec3(0.8, 3.7, 1.3), 0.025);
+  for (int i = 0; i < 5; i++) { float z = -0.8 + 0.5 * float(i); pasamanos = min(pasamanos, sdCil(h - vec3(0.8, 1.2 + 0.685 * (z + 0.9) + 0.5, z), 0.42, 0.018)); }
+  pasamanos = min(pasamanos, sdCap(h, vec3(0.5, 3.65, 0.75), vec3(-1.1, 4.55, 0.75), 0.025)); /* el del tramo de arriba, del lado del pasillo */
+  for (int i = 0; i < 4; i++) { float x = 0.35 - 0.45 * float(i); float yb = 2.82 + 0.18 * (1.0 + (0.26 - x) / 0.26); float yt = 3.65 + 0.9 * (0.5 - x) / 1.6; pasamanos = min(pasamanos, sdCap(h, vec3(x, yb, 0.75), vec3(x, yt, 0.75), 0.018)); }
+  pasamanos = min(pasamanos, sdCap(h, vec3(1.85, 4.55, 1.75), vec3(-1.1, 4.55, 1.75), 0.025)); /* la baranda del hueco, del lado del fondo */
+  for (int i = 0; i < 6; i++) { float x = 1.6 - 0.5 * float(i); pasamanos = min(pasamanos, sdCap(h, vec3(x, 3.72, 1.75), vec3(x, 4.55, 1.75), 0.018)); }
+  esc = min(esc, pasamanos);
+  if (esc < r.x) r = vec2(esc, 14.0);
+  /* arriba: el tabique de las piezas (z 0,3) con el hueco de la puerta de Martín y la otra puerta, cerrada */
+  float tabique = sdBox3(h - vec3(0.0, 4.9, 0.3), vec3(1.85, 1.2, 0.04));
+  tabique = max(tabique, -sdBox3(h - vec3(-1.4, 4.7, 0.3), vec3(0.4, 1.0, 0.2)));
+  if (tabique < r.x) r = vec2(tabique, 30.0);
+  float marcoP = max(sdBox3(h - vec3(-1.4, 4.72, 0.3), vec3(0.45, 1.04, 0.06)), -sdBox3(h - vec3(-1.4, 4.7, 0.3), vec3(0.4, 1.0, 0.2)));
+  float otra = sdBox3(h - vec3(0.0, 4.7, 0.3), vec3(0.4, 0.98, 0.025)) - 0.005;
+  otra = min(otra, max(sdBox3(h - vec3(0.0, 4.72, 0.3), vec3(0.45, 1.04, 0.06)), -sdBox3(h - vec3(0.0, 4.7, 0.3), vec3(0.4, 1.0, 0.2))));
+  float puerta = sdPuertaMartin(h, puertaMartin);
+  if (min(marcoP, otra) < r.x) r = vec2(min(marcoP, otra), 13.0);
+  if (puerta < r.x) r = vec2(puerta, 13.0);
+  /* la pieza de Martín: la cama contra la pared de -x, la mesa de luz, la silla con ropa */
+  float cama = sdBox3(h - vec3(-1.35, 3.95, -0.5), vec3(0.45, 0.12, 0.95)) - 0.02;
+  cama = min(cama, sdBox3(h - vec3(-1.35, 4.25, 0.1), vec3(0.42, 0.18, 0.08)) - 0.02); /* el respaldo */
+  float manta = sdBox3(h - vec3(-1.35, 4.1, -0.65), vec3(0.47, 0.04, 0.75)) - 0.03;
+  manta += 0.01 * noise(h.xz * 12.0);
+  if (cama < r.x) r = vec2(cama, 13.0);
+  if (manta < r.x) r = vec2(manta, 36.0);
+  float mesaLuz = sdBox3(h - vec3(-0.75, 3.95, 0.1), vec3(0.18, 0.25, 0.18)) - 0.01;
+  if (mesaLuz < r.x) r = vec2(mesaLuz, 29.0);
+  return r;
+}
+/* la vela: el cabo, la llama (emisiva) y el platito; q relativo a la base */
+vec2 vela(vec3 q, float t) {
+  float platito = sdCil(q - vec3(0.0, 0.005, 0.0), 0.005, 0.045);
+  float cabo = sdCil(q - vec3(0.0, 0.06, 0.0), 0.05, 0.011);
+  vec3 fl = q - vec3(0.004 * sin(t * 9.0), 0.135, 0.004 * sin(t * 7.3 + 1.0)); fl.y /= 1.9 + 0.2 * sin(t * 11.0);
+  float llama = length(fl) - 0.011;
+  vec2 r = vec2(platito, 23.0);
+  if (cabo < r.x) r = vec2(cabo, 31.0);
+  if (llama < r.x) r = vec2(llama, 38.0);
+  return r;
+}
+
 /* ---------- cielo ---------- */
 vec3 skyBase(vec3 d, Clima c, vec3 sd) {
   float h = clamp(d.y, 0.0, 1.0);
@@ -601,7 +858,7 @@ vec3 sky(vec3 d, float t) {
   nube += vec3(1.0, 0.95, 0.9) * uFlash * 0.9 * (0.5 + 0.5 * n);
   col = mix(col, nube, cl * smoothstep(0.0, 0.25, d.y));
   vec2 sp = d.xz / max(d.y, 0.05) * 60.0;
-  float st = step(0.9975, hash(floor(sp))) * (1.0 - cl) * (1.0 - c.luz) * (1.0 - c.alba) * smoothstep(0.05, 0.3, d.y);
+  float st = step(0.9975, hash(floor(sp))) * (1.0 - cl) * smoothstep(0.45, 0.15, c.luz) * (1.0 - c.alba) * smoothstep(0.05, 0.3, d.y); /* estrellas solo de noche (con luz de día se veían puntitos) */
   col += vec3(0.9, 0.9, 1.0) * st * (0.5 + 0.5 * sin(t * 3.0 + hash(floor(sp)) * 20.0));
   col += vec3(0.75, 0.8, 1.0) * uFlash * 0.35;
   float ang = atan(d.x, d.z);
@@ -627,9 +884,23 @@ vec2 marchar(vec3 ro, vec3 rd, float t, float tmax) {
   }
   return vec2(-1.0, 0.0);
 }
+/* normal con cuatro muestras (tetraedro) en vez de seis: el mapa es lo caro */
 vec3 normal(vec3 p, float t) {
-  vec2 e = vec2(0.004, 0.0);
-  return normalize(vec3(mapaMundo(p + e.xyy, t).x - mapaMundo(p - e.xyy, t).x, mapaMundo(p + e.yxy, t).x - mapaMundo(p - e.yxy, t).x, mapaMundo(p + e.yyx, t).x - mapaMundo(p - e.yyx, t).x));
+  const vec2 k = vec2(1.0, -1.0); const float h = 0.004;
+  return normalize(k.xyy * mapaMundo(p + k.xyy * h, t).x + k.yyx * mapaMundo(p + k.yyx * h, t).x + k.yxy * mapaMundo(p + k.yxy * h, t).x + k.xxx * mapaMundo(p + k.xxx * h, t).x);
+}
+/* marcha barata para los reflejos en el agua: la mitad de los pasos y tolerancia más floja */
+vec2 marcharReflejo(vec3 ro, vec3 rd, float t, float tmax) {
+  float d = 0.02; float t1 = min(tmax, ALCANCE);
+  for (int i = 0; i < PASOS; i++) {
+    if (i >= PASOS / 2) break;
+    vec3 p = ro + rd * d;
+    vec2 m = mapaMundo(p, t);
+    if (m.x < 0.004 * d) return vec2(d, m.y);
+    d += m.x * 0.9;
+    if (d > t1) break;
+  }
+  return vec2(-1.0, 0.0);
 }
 float ao(vec3 p, vec3 n, float t) { float o = 0.0, s = 1.0; for (int i = 1; i <= 5; i++) { float h = 0.015 * float(i); float d = mapaMundo(p + n * h, t).x; o += (h - d) * s; s *= 0.7; } return clamp(1.0 - 2.2 * o, 0.0, 1.0); }
 float sombra(vec3 p, vec3 l, float t) {
@@ -657,7 +928,8 @@ Material material(vec3 p, inout vec3 n, float mat, float t) {
     float pelo = step(0.5, gPelo) * smoothstep(0.0, 0.03, hc.x) * step(-0.06, hc.y) * step(hc.y, 0.09);
     pelo = max(pelo, step(0.038, hc.y) * step(hc.y, 0.058) * step(hc.x, -0.09) * step(0.015, abs(hc.z)) * step(abs(hc.z), 0.07));
     vec3 tonoPiel = mix(vec3(0.58, 0.45, 0.38), vec3(0.66, 0.51, 0.44), gMujer);
-    m.alb = mix(tonoPiel, vec3(0.14, 0.11, 0.09), max(barba * 0.75, pelo));
+    vec3 colPelo = gPelo > 3.5 ? vec3(0.5, 0.5, 0.48) : vec3(0.14, 0.11, 0.09); /* pelo 4: canoso */
+    m.alb = mix(tonoPiel, colPelo, max(barba * 0.75, pelo));
     m.alb *= 1.0 - 0.7 * step(abs(hc.y + 0.058), 0.0035) * step(hc.x, -0.098) * step(abs(hc.z), 0.027);
     /* ojos: iris y pupila sobre el globo, debajo del párpado */
     vec2 oz = vec2(hc.y - 0.007, abs(hc.z) - 0.042);
@@ -708,7 +980,7 @@ Material material(vec3 p, inout vec3 n, float mat, float t) {
   else if (mat < 24.5) { mapaMundo(p, t); vec3 tq = gToalla; vec2 cel = vec2(fract(tq.x * 10.0) - 0.5, (tq.y + 0.2) * 10.0); float flor = step(length(cel), 0.3) * step(abs(tq.y + 0.2), 0.05); float centro = step(length(cel), 0.1); float tira = step(abs(tq.y + 0.2), 0.065); m.alb = mix(mix(vec3(0.45, 0.68, 0.82), vec3(0.4, 0.6, 0.72), tira), mix(vec3(0.85, 0.45, 0.55), vec3(0.95, 0.85, 0.4), centro), flor) * (0.8 + 0.4 * noise(p.xy * 120.0 + p.z * 120.0)); m.brillo = 0.1; }
   else if (mat < 25.5) { m.alb = vec3(0.16, 0.055, 0.05); n = normalize(n + 0.12 * vec3(noise(p.yz * 45.0) - 0.5, noise(p.xz * 45.0 + 3.0) - 0.5, noise(p.xy * 45.0 + 7.0) - 0.5)); m.brillo = 0.5; }
   else if (mat < 26.5) { m.alb = vec3(0.6, 0.55, 0.35); n = normalize(n + 0.1 * vec3(noise(p.yz * 40.0) - 0.5, noise(p.xz * 40.0 + 3.0) - 0.5, noise(p.xy * 40.0 + 7.0) - 0.5)); m.brillo = 1.6; }
-  else if (mat < 27.5) { mapaMundo(p, t); vec3 hc = gHC; float hebra = noise(vec2(atan(hc.z, hc.x) * 40.0, hc.y * 6.0)); m.alb = mix(vec3(0.1, 0.075, 0.06), vec3(0.28, 0.19, 0.12), gMujer * 0.6) * (0.5 + 1.0 * hebra); n = normalize(n + 0.25 * vec3(0.0, hebra - 0.5, 0.0) + 0.15 * (noise(hc.xz * 120.0) - 0.5)); m.brillo = 0.7; }
+  else if (mat < 27.5) { mapaMundo(p, t); vec3 hc = gHC; float hebra = noise(vec2(atan(hc.z, hc.x) * 40.0, hc.y * 6.0)); m.alb = mix(vec3(0.1, 0.075, 0.06), vec3(0.28, 0.19, 0.12), gMujer * 0.6) * (0.5 + 1.0 * hebra); if (gPelo > 3.5) m.alb = vec3(0.42, 0.42, 0.4) * (0.6 + 0.8 * hebra); n = normalize(n + 0.25 * vec3(0.0, hebra - 0.5, 0.0) + 0.15 * (noise(hc.xz * 120.0) - 0.5)); m.brillo = 0.7; }
   else if (mat < 28.5) { m.alb = vec3(0.07, 0.09, 0.16) * (0.85 + 0.3 * noise(p.xz * 60.0)); m.brillo = 0.4; }
   else if (mat < 29.5) { m.alb = vec3(0.42, 0.33, 0.2) * (0.75 + 0.4 * noise(vec2(p.x * 40.0, p.z * 4.0))); m.brillo = 0.4; }
   else if (mat < 30.5) { float tabla = fract(p.y * 6.0); float junta = smoothstep(0.0, 0.06, tabla) * smoothstep(1.0, 0.94, tabla); m.alb = vec3(0.5, 0.56, 0.48) * (0.7 + 0.3 * junta) * (0.9 + 0.2 * noise(p.xy * 30.0 + p.z * 30.0)) * (0.85 + 0.3 * smoothstep(0.3, 0.7, fbm4(p.xz * 2.0 + p.y))); m.brillo = 0.15; } /* pared interior pintada, de tablas */
@@ -733,26 +1005,41 @@ Material material(vec3 p, inout vec3 n, float mat, float t) {
   else if (mat < 50.5) { m.alb = vec3(0.4, 0.38, 0.36) * (0.9 + 0.15 * noise(p.xy * 50.0 + p.z * 50.0)); m.brillo = 0.2; } /* camisa gris del escribano */
   else if (mat < 51.5) { m.alb = vec3(0.62, 0.5, 0.2); m.brillo = 2.5; } /* bronce */
   else if (mat < 52.5) { m.alb = vec3(0.03); m.brillo = 2.0; } /* la lapicera, negra y pesada */
+  else if (mat < 55.5 && mat > 54.5) { float corteza = smoothstep(0.3, 0.6, noise(p.xz * 60.0 + p.y * 40.0)); m.alb = mix(vec3(0.75, 0.6, 0.38), vec3(0.45, 0.28, 0.12), corteza) * (0.85 + 0.3 * noise(p.xy * 90.0)); n = normalize(n + 0.12 * vec3(noise(p.yz * 70.0) - 0.5, noise(p.xz * 70.0 + 3.0) - 0.5, noise(p.xy * 70.0 + 7.0) - 0.5)); m.brillo = 0.1; } /* el pan */
+  else if (mat < 56.5 && mat > 55.5) { mapaMundo(p, t); vec2 uv = gPantalla; /* la pantalla del celular: un chat con una burbuja gris, el texto como rayitas, la hora y la batería en rojo */
+    vec3 c = vec3(0.93, 0.94, 0.96);
+    float barra = step(0.955, uv.y); c = mix(c, vec3(0.2, 0.22, 0.26), barra);
+    float bateria = step(0.78, uv.x) * step(uv.x, 0.9) * step(0.968, uv.y) * step(uv.y, 0.988); c = mix(c, vec3(0.85, 0.2, 0.15), bateria * step(uv.x, 0.795));
+    c = mix(c, vec3(0.8), bateria * step(0.795, uv.x) * 0.5);
+    float burbuja = sdBox(uv - vec2(0.38, 0.62), vec2(0.3, 0.1)) - 0.04; c = mix(c, vec3(0.82, 0.84, 0.88), step(burbuja, 0.0));
+    float fila = fract(uv.y * 22.0); float renglon = step(0.35, fila) * step(fila, 0.55) * step(0.56, uv.y) * step(uv.y, 0.69) * step(0.13, uv.x) * step(uv.x, 0.3 + 0.3 * step(0.45, noise(vec2(floor(uv.y * 22.0) * 7.0, 0.0)))) * step(0.3, noise(vec2(uv.x * 40.0, floor(uv.y * 22.0))));
+    c = mix(c, vec3(0.15), renglon * step(burbuja, -0.01));
+    float hora = step(0.52, uv.x) * step(uv.x, 0.64) * step(0.505, uv.y) * step(uv.y, 0.52); c = mix(c, vec3(0.5), hora);
+    m.emis = c * 1.6; m.alb = vec3(0.02); m.brillo = 2.0; }
+  else if (mat < 57.5 && mat > 56.5) { m.alb = vec3(0.85, 0.55, 0.25) * (0.85 + 0.3 * noise(p.xy * 60.0 + p.z * 60.0)); n = normalize(n + 0.05 * vec3(noise(p.yz * 80.0) - 0.5, noise(p.xz * 80.0) - 0.5, noise(p.xy * 80.0) - 0.5)); m.brillo = 0.2; } /* duraznos */
+  else if (mat < 58.5 && mat > 57.5) { m.emis = vec3(0.2, 1.0, 0.3) * 3.0; } /* la lucecita verde del VHF */
+  else if (mat < 53.5) { float punto = noise(vec2(p.x * 120.0 + p.z * 120.0, p.y * 220.0)); m.alb = vec3(0.3, 0.25, 0.18) * (0.88 + 0.2 * punto) * (0.9 + 0.2 * noise(p.xy * 9.0 + p.z * 9.0)); n = normalize(n + 0.05 * vec3(noise(p.yz * 120.0) - 0.5, (punto - 0.5), noise(p.xy * 120.0 + 7.0) - 0.5)); m.brillo = 0.08; } /* el pulóver de lana de Elías */
   else { m.alb = vec3(0.3); }
   return m;
 }
 
 /* ---------- iluminación ---------- */
 vec3 ambiente(Clima c) { return mix(mix(vec3(0.03, 0.04, 0.06), vec3(0.5, 0.52, 0.55), c.luz), vec3(0.45, 0.38, 0.38), c.alba * 0.7); }
-vec3 sombrear(vec3 p, vec3 n, vec3 rd, float mat, float t) {
+/* rapido: para lo que se ve reflejado en el agua, sin oclusión ni sombras (cuestan 20 a 40 evaluaciones del mapa por píxel) */
+vec3 sombrearX(vec3 p, vec3 n, vec3 rd, float mat, float t, bool rapido) {
   Clima c = clima(t);
   Material m = material(p, n, mat, t);
   if (dot(m.emis, m.emis) > 0.0 && m.brillo < 0.001) return m.emis;
-  float oc = ao(p, n, t);
+  float oc = rapido ? 0.85 : ao(p, n, t);
   vec3 amb = ambiente(c) * (0.55 + 0.45 * n.y);
   vec3 col = m.alb * amb * oc + m.emis;
   vec3 sd = sunDir(t); vec3 rf = reflect(rd, n);
-  if (c.alba > 0.02) { float sol = max(dot(n, sd), 0.0) * 1.4 * c.alba * sombraDir(p + n * 0.02, sd, t); col += m.alb * vec3(1.0, 0.8, 0.6) * sol; col += vec3(1.0, 0.85, 0.6) * pow(max(dot(rf, sd), 0.0), 60.0) * c.alba * 0.8 * m.brillo; }
-  if (c.luz > 0.02 && c.alba < 0.5) { float cen = max(dot(n, vec3(0.0, 1.0, 0.0)), 0.0) * 0.35 * c.luz * (0.4 + 0.6 * sombraDir(p + n * 0.02, normalize(vec3(0.2, 1.0, -0.3)), t)); col += m.alb * vec3(0.95, 0.97, 1.0) * cen; }
+  if (c.alba > 0.02) { float sol = max(dot(n, sd), 0.0) * 1.4 * c.alba * (rapido ? 0.7 : sombraDir(p + n * 0.02, sd, t)); col += m.alb * vec3(1.0, 0.8, 0.6) * sol; col += vec3(1.0, 0.85, 0.6) * pow(max(dot(rf, sd), 0.0), 60.0) * c.alba * 0.8 * m.brillo; }
+  if (c.luz > 0.02 && c.alba < 0.5) { float cen = max(dot(n, vec3(0.0, 1.0, 0.0)), 0.0) * 0.35 * c.luz * (0.4 + 0.6 * (rapido ? 0.7 : sombraDir(p + n * 0.02, normalize(vec3(0.2, 1.0, -0.3)), t))); col += m.alb * vec3(0.95, 0.97, 1.0) * cen; }
   for (int i = 0; i < NLUCES; i++) {
     Luz L = luz(i, t); if (L.inten <= 0.0) continue;
     vec3 lv = L.pos - p; float ld = length(lv); lv /= ld;
-    float sh = i < NSOMBRAS ? sombra(p, L.pos, t) : 1.0;
+    float sh = (i < NSOMBRAS && !rapido) ? sombra(p, L.pos, t) : 1.0;
     float dif = max(dot(n, lv), 0.0) * L.inten / (1.0 + ld * ld * 1.2) * sh;
     col += m.alb * L.col * dif * (0.5 + 0.5 * oc);
     col += L.col * pow(max(dot(rf, lv), 0.0), 40.0) * 0.6 * L.inten / (1.0 + ld * ld) * m.brillo * sh;
@@ -764,6 +1051,7 @@ vec3 sombrear(vec3 p, vec3 n, vec3 rd, float mat, float t) {
   col += vec3(0.7, 0.75, 1.0) * uFlash * max(dot(n, normalize(vec3(-0.3, 1.0, -0.4))), 0.0) * 2.4 * m.alb;
   return col;
 }
+vec3 sombrear(vec3 p, vec3 n, vec3 rd, float mat, float t) { return sombrearX(p, n, rd, mat, t, false); }
 
 /* ---------- el agua ---------- */
 vec3 agua(vec3 ro, vec3 rd, float tw, float t, vec3 hzCol) {
@@ -783,8 +1071,8 @@ vec3 agua(vec3 ro, vec3 rd, float tw, float t, vec3 hzCol) {
   n = normalize(n + vec3(rip - 0.25 * c.lluvia + ex.x, 0.0, rip * 0.7 + ex.z) * 0.08);
   vec3 refl = reflect(rd, n); refl.y = abs(refl.y) + 0.01;
   vec3 rcol = sky(refl, t);
-  vec2 rh = marchar(pos + n * 0.01, refl, t, ALCANCE);
-  if (rh.x > 0.0) { vec3 rp = pos + refl * rh.x; vec3 rn = normal(rp, t); vec3 rc = sombrear(rp, rn, refl, rh.y, t); rcol = mix(rcol, mix(rc, hzCol, (1.0 - exp(-rh.x * c.niebla)) * 0.5), 0.9); }
+  vec2 rh = marcharReflejo(pos + n * 0.01, refl, t, ALCANCE);
+  if (rh.x > 0.0) { vec3 rp = pos + refl * rh.x; vec3 rn = normal(rp, t); vec3 rc = sombrearX(rp, rn, refl, rh.y, t, true); rcol = mix(rcol, mix(rc, hzCol, (1.0 - exp(-rh.x * c.niebla)) * 0.5), 0.9); }
   float fr = mix(0.14, 1.0, pow(1.0 - max(dot(-rd, n), 0.0), 3.5));
   vec3 aguaBase = mix(mix(vec3(0.015, 0.02, 0.03), vec3(0.17, 0.13, 0.085), c.luz), vec3(0.16, 0.11, 0.07), c.alba);
   vec3 col = mix(aguaBase, rcol, fr);
@@ -1079,6 +1367,192 @@ void camara(float t, vec2 uv, out vec3 ro, out vec3 rd) {
   mirar(ro, obj, uv + tiemblo, mix(1.3, 1.6, c), 0.0, rd);
 }
 </script>
+<script id="glsl-03-tinta" type="x-shader/x-fragment">
+/* Escena 3: jueves a las 14.30, la galería. Elías amarra la chata al muelle, sube la escalera despacio (setenta y un años) y se
+   sienta en el banco con la gorra en la rodilla; Ana en el vano de la puerta, de brazos cruzados; Verónica parada en la galería.
+   «Viene sudestada, Verónica. Grande.» Al irse, desde arriba de la escalera, mira el cielo. */
+Clima clima(float t) { return Clima(0.85, 0.0, 0.96, 0.0, 0.016, 0.45 + 0.25 * smoothstep(20.0, 44.0, t), vec2(-0.35, 0.0)); }
+vec3 sunDir(float t) { return normalize(vec3(0.3, 0.6, 0.5)); }
+float nivelAgua(float t) { return 0.07; }
+Luz luz(int i, float t) { return Luz(vec3(0.0), vec3(0.0), 0.0); }
+vec4 aguaExtra(vec3 pos, float t) { return vec4(0.0); }
+
+/* ---- el recorrido de Elías ---- */
+/* 0-4 amarra la chata en el poste del muelle; 4-5,2 se endereza y se da vuelta; 5,2-12,4 sube los seis niveles (1,2 s por escalón);
+   12,4-14,4 camina hasta el banco; 14,4-15,6 se sienta; 40-41,5 se levanta; desde 41,5 (corte) está otra vez en el muelle y mira el cielo */
+vec2 nivel(float k) { k = clamp(k, 0.0, 6.0); if (k < 0.5) return vec2(-3.98, 0.325); if (k > 5.5) return vec2(-2.66, 1.12); return vec2(-3.75 + 0.26 * (k - 1.0), 0.40 + 0.18 * (k - 1.0)); }
+float subida(float t) { return clamp((t - 5.2) / 1.2, 0.0, 6.0); }
+vec2 pieEnEscalera(float u, float par) {
+  float k = floor(u), f = u - k;
+  if (mod(k, 2.0) == par) return nivel(k) + vec2(0.0, 0.08);
+  vec2 de = nivel(max(k - 1.0, 0.0)), a = nivel(min(k + 1.0, 6.0));
+  float g = smoothstep(0.0, 1.0, f);
+  return mix(de, a, g) + vec2(0.0, 0.08 + 0.14 * sin(PI * f));
+}
+float sentado(float t) { return smoothstep(14.4, 15.6, t) * (1.0 - smoothstep(40.0, 41.5, t)); }
+float enEscalera(float t) { return step(41.5, t); }
+const vec3 POSTE = vec3(0.4, 0.55, -4.5);  /* la punta del poste de la esquina del muelle, donde ata */
+const vec3 BANCO = vec3(-1.1, 1.2, -1.72); /* el pie del marco local cuando está sentado */
+vec3 posElias(float t) {
+  if (t >= 41.5) return vec3(0.1, 0.325, -4.1); /* de vuelta en el muelle, al lado de la chata */
+  float u = subida(t);
+  vec3 p = mix(vec3(0.1, 0.325, -4.05), vec3(0.0, 0.325, -3.98), smoothstep(4.0, 5.0, t));
+  if (u > 0.0) { float k = floor(u), f = u - k; vec2 n0 = nivel(k), n1 = nivel(k + 1.0); p = vec3(0.0, mix(n0.y, n1.y, smoothstep(0.15, 0.85, f)), mix(n0.x, n1.x, f)); }
+  float camina = smoothstep(12.4, 14.4, t);
+  if (t > 12.4) p = mix(vec3(0.0, 1.2, -2.6), vec3(-1.1, 1.2, -1.9), camina);
+  p = mix(p, BANCO, smoothstep(14.4, 15.6, t));
+  if (t > 40.0) p = mix(BANCO, vec3(-1.1, 1.2, -1.9), smoothstep(40.0, 41.5, t));
+  return p;
+}
+float dirElias(float t) {
+  /* ángulo del marco local (para mirar al ángulo φ del mundo, el marco gira φ + π) */
+  if (t >= 41.5) return PI;                                    /* mira a +x, hacia su chata, de costado a la galería */
+  float a = mix(2.16, 4.71, smoothstep(4.0, 5.2, t));          /* del poste a la escalera (+z) */
+  a = mix(a, 5.78, smoothstep(12.2, 13.0, t));                 /* camina hacia el banco */
+  a = mix(a, 7.85, smoothstep(13.8, 14.8, t));                 /* se da vuelta y mira al río (-z) */
+  return a;
+}
+vec2 elias(vec3 p, float t) {
+  vec3 pe = posElias(t);
+  float u = subida(t), sent = sentado(t), esc = enEscalera(t);
+  vec3 q = rotY(p - pe, dirElias(t));
+  float camina = smoothstep(12.4, 12.7, t) * (1.0 - smoothstep(14.1, 14.4, t));
+  float paso = camina * 0.8;
+  Pose P = poseDePie(t * 2.0 * PI / 1.25, paso);
+  /* amarrando: agachado hacia el poste, las dos manos en la soga */
+  float ata = 1.0 - smoothstep(3.2, 4.3, t);
+  if (ata > 0.0) {
+    vec3 soga = rotY(POSTE - pe, dirElias(t));
+    P.cad.y -= 0.2 * ata; P.pecho += vec3(-0.3, -0.3, 0.0) * ata; P.hom += vec3(-0.46, -0.42, 0.0) * ata; P.cab += vec3(-0.6, -0.54, 0.0) * ata;
+    P.homI = P.hom + vec3(0.0, -0.03, -0.17); P.homD = P.hom + vec3(0.0, -0.03, 0.17);
+    float tira = 0.03 * sin(t * 5.0);
+    P.manoI = mix(P.manoI, soga + vec3(-0.02, 0.06 + tira, -0.06), ata); P.manoD = mix(P.manoD, soga + vec3(0.03, 0.02 - tira, 0.06), ata);
+    P.agarreI = vec3(0.0, -1.0, 0.0); P.agarreD = vec3(0.0, -1.0, 0.0);
+    P.pitch = -0.5 * ata;
+  }
+  if (u > 0.0 && t < 12.4) {
+    vec2 fI = pieEnEscalera(u, 1.0), fD = pieEnEscalera(u, 0.0);
+    P.pieI = vec3(-(fI.x - pe.z), fI.y - pe.y, -0.11); P.pieD = vec3(-(fD.x - pe.z), fD.y - pe.y, 0.11);
+    P.rodI = vec3(P.pieI.x - 0.12, 0.5, -0.1); P.rodD = vec3(P.pieD.x - 0.12, 0.5, 0.1);
+    float sube = 1.0 - smoothstep(5.6, 6.0, u);
+    float agacha = 0.06 * sube; P.cad.y -= agacha; P.pecho.y -= agacha; P.hom.y -= agacha; P.cab.y -= agacha; P.homI.y -= agacha; P.homD.y -= agacha;
+    P.pecho.x -= 0.05 * sube; P.hom.x -= 0.09 * sube; P.cab.x -= 0.1 * sube; P.homI.x -= 0.09 * sube; P.homD.x -= 0.09 * sube;
+    /* la mano derecha en el pasamanos de la derecha (x 0,5); la izquierda colgando */
+    float zr = min(pe.z + 0.3, -2.85); float yr = 0.9 + (zr + 3.85) + 0.03;
+    vec3 pasamanos = vec3(-(zr - pe.z), yr - pe.y, 0.5 - pe.x);
+    P.manoD = mix(P.manoD, pasamanos, sube); P.codoD = mix(P.codoD, P.homD + vec3(0.05, -0.25, 0.12), sube); P.agarreD = vec3(-1.0, 0.0, 0.0);
+    P.pitch = -0.2 * sube;
+  }
+  /* sentado en el banco: la gorra en la rodilla derecha, la mano encima; la izquierda en la otra rodilla */
+  if (sent > 0.0) {
+    Pose S = poseSilla();
+    S.manoD = S.rodD + vec3(-0.02, 0.1, 0.05); S.manoI = S.rodI + vec3(-0.04, 0.06, -0.02); S.agarreD = vec3(0.0, -1.0, 0.0); S.agarreI = vec3(0.0, -1.0, 0.0);
+    S.codoD = S.homD + vec3(-0.05, -0.25, 0.1); S.codoI = S.homI + vec3(-0.05, -0.25, -0.1);
+    S.pecho.x -= 0.03; S.hom.x -= 0.05; S.cab.x -= 0.05; S.homI.x -= 0.05; S.homD.x -= 0.05;
+    /* habla mirándola a ella (a +x, a su izquierda) y al cielo cuando dice «viene sudestada» */
+    float habla1 = smoothstep(15.5, 16.5, t) * (1.0 - smoothstep(21.8, 22.8, t)), habla2 = smoothstep(29.3, 30.3, t) * (1.0 - smoothstep(36.5, 37.5, t));
+    S.yaw = -0.45 * max(habla1, habla2) - 0.25 * (1.0 - max(habla1, habla2)) * smoothstep(23.0, 24.0, t) * (1.0 - smoothstep(37.5, 38.5, t));
+    S.pitch = -0.1 + 0.35 * smoothstep(30.3, 31.3, t) * (1.0 - smoothstep(32.8, 33.8, t)) + 0.1 * habla1;
+    S.cab.y += 0.01 * sin(t * 1.7);
+    P = mezclarPose(P, S, sent);
+  }
+  if (esc > 0.5) {
+    /* en el muelle, antes de desatar: se acomoda la gorra con la derecha y mira el cielo */
+    float acomoda = smoothstep(41.6, 42.2, t) * (1.0 - smoothstep(42.8, 43.4, t));
+    P.manoD = mix(P.manoD, P.cab + vec3(-0.12, 0.09, 0.08), acomoda); P.codoD = mix(P.codoD, P.homD + vec3(-0.2, -0.1, 0.15), acomoda); P.agarreD = mix(P.agarreD, vec3(0.0, 1.0, 0.0), acomoda);
+    P.manoI = P.homI + vec3(0.02, -0.5, -0.03);
+    P.pitch = 0.42 * smoothstep(42.6, 43.8, t); P.yaw = 0.15 * smoothstep(43.0, 44.0, t);
+    P.cab.x -= 0.03; P.hom.x -= 0.02;
+  }
+  P = resolver(P);
+  float conGorra = (sent > 0.5 && esc < 0.5) ? 0.0 : 1.0;
+  Aspecto A = aspectoElias(); if (conGorra < 0.5) A = aspectoEliasSinGorra();
+  vec2 v = persona(q, P, A);
+  if (conGorra < 0.5) {
+    vec3 g = q - (P.rodD * 0.97 + vec3(-0.02, 0.05, 0.05)); g.xy = rot(0.3) * g.xy;
+    v = u2(v, vec2(gorraSuelta(g) * 0.97, 28.0));
+  }
+  return v;
+}
+
+vec2 mapaMundo(vec3 p, float t) {
+  vec2 r = casa(p, 0.0, 1.0, 1.0);
+  float ds = length(p - vec3(-6.0, 1.5, 6.0)) - 4.0;
+  if (ds < 0.2) r = u2(r, sauce(p - vec3(-6.0, 0.0, 6.0), t, 4.0, 0.5)); else if (ds < r.x) r = vec2(ds, 0.0);
+  float ds2 = length(p - vec3(6.5, 1.5, 4.0)) - 4.0;
+  if (ds2 < 0.2) r = u2(r, sauce(p - vec3(6.5, 0.0, 4.0), t, 11.0, 0.5)); else if (ds2 < r.x) r = vec2(ds2, 0.0);
+  float alto = 0.15 + 0.2 * smoothstep(-1.0, 3.0, p.z) + 0.06 * fbm4(p.xz * 1.5);
+  float tierra = smax(p.y - alto, -(p.z + 0.5 + 0.8 * noise(p.xx * 0.4)), 0.8);
+  r = u2(r, vec2(tierra, 17.0));
+  /* el banco de la galería, contra la pared, a la izquierda de la puerta */
+  float banco = sdBox3(p - vec3(-1.1, 1.63, -1.62), vec3(0.55, 0.02, 0.17)) - 0.01;
+  banco = min(banco, min(sdBox3(p - vec3(-1.55, 1.42, -1.62), vec3(0.02, 0.22, 0.15)), sdBox3(p - vec3(-0.65, 1.42, -1.62), vec3(0.02, 0.22, 0.15))));
+  if (banco < r.x) r = vec2(banco, 29.0);
+  /* la chata de Martín, amarrada a la izquierda del muelle */
+  vec3 qc = p - vec3(-2.6, 0.05, -5.1); qc.y += 0.02 * sin(t * 1.3); qc.xy = rot(0.02 * sin(t * 1.1)) * qc.xy;
+  float dc = length(qc - vec3(0.0, 0.3, 0.0)) - 1.8;
+  if (dc < 0.2) r = u2(r, chata(qc)); else if (dc < r.x) r = vec2(dc, 0.0);
+  /* la chata de Elías, recién llegada, a la derecha, con el Negro sentado en la popa; la soga va de la proa al poste */
+  vec3 qe = p - vec3(1.75, 0.05, -5.0); qe.y += 0.025 * sin(t * 1.1 + 2.0); qe.xz = rot(0.25) * qe.xz; qe.xy = rot(0.025 * sin(t * 0.9)) * qe.xy;
+  float de = length(qe - vec3(0.0, 0.3, 0.0)) - 1.9;
+  if (de < 0.2) {
+    vec2 ch = chata(vec3(-qe.x, qe.y, qe.z)); /* la proa hacia el muelle (-x) */
+    vec3 qp = qe - vec3(0.75, 0.1, 0.0); qp = rotY(qp, PI); qp *= 1.6;
+    vec2 pr = perro(qp, 0.0); pr.x /= 1.6;
+    r = u2(r, u2(ch, pr));
+  } else if (de < r.x) r = vec2(de, 0.0);
+  float soga = sdCap(p, POSTE + vec3(0.0, -0.02, 0.0), vec3(0.72, 0.28, -4.72), 0.012);
+  soga = min(soga, sdToro(vec3(p.x - 0.4, (p.y - 0.5) * 2.0, p.z + 4.5), 0.06, 0.012));
+  if (soga < r.x) r = vec2(soga, 5.0);
+  /* Elías */
+  vec3 pe = posElias(t);
+  float dv = length(p - (pe + vec3(0.0, 0.85, 0.0))) - 1.35;
+  if (dv < 0.2) r = u2(r, elias(p, t)); else if (dv < r.x) r = vec2(dv, 0.0);
+  /* Verónica, parada en la galería con los brazos cruzados, mirando a Elías; se da vuelta hacia Ana cuando le habla */
+  vec3 pv = vec3(0.75, 1.2, -2.3);
+  float dvv = length(p - (pv + vec3(0.0, 0.9, 0.0))) - 1.3;
+  if (dvv < 0.2) {
+    float aAna = smoothstep(22.5, 23.5, t) * (1.0 - smoothstep(28.5, 29.5, t)) + smoothstep(36.8, 37.6, t) * (1.0 - smoothstep(39.5, 40.5, t));
+    vec3 q = rotY(p - pv, -0.3 + 0.35 * aAna);
+    Pose P = poseDePie(0.0, 0.0);
+    P = brazosCruzados(P, 0.02 * sin(t * 0.9));
+    P.yaw = 0.55 * aAna; P.pitch = -0.08 + 0.04 * sin(t * 0.6);
+    P.pecho.x += 0.02; P.hom.x += 0.03; P.cab.x += 0.02; P.homI.x += 0.03; P.homD.x += 0.03;
+    r = u2(r, persona(q, P, aspectoVeronica()));
+  } else if (dvv < r.x) r = vec2(dvv, 0.0);
+  /* Ana, en el vano de la puerta, de brazos cruzados, apoyada en el marco; se encoge de hombros en «¿Importa?» */
+  vec3 pa = vec3(0.12, 1.2, -1.42);
+  float da = length(p - (pa + vec3(0.0, 0.9, 0.0))) - 1.3;
+  if (da < 0.2) {
+    vec3 q = rotY(p - pa, PI * 0.5 - 0.35);
+    Pose P = poseDePie(0.0, 0.0);
+    float hombros = 0.04 * smoothstep(28.0, 28.5, t) * (1.0 - smoothstep(29.0, 29.8, t));
+    P.hom.y += hombros; P.homI.y += hombros; P.homD.y += hombros;
+    P = brazosCruzados(P, 0.0);
+    P.cad.z -= 0.03; P.pecho.z -= 0.01; /* el peso en una pierna */
+    float aVero = smoothstep(22.5, 23.5, t) * (1.0 - smoothstep(29.5, 30.5, t)) + smoothstep(38.0, 38.8, t);
+    P.yaw = -0.2 + 0.25 * aVero; P.pitch = -0.05;
+    r = u2(r, persona(q, P, aspectoAna()));
+  } else if (da < r.x) r = vec2(da, 0.0);
+  return r;
+}
+void camara(float t, vec2 uv, out vec3 ro, out vec3 rd) {
+  vec2 tiemblo = vec2(0.0012 * sin(t * 1.1), 0.0016 * sin(t * 0.8 + 1.0));
+  vec3 obj; float zoom = 1.4;
+  vec3 pe = posElias(t);
+  if (t < 5.0) { float a = smoothstep(0.0, 5.0, t); ro = mix(vec3(2.5, 1.4, -7.0), vec3(2.3, 1.4, -6.8), a); obj = vec3(0.1, 0.95, -4.1); zoom = 1.4; }                              /* desde el agua: Elías atando en el muelle, la casa detrás */
+  else if (t < 12.4) { ro = vec3(-2.4, 1.7 + 0.5 * (pe.y - 0.325), -4.3); obj = pe + vec3(0.0, 0.95, 0.0); zoom = 1.25; }                                                        /* desde el costado, la subida */
+  else if (t < 16.0) { float a = smoothstep(12.4, 16.0, t); ro = mix(vec3(1.05, 2.3, -5.3), vec3(0.95, 2.28, -5.1), a); obj = vec3(-0.5, 2.1, -1.9); zoom = 1.4; }                /* desde el río: la galería, Ana en la puerta, Elías al banco */
+  else if (t < 22.8) { float a = smoothstep(16.0, 22.8, t); ro = mix(vec3(-0.15, 2.2, -3.15), vec3(-0.25, 2.18, -3.05), a); obj = vec3(-1.1, 2.1, -1.7); zoom = 1.7; }            /* Elías: «lo vi salir» */
+  else if (t < 29.4) { float a = smoothstep(22.8, 29.4, t); ro = mix(vec3(-1.45, 2.3, -2.55), vec3(-1.4, 2.28, -2.5), a); obj = vec3(0.4, 2.5, -1.85); zoom = 1.4; }              /* desde el lado de Elías: Verónica y Ana */
+  else if (t < 36.8) { float a = smoothstep(29.4, 36.8, t); ro = mix(vec3(-0.3, 2.25, -2.75), vec3(-0.4, 2.27, -2.7), a); obj = vec3(-1.1, 2.3, -1.7); zoom = 2.0; }               /* Elías, más cerca: «viene sudestada» */
+  else if (t < 38.3) { ro = vec3(-0.05, 2.55, -2.55); obj = vec3(0.75, 2.72, -2.3); zoom = 2.1; }                                                                                   /* Verónica: «me quedo» */
+  else if (t < 40.0) { ro = vec3(-0.55, 2.55, -2.3); obj = vec3(0.12, 2.7, -1.42); zoom = 2.0; }                                                                                    /* Ana: «ya sé» */
+  else if (t < 41.5) { ro = vec3(0.1, 2.15, -3.3); obj = vec3(-1.1, 1.9, -1.8); zoom = 1.2; }                                                                                      /* se levanta */
+  else { float a = smoothstep(41.5, 44.0, t); ro = mix(vec3(1.95, 1.25, -4.45), vec3(1.85, 1.22, -4.4), a); obj = vec3(0.1, 1.9, -4.1); zoom = 1.7; }                               /* desde abajo, en el muelle: Elías se acomoda la gorra y mira el cielo; detrás, el río y el cielo gris */
+  mirar(ro, obj, uv + tiemblo, zoom, 0.0, rd);
+}
+</script>
 <script id="glsl-04-viento" type="x-shader/x-fragment">
 /* Escena 3: jueves a la noche. La casa con la cocina prendida; en la galería Ana levanta el teléfono buscando señal; empieza
    la lluvia y un relámpago; después, de cerca, las hojas que lleva el arroyo se frenan y empiezan a ir al revés. */
@@ -1220,6 +1694,168 @@ void camara(float t, vec2 uv, out vec3 ro, out vec3 rd) {
     ro = vec3(c.x - 9.0, 1.7, c.z + 7.5);
     mirar(ro, c + vec3(0.1, 0.8, 0.0), uv + tiemblo * 1.5, 2.6, 0.0, rd);
   }
+}
+</script>
+<script id="glsl-06-taller" type="x-shader/x-fragment">
+/* Escena 6: viernes a la tarde, el taller de Martín. Un galpón de chapa con el bote dado vuelta sobre caballetes, la radio apagada,
+   las herramientas colgadas y la luz gris de la ventana con lluvia. Verónica sola abre el cajón de las herramientas finas: la
+   lata con los dólares, el recibo, el boleto. En primer plano, el papel con las tres firmas: la suya, la V con la cola larga, se
+   dibuja sola. Lo guarda en el forro de la campera. Un trueno. */
+Clima clima(float t) { return Clima(0.42, 0.0, 0.95, 0.0, 0.0, 0.3, vec2(0.0)); }
+vec3 sunDir(float t) { return normalize(vec3(1.0, 0.4, 0.2)); }
+float nivelAgua(float t) { return -50.0; }
+Luz luz(int i, float t) { return Luz(vec3(2.55, 1.55, 0.3), vec3(0.72, 0.78, 0.9), 3.2 * (1.0 + 0.6 * uFlash)); } /* la luz gris que entra por la ventana */
+vec4 aguaExtra(vec3 pos, float t) { return vec4(0.0); }
+
+/* ---- el recorrido ---- */
+/* 1-6,5 camina de la puerta al mesón; 6,5-7,5 queda de frente al mesón (+x); 8-9,5 abre el cajón; 12,5-14 saca la lata; 15-16,5 el
+   boleto al mesón; 17-30 lo mira (y la firma se vuelve a dibujar); 30-32,5 lo guarda en el forro; después se queda quieta */
+const vec3 MESON = vec3(2.68, 0.9, 0.3);       /* centro de la tapa del mesón */
+float cajonAbierto(float t) { return 0.32 * smoothstep(8.0, 9.5, t); }
+vec3 posVero(float t) { return mix(vec3(0.2, 0.0, -1.5), vec3(2.03, 0.0, 0.3), smoothstep(1.0, 6.5, t)); }
+float dirVero(float t) { return mix(3.92, PI, smoothstep(6.3, 7.5, t)); }
+const vec3 PAPEL_MESON = vec3(2.45, 0.934, 0.3); /* la tapa llega a 0,93 */ /* el boleto, sobre el mesón, del lado de ella */
+vec3 posLata(float t) { return mix(vec3(2.72, 0.76, 0.2), vec3(2.78, 0.992, 0.78), smoothstep(12.5, 14.0, t)); }
+vec3 posBoleto(float t) {
+  vec3 p = mix(vec3(2.62, 0.78, 0.4), PAPEL_MESON, smoothstep(15.0, 16.5, t));
+  return mix(p, vec3(2.0, 1.3, 0.22), smoothstep(30.0, 32.3, t)); /* al forro de la campera */
+}
+float boletoVisible(float t) { return 1.0 - smoothstep(32.2, 32.5, t); }
+/* la tinta del boleto: renglones impresos y tres firmas; la de Verónica (hecha por Martín, de corrido) se vuelve a dibujar de 18 a 24 */
+float avanceFirma(float t) { return t < 18.0 ? 1.0 : clamp((t - 18.0) / 5.8, 0.0, 1.0); }
+float papel(vec3 p, float t) {
+  vec3 c = posBoleto(t);
+  /* cm sobre el papel, visto desde el lado de ella: x hacia +z del mundo, y hacia +x (hacia la pared) */
+  vec2 f = vec2((p.z - c.z) * 100.0 + 10.5, (c.x - p.x) * 100.0 + 14.8); /* de frente a +x, su derecha es +z (se lee hacia +z); hacia ella es -x */
+  float ink = impreso(f, 2.5, 20.0) * 0.8;
+  ink += tinta((f - vec2(1.2, 22.8)) / 1.25, avanceFirma(t), 0.0, 1.0);
+  ink += tinta((f - vec2(9.5, 23.1)) / 1.1, 1.0, 0.0, 1.0);
+  ink += smoothstep(0.05, 0.022, abs((f.y - 23.8) - 0.3 * sin((f.x - 15.0) * 4.0)) + 10.0 * (1.0 - step(15.0, f.x) * step(f.x, 18.0)));
+  return clamp(ink, 0.0, 1.0);
+}
+
+vec2 mapaMundo(vec3 p, float t) {
+  vec2 r = vec2(1e3, 0.0);
+  /* el galpón: caja hueca de 6 × 2,8 × 4,5, puerta en -z, ventana en +x sobre el mesón */
+  float caja = max(sdBox3(p - vec3(0.0, 1.4, 0.0), vec3(3.1, 1.5, 2.35)), -sdBox3(p - vec3(0.0, 1.4, 0.0), vec3(3.0, 1.4, 2.25)));
+  float puerta = sdBox3(p - vec3(-1.5, 1.0, -2.3), vec3(0.45, 1.0, 0.3));
+  float ventana = sdBox3(p - vec3(3.0, 1.5, 0.3), vec3(0.3, 0.4, 0.5));
+  caja = max(caja, -min(puerta, ventana));
+  r = vec2(caja, 32.0);
+  float piso = sdBox3(p - vec3(0.0, -0.05, 0.0), vec3(3.1, 0.06, 2.35));
+  if (piso < r.x) r = vec2(piso, 14.0);
+  float marco = max(sdBox3(p - vec3(3.0, 1.5, 0.3), vec3(0.06, 0.45, 0.55)), -sdBox3(p - vec3(3.0, 1.5, 0.3), vec3(0.2, 0.38, 0.48)));
+  marco = min(marco, sdBox3(p - vec3(3.0, 1.5, 0.3), vec3(0.03, 0.4, 0.02)));
+  if (marco < r.x) r = vec2(marco, 13.0);
+  float vidrio = sdBox3(p - vec3(3.03, 1.5, 0.3), vec3(0.005, 0.38, 0.48));
+  if (vidrio < r.x) r = vec2(vidrio, 38.0);
+  /* la puerta abierta hacia afuera, y afuera la lluvia gris */
+  float hoja = sdBox3(rotY(p - vec3(-1.95, 1.0, -2.3), 1.2), vec3(0.45, 0.98, 0.02));
+  if (hoja < r.x) r = vec2(hoja, 13.0);
+  /* el bote dado vuelta sobre dos caballetes */
+  vec3 qb = p - vec3(-0.8, 0.98, 0.3); qb.y = -qb.y; qb.xz = rot(0.06) * qb.xz;
+  float db = length(qb - vec3(0.0, -0.2, 0.0)) - 1.9;
+  if (db < 0.2) r = u2(r, chata(qb)); else if (db < r.x) r = vec2(db, 0.0);
+  float cab = 1e3;
+  for (int i = 0; i < 2; i++) {
+    vec3 c = p - vec3(-1.65 + 1.7 * float(i), 0.0, 0.3);
+    cab = min(cab, sdBox3(c - vec3(0.0, 0.62, 0.0), vec3(0.03, 0.04, 0.55)));
+    cab = min(cab, sdCap(c, vec3(0.0, 0.6, 0.5), vec3(-0.22, 0.0, 0.6), 0.025)); cab = min(cab, sdCap(c, vec3(0.0, 0.6, 0.5), vec3(0.22, 0.0, 0.6), 0.025));
+    cab = min(cab, sdCap(c, vec3(0.0, 0.6, -0.5), vec3(-0.22, 0.0, -0.6), 0.025)); cab = min(cab, sdCap(c, vec3(0.0, 0.6, -0.5), vec3(0.22, 0.0, -0.6), 0.025));
+  }
+  if (cab < r.x) r = vec2(cab, 13.0);
+  /* el mesón contra la pared de la ventana, con el cajón de las herramientas finas que se abre hacia la pieza */
+  float tapa = sdBox3(p - MESON, vec3(0.3, 0.025, 0.8)) - 0.005;
+  float patas = min(sdBox3(p - vec3(2.9, 0.43, -0.45), vec3(0.03, 0.43, 0.03)), sdBox3(p - vec3(2.9, 0.43, 1.05), vec3(0.03, 0.43, 0.03)));
+  patas = min(patas, min(sdBox3(p - vec3(2.42, 0.43, -0.45), vec3(0.03, 0.43, 0.03)), sdBox3(p - vec3(2.42, 0.43, 1.05), vec3(0.03, 0.43, 0.03))));
+  patas = min(patas, sdBox3(p - vec3(2.68, 0.2, 0.3), vec3(0.28, 0.015, 0.75))); /* el estante de abajo */
+  float meson = min(tapa, patas);
+  if (meson < r.x) r = vec2(meson, 7.0);
+  float ab = cajonAbierto(t);
+  vec3 qc = p - vec3(2.66 - ab, 0.79, 0.3);
+  float cajon = max(sdBox3(qc, vec3(0.22, 0.06, 0.22)), -sdBox3(qc - vec3(0.0, 0.02, 0.0), vec3(0.2, 0.06, 0.2)));
+  float tirador = sdCap(qc, vec3(-0.225, 0.0, -0.03), vec3(-0.225, 0.0, 0.03), 0.012);
+  if (cajon < r.x) r = vec2(cajon, 29.0);
+  if (tirador < r.x) r = vec2(tirador, 34.0);
+  /* la lata, el recibo y el boleto */
+  vec3 ql = p - posLata(t);
+  float lata = sdCil(ql, 0.06, 0.07);
+  if (lata < r.x) r = vec2(lata, 23.0);
+  float recibo = sdBox3(p - vec3(2.75, 0.934, -0.1), vec3(0.06, 0.002, 0.09));
+  if (recibo < r.x) r = vec2(recibo, 35.0);
+  if (boletoVisible(t) > 0.5) {
+    vec3 qp = p - posBoleto(t); float dobla = smoothstep(30.0, 31.5, t);
+    qp.xy = rot(-1.3 * dobla) * qp.xy;
+    float boleto = sdBox3(qp, vec3(0.148 * (1.0 - 0.5 * dobla), 0.0015 + 0.003 * dobla, 0.105 * (1.0 - 0.5 * dobla))); /* a lo alto hacia la pared */
+    if (boleto < r.x) r = vec2(boleto, 44.0);
+  }
+  /* la radio en un estante de la pared del fondo, apagada; herramientas colgadas sobre la ventana y al lado */
+  float estante = sdBox3(p - vec3(1.4, 1.75, 2.18), vec3(0.45, 0.015, 0.14));
+  float radio = sdBox3(p - vec3(1.4, 1.86, 2.16), vec3(0.17, 0.09, 0.08)) - 0.01;
+  radio = min(radio, sdCap(p, vec3(1.52, 1.95, 2.16), vec3(1.75, 2.35, 2.05), 0.006));
+  if (estante < r.x) r = vec2(estante, 13.0);
+  if (radio < r.x) r = vec2(radio, 34.0);
+  float herr = 1e3;
+  for (int i = 0; i < 5; i++) {
+    float z = -1.3 + 0.28 * float(i); float largo = 0.18 + 0.1 * hash1(float(i) * 3.3);
+    herr = min(herr, sdCap(p, vec3(2.96, 2.0, z), vec3(2.96, 2.0 - largo, z), 0.012));                       /* mangos colgados */
+    herr = min(herr, sdBox3(p - vec3(2.96, 2.0 - largo - 0.05, z), vec3(0.01, 0.05, 0.03 + 0.03 * hash1(float(i) * 7.1)))); /* la cabeza */
+  }
+  herr = min(herr, sdBox3(p - vec3(2.96, 1.75, 1.6), vec3(0.008, 0.06, 0.3))); /* el serrucho */
+  herr = min(herr, sdBox3(p - vec3(2.96, 2.1, -1.0), vec3(0.015, 0.03, 0.25)));
+  if (herr < r.x) r = vec2(herr, 34.0);
+  /* bidón, soga enrollada y baldes por el piso */
+  float bidon = sdBox3(p - vec3(2.6, 0.2, -1.8), vec3(0.15, 0.2, 0.12)) - 0.02;
+  float soga = sdToro(p - vec3(1.0, 0.04, -1.9), 0.17, 0.045);
+  float balde = max(sdCil(p - vec3(-2.5, 0.15, 1.6), 0.15, 0.15), -sdCil(p - vec3(-2.5, 0.2, 1.6), 0.15, 0.13));
+  if (bidon < r.x) r = vec2(bidon, 21.0);
+  if (soga < r.x) r = vec2(soga, 5.0);
+  if (balde < r.x) r = vec2(balde, 28.0);
+  /* Verónica */
+  vec3 pv = posVero(t);
+  float dv = length(p - (pv + vec3(0.0, 0.9, 0.0))) - 1.3;
+  if (dv < 0.2) {
+    float a = dirVero(t);
+    vec3 q = rotY(p - pv, a);
+    float camina = smoothstep(1.0, 1.4, t) * (1.0 - smoothstep(6.0, 6.5, t));
+    Pose P = poseDePie(t * 2.0 * PI / 0.75, camina);
+    /* las manos: en el tirador, en la lata, en el boleto, en el forro de la campera */
+    float tira = smoothstep(7.4, 8.0, t) * (1.0 - smoothstep(9.6, 10.4, t));
+    vec3 tirador = rotY(vec3(2.66 - cajonAbierto(t) - 0.225, 0.79, 0.3) - pv, a) + vec3(0.0, 0.0, 0.0);
+    float lataM = smoothstep(12.0, 12.5, t) * (1.0 - smoothstep(14.0, 14.6, t));
+    vec3 lata = rotY(posLata(t) - pv, a) + vec3(0.0, 0.07, 0.0);
+    float bol = smoothstep(14.6, 15.0, t) * (1.0 - smoothstep(16.5, 17.2, t)) + smoothstep(29.5, 30.0, t) * (1.0 - smoothstep(32.3, 33.0, t));
+    vec3 boleto = rotY(posBoleto(t) - pv, a) + vec3(0.0, 0.03, 0.0);
+    float mira = smoothstep(17.0, 17.6, t) * (1.0 - smoothstep(29.5, 30.0, t)); /* las dos manos en los bordes del papel */
+    vec3 bordeI = rotY(PAPEL_MESON + vec3(-0.13, 0.0, 0.2) - pv, a), bordeD = rotY(PAPEL_MESON + vec3(-0.13, 0.0, -0.2) - pv, a); /* de frente a +x, su derecha queda en -z; las manos por fuera del papel para no taparlo */
+    float en = max(max(tira, lataM), max(bol, mira));
+    vec3 manoD = P.manoD, manoI = P.manoI;
+    manoD = mix(manoD, tirador, tira); manoD = mix(manoD, lata, lataM); manoD = mix(manoD, boleto, bol); manoD = mix(manoD, bordeD, mira);
+    manoI = mix(manoI, bordeI, mira); manoI = mix(manoI, P.homI + vec3(-0.08, -0.45, -0.05), max(tira, max(lataM, bol))); /* la izquierda apoyada en el mesón */
+    manoI = mix(manoI, rotY(MESON + vec3(-0.25, 0.04, -0.05) - pv, a), max(tira, max(lataM, bol)));
+    P.manoD = manoD; P.manoI = manoI;
+    P.agarreD = mix(P.agarreD, vec3(0.0, -1.0, 0.0), en); P.agarreI = mix(P.agarreI, vec3(0.0, -1.0, 0.0), en);
+    P.codoD = mix(P.codoD, P.homD + vec3(-0.1, -0.25, 0.14), en); P.codoI = mix(P.codoI, P.homI + vec3(-0.1, -0.25, -0.14), en);
+    /* se inclina sobre el cajón y sobre el papel; al final se queda quieta mirando el bote */
+    float inclina = 0.1 * max(tira, lataM) + 0.14 * mira + 0.05 * bol;
+    P.pecho.x -= inclina * 0.6; P.hom.x -= inclina; P.cab.x -= inclina * 1.15; P.homI.x -= inclina; P.homD.x -= inclina;
+    float alBote = smoothstep(33.5, 35.0, t);
+    P.pitch = -0.35 * max(tira, lataM) - 0.5 * mira - 0.25 * bol + 0.0 * alBote; P.yaw = 0.9 * alBote + 0.05 * sin(t * 0.4) * (1.0 - alBote);
+    P = resolver(P);
+    r = u2(r, persona(q, P, aspectoVeronica()));
+  } else if (dv < r.x) r = vec2(dv, 0.0);
+  return r;
+}
+void camara(float t, vec2 uv, out vec3 ro, out vec3 rd) {
+  vec2 tiemblo = vec2(0.001 * sin(t * 1.1), 0.0012 * sin(t * 0.8 + 1.0));
+  vec3 obj; float zoom = 1.3;
+  if (t < 7.5) { float a = smoothstep(0.0, 7.5, t); ro = mix(vec3(-2.75, 1.7, -2.05), vec3(-2.6, 1.65, -1.95), a); obj = vec3(0.7, 1.0, 0.3); zoom = 1.1; }        /* desde la puerta: el galpón entero, el bote, ella que va al mesón */
+  else if (t < 12.0) { float a = smoothstep(7.5, 12.0, t); ro = mix(vec3(1.25, 1.55, 1.95), vec3(1.3, 1.5, 1.85), a); obj = vec3(2.35, 1.05, 0.3); zoom = 1.5; }      /* de costado: el cajón que se abre */
+  else if (t < 17.0) { float a = smoothstep(12.0, 17.0, t); ro = mix(vec3(2.75, 1.55, 1.6), vec3(2.72, 1.52, 1.5), a); obj = vec3(2.5, 0.95, 0.35); zoom = 1.6; }    /* desde la punta del mesón: las manos, la lata, el recibo, el boleto */
+  else if (t < 30.0) { float a = smoothstep(17.0, 30.0, t); ro = mix(vec3(2.36, 1.46, 0.32), vec3(2.37, 1.44, 0.31), a); obj = vec3(2.395, 0.934, 0.3); zoom = 2.4; }  /* desde sus ojos: el boleto derecho, las firmas al pie, en el medio del cuadro */   /* el boleto, de cerca, desde el lado de la pared: las tres firmas y sus manos en los bordes */
+  else if (t < 34.0) { float a = smoothstep(30.0, 34.0, t); ro = mix(vec3(2.7, 1.65, 1.75), vec3(2.65, 1.62, 1.7), a); obj = vec3(2.05, 1.3, 0.3); zoom = 1.7; }      /* lo guarda en el forro, de tres cuartos */
+  else { float a = smoothstep(34.0, 40.0, t); ro = mix(vec3(-2.6, 1.45, 1.75), vec3(-2.5, 1.45, 1.7), a); obj = vec3(1.4, 1.1, 0.25); zoom = 1.2; }                    /* desde atrás del bote: ella quieta, chica, en el galpón */
+  mirar(ro, obj, uv + tiemblo, zoom, 0.0, rd);
 }
 </script>
 <script id="glsl-07-escalera" type="x-shader/x-fragment">
@@ -1429,6 +2065,393 @@ void camara(float t, vec2 uv, out vec3 ro, out vec3 rd) {
   mirar(ro, obj, uv + tiemblo, 1.15, 0.03 * sin(t * 1.3), rd);
 }
 </script>
+<script id="glsl-09-pan" type="x-shader/x-fragment">
+/* Escena 9: sábado a las 9, la cocina de arriba. Las dos secas, una contra la otra en la mesa; afuera el arroyo marrón ya tapó la
+   planta baja y llueve. Ana corta el pan con la derecha; Verónica pone el boleto sobre la mesa. Plano y contraplano:
+   «Martín te lo iba a decir.» … «Sé cómo firma.» «Sí. Eso lo sabés.» */
+Clima clima(float t) { return Clima(0.55, 0.0, 0.97, 0.0, 0.03, 0.55, vec2(-0.7, 0.0)); }
+vec3 sunDir(float t) { return normalize(vec3(0.2, 0.5, -1.0)); }
+float nivelAgua(float t) { return -2.6; } /* el agua a 1,1 m del suelo: el muelle hundido, la galería (1,2) todavía seca; el piso de arriba está a 3,7 */
+Luz luz(int i, float t) { if (i == 0) return Luz(vec3(-1.0, 1.3, -1.05), vec3(0.72, 0.78, 0.9), 2.4); return Luz(vec3(1.0, 1.3, -1.05), vec3(0.72, 0.78, 0.9), 2.4); } /* la luz gris de las dos ventanas */
+vec4 aguaExtra(vec3 pos, float t) { return vec4(0.0); }
+/* lo que hace cada una: Ana corta de 0 a 6 y vuelve a cortar de 36 a 45; Verónica pone el boleto sobre la mesa entre 6 y 7,5 */
+float corta(float t) { return (1.0 - smoothstep(5.0, 6.0, t)) + smoothstep(36.0, 37.0, t); }
+float vaiven(float t) { return sin(t * 2.0 * PI / 1.1); }
+vec3 posBoleto(float t) { return mix(vec3(-0.62, 0.95, -0.05), vec3(-0.22, 0.762, -0.08), smoothstep(6.0, 7.5, t)); }
+vec2 mapaMundo(vec3 p, float t) {
+  vec2 r = cocinaArriba(p);
+  /* afuera, por las ventanas: la otra orilla con los sauces, y un sauce cerca del costado */
+  if (p.z < -1.3) { vec2 o = orilla(p + vec3(0.0, 0.9, 0.0), t, -24.0, -1.0, 5.0, 0.55); if (o.x < r.x) r = o; }
+  float ds = length(p - vec3(6.0, 0.5, -2.0)) - 4.0;
+  if (ds < 0.2) r = u2(r, sauce(p - vec3(6.0, -0.9, -2.0), t, 9.0, 0.55)); else if (ds < r.x) r = vec2(ds, 0.0);
+  /* sobre la mesa: la tabla, el pan, las rebanadas, el cuchillo (en la mano de Ana cuando corta), dos tazas, el boleto */
+  float tabla = sdBox3(p - vec3(0.3, 0.77, -0.2), vec3(0.17, 0.01, 0.12)) - 0.005;
+  if (tabla < r.x) r = vec2(tabla, 29.0);
+  float pan = sdElip(p - vec3(0.33, 0.83, -0.17), vec3(0.11, 0.05, 0.05));
+  pan += 0.004 * noise(p.xz * 50.0);
+  if (pan < r.x) r = vec2(pan, 55.0);
+  float rebanadas = 1e3;
+  for (int i = 0; i < 3; i++) { float k = float(i); rebanadas = min(rebanadas, sdBox3(p - vec3(0.2, 0.79 + 0.006 * k, -0.27 + 0.01 * k), vec3(0.045, 0.006, 0.04)) - 0.003); }
+  if (rebanadas < r.x) r = vec2(rebanadas, 55.0);
+  float tazas = min(max(sdCil(p - vec3(0.45, 0.8, -0.48), 0.045, 0.04), -sdCil(p - vec3(0.45, 0.82, -0.48), 0.045, 0.035)), max(sdCil(p - vec3(-0.4, 0.8, -0.45), 0.045, 0.04), -sdCil(p - vec3(-0.4, 0.82, -0.45), 0.045, 0.035)));
+  if (tazas < r.x) r = vec2(tazas, 20.0);
+  vec3 pb = posBoleto(t); vec3 qb = p - pb; qb.xz = rot(0.25) * qb.xz; qb.xy = rot(-0.6 * (1.0 - smoothstep(6.8, 7.5, t)) * smoothstep(5.5, 6.0, t)) * qb.xy;
+  float boleto = sdBox3(qb, vec3(0.105, 0.0015, 0.074)) + 10.0 * (1.0 - step(5.5, t)); /* doblado al medio; antes de los 5,5 s está en el forro */
+  if (boleto < r.x) r = vec2(boleto, 35.0);
+  /* Ana, en +x mirando a -x: corta el pan con la derecha, la izquierda sujeta el pan */
+  vec3 pa = vec3(0.78, 0.0, -0.2);
+  float da = length(p - (pa + vec3(0.0, 0.8, 0.0))) - 1.1;
+  if (da < 0.2) {
+    vec3 q = rotY(p - pa, 0.0);
+    Pose P = poseSilla();
+    float c = corta(t);
+    /* el cuchillo va y viene sobre el pan (el pan está en x 0,33 del mundo = local -0,45) */
+    vec3 cuchilloM = vec3(-0.45 + 0.06 * vaiven(t) * c, 0.86, 0.1); vec3 panM = vec3(-0.4, 0.86, -0.12);
+    P.manoD = mix(vec3(-0.3, 0.8, 0.12), cuchilloM, c); P.manoI = mix(vec3(-0.3, 0.8, -0.12), panM, c);
+    P.agarreD = vec3(0.0, -1.0, 0.0); P.agarreI = vec3(0.0, -1.0, 0.0);
+    P.codoD = mix(P.codoD, vec3(0.0, 0.72, 0.3), c); P.codoI = mix(P.codoI, vec3(0.0, 0.72, -0.3), c);
+    /* mira el pan cuando corta, a Verónica cuando habla, y la mira fijo en «¿vos pensás que yo…?» */
+    float habla = smoothstep(5.5, 6.5, t) * (1.0 - smoothstep(35.5, 36.5, t));
+    P.pitch = -0.4 * c + 0.0 * habla - 0.1 * smoothstep(21.0, 22.0, t) * (1.0 - smoothstep(24.0, 25.0, t));
+    P.yaw = 0.05 * sin(t * 0.5) * habla;
+    P.pecho.x -= 0.05 * c; P.hom.x -= 0.08 * c; P.cab.x -= 0.08 * c; P.homI.x -= 0.08 * c; P.homD.x -= 0.08 * c;
+    P = resolver(P);
+    vec2 v = persona(q, P, aspectoAna());
+    if (c > 0.01) {
+      vec3 m = P.manoD * 0.92; vec3 mango = m + vec3(0.0, -0.02, 0.0);
+      float cuchillo = sdCap(q, mango + vec3(0.04, 0.0, 0.0), mango - vec3(0.06, 0.0, 0.0), 0.011);
+      float hoja = sdBox3(q - (mango - vec3(0.17, 0.005, 0.0)), vec3(0.11, 0.012, 0.0015));
+      v = u2(v, u2(vec2(cuchillo, 34.0), vec2(hoja, 23.0)));
+    }
+    r = u2(r, v);
+  } else if (da < r.x) r = vec2(da, 0.0);
+  /* Verónica, en -x mirando a +x: las manos sobre la mesa; pone el boleto; después las manos quietas una sobre otra */
+  vec3 pv = vec3(-0.78, 0.0, -0.2);
+  float dv = length(p - (pv + vec3(0.0, 0.8, 0.0))) - 1.1;
+  if (dv < 0.2) {
+    vec3 q = rotY(p - pv, PI);
+    Pose P = poseSilla();
+    float pone = smoothstep(5.5, 6.0, t) * (1.0 - smoothstep(7.5, 8.2, t));
+    vec3 boletoL = rotY(posBoleto(t) - pv, PI) + vec3(0.0, 0.03, 0.0);
+    P.manoD = mix(vec3(-0.32, 0.8, 0.1), boletoL, pone); P.manoI = vec3(-0.3, 0.8, -0.12);
+    P.manoD = mix(P.manoD, vec3(-0.3, 0.82, -0.08), smoothstep(8.2, 9.5, t)); /* la derecha sobre la izquierda */
+    P.agarreD = vec3(0.0, -1.0, 0.0); P.agarreI = vec3(0.0, -1.0, 0.0);
+    P.pitch = -0.08 - 0.2 * pone; P.yaw = 0.04 * sin(t * 0.4);
+    float inclina = 0.06 * smoothstep(23.0, 25.0, t); P.pecho.x -= inclina * 0.6; P.hom.x -= inclina; P.cab.x -= inclina; P.homI.x -= inclina; P.homD.x -= inclina;
+    P = resolver(P);
+    r = u2(r, persona(q, P, aspectoVeronica()));
+  } else if (dv < r.x) r = vec2(dv, 0.0);
+  return r;
+}
+void camara(float t, vec2 uv, out vec3 ro, out vec3 rd) {
+  vec2 tiemblo = vec2(0.001 * sin(t * 1.1), 0.0012 * sin(t * 0.8 + 1.0));
+  vec3 obj; float zoom = 1.4;
+  vec3 cabA = vec3(0.78 - 0.03, 1.22 * 0.92, -0.2), cabV = vec3(-0.78 + 0.03, 1.22 * 0.94, -0.2);
+  /* plano y contraplano: a Ana se la ve desde el hombro de Verónica y al revés */
+  bool aAna = (t >= 6.0 && t < 9.0) || (t >= 16.0 && t < 18.0) || (t >= 21.5 && t < 24.5) || (t >= 29.0 && t < 32.0) || (t >= 35.0 && t < 40.0);
+  bool aVero = (t >= 9.0 && t < 16.0) || (t >= 18.0 && t < 21.5) || (t >= 24.5 && t < 29.0) || (t >= 32.0 && t < 35.0);
+  if (t < 6.0) { float a = smoothstep(0.0, 6.0, t); ro = mix(vec3(1.55, 1.75, 1.05), vec3(1.45, 1.7, 1.0), a); obj = vec3(-0.2, 0.95, -0.45); zoom = 1.25; }      /* desde el rincón de la cocina: la mesa, las dos, las ventanas con lluvia */
+  else if (aAna) { ro = vec3(-0.55, 1.42, -0.55); obj = cabA + vec3(0.0, -0.08, 0.0); zoom = 1.9; }
+  else if (aVero) { ro = vec3(0.55, 1.42, 0.15); obj = cabV + vec3(0.0, -0.08, 0.0); zoom = 1.9; }
+  else { float a = smoothstep(40.0, 45.0, t); ro = mix(vec3(-1.5, 1.6, 0.95), vec3(-1.45, 1.62, 0.9), a); obj = vec3(0.2, 0.95, -0.45); zoom = 1.3; }                  /* desde el otro rincón: las dos calladas, la ventana */
+  mirar(ro, obj, uv + tiemblo, zoom, 0.0, rd);
+}
+</script>
+<script id="glsl-10-acuna" type="x-shader/x-fragment">
+/* Escena 10: sábado al mediodía. Un semirrígido amarrado al muelle hundido, con el motor al ralentí; Acuña, de camisa celeste y seco de
+   pies, en la galería con el agua abajo; Verónica en la puerta. «La escritura es el martes a las once. Si no, la seña doble.»
+   «¿Cuándo lo vio por última vez?» Al final él vuelve hacia la escalera. */
+Clima clima(float t) { return Clima(0.62, 0.0, 0.97, 0.22, 0.03, 0.45, vec2(-0.75, 0.0)); }
+vec3 sunDir(float t) { return normalize(vec3(0.3, 0.6, 0.5)); }
+float nivelAgua(float t) { return 1.08 + 0.01 * sin(t * 1.7); } /* el muelle (0,3) hundido, la galería (1,2) con el agua abajo */
+Luz luz(int i, float t) { return Luz(vec3(0.0), vec3(0.0), 0.0); }
+vec4 aguaExtra(vec3 pos, float t) {
+  /* la corriente contra los postes y la estela del motor al ralentí, detrás del semirrígido */
+  vec2 h = pos.xz + vec2(0.9 * t, 0.0);
+  float basura = step(0.9, noise(h * 1.3)) * step(0.5, noise(h * 5.0 + 1.0)) * 0.5;
+  float estela = smoothstep(0.6, 0.0, length(pos.xz - vec2(3.7, -5.4))) * (0.5 + 0.5 * noise(pos.xz * 12.0 + t * 4.0));
+  return vec4(0.0, estela * 0.8, 0.0, basura);
+}
+vec3 posAcuna(float t) { return mix(vec3(0.35, 1.2, -2.3), vec3(0.15, 1.2, -2.55), smoothstep(30.5, 33.5, t)); }
+float dirAcuna(float t) { return mix(-PI * 0.5, PI * 0.5 - 0.6, smoothstep(30.0, 31.5, t)); } /* mira a la puerta (+z); al final se da vuelta hacia la escalera */
+vec2 mapaMundo(vec3 p, float t) {
+  vec2 r = casa(p, 0.0, 1.0, 0.0);
+  float ds = length(p - vec3(-6.0, 1.5, 6.0)) - 4.0;
+  if (ds < 0.2) r = u2(r, sauce(p - vec3(-6.0, 0.0, 6.0), t, 4.0, 0.45)); else if (ds < r.x) r = vec2(ds, 0.0);
+  float ds2 = length(p - vec3(6.5, 1.5, 4.0)) - 4.0;
+  if (ds2 < 0.2) r = u2(r, sauce(p - vec3(6.5, 0.0, 4.0), t, 11.0, 0.45)); else if (ds2 < r.x) r = vec2(ds2, 0.0);
+  float alto = 0.15 + 0.2 * smoothstep(-1.0, 3.0, p.z) + 0.06 * fbm4(p.xz * 1.5);
+  float tierra = smax(p.y - alto, -(p.z + 0.5 + 0.8 * noise(p.xx * 0.4)), 0.8);
+  r = u2(r, vec2(tierra, 17.0));
+  /* el semirrígido, amarrado al poste de la esquina del muelle (que asoma apenas), con la proa al muelle */
+  vec3 qs = p - vec3(2.3, 1.08, -5.3); qs.y += 0.03 * sin(t * 1.3 + 1.0); qs.xz = rot(0.35) * qs.xz; qs.xy = rot(0.02 * sin(t * 1.1)) * qs.xy; qs.yz = rot(0.025 * sin(t * 0.9)) * qs.yz;
+  float dsr = length(qs - vec3(0.0, 0.3, 0.0)) - 3.0;
+  if (dsr < 0.2) { vec2 sr = semirrigido(vec3(-qs.x, qs.y, qs.z) / 0.85); sr.x *= 0.85; r = u2(r, sr); } else if (dsr < r.x) r = vec2(dsr, 0.0); /* un semirrígido de 3,9 m */
+  float soga = sdCap(p, vec3(0.4, 0.52, -4.5), vec3(0.75, 1.4, -4.85), 0.012);
+  if (soga < r.x) r = vec2(soga, 5.0);
+  /* la chata de Martín, atada a la baranda, flotando alto */
+  vec3 qc = p - vec3(-2.6, 1.06, -3.6); qc.y += 0.02 * sin(t * 1.3); qc.xy = rot(0.02 * sin(t * 1.1)) * qc.xy;
+  float dc = length(qc - vec3(0.0, 0.3, 0.0)) - 1.8;
+  if (dc < 0.2) r = u2(r, chata(qc)); else if (dc < r.x) r = vec2(dc, 0.0);
+  /* Acuña, en la galería frente a la puerta: parado derecho, una mano en el bolsillo, la otra explica */
+  vec3 pa = posAcuna(t);
+  float da = length(p - (pa + vec3(0.0, 0.9, 0.0))) - 1.3;
+  if (da < 0.2) {
+    vec3 q = rotY(p - pa, dirAcuna(t));
+    float paso = smoothstep(30.5, 31.0, t) * (1.0 - smoothstep(33.0, 33.5, t));
+    Pose P = poseDePie(t * 2.0 * PI / 0.8, paso);
+    float habla = smoothstep(4.5, 5.5, t) * (1.0 - smoothstep(12.5, 13.5, t)) + smoothstep(18.0, 19.0, t) * (1.0 - smoothstep(24.0, 25.0, t));
+    float gesto = 0.5 + 0.5 * sin(t * 2.3);
+    P.manoI = mix(P.manoI, vec3(-0.08, 0.86, -0.19), 1.0 - paso); /* la izquierda en el bolsillo */
+    P.manoD = mix(P.manoD, mix(vec3(-0.1, 0.9, 0.2), vec3(-0.3, 1.1 + 0.08 * gesto, 0.1 + 0.05 * gesto), habla), 1.0 - paso); P.agarreD = vec3(0.0, 0.0, -1.0);
+    P.codoD = P.homD + vec3(-0.02, -0.26, 0.08); P.codoI = vec3(0.1, 1.1, -0.26);
+    P.pitch = 0.05 - 0.08 * smoothstep(14.5, 15.5, t) * (1.0 - smoothstep(18.0, 19.0, t)); P.yaw = 0.06 * sin(t * 0.6) * habla;
+    r = u2(r, persona(q, P, aspectoAcuna()));
+  } else if (da < r.x) r = vec2(da, 0.0);
+  /* Verónica, en el vano de la puerta, de brazos cruzados */
+  vec3 pv = vec3(0.05, 1.2, -1.45);
+  float dv = length(p - (pv + vec3(0.0, 0.9, 0.0))) - 1.3;
+  if (dv < 0.2) {
+    vec3 q = rotY(p - pv, PI * 0.5 + 0.1);
+    Pose P = poseDePie(0.0, 0.0);
+    P = brazosCruzados(P, 0.015 * sin(t * 0.8));
+    P.pitch = -0.05 + 0.05 * smoothstep(24.5, 26.0, t); P.yaw = 0.04 * sin(t * 0.5) - 0.4 * smoothstep(30.5, 31.5, t); /* al final mira hacia el río */
+    r = u2(r, persona(q, P, aspectoVeronica()));
+  } else if (dv < r.x) r = vec2(dv, 0.0);
+  return r;
+}
+void camara(float t, vec2 uv, out vec3 ro, out vec3 rd) {
+  vec2 tiemblo = vec2(0.0012 * sin(t * 1.1), 0.0016 * sin(t * 0.8 + 1.0));
+  vec3 obj; float zoom = 1.4;
+  vec3 cabA = posAcuna(t) + vec3(0.0, 1.62, 0.0), cabV = vec3(0.05, 1.2 + 1.67 * 0.94, -1.45);
+  if (t < 5.0) { float a = smoothstep(0.0, 5.0, t); ro = mix(vec3(6.4, 2.2, -10.6), vec3(6.1, 2.15, -10.2), a); obj = vec3(0.6, 1.7, -3.2); zoom = 1.5; }                /* desde el agua: el semirrígido, el muelle hundido, los dos en la galería */
+  else if (t < 13.5) { float a = smoothstep(5.0, 13.5, t); ro = mix(vec3(-0.45, 2.75, -1.7), vec3(-0.4, 2.72, -1.75), a); obj = cabA + vec3(0.0, -0.05, 0.0); zoom = 1.9; } /* Acuña, por encima del hombro de ella */
+  else if (t < 18.0) { ro = vec3(0.8, 2.7, -2.5); obj = cabV + vec3(0.0, -0.05, 0.0); zoom = 2.0; }                                                                       /* Verónica en la puerta */
+  else if (t < 24.5) { float a = smoothstep(18.0, 24.5, t); ro = mix(vec3(-0.5, 2.7, -1.6), vec3(-0.55, 2.68, -1.65), a); obj = cabA + vec3(0.0, -0.05, 0.0); zoom = 2.1; }  /* Acuña, más cerca */
+  else if (t < 30.0) { float a = smoothstep(24.5, 30.0, t); ro = mix(vec3(0.75, 2.72, -2.45), vec3(0.7, 2.7, -2.4), a); obj = cabV + vec3(0.0, -0.06, 0.0); zoom = 2.3; }   /* ella, callada: «Martín estaba vivo» */
+  else { float a = smoothstep(30.0, 35.0, t); ro = mix(vec3(5.4, 2.1, -9.8), vec3(5.2, 2.05, -9.5), a); obj = vec3(0.4, 1.75, -3.0); zoom = 1.5; }                        /* otra vez desde el agua: él va a la escalera */
+  mirar(ro, obj, uv + tiemblo, zoom, 0.0, rd);
+}
+</script>
+<script id="glsl-11-mensaje" type="x-shader/x-fragment">
+/* Escena 11: sábado a las 16, la cocina de arriba. El teléfono de Ana sobre la mesa, con once por ciento y una raya que viene y va.
+   Verónica lo levanta y lo abre: un mensaje del miércoles a las 14.10. Ana en la puerta, con el pelo mojado de la ducha.
+   «Es una despedida, Verónica.» … «Leelas mejor.» Se va. */
+Clima clima(float t) { return Clima(0.45, 0.0, 0.97, 0.0, 0.03, 0.6, vec2(-0.7, 0.0)); }
+vec3 sunDir(float t) { return normalize(vec3(0.2, 0.5, -1.0)); }
+float nivelAgua(float t) { return -2.2; } /* el agua a 1,5 m: ya tapó la galería y entra en la planta baja */
+Luz luz(int i, float t) { if (i == 0) return Luz(vec3(-1.0, 1.3, -1.05), vec3(0.7, 0.76, 0.9), 2.2 * (1.0 + 0.8 * uFlash)); return Luz(vec3(1.0, 1.3, -1.05), vec3(0.7, 0.76, 0.9), 2.2 * (1.0 + 0.8 * uFlash)); }
+vec4 aguaExtra(vec3 pos, float t) { return vec4(0.0); }
+/* el celular: sobre la mesa hasta que ella lo levanta (3 a 5 s) y lo lee en la mano, de frente a la cara; a los 11,5 lo apoya otra vez */
+float enMano(float t) { return smoothstep(3.0, 5.0, t) * (1.0 - smoothstep(11.0, 12.0, t)); }
+vec3 posCelu(float t) { return mix(vec3(-0.15, 0.766, -0.22), vec3(-0.48, 1.08, -0.2), enMano(t)); }
+/* Ana: en la puerta de 0 a 37, se va por el pasillo */
+vec3 posAna(float t) { return mix(vec3(-1.72, 0.0, 0.5), vec3(-2.9, 0.0, 0.5), smoothstep(36.8, 39.5, t)); }
+vec2 mapaMundo(vec3 p, float t) {
+  vec2 r = cocinaArriba(p);
+  if (p.z < -1.3) { vec2 o = orilla(p + vec3(0.0, 0.55, 0.0), t, -24.0, -1.0, 5.0, 0.6); if (o.x < r.x) r = o; }
+  float ds = length(p - vec3(6.0, 0.5, -2.0)) - 4.0;
+  if (ds < 0.2) r = u2(r, sauce(p - vec3(6.0, -0.55, -2.0), t, 9.0, 0.6)); else if (ds < r.x) r = vec2(ds, 0.0);
+  /* sobre la mesa: las dos tazas, la tabla con el pan de la mañana, las libretas apiladas; y el celular */
+  float tazas = min(max(sdCil(p - vec3(0.45, 0.8, -0.48), 0.045, 0.04), -sdCil(p - vec3(0.45, 0.82, -0.48), 0.045, 0.035)), max(sdCil(p - vec3(-0.4, 0.8, -0.45), 0.045, 0.04), -sdCil(p - vec3(-0.4, 0.82, -0.45), 0.045, 0.035)));
+  if (tazas < r.x) r = vec2(tazas, 20.0);
+  float tabla = sdBox3(p - vec3(0.3, 0.77, -0.2), vec3(0.17, 0.01, 0.12)) - 0.005;
+  if (tabla < r.x) r = vec2(tabla, 29.0);
+  float pan = sdElip(p - vec3(0.33, 0.83, -0.17), vec3(0.08, 0.05, 0.05)) + 0.004 * noise(p.xz * 50.0);
+  if (pan < r.x) r = vec2(pan, 55.0);
+  float libretas = sdBox3(p - vec3(0.05, 0.79, 0.05), vec3(0.08, 0.02, 0.11)) - 0.004;
+  libretas = min(libretas, sdBox3(rotY(p - vec3(0.06, 0.83, 0.06), 0.2), vec3(0.075, 0.018, 0.105)) - 0.004);
+  if (libretas < r.x) r = vec2(libretas, 4.0);
+  float m = enMano(t);
+  vec3 qc = p - posCelu(t); qc.yz = rot(1.15 * m) * qc.yz; qc.xz = rot(-0.2 * m) * qc.xz; /* en la mano, parado, con la pantalla hacia la cara */
+  float celu = sdBox3(qc, vec3(0.036, 0.004, 0.075)) - 0.004;
+  float pantalla = sdBox3(qc - vec3(0.0, 0.0075, 0.0), vec3(0.032, 0.001, 0.068));
+  if (pantalla < 0.01) gPantalla = vec2(qc.x / 0.064 + 0.5, 0.5 - qc.z / 0.136); /* el extremo -z es el de arriba (el que queda lejos de la mano) */
+  if (celu < r.x) r = vec2(celu, 34.0);
+  if (pantalla < r.x) r = vec2(pantalla, 56.0);
+  /* Verónica, sentada en su silla: estira la mano al celular, lo lee, lo apoya; después mira a Ana */
+  vec3 pv = vec3(-0.78, 0.0, -0.2);
+  float dv = length(p - (pv + vec3(0.0, 0.8, 0.0))) - 1.1;
+  if (dv < 0.2) {
+    vec3 q = rotY(p - pv, PI);
+    Pose P = poseSilla();
+    float alcanza = smoothstep(2.0, 3.0, t) * (1.0 - smoothstep(11.5, 12.5, t));
+    vec3 celuL = rotY(posCelu(t) - pv, PI) + vec3(0.0, -0.02, 0.0) + vec3(0.0, 0.0, 0.0);
+    P.manoD = mix(vec3(-0.32, 0.8, 0.1), celuL + vec3(0.02, -0.03 * m, 0.0), alcanza); P.agarreD = mix(vec3(0.0, -1.0, 0.0), vec3(-0.6, -0.2, 0.0), m);
+    P.manoI = vec3(-0.3, 0.8, -0.12); P.agarreI = vec3(0.0, -1.0, 0.0);
+    P.codoD = mix(P.codoD, vec3(0.05, 0.75, 0.25), alcanza);
+    /* mira la pantalla; después, a Ana en la puerta (a su izquierda, atrás) */
+    float aAna = smoothstep(11.5, 12.5, t);
+    P.pitch = -0.3 * m - 0.1 * (1.0 - m) * (1.0 - aAna) + 0.08 * aAna; P.yaw = 0.95 * aAna * (1.0 - smoothstep(37.5, 39.0, t)) + 0.04 * sin(t * 0.4);
+    P.pecho.x -= 0.06 * m; P.hom.x -= 0.08 * m; P.cab.x -= 0.1 * m; P.homI.x -= 0.08 * m; P.homD.x -= 0.08 * m;
+    P = resolver(P);
+    r = u2(r, persona(q, P, aspectoVeronica()));
+  } else if (dv < r.x) r = vec2(dv, 0.0);
+  /* Ana, parada en el vano de la puerta con el pelo mojado y una toalla al cuello, los brazos cruzados; se va al final */
+  vec3 pa = posAna(t);
+  float da = length(p - (pa + vec3(0.0, 0.9, 0.0))) - 1.3;
+  if (da < 0.2) {
+    float seVa = smoothstep(36.5, 37.3, t);
+    vec3 q = rotY(p - pa, mix(PI - 0.25, 2.0 * PI, seVa)); /* mira a la mesa (+x); al irse se da vuelta y camina hacia -x */
+    float paso = smoothstep(36.8, 37.3, t) * (1.0 - smoothstep(39.2, 39.6, t));
+    Pose P = poseDePie(t * 2.0 * PI / 0.8, paso);
+    P = mezclarPose(brazosCruzados(P, 0.0), P, seVa);
+    float hombros = 0.03 * smoothstep(16.5, 17.0, t) * (1.0 - smoothstep(18.0, 18.6, t));
+    P.hom.y += hombros; P.homI.y += hombros; P.homD.y += hombros;
+    P.yaw = 0.1 * sin(t * 0.5) * (1.0 - seVa); P.pitch = -0.1 + 0.08 * smoothstep(33.5, 34.5, t);
+    P.cad.z += 0.03; /* apoyada en el marco */
+    vec2 v = persona(q, P, aspectoAna());
+    /* la toalla al cuello */
+    /* la toalla sobre los hombros: una banda chata por la nuca y dos puntas que cuelgan por delante, en el marco escalado del rig */
+    vec3 qs = q / 0.92; vec3 H = P.hom;
+    float toalla = sdCap(qs, H + vec3(0.04, 0.04, -0.2), H + vec3(0.04, 0.04, 0.2), 0.03);
+    toalla = min(toalla, sdCap(qs, H + vec3(0.0, 0.05, -0.2), H + vec3(-0.15, -0.3, -0.12), 0.03));
+    toalla = min(toalla, sdCap(qs, H + vec3(0.0, 0.05, 0.2), H + vec3(-0.15, -0.26, 0.12), 0.03));
+    v = u2(v, vec2(toalla * 0.92, 24.0));
+    r = u2(r, v);
+  } else if (da < r.x) r = vec2(da, 0.0);
+  return r;
+}
+void camara(float t, vec2 uv, out vec3 ro, out vec3 rd) {
+  vec2 tiemblo = vec2(0.001 * sin(t * 1.1), 0.0012 * sin(t * 0.8 + 1.0));
+  vec3 obj; float zoom = 1.4;
+  vec3 cabV = vec3(-0.78 + 0.03, 1.22 * 0.94, -0.2), cabA = posAna(t) + vec3(0.0, 1.67 * 0.92, 0.0);
+  bool aAna = (t >= 11.5 && t < 14.0) || (t >= 15.5 && t < 24.0) || (t >= 26.5 && t < 29.5) || (t >= 33.5 && t < 37.0);
+  bool aVero = (t >= 14.0 && t < 15.5) || (t >= 24.0 && t < 26.5) || (t >= 29.5 && t < 33.5);
+  if (t < 3.0) { float a = smoothstep(0.0, 3.0, t); ro = mix(vec3(1.4, 1.65, 0.9), vec3(1.35, 1.6, 0.85), a); obj = vec3(-0.3, 0.9, -0.3); zoom = 1.3; }                  /* la mesa con el celular, ella sentada, la lluvia en la ventana */
+  else if (t < 5.5) { ro = vec3(0.35, 1.3, 0.3); obj = vec3(-0.25, 0.85, -0.22); zoom = 2.0; }                                                                        /* la mano que lo levanta */
+  else if (t < 11.5) { float a = smoothstep(5.5, 11.5, t); vec3 c = posCelu(t); ro = mix(vec3(-0.6, 1.33, -0.06), vec3(-0.61, 1.32, -0.07), a); obj = c; zoom = 2.6; } /* la pantalla, desde sus ojos */
+  else if (aAna) { ro = vec3(-0.45, 1.5, -0.35); obj = cabA + vec3(0.0, -0.1, 0.0); zoom = (t >= 15.5 && t < 24.0) ? 2.0 : 1.6; }                                     /* Ana en la puerta, desde la mesa */
+  else if (aVero) { ro = vec3(0.3, 1.45, 0.5); obj = cabV + vec3(0.0, -0.05, 0.0); zoom = 2.0; }                                                                        /* Verónica, de frente, desde el lado de la silla de Ana */
+  else { float a = smoothstep(37.0, 40.0, t); ro = mix(vec3(1.45, 1.7, 0.95), vec3(1.4, 1.68, 0.9), a); obj = vec3(-0.9, 1.0, 0.1); zoom = 1.25; }                   /* desde el rincón: Ana que se va por la puerta, Verónica sola en la mesa */
+  mirar(ro, obj, uv + tiemblo, zoom, 0.0, rd);
+}
+</script>
+<script id="glsl-12-llave" type="x-shader/x-fragment">
+/* Escena 12: sábado a las 23, el pico del agua. Adentro, a la luz de una vela: Ana baja con la capucha puesta por el tramo de arriba;
+   Verónica en el descanso le cierra el paso. Forcejeo. La empuja escalera arriba hasta la pieza de Martín, cierra la puerta y
+   da vuelta la llave; se sienta en el pasillo con las libretas. «¡Verónica, abrí la puerta!» «Mañana. Cuando baje el agua.» */
+Clima clima(float t) { return Clima(0.08, 0.0, 0.95, 0.0, 0.03, 0.95, vec2(-0.9, 0.0)); }
+vec3 sunDir(float t) { return normalize(vec3(0.5, 0.1, 1.0)); }
+float nivelAgua(float t) { return 2.48 + 0.015 * sin(t * 2.3) + 0.01 * sin(t * 3.7); } /* el agua a 30 cm del descanso */
+/* la vela: en el poste del pasamanos del descanso hasta que Verónica la lleva arriba (19 a 22,5) y la deja en el borde de la ventana del pasillo */
+vec3 posVela(float t) { return mix(vec3(0.82, 3.28, 1.3), vec3(-1.72, 4.45, 1.2), smoothstep(19.0, 22.5, t)); }
+Luz luz(int i, float t) { return Luz(posVela(t) + vec3(0.0, 0.14, 0.0), vec3(1.0, 0.72, 0.4), 4.2 + 0.7 * noise(vec2(t * 9.0, 0.0)) + 0.3 * sin(t * 31.0)); }
+vec4 aguaExtra(vec3 pos, float t) { vec2 h = pos.xz + vec2(0.1 * t, 0.05 * t); float hojas = step(0.82, noise(h * 2.5)) * step(0.5, noise(h * 8.0 + 2.0)) * 0.8; return vec4(0.0, 0.0, 0.0, hojas); }
+float puertaAbierta(float t) { return 1.0 - smoothstep(21.0, 21.6, t); } /* abierta hasta el golpe */
+/* ---- Ana: baja el tramo de arriba (0 a 4), se planta en el descanso, forcejea (17,5 a 19,5), retrocede escalera arriba hasta la puerta (19,5 a 21) y adentro ---- */
+vec3 posAna(float t) {
+  vec3 p = mix(vec3(-1.45, 3.7, 1.25), vec3(0.45, 2.83, 1.25), smoothstep(0.0, 4.0, t));
+  p = mix(p, vec3(0.62, 2.83, 1.25), smoothstep(17.3, 17.8, t));
+  p.x += 0.04 * sin(t * 9.0) * smoothstep(17.5, 18.0, t) * (1.0 - smoothstep(19.3, 19.8, t)); /* el forcejeo */
+  p = mix(p, vec3(-1.4, 3.7, 0.95), smoothstep(19.5, 21.0, t));
+  p = mix(p, vec3(-1.4, 3.7, -0.15), smoothstep(20.6, 21.4, t)); /* adentro de la pieza */
+  return p;
+}
+vec3 posVero(float t) {
+  vec3 p = vec3(1.4, 2.83, 1.1);
+  p = mix(p, vec3(1.15, 2.83, 1.25), smoothstep(17.3, 17.8, t));
+  p.x += 0.04 * sin(t * 9.0 + 0.5) * smoothstep(17.5, 18.0, t) * (1.0 - smoothstep(19.3, 19.8, t));
+  p = mix(p, vec3(-0.75, 3.7, 1.05), smoothstep(19.5, 21.0, t));  /* sube detrás de ella */
+  p = mix(p, vec3(-1.15, 3.7, 0.75), smoothstep(21.0, 21.5, t));  /* cierra la puerta */
+  p = mix(p, vec3(-1.58, 3.7, 1.35), smoothstep(23.5, 26.5, t));  /* se aparta hasta la pared del rellano, bajo la ventana */
+  return p;
+}
+vec2 mapaMundo(vec3 p, float t) {
+  vec2 r = interiorCasa(p, puertaAbierta(t));
+  float sentada = smoothstep(26.0, 27.5, t);
+  /* la vela, las libretas (en el piso del pasillo desde que se sienta) */
+  vec3 pv = posVela(t);
+  float dvl = length(p - (pv + vec3(0.0, 0.1, 0.0))) - 0.3;
+  if (dvl < 0.05) r = u2(r, vela(p - pv, t)); else if (dvl < r.x) r = vec2(dvl, 0.0);
+  if (sentada > 0.5) {
+    float libretas = sdBox3(p - vec3(-1.25, 3.72, 1.7), vec3(0.08, 0.015, 0.11)) - 0.004;
+    libretas = min(libretas, sdBox3(rotY(p - vec3(-1.6, 3.72, 0.85), 0.4), vec3(0.08, 0.012, 0.11)) - 0.004);
+    if (libretas < r.x) r = vec2(libretas, 4.0);
+  }
+  /* la mesa de la abuela flotando abajo, de costado, y una silla */
+  vec3 qm = p - vec3(0.2, nivelAgua(t) + 0.03 * sin(t * 1.5), -0.6); qm.xz = rot(0.5) * qm.xz; qm.xy = rot(0.06 * sin(t * 1.2)) * qm.xy;
+  float mesa = sdBox3(qm, vec3(0.45, 0.02, 0.35)) - 0.01;
+  for (int i = 0; i < 4; i++) { vec3 pata = vec3((i < 2 ? -0.4 : 0.4), 0.32, (mod(float(i), 2.0) < 0.5 ? -0.3 : 0.3)); mesa = min(mesa, sdBox3(qm - pata, vec3(0.025, 0.32, 0.025))); }
+  if (mesa < r.x) r = vec2(mesa, 29.0);
+  /* Ana, con la capucha del impermeable */
+  vec3 pa = posAna(t);
+  float da = length(p - (pa + vec3(0.0, 0.9, 0.0))) - 1.3;
+  if (da < 0.2) {
+    float baja = 1.0 - smoothstep(3.6, 4.0, t), empujada = smoothstep(19.5, 19.9, t) * (1.0 - smoothstep(20.9, 21.3, t));
+    float a = mix(PI, PI, baja); a = mix(a, PI, 1.0); /* siempre de frente a +x: baja hacia +x y retrocede hacia -x */
+    vec3 q = rotY(p - pa, a);
+    Pose P = poseDePie(t * 2.0 * PI / 0.9, max(baja, empujada) * 0.7);
+    float forcejeo = smoothstep(17.5, 18.0, t) * (1.0 - smoothstep(19.6, 20.0, t));
+    float habla = smoothstep(3.5, 4.5, t) * (1.0 - smoothstep(9.5, 10.5, t));
+    /* las manos: al bajar, una en el pasamanos; parada, caídas y cerradas; en el forcejeo, contra los brazos de Verónica */
+    P.manoI = mix(P.manoI, vec3(-0.35, 1.25, -0.2), forcejeo); P.manoD = mix(P.manoD, vec3(-0.35, 1.2, 0.2), forcejeo);
+    P.agarreI = mix(P.agarreI, vec3(-1.0, 0.0, 0.0), forcejeo); P.agarreD = mix(P.agarreD, vec3(-1.0, 0.0, 0.0), forcejeo);
+    P.manoD = mix(P.manoD, vec3(-0.25, 1.05, 0.15), habla * (0.5 + 0.5 * sin(t * 2.0))); /* un gesto corto mientras habla */
+    float inclina = 0.12 * forcejeo - 0.08 * empujada; P.pecho.x -= inclina * 0.6; P.hom.x -= inclina; P.cab.x -= inclina; P.homI.x -= inclina; P.homD.x -= inclina;
+    P.pitch = -0.1 * baja + 0.05 * habla - 0.15 * forcejeo; P.yaw = 0.05 * sin(t * 0.7);
+    P = resolver(P);
+    vec2 v = persona(q, P, aspectoAna());
+    /* la capucha: un casquete alrededor de la cabeza, abierto adelante */
+    vec3 hc = q / 0.92 - P.cab;
+    float capucha = max(length(hc * vec3(1.0, 0.95, 1.0) - vec3(0.02, 0.0, 0.0)) - 0.165, -(length(hc - vec3(0.02, 0.0, 0.0)) - 0.145));
+    capucha = max(capucha, (P.cab.x - 0.07) - (q.x / 0.92)); /* abierta en la cara */
+    capucha = min(capucha, sdCap(q / 0.92, P.cab + vec3(0.05, -0.15, -0.14), P.hom + vec3(-0.05, 0.0, -0.17), 0.05));
+    capucha = min(capucha, sdCap(q / 0.92, P.cab + vec3(0.05, -0.15, 0.14), P.hom + vec3(-0.05, 0.0, 0.17), 0.05));
+    v = u2(v, vec2(capucha * 0.92, 26.0));
+    r = u2(r, v);
+  } else if (da < r.x) r = vec2(da, 0.0);
+  /* Verónica */
+  vec3 pw = posVero(t);
+  float dv = length(p - (pw + vec3(0.0, 0.9, 0.0))) - 1.3;
+  if (dv < 0.2) {
+    float sube = smoothstep(19.5, 19.9, t) * (1.0 - smoothstep(20.9, 21.3, t)), camina = smoothstep(23.5, 23.9, t) * (1.0 - smoothstep(26.2, 26.6, t));
+    float cierra = smoothstep(21.0, 21.5, t) * (1.0 - smoothstep(23.0, 23.5, t));
+    float a = 0.0; a = mix(a, PI * 0.5, smoothstep(20.8, 21.3, t)); a = mix(a, 0.0, smoothstep(23.4, 23.9, t)); a = mix(a, -PI, smoothstep(26.0, 26.8, t)); /* mira a Ana (-x); a la puerta (-z); camina a -x; sentada contra la pared del oeste mira a +x */
+    vec3 q = rotY(p - pw, a);
+    Pose P = poseDePie(t * 2.0 * PI / 0.85, max(sube, camina) * 0.7);
+    float forcejeo = smoothstep(17.5, 18.0, t) * (1.0 - smoothstep(19.6, 20.0, t));
+    float bloquea = smoothstep(10.0, 12.0, t) * (1.0 - smoothstep(17.3, 17.8, t));
+    P = mezclarPose(P, brazosCruzados(P, 0.0), bloquea);
+    P.manoI = mix(P.manoI, vec3(-0.42, 1.35, -0.17), forcejeo); P.manoD = mix(P.manoD, vec3(-0.42, 1.3, 0.17), forcejeo); /* las manos en los hombros de Ana */
+    P.agarreI = mix(P.agarreI, vec3(-1.0, 0.0, 0.0), forcejeo); P.agarreD = mix(P.agarreD, vec3(-1.0, 0.0, 0.0), forcejeo);
+    vec3 picaporte = rotY(vec3(-1.08, 4.65, 0.22) - pw, a), llave = rotY(vec3(-1.08, 4.58, 0.27) - pw, a);
+    float enLlave = smoothstep(22.2, 22.6, t) * (1.0 - smoothstep(23.0, 23.4, t));
+    P.manoD = mix(P.manoD, mix(picaporte, llave, enLlave), cierra); P.agarreD = mix(P.agarreD, vec3(0.0, 0.0, -1.0), cierra);
+    vec3 velaL = rotY(posVela(t) - pw, a) + vec3(0.0, -0.02, 0.0);
+    float conVela = smoothstep(19.0, 19.4, t) * (1.0 - smoothstep(22.3, 22.7, t));
+    P.manoI = mix(P.manoI, velaL, conVela); P.agarreI = mix(P.agarreI, vec3(0.0, 1.0, 0.0), conVela);
+    float inclina = 0.14 * forcejeo; P.pecho.x -= inclina * 0.6; P.hom.x -= inclina; P.cab.x -= inclina; P.homI.x -= inclina; P.homD.x -= inclina;
+    P.pitch = -0.08 - 0.1 * forcejeo - 0.1 * cierra; P.yaw = 0.04 * sin(t * 0.5);
+    /* sentada en el pasillo, la espalda contra la pared del fondo, las libretas al lado; mira la puerta de Ana */
+    if (sentada > 0.0) {
+      Pose S = poseSilla(); S.cad = vec3(0.12, 0.1, 0.0); S.pecho = vec3(0.1, 0.36, 0.0); S.hom = vec3(0.1, 0.56, 0.0); S.cab = vec3(0.08, 0.81, 0.0);
+      S.homI = S.hom + vec3(0.0, -0.03, -0.18); S.homD = S.hom + vec3(0.0, -0.03, 0.18);
+      S.rodI = vec3(-0.3, 0.42, -0.12); S.rodD = vec3(-0.3, 0.42, 0.12); S.pieI = vec3(-0.6, 0.05, -0.13); S.pieD = vec3(-0.62, 0.05, 0.13); /* las rodillas levantadas */
+      S.manoI = vec3(-0.3, 0.45, -0.14); S.manoD = vec3(-0.3, 0.45, 0.14); S.codoI = vec3(-0.05, 0.4, -0.25); S.codoD = vec3(-0.05, 0.4, 0.25);
+      S.pitch = -0.15 + 0.1 * smoothstep(31.0, 31.5, t); S.yaw = 0.0;
+      P = mezclarPose(P, S, sentada);
+    }
+    P = resolver(P);
+    vec2 v = persona(q, P, aspectoVeronica());
+    r = u2(r, v);
+  } else if (dv < r.x) r = vec2(dv, 0.0);
+  return r;
+}
+void camara(float t, vec2 uv, out vec3 ro, out vec3 rd) {
+  vec2 tiemblo = vec2(0.0015 * sin(t * 1.3), 0.002 * sin(t * 0.9 + 1.0));
+  vec3 obj; float zoom = 1.4;
+  vec3 cabA = posAna(t) + vec3(0.0, 1.67 * 0.92, 0.0), cabV = posVero(t) + vec3(0.0, 1.67 * 0.94, 0.0);
+  if (t < 4.0) { float a = smoothstep(0.0, 4.0, t); ro = mix(vec3(1.55, 3.45, 0.75), vec3(1.5, 3.4, 0.8), a); obj = cabA + vec3(0.0, -0.3, 0.0); zoom = 1.3; }          /* desde el descanso, por detrás de Verónica: Ana que baja con la capucha */
+  else if (t < 10.5) { float a = smoothstep(4.0, 10.5, t); ro = mix(vec3(1.55, 4.3, 1.75), vec3(1.5, 4.27, 1.7), a); obj = cabA + vec3(0.0, -0.05, 0.0); zoom = 1.9; }  /* Ana: «voy a lo de Elías» */
+  else if (t < 17.3) { float a = smoothstep(10.5, 17.3, t); ro = mix(vec3(0.15, 4.25, 0.95), vec3(0.2, 4.23, 0.9), a); obj = cabV + vec3(0.0, -0.05, 0.0); zoom = 1.9; } /* Verónica: «nadie sale de esta casa» */
+  else if (t < 19.6) { ro = vec3(1.7, 3.95, 1.85); obj = vec3(0.8, 3.85, 1.2); zoom = 1.0; }                                                                              /* el forcejeo, de costado */
+  else if (t < 23.5) { float a = smoothstep(19.6, 23.5, t); ro = mix(vec3(0.7, 4.95, 1.5), vec3(0.4, 4.9, 1.45), a); obj = vec3(-1.25, 4.55, 0.4); zoom = 1.35; }       /* desde el pasillo: la empuja adentro, cierra, la llave */
+  else if (t < 27.5) { float a = smoothstep(23.5, 27.5, t); ro = mix(vec3(0.6, 4.95, 0.55), vec3(0.4, 4.9, 0.6), a); obj = vec3(-1.45, 4.7, 1.1); zoom = 1.2; }           /* se aparta hasta la pared del rellano y se sienta */
+  else { float a = smoothstep(27.5, 35.0, t); ro = mix(vec3(0.35, 4.5, 1.25), vec3(0.25, 4.45, 1.3), a); obj = vec3(-1.55, 4.2, 1.2); zoom = 1.7; }                       /* sentada contra la pared, la vela arriba, la puerta de Ana a la izquierda */
+  mirar(ro, obj, uv + tiemblo, zoom, 0.0, rd);
+}
+</script>
 <script id="glsl-13-luz" type="x-shader/x-fragment">
 /* Escena 7: sábado a la noche, el pico del agua. La ventana del pasillo de arriba desde adentro, con la vela en el borde;
    lluvia contra el vidrio; el viento abre un hueco y arroyo abajo, al nivel del agua, se ve una luz chica y amarilla. */
@@ -1478,6 +2501,125 @@ void camara(float t, vec2 uv, out vec3 ro, out vec3 rd) {
   float a = smoothstep(0.0, 18.0, t);
   ro = mix(vec3(-0.75, 4.95, -0.25), vec3(-0.9, 4.88, -0.7), a);
   mirar(ro, vec3(-1.0, 4.62, -1.4), uv + tiemblo, mix(1.1, 1.3, a), 0.0, rd);
+}
+</script>
+<script id="glsl-14-ella" type="x-shader/x-fragment">
+/* Escena 14: domingo a las 3, el pasillo a la luz de la vela. Las libretas abiertas en el piso y un papel donde Verónica copia las
+   fechas: 7/6, 5/7, 2/8, 6/9, 4/10. Primeros sábados. Saca el boleto del forro: la V con la cola larga, el arrastre del zurdo.
+   «Él la escribió. Y ella soy yo.» Se levanta, abre la puerta con la llave: la pieza vacía, la ventana abierta sobre el agua. */
+Clima clima(float t) { return Clima(0.08, 0.0, 0.95, 0.0, 0.03, 0.7, vec2(-0.9, 0.0)); }
+vec3 sunDir(float t) { return normalize(vec3(0.5, 0.1, 1.0)); }
+float nivelAgua(float t) { return 2.3; }
+const vec3 VELA = vec3(-1.15, 3.7, 0.45); /* en el piso del rellano, del lado de los papeles, para que les dé la luz */
+Luz luz(int i, float t) {
+  if (i == 0) return Luz(VELA + vec3(0.0, 0.14, 0.0), vec3(1.0, 0.72, 0.4), 3.6 + 0.6 * noise(vec2(t * 9.0, 0.0)) + 0.25 * sin(t * 31.0));
+  return Luz(vec3(-1.0, 4.9, -1.2), vec3(0.6, 0.65, 0.85), 1.2 * smoothstep(38.5, 40.0, t) * (1.0 + uFlash)); /* la noche que entra por la ventana abierta */
+}
+vec4 aguaExtra(vec3 pos, float t) { return vec4(0.0); }
+float puertaAbierta(float t) { return smoothstep(38.6, 39.6, t); }
+/* las fechas, una por una, con la voz (4 a 9,7 s); el boleto sale del forro a los 20 y queda al lado del papel */
+float fechas(float t) { return clamp((t - 4.0) / 5.7 * 5.0, 0.0, 5.0); }
+const vec3 PAPELV = vec3(-1.28, 3.722, 0.95);
+const vec3 BOLETO = vec3(-1.5, 3.724, 0.62);
+float papel(vec3 p, float t) {
+  float ink = 0.0;
+  if (abs(p.x - PAPELV.x) < 0.11 && abs(p.z - PAPELV.z) < 0.15) {
+    /* cm sobre el papel, como lo ve ella sentada contra la pared del oeste (mirando a +x): x hacia +z, y hacia +x */
+    vec2 f = vec2((p.z - PAPELV.z) * 100.0 + 7.4, (p.x - PAPELV.x) * 100.0 + 10.5);
+    float n = fechas(t);
+    for (int i = 0; i < 5; i++) {
+      float k = float(i); float y0 = 3.0 + 2.6 * k; float largo = clamp(n - k, 0.0, 1.0) * (3.6 + 0.6 * hash1(k));
+      float d = abs(f.y - y0 - 0.25 * sin((f.x - 2.0) * 3.0 + k)) + 10.0 * (1.0 - step(2.0, f.x) * step(f.x, 2.0 + largo));
+      ink += smoothstep(0.08, 0.03, d) * step(0.35, noise(vec2(f.x * 3.0, k * 5.0)) + 0.3);
+    }
+  } else if (abs(p.x - BOLETO.x) < 0.15 && abs(p.z - BOLETO.z) < 0.11) {
+    vec2 f = vec2((BOLETO.x - p.x) * 100.0 + 14.8, (p.z - BOLETO.z) * 100.0 + 10.5); /* el boleto, cruzado */
+    f = vec2(f.y, 29.6 - f.x);
+    ink += impreso(vec2(f.x, f.y), 2.5, 20.0) * 0.7;
+    ink += tinta((vec2(f.x, f.y) - vec2(1.2, 22.8)) / 1.25, 1.0, 0.0, 1.0);
+    ink += tinta((vec2(f.x, f.y) - vec2(9.5, 23.1)) / 1.1, 1.0, 0.0, 1.0);
+  }
+  return clamp(ink, 0.0, 1.0);
+}
+vec3 posVero(float t) {
+  vec3 p = vec3(-1.58, 3.7, 1.35);
+  p = mix(p, vec3(-1.42, 3.7, 1.1), smoothstep(36.0, 37.0, t));  /* se levanta y va a la puerta, que está ahí nomás */
+  p = mix(p, vec3(-1.4, 3.7, 0.72), smoothstep(36.8, 38.6, t));
+  p = mix(p, vec3(-1.4, 3.7, 0.2), smoothstep(39.6, 41.0, t));   /* en el vano */
+  return p;
+}
+vec2 mapaMundo(vec3 p, float t) {
+  vec2 r = interiorCasa(p, puertaAbierta(t));
+  float dvl = length(p - (VELA + vec3(0.0, 0.1, 0.0))) - 0.3;
+  if (dvl < 0.05) r = u2(r, vela(p - VELA, t)); else if (dvl < r.x) r = vec2(dvl, 0.0);
+  /* las libretas abiertas en el piso, el papel, la lapicera, y el boleto desde los 20 s */
+  float libretas = sdBox3(p - vec3(-1.05, 3.715, 1.2), vec3(0.11, 0.008, 0.08)) - 0.004;
+  libretas = min(libretas, sdBox3(rotY(p - vec3(-1.6, 3.715, 0.45), 0.5), vec3(0.11, 0.008, 0.08)) - 0.004);
+  if (libretas < r.x) r = vec2(libretas, 35.0);
+  float hojaL = min(sdBox3(p - vec3(-1.05, 3.726, 1.2), vec3(0.1, 0.001, 0.075)), sdBox3(rotY(p - vec3(-1.6, 3.726, 0.45), 0.5), vec3(0.1, 0.001, 0.075)));
+  if (hojaL < r.x) r = vec2(hojaL, 44.0);
+  float papelV = sdBox3(p - PAPELV, vec3(0.105, 0.0015, 0.148));
+  if (papelV < r.x) r = vec2(papelV, 44.0);
+  float lapicera = sdCap(p - vec3(-1.12, 3.73, 0.75), vec3(0.0, 0.0, -0.07), vec3(0.0, 0.0, 0.07), 0.005);
+  if (lapicera < r.x) r = vec2(lapicera, 52.0);
+  float sale = smoothstep(18.5, 20.5, t);
+  if (sale > 0.01) {
+    vec3 qb = p - mix(vec3(-1.4, 4.3, 1.1), BOLETO, sale);
+    float boleto = sdBox3(qb, vec3(0.148, 0.0015, 0.105));
+    if (boleto < r.x) r = vec2(boleto, 44.0);
+  }
+  /* Verónica: sentada contra la pared del este escribiendo en el papel; después se levanta, abre y se queda en el vano */
+  vec3 pv = posVero(t);
+  float dv = length(p - (pv + vec3(0.0, 0.9, 0.0))) - 1.3;
+  if (dv < 0.2) {
+    float sentada = 1.0 - smoothstep(35.5, 36.8, t), camina = smoothstep(36.8, 37.2, t) * (1.0 - smoothstep(38.2, 38.6, t)) + smoothstep(39.6, 39.9, t) * (1.0 - smoothstep(40.7, 41.0, t));
+    float a = mix(PI, PI * 0.5, smoothstep(36.4, 37.2, t)); /* sentada mira a +x; se da vuelta hacia la puerta (-z) */
+    vec3 q = rotY(p - pv, a);
+    Pose P = poseDePie(t * 2.0 * PI / 0.85, camina * 0.7);
+    if (sentada > 0.0) {
+      Pose S = poseSilla(); S.cad = vec3(0.12, 0.1, 0.0); S.pecho = vec3(0.08, 0.36, 0.0); S.hom = vec3(0.06, 0.56, 0.0); S.cab = vec3(0.02, 0.81, 0.0);
+      S.homI = S.hom + vec3(0.0, -0.03, -0.18); S.homD = S.hom + vec3(0.0, -0.03, 0.18);
+      S.rodI = vec3(-0.3, 0.42, -0.12); S.rodD = vec3(-0.35, 0.3, 0.14); S.pieI = vec3(-0.6, 0.05, -0.13); S.pieD = vec3(-0.75, 0.05, 0.16);
+      float escribe = smoothstep(3.0, 4.0, t) * (1.0 - smoothstep(10.0, 11.0, t));
+      vec3 lapiz = rotY(vec3(PAPELV.x - 0.075 + 0.026 * floor(fechas(t)), 3.75, PAPELV.z - 0.054 + 0.04 * clamp(fechas(t) - floor(fechas(t)), 0.0, 1.0)) - pv, a);
+      S.manoD = mix(vec3(-0.35, 0.3, 0.2), lapiz + vec3(0.03, 0.03, 0.0), escribe); S.agarreD = mix(vec3(0.0, -1.0, 0.0), vec3(-0.6, -0.8, 0.0), escribe);
+      S.manoI = vec3(-0.45, 0.06, -0.1); S.agarreI = vec3(0.0, -1.0, 0.0); S.codoD = vec3(-0.05, 0.3, 0.3); S.codoI = vec3(-0.1, 0.3, -0.25);
+      float forro = smoothstep(17.5, 18.5, t) * (1.0 - smoothstep(20.5, 21.5, t)); /* la mano al forro de la campera */
+      S.manoD = mix(S.manoD, S.pecho + vec3(-0.14, 0.08, -0.08), forro);
+      float mira = smoothstep(21.0, 22.0, t) * (1.0 - smoothstep(34.0, 35.0, t));
+      S.pitch = -0.55 * max(escribe, mira) - 0.3 * (1.0 - max(escribe, mira)); S.yaw = 0.0;
+      float incl = 0.1 * escribe; S.pecho.x -= incl; S.hom.x -= incl * 1.5; S.cab.x -= incl * 2.0; S.homI.x -= incl * 1.5; S.homD.x -= incl * 1.5;
+      P = mezclarPose(P, S, sentada);
+      if (escribe > 0.01) { P = resolver(P); vec3 m = P.manoD * 0.94; float lap = sdCap(q, m + vec3(-0.03, -0.045, 0.0), m + vec3(0.06, 0.09, 0.0), 0.005); r = u2(r, vec2(lap, 52.0)); }
+    }
+    float llave = smoothstep(38.2, 38.6, t) * (1.0 - smoothstep(39.4, 39.8, t));
+    vec3 picaporte = rotY(vec3(-1.08, 4.65, 0.32) - pv, a);
+    P.manoD = mix(P.manoD, picaporte, llave); P.agarreD = mix(P.agarreD, vec3(0.0, 0.0, -1.0), llave);
+    P.pitch = mix(P.pitch, 0.05, smoothstep(39.6, 40.0, t)); P.yaw = mix(P.yaw, -0.3 * sin((t - 40.0) * 1.5), smoothstep(40.0, 41.0, t));
+    P = resolver(P);
+    r = u2(r, persona(q, P, aspectoVeronica()));
+  } else if (dv < r.x) r = vec2(dv, 0.0);
+  /* adentro de la pieza, la ventana abierta: la hoja girada hacia adentro y la cortina que vuela */
+  if (t > 38.0) {
+    vec3 qh = p - vec3(-1.36, 4.85, -1.4); qh = rotY(qh, 1.9);
+    float hoja = sdBox3(qh - vec3(0.36, 0.0, 0.0), vec3(0.35, 0.44, 0.01));
+    if (hoja < r.x) r = vec2(hoja, 39.0);
+    vec3 qc = p - vec3(-0.8, 4.85, -1.3);
+    float vuela = 0.25 * sin(t * 4.0 + qc.y * 6.0) * smoothstep(0.4, -0.4, qc.y) + 0.1 * sin(t * 6.3 + qc.x * 9.0);
+    float cortina = sdBox3(qc - vec3(0.0, 0.0, 0.3 * smoothstep(0.4, -0.4, qc.y) + vuela), vec3(0.3, 0.5, 0.008 + 0.02 * smoothstep(0.4, -0.4, qc.y)));
+    if (cortina < r.x) r = vec2(cortina, 20.0);
+  }
+  return r;
+}
+void camara(float t, vec2 uv, out vec3 ro, out vec3 rd) {
+  vec2 tiemblo = vec2(0.0015 * sin(t * 1.3), 0.002 * sin(t * 0.9 + 1.0));
+  vec3 obj; float zoom = 1.4;
+  if (t < 13.0) { float a = smoothstep(0.0, 13.0, t); ro = mix(vec3(-1.42, 4.42, 1.08), vec3(-1.4, 4.38, 1.06), a); obj = PAPELV; zoom = 2.2; }       /* el papel desde arriba, desde sus ojos: las fechas que aparecen */
+  else if (t < 20.5) { float a = smoothstep(13.0, 20.5, t); ro = mix(vec3(0.5, 4.6, 0.5), vec3(0.4, 4.55, 0.55), a); obj = vec3(-1.4, 4.1, 1.15); zoom = 1.6; }            /* ella sentada contra la pared del rellano, la vela, las libretas */
+  else if (t < 35.5) { float a = smoothstep(20.5, 35.5, t); ro = mix(vec3(-1.2, 4.3, 0.95), vec3(-1.18, 4.25, 0.92), a); obj = mix(BOLETO, PAPELV, 0.35); zoom = 2.0; }    /* el boleto al lado del papel: la V con la cola, las fechas */
+  else if (t < 39.5) { float a = smoothstep(35.5, 39.5, t); ro = mix(vec3(0.7, 5.0, 1.3), vec3(0.5, 4.95, 1.2), a); obj = vec3(-1.3, 4.85, 0.6); zoom = 1.1; }             /* se levanta y va a la puerta, desde el pasillo */
+  else { float a = smoothstep(39.5, 45.0, t); ro = mix(vec3(-1.15, 5.15, 0.95), vec3(-1.2, 5.1, 0.75), a); obj = vec3(-1.35, 4.45, -1.3); zoom = 1.2; } /* por encima de su hombro, a través del vano */                 /* por encima de su hombro: la pieza vacía, la ventana abierta, la cortina */
+  mirar(ro, obj, uv + tiemblo, zoom, 0.0, rd);
 }
 </script>
 <script id="glsl-15-farol" type="x-shader/x-fragment">
@@ -1653,6 +2795,178 @@ void camara(float t, vec2 uv, out vec3 ro, out vec3 rd) {
   mirar(ro, obj, uv + tiemblo, mix(1.25, 1.9, b), 0.0, rd);
 }
 </script>
+<script id="glsl-16-elias" type="x-shader/x-fragment">
+/* Escena 16: domingo a las 7, adentro del galpón de Elías. La cocina a leña prendida, mantas, el mate, el VHF con la voz de
+   Prefectura. Los cuatro alrededor de la mesa: Martín cuenta mirándose las manos; Ana con la manta hasta el cuello; Elías de
+   espaldas a la cocina; Verónica enfrente de Martín. «Me salía. La mano la hizo sola…» … «No sé qué querés que haga. Por eso te llamé.» */
+Clima clima(float t) { return Clima(0.42, 0.0, 0.95, 0.0, 0.0, 0.2, vec2(0.0)); }
+vec3 sunDir(float t) { return normalize(vec3(-1.0, 0.4, 0.3)); }
+float nivelAgua(float t) { return -50.0; }
+Luz luz(int i, float t) {
+  if (i == 0) return Luz(vec3(2.2, 0.75, 1.9), vec3(1.0, 0.55, 0.2), 3.2 + 0.6 * noise(vec2(t * 7.0, 0.0)) + 0.3 * sin(t * 23.0)); /* la boca de la cocina a leña */
+  if (i == 1) return Luz(vec3(-2.75, 1.5, -0.3), vec3(0.6, 0.68, 0.85), 3.2); /* la mañana gris por la ventana */
+  return Luz(vec3(0.5, 0.88, -0.3), vec3(1.0, 0.72, 0.38), 1.3); /* el farol de Martín, sobre la mesa, todavía prendido */
+}
+vec4 aguaExtra(vec3 pos, float t) { return vec4(0.0); }
+/* la mesa en el medio (0, 0,75, 0), 1,4 × 0,8. Martín en -z mirando a +z, Verónica enfrente en +z, Elías en +x (de espaldas a la cocina, que está en +x),
+   Ana en -x (del lado de la ventana). Sillas a 0,45. */
+const vec3 PM = vec3(0.0, 0.0, -0.78), PV = vec3(0.0, 0.0, 0.78), PE = vec3(1.08, 0.0, 0.0), PA = vec3(-1.08, 0.0, 0.0);
+const float RM = -PI * 0.5, RV = PI * 0.5, RE = 0.0, RA = PI; /* cada uno mira al centro de la mesa: para mirar al ángulo φ, el marco gira φ + π */
+/* el mate va de mano en mano: Elías lo tiene; a los 13,5 se lo pasa a Verónica; a los 33 vuelve a Elías; a los 54 a Martín */
+vec3 posMate(float t) {
+  vec3 p = vec3(0.75, 0.78, 0.3);                                   /* al lado de Elías, sobre la mesa */
+  p = mix(p, vec3(0.3, 0.78, 0.5), smoothstep(13.0, 14.5, t));     /* delante de Verónica */
+  p = mix(p, vec3(0.75, 0.78, 0.3), smoothstep(32.5, 34.0, t));
+  p = mix(p, vec3(0.3, 0.78, -0.5), smoothstep(53.5, 55.0, t));    /* delante de Martín */
+  return p;
+}
+vec2 mapaMundo(vec3 p, float t) {
+  vec2 r = vec2(1e3, 0.0);
+  /* el galpón: 5,2 × 3 × 4, chapa por fuera, tablas por dentro; la ventana en -x, la puerta corrediza en -z (cerrada) */
+  float caja = max(sdBox3(p - vec3(0.0, 1.5, 0.0), vec3(2.75, 1.6, 2.15)), -sdBox3(p - vec3(0.0, 1.5, 0.0), vec3(2.6, 1.5, 2.0)));
+  float ventana = sdBox3(p - vec3(-2.6, 1.5, -0.3), vec3(0.3, 0.4, 0.5));
+  caja = max(caja, -ventana);
+  r = vec2(caja, 33.0);
+  float piso = sdBox3(p - vec3(0.0, -0.05, 0.0), vec3(2.7, 0.05, 2.1));
+  if (piso < r.x) r = vec2(piso, 14.0);
+  float marco = max(sdBox3(p - vec3(-2.6, 1.5, -0.3), vec3(0.06, 0.45, 0.55)), -sdBox3(p - vec3(-2.6, 1.5, -0.3), vec3(0.2, 0.38, 0.48)));
+  marco = min(marco, sdBox3(p - vec3(-2.6, 1.5, -0.3), vec3(0.03, 0.4, 0.02)));
+  if (marco < r.x) r = vec2(marco, 13.0);
+  float vidrio = sdBox3(p - vec3(-2.63, 1.5, -0.3), vec3(0.005, 0.38, 0.48));
+  if (vidrio < r.x) r = vec2(vidrio, 38.0);
+  float puerta = sdBox3(p - vec3(0.3, 1.05, -2.02), vec3(0.88, 1.1, 0.03));
+  if (puerta < r.x) r = vec2(puerta, 32.0);
+  /* la cocina a leña contra la pared de +x: el cuerpo de fundición, la boca con el fuego, el caño que sube, la pava encima; leña apilada al lado */
+  vec3 qc = p - vec3(2.2, 0.0, 1.9);
+  float cocina = sdBox3(qc - vec3(0.0, 0.45, 0.0), vec3(0.35, 0.45, 0.3)) - 0.02;
+  float boca = sdBox3(qc - vec3(-0.36, 0.3, 0.0), vec3(0.06, 0.1, 0.14));
+  cocina = max(cocina, -boca);
+  float cano = sdCil(qc - vec3(0.1, 1.9, 0.0), 1.0, 0.07);
+  float patas = 1e3; for (int i = 0; i < 4; i++) patas = min(patas, sdCil(qc - vec3(i < 2 ? -0.28 : 0.28, 0.05, mod(float(i), 2.0) < 0.5 ? -0.22 : 0.22), 0.06, 0.03));
+  if (min(cocina, min(cano, patas)) < r.x) r = vec2(min(cocina, min(cano, patas)), 34.0);
+  float fuego = sdBox3(qc - vec3(-0.32, 0.28, 0.0), vec3(0.03, 0.07, 0.12));
+  if (fuego < r.x) r = vec2(fuego, 6.0);
+  float pava = sdElip(qc - vec3(0.0, 1.0, 0.0), vec3(0.11, 0.09, 0.11)); pava = min(pava, sdCap(qc, vec3(0.0, 1.07, 0.0), vec3(0.0, 1.17, 0.0), 0.012)); pava = min(pava, sdCap(qc, vec3(-0.09, 1.0, 0.0), vec3(-0.18, 1.08, 0.0), 0.012));
+  if (pava < r.x) r = vec2(pava, 23.0);
+  float lena = 1e3; for (int i = 0; i < 5; i++) { float k = float(i); lena = min(lena, sdCilX(p - vec3(2.3, 0.07 + 0.1 * floor(k / 2.0), 1.1 - 0.12 * mod(k, 2.0) - 0.06 * floor(k / 2.0)), 0.25, 0.05)); }
+  if (lena < r.x) r = vec2(lena, 16.0);
+  /* la mesa de tablas y las cuatro sillas */
+  float mesa = sdBox3(p - vec3(0.0, 0.74, 0.0), vec3(0.7, 0.02, 0.4)) - 0.01;
+  for (int i = 0; i < 4; i++) { vec3 pata = vec3(i < 2 ? -0.64 : 0.64, 0.36, mod(float(i), 2.0) < 0.5 ? -0.34 : 0.34); mesa = min(mesa, sdBox3(p - pata, vec3(0.03, 0.36, 0.03))); }
+  if (mesa < r.x) r = vec2(mesa, 7.0);
+  float sillas = min(min(silla(rotY(p - PM, RM)), silla(rotY(p - PV, RV))), min(silla(rotY(p - PE, RE)), silla(rotY(p - PA, RA)))); /* el respaldo del lado contrario a donde mira */
+  if (sillas < r.x) r = vec2(sillas, 13.0);
+  /* sobre la mesa: el mate con la bombilla, la pava chica, un plato con duraznos, dos jarros; el VHF en el estante con su antena y la lucecita */
+  vec3 qm = p - posMate(t);
+  float mate = sdElip(qm - vec3(0.0, 0.04, 0.0), vec3(0.04, 0.045, 0.04)); mate = max(mate, -sdCil(qm - vec3(0.0, 0.085, 0.0), 0.02, 0.028));
+  float bombilla = sdCap(qm, vec3(0.0, 0.05, 0.0), vec3(0.05, 0.19, -0.03), 0.004);
+  if (mate < r.x) r = vec2(mate, 29.0);
+  if (bombilla < r.x) r = vec2(bombilla, 23.0);
+  float plato = sdCil(p - vec3(-0.3, 0.765, 0.0), 0.006, 0.12);
+  float duraznos = min(min(length(p - vec3(-0.33, 0.81, 0.03)) - 0.038, length(p - vec3(-0.26, 0.81, -0.04)) - 0.036), length(p - vec3(-0.3, 0.86, -0.01)) - 0.034);
+  if (plato < r.x) r = vec2(plato, 20.0);
+  if (duraznos < r.x) r = vec2(duraznos, 57.0);
+  float jarros = max(sdCil(p - vec3(-0.4, 0.8, 0.28), 0.045, 0.04), -sdCil(p - vec3(-0.4, 0.82, 0.28), 0.045, 0.035));
+  if (jarros < r.x) r = vec2(jarros, 34.0);
+  vec3 qf = p - vec3(0.5, 0.76, -0.3);
+  if (length(qf - vec3(0.0, 0.15, 0.0)) < 0.4) r = u2(r, farol(qf));
+  float estante = sdBox3(p - vec3(1.2, 1.7, 1.95), vec3(0.5, 0.015, 0.12));
+  float vhf = sdBox3(p - vec3(1.2, 1.8, 1.92), vec3(0.14, 0.08, 0.09)) - 0.01;
+  vhf = min(vhf, sdCap(p, vec3(1.32, 1.88, 1.92), vec3(1.4, 2.35, 1.92), 0.006));
+  if (estante < r.x) r = vec2(estante, 13.0);
+  if (vhf < r.x) r = vec2(vhf, 34.0);
+  float lucecita = length(p - vec3(1.1, 1.8, 1.82)) - 0.008;
+  if (lucecita < r.x) r = vec2(lucecita, 58.0);
+  /* mantas colgadas de una soga para que se sequen, y la ropa mojada */
+  float soga = sdCap(p, vec3(-2.5, 2.3, 1.5), vec3(1.5, 2.25, 1.9), 0.01);
+  if (soga < r.x) r = vec2(soga, 5.0);
+  vec3 qr = p - vec3(-1.6, 1.85, 1.6); qr.z += 0.02 * sin(qr.y * 8.0 + t * 1.5);
+  float ropa = sdBox3(qr, vec3(0.3, 0.42, 0.015 + 0.01 * noise(qr.xy * 10.0))) - 0.01;
+  qr = p - vec3(-0.5, 1.75, 1.72); float ropa2 = sdBox3(qr, vec3(0.22, 0.5, 0.012)) - 0.01;
+  if (ropa < r.x) r = vec2(ropa, 36.0);
+  if (ropa2 < r.x) r = vec2(ropa2, 25.0);
+  /* ---- los cuatro ---- */
+  /* Martín: mirándose las manos sobre la mesa; levanta la cabeza en «es el martes, Vero» */
+  float dm = length(p - (PM + vec3(0.0, 0.8, 0.0))) - 1.15;
+  if (dm < 0.2) {
+    vec3 q = rotY(p - PM, RM);
+    Pose P = poseSilla();
+    P.manoI = vec3(-0.32, 0.8, -0.08); P.manoD = vec3(-0.3, 0.83, 0.04); /* una mano sobre la otra, los pulgares que se frotan */
+    P.manoD.x += 0.01 * sin(t * 1.5);
+    float habla1 = smoothstep(3.5, 4.5, t) * (1.0 - smoothstep(25.5, 26.5, t)), habla2 = smoothstep(47.5, 48.5, t) * (1.0 - smoothstep(61.0, 62.0, t));
+    float levanta = smoothstep(47.5, 48.5, t) * (1.0 - smoothstep(57.0, 58.0, t)) + smoothstep(58.0, 58.8, t);
+    P.pitch = -0.45 + 0.45 * levanta + 0.05 * sin(t * 0.7) * habla1; P.yaw = 0.05 * sin(t * 0.5) * habla1;
+    float inclina = 0.1 * (1.0 - levanta); P.pecho.x -= inclina * 0.6; P.hom.x -= inclina; P.cab.x -= inclina * 1.2; P.homI.x -= inclina; P.homD.x -= inclina;
+    P = resolver(P);
+    vec2 v = persona(q, P, aspectoMartinSinGorra());
+    r = u2(r, v);
+  } else if (dm < r.x) r = vec2(dm, 0.0);
+  /* Verónica, enfrente: las manos en el jarro; toma mate cuando le toca; lo mira a él */
+  float dv = length(p - (PV + vec3(0.0, 0.8, 0.0))) - 1.15;
+  if (dv < 0.2) {
+    vec3 q = rotY(p - PV, RV);
+    Pose P = poseSilla();
+    float toma = smoothstep(15.0, 16.0, t) * (1.0 - smoothstep(19.0, 20.0, t)) + smoothstep(24.0, 25.0, t) * (1.0 - smoothstep(28.0, 29.0, t));
+    vec3 mateL = rotY(posMate(t) - PV, RV);
+    vec3 enBoca = P.cab + vec3(-0.14, -0.1, 0.03);
+    P.manoD = mix(vec3(-0.3, 0.8, 0.1), mix(mateL + vec3(0.0, 0.06, 0.0), enBoca, toma), smoothstep(13.0, 14.5, t) * (1.0 - smoothstep(32.5, 34.0, t)));
+    P.agarreD = vec3(0.0, -1.0, 0.0); P.manoI = vec3(-0.3, 0.8, -0.12);
+    P.pitch = -0.1 - 0.1 * toma; P.yaw = 0.04 * sin(t * 0.4);
+    P = resolver(P);
+    r = u2(r, persona(q, P, aspectoVeronica()));
+  } else if (dv < r.x) r = vec2(dv, 0.0);
+  /* Elías, de espaldas a la cocina, con el mate; ceba cuando lo tiene */
+  float de = length(p - (PE + vec3(0.0, 0.8, 0.0))) - 1.15;
+  if (de < 0.2) {
+    vec3 q = rotY(p - PE, RE);
+    Pose P = poseSilla();
+    float tiene = (1.0 - smoothstep(13.0, 14.5, t)) + smoothstep(32.5, 34.0, t) * (1.0 - smoothstep(53.5, 55.0, t));
+    vec3 mateL = rotY(posMate(t) - PE, RE);
+    P.manoD = mix(vec3(-0.3, 0.8, 0.12), mateL + vec3(0.0, 0.06, 0.0), tiene); P.agarreD = vec3(0.0, -1.0, 0.0);
+    P.manoI = vec3(-0.28, 0.8, -0.14);
+    float habla = smoothstep(27.5, 28.5, t) * (1.0 - smoothstep(34.0, 35.0, t));
+    P.pitch = -0.15 + 0.1 * habla; P.yaw = 0.3 * habla + 0.04 * sin(t * 0.5); /* le habla a Verónica, a su izquierda */
+    P = resolver(P);
+    r = u2(r, persona(q, P, aspectoEliasSinGorra()));
+  } else if (de < r.x) r = vec2(de, 0.0);
+  /* Ana, con la manta hasta el cuello, agarrándola con las dos manos; mira la mesa; «me voy en la primera colectiva» */
+  float da = length(p - (PA + vec3(0.0, 0.8, 0.0))) - 1.15;
+  if (da < 0.2) {
+    vec3 q = rotY(p - PA, RA);
+    Pose P = poseSilla();
+    P.manoI = P.hom + vec3(-0.13, -0.08, -0.06); P.manoD = P.hom + vec3(-0.13, -0.1, 0.06); P.agarreI = vec3(0.0, 1.0, 0.0); P.agarreD = vec3(0.0, 1.0, 0.0);
+    P.codoI = P.homI + vec3(-0.05, -0.28, -0.02); P.codoD = P.homD + vec3(-0.05, -0.28, 0.02);
+    float habla = smoothstep(35.5, 36.5, t) * (1.0 - smoothstep(45.0, 46.0, t));
+    P.pitch = -0.3 + 0.25 * habla; P.yaw = -0.35 * habla; /* a Martín, a su derecha */
+    P.cab.y += 0.005 * sin(t * 3.0); /* tirita */
+    P = resolver(P);
+    vec2 v = persona(q, P, aspectoAna());
+    /* la manta: un capullo alrededor del torso hasta el cuello */
+    vec3 qs = q / 0.92; vec3 c = (P.cad + P.hom) * 0.5 + vec3(-0.02, 0.0, 0.0);
+    float manta = sdElip(qs - c, vec3(0.24, 0.3, 0.3)); manta = smin(manta, sdCap(qs, P.hom + vec3(-0.1, 0.06, -0.2), P.hom + vec3(-0.1, 0.06, 0.2), 0.08), 0.05);
+    manta += 0.006 * noise(qs.xy * 30.0 + qs.z * 30.0);
+    v = u2(v, vec2(manta * 0.92, 36.0));
+    r = u2(r, v);
+  } else if (da < r.x) r = vec2(da, 0.0);
+  return r;
+}
+void camara(float t, vec2 uv, out vec3 ro, out vec3 rd) {
+  vec2 tiemblo = vec2(0.001 * sin(t * 1.1), 0.0012 * sin(t * 0.8 + 1.0));
+  vec3 obj; float zoom = 1.4;
+  vec3 cabM = PM + vec3(0.0, 1.22, -0.03), cabV = PV + vec3(0.0, 1.22 * 0.94, 0.03), cabE = PE + vec3(0.03, 1.22 * 0.97, 0.0), cabA = PA + vec3(-0.03, 1.22 * 0.92, 0.0);
+  if (t < 4.0) { float a = smoothstep(0.0, 4.0, t); ro = mix(vec3(-2.1, 1.75, -1.65), vec3(-2.0, 1.7, -1.6), a); obj = vec3(0.3, 0.9, 0.3); zoom = 1.15; }                  /* desde el rincón de la ventana: la mesa con los cuatro, la cocina con el fuego atrás */
+  else if (t < 15.0) { float a = smoothstep(4.0, 15.0, t); ro = mix(vec3(0.35, 1.3, 0.6), vec3(0.3, 1.28, 0.55), a); obj = cabM + vec3(0.0, -0.1, 0.0); zoom = 1.9; }        /* Martín, mirándose las manos, desde el lado de Verónica */
+  else if (t < 26.0) { float a = smoothstep(15.0, 26.0, t); ro = mix(vec3(-0.45, 1.25, 0.5), vec3(-0.5, 1.23, 0.45), a); obj = cabM + vec3(0.0, -0.12, 0.0); zoom = 2.1; } /* más cerca */
+  else if (t < 28.0) { ro = vec3(-0.4, 1.3, -0.5); obj = cabV + vec3(0.0, -0.05, 0.0); zoom = 2.0; }                                                                        /* Verónica que lo escucha */
+  else if (t < 35.5) { float a = smoothstep(28.0, 35.5, t); ro = mix(vec3(-0.15, 1.35, -0.55), vec3(-0.2, 1.33, -0.5), a); obj = cabE + vec3(0.0, -0.05, 0.0); zoom = 1.9; } /* Elías, con el fuego detrás */
+  else if (t < 46.0) { float a = smoothstep(35.5, 46.0, t); ro = mix(vec3(0.2, 1.35, 0.5), vec3(0.15, 1.33, 0.45), a); obj = cabA + vec3(0.0, -0.08, 0.0); zoom = 1.9; }    /* Ana con la manta, la ventana gris detrás */
+  else if (t < 47.5) { ro = vec3(0.35, 1.3, 0.6); obj = cabM + vec3(0.0, -0.1, 0.0); zoom = 1.9; }                                                                          /* Martín: «ya sé» */
+  else if (t < 56.5) { float a = smoothstep(47.5, 56.5, t); ro = mix(vec3(0.3, 1.32, 0.7), vec3(0.25, 1.3, 0.65), a); obj = cabM + vec3(0.0, -0.05, 0.0); zoom = 2.0; }    /* Martín levanta la cabeza: «es el martes, Vero» */
+  else if (t < 58.0) { ro = vec3(-0.35, 1.32, -0.55); obj = cabV + vec3(0.0, -0.05, 0.0); zoom = 2.0; }                                                                     /* Verónica: «ya sé» */
+  else { float a = smoothstep(58.0, 62.0, t); ro = mix(vec3(2.0, 1.7, -1.45), vec3(1.9, 1.68, -1.4), a); obj = vec3(-0.2, 0.9, 0.2); zoom = 1.2; }                        /* desde el lado de la cocina: los cuatro y la ventana con la mañana gris */
+  mirar(ro, obj, uv + tiemblo, zoom, 0.0, rd);
+}
+</script>
 <script id="glsl-17-barro" type="x-shader/x-fragment">
 /* Escena 9: domingo a la tarde, el agua baja y el cielo se abre; la casa con la marca del agua, barro y dos personas baldeando */
 Clima clima(float t) { return Clima(0.75, 0.3, 0.55, 0.0, 0.012, 0.15, vec2(-0.25, 0.0)); }
@@ -1727,40 +3041,9 @@ vec4 aguaExtra(vec3 pos, float t) { return vec4(0.0); }
 
 /* ---- la firma: «Verónica Beatriz Aldao», en cm sobre el papel. s de 0 a 1 recorre la V, la cola que baja por debajo del renglón
    y vuelve, «erónica», un salto en el aire y «Aldao». arrastre > 0,5 es la mano de Martín: el remate se arrastra hacia abajo. ---- */
-vec2 tramo(float k, vec2 a, vec2 b, vec2 c, vec2 d, vec2 e, vec2 f) {
-  float u = k * 5.0; int i = int(floor(u)); float g = fract(u);
-  if (i == 0) return mix(a, b, g); if (i == 1) return mix(b, c, g); if (i == 2) return mix(c, d, g); if (i == 3) return mix(d, e, g); return mix(e, f, min(g + float(i - 4), 1.0));
-}
-vec2 firmaPunto(float s, float arrastre) {
-  if (s < 0.1) { float k = s / 0.1; return vec2(0.55 * k, 1.15 - 1.3 * k + 0.08 * sin(k * PI)); }                       /* la V, bajada */
-  if (s < 0.2) { float k = (s - 0.1) / 0.1; return vec2(0.55 + 0.5 * k, -0.15 + 1.35 * k - 0.08 * sin(k * PI)); }       /* la V, subida */
-  if (s < 0.38) { float k = (s - 0.2) / 0.18; return tramo(k, vec2(1.05, 1.2), vec2(1.12, 0.35), vec2(0.95, -0.65), vec2(0.6, -0.6), vec2(0.78, -0.05), vec2(1.3, 0.22)); } /* la cola larga */
-  if (s < 0.72) { float k = (s - 0.38) / 0.34; float r = 0.13 + 0.12 * step(abs(k - 0.3), 0.07); return vec2(1.3 + 1.9 * k + r * sin(k * 2.0 * PI * 7.0), 0.2 + r * (1.0 - cos(k * 2.0 * PI * 7.0)) * 0.9); } /* erónica */
-  if (s < 0.78) { float k = (s - 0.72) / 0.06; return mix(vec2(3.2, 0.22), vec2(3.55, 0.3), k); }                      /* la pluma en el aire */
-  if (s < 0.95) { float k = (s - 0.78) / 0.17; float r = 0.13 + 0.3 * exp(-k * k / 0.012); return vec2(3.55 + 1.5 * k + r * sin(k * 2.0 * PI * 5.0), 0.2 + r * (1.0 - cos(k * 2.0 * PI * 5.0)) * 0.9); } /* Aldao */
-  float k = (s - 0.95) / 0.05; return vec2(5.05 + (0.25 + 0.55 * arrastre) * k, 0.25 - (0.05 + 0.4 * arrastre) * k);   /* el remate: corto, o arrastrado por el zurdo */
-}
-float tinta(vec2 uv, float avance, float pausa, float arrastre) {
-  if (uv.x < -0.3 || uv.x > 6.2 || uv.y < -1.0 || uv.y > 1.6) return 0.0;
-  float d = 1e3; vec2 prev = firmaPunto(0.0, arrastre);
-  for (int i = 1; i <= 64; i++) {
-    float s = float(i) / 64.0; if (s > avance) break;
-    vec2 q = firmaPunto(s, arrastre);
-    bool salto = (s > 0.72 && s <= 0.785) || (pausa > 0.5 && s > 0.38 && s <= 0.4);
-    if (!salto) { vec2 pa = uv - prev, ba = q - prev; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); d = min(d, length(pa - ba * h)); }
-    prev = q;
-  }
-  return smoothstep(0.05, 0.022, d);
-}
 /* cuánto de su firma lleva hecho Verónica (44 a 48 s, con la pausa de los nueve años antes de «erónica») y Martín (50,5 a 53, de corrido) */
 float avanceVero(float t) { float a = clamp((t - 44.0) / 1.7, 0.0, 1.0) * 0.38; a += clamp((t - 46.0) / 2.0, 0.0, 1.0) * 0.62; return a; }
 float avanceMartin(float t) { return clamp((t - 50.5) / 2.6, 0.0, 1.0); }
-/* renglones de texto impreso: líneas grises con cortes, para que parezca una escritura */
-float impreso(vec2 uv, float desde, float hasta) {
-  float fila = fract(uv.y * 2.0); float linea = smoothstep(0.0, 0.08, fila) * smoothstep(0.35, 0.27, fila);
-  float palabra = step(0.25, noise(vec2(uv.x * 4.0, floor(uv.y * 2.0) * 3.0)));
-  return linea * palabra * step(desde, uv.y) * step(uv.y, hasta) * step(1.8, uv.x) * step(uv.x, 19.4) * 0.55;
-}
 const vec3 FOTOCOPIA = vec3(0.3, 0.786, -0.2); /* el centro de cada papel sobre el escritorio, del lado de Verónica */
 vec3 escrituraEn(float t) { return vec3(mix(-0.17, 0.55, smoothstep(49.0, 49.9, t)), 0.787, -0.2); } /* Pereyra la corre hacia Martín */
 #define ESCRITURA escrituraEn(t)
@@ -1786,36 +3069,15 @@ float papel(vec3 p, float t) {
 }
 
 /* ---- las personas ---- */
-Pose poseSilla() {
-  /* sentada en una silla (asiento a 0,45), mirando a -x, las manos sobre la mesa o la falda */
-  Pose P;
-  P.cad = vec3(0.1, 0.52, 0.0); P.pecho = vec3(0.07, 0.78, 0.0); P.hom = vec3(0.05, 0.97, 0.0); P.cab = vec3(0.03, 1.22, 0.0);
-  P.homI = P.hom + vec3(0.0, -0.03, -0.18); P.homD = P.hom + vec3(0.0, -0.03, 0.18);
-  P.codoI = vec3(0.06, 0.72, -0.24); P.codoD = vec3(0.06, 0.72, 0.24);
-  P.manoI = vec3(-0.3, 0.8, -0.12); P.manoD = vec3(-0.3, 0.8, 0.12);
-  P.agarreI = vec3(0.0, -1.0, 0.0); P.agarreD = vec3(0.0, -1.0, 0.0);
-  P.rodI = vec3(-0.36, 0.5, -0.11); P.rodD = vec3(-0.36, 0.5, 0.11);
-  P.pieI = vec3(-0.42, 0.05, -0.12); P.pieD = vec3(-0.42, 0.05, 0.12);
-  P.yaw = 0.0; P.pitch = 0.0;
-  return P;
-}
 Aspecto aspMartinCamisa() { return Aspecto(0.0, 0.0, 1.0, 0.0, 0.0, 0.3, 42.0, 1.0); }
 Aspecto aspVeroSaco() { return Aspecto(1.0, 0.0, 2.0, 0.0, 0.0, 0.2, 49.0, 0.94); }
 Aspecto aspPereyra() { return Aspecto(0.0, 0.0, 1.0, 0.0, 0.0, 0.7, 50.0, 1.0); }
-Aspecto aspAcuna() { return Aspecto(0.0, 0.0, 1.0, 0.0, 0.0, 0.3, 43.0, 1.0); }
 /* posiciones (pie) y giro del marco local de cada uno (para mirar al ángulo φ del mundo, el marco gira φ + π) */
 const vec3 PV = vec3(0.05, 0.0, -0.64), PM = vec3(0.85, 0.0, -0.64), PP = vec3(0.0, 0.0, 0.95), PA = vec3(-1.35, 0.0, 0.55); /* las sillas pegadas al escritorio, para llegar al papel */
 const float RV = -PI * 0.5, RM = -PI * 0.5 + 0.25, RP = PI * 0.5, RA = PI - 0.45;
 /* la punta de la lapicera en el mundo, siguiendo la firma que se dibuja */
 vec3 puntaVero(float t) { vec2 u = firmaPunto(min(avanceVero(t), 0.999), 0.0) * 1.3; vec2 e = u + vec2(1.2, 21.0); return vec3(ESCRITURA.x - (e.x - 10.5) * 0.01, 0.79, ESCRITURA.z - (e.y - 14.8) * 0.01); }
 vec3 puntaMartin(float t) { vec2 u = firmaPunto(min(avanceMartin(t), 0.999), 1.0) * 1.2; vec2 e = u + vec2(10.5, 21.3); return vec3(ESCRITURA.x - (e.x - 10.5) * 0.01, 0.79, ESCRITURA.z - (e.y - 14.8) * 0.01); }
-float silla(vec3 q) {
-  /* silla de madera: asiento, respaldo y cuatro patas; q relativo al centro del asiento a nivel del piso, respaldo hacia +x */
-  float d = sdBox3(q - vec3(0.0, 0.45, 0.0), vec3(0.22, 0.02, 0.22)) - 0.01;
-  d = min(d, sdBox3(q - vec3(0.2, 0.72, 0.0), vec3(0.02, 0.25, 0.2)) - 0.005);
-  for (int i = 0; i < 4; i++) { vec3 pt = vec3(i < 2 ? -0.18 : 0.18, 0.22, mod(float(i), 2.0) < 0.5 ? -0.18 : 0.18); d = min(d, sdBox3(q - pt, vec3(0.02, 0.22, 0.02))); }
-  return d;
-}
 vec2 escribania(vec3 p, float t) {
   vec2 r = vec2(1e3, 0.0);
   /* la sala: una caja hueca de 5 × 3 × 4,4 con la ventana al este (+x) y la puerta atrás (-z) */
@@ -1896,7 +3158,7 @@ vec2 escribania(vec3 p, float t) {
     vec3 q = rotY(p - PA, RA);
     Pose P = poseSilla(); P.manoI = vec3(-0.22, 0.72, -0.02); P.manoD = vec3(-0.24, 0.74, 0.04); P.agarreI = vec3(0.0, 0.0, 1.0); P.agarreD = vec3(0.0, 0.0, -1.0);
     P.yaw = -0.35 + 0.25 * smoothstep(30.0, 31.0, t) * (1.0 - smoothstep(34.5, 35.5, t)); P.pitch = 0.05;
-    r = u2(r, persona(q, P, aspAcuna()));
+    r = u2(r, persona(q, P, aspectoAcuna()));
   } else if (da < r.x) r = vec2(da, 0.0);
   /* Verónica, en el medio: la lupa, después las manos en la mesa, después firma */
   float dv = length(p - (PV + vec3(0.0, 0.8, 0.0))) - 1.1;
@@ -1999,9 +3261,38 @@ void camara(float t, vec2 uv, out vec3 ro, out vec3 rd) {
   mirar(ro, obj, uv + tiemblo, zoom, 0.0, rd);
 }
 </script>
+<script id="glsl-19-cierre" type="x-shader/x-fragment">
+/* Escena 19: el cierre. El arroyo en calma, con sol bajo, después de la sudestada: la cámara va despacio a ras del agua entre los
+   sauces; sobre la imagen, la moraleja en dos carteles y el título. */
+Clima clima(float t) { return Clima(0.9, 0.55, 0.3, 0.0, 0.02, 0.05, vec2(-0.12, 0.0)); }
+vec3 sunDir(float t) { return normalize(vec3(1.0, 0.22, 0.35)); }
+float nivelAgua(float t) { return 0.0; }
+Luz luz(int i, float t) { return Luz(vec3(0.0), vec3(0.0), 0.0); }
+vec4 aguaExtra(vec3 pos, float t) { vec2 h = pos.xz + vec2(0.12 * t, 0.0); float hojas = step(0.9, noise(h * 1.5)) * step(0.6, noise(h * 6.0 + 2.0)) * 0.4; return vec4(0.0, 0.0, 0.0, hojas); }
+vec2 mapaMundo(vec3 p, float t) {
+  vec2 r = orilla(p, t, 21.0, 1.0, 3.0, 0.05);     /* la orilla de enfrente */
+  r = u2(r, orilla(p, t, -11.0, -1.0, 17.0, 0.05)); /* la de acá */
+  /* un poste de muelle viejo, solo, con su pájaro de madera encima (una garza quieta) */
+  vec3 qp = p - vec3(14.0, 0.0, 9.5);
+  float poste = sdCil(qp - vec3(0.0, 0.3, 0.0), 0.75, 0.07);
+  float garza = sdElip(qp - vec3(0.0, 1.22, 0.0), vec3(0.09, 0.13, 0.08));
+  garza = smin(garza, sdCap(qp, vec3(0.0, 1.3, 0.0), vec3(-0.06, 1.58, 0.0), 0.022), 0.03);
+  garza = smin(garza, sdElip(qp - vec3(-0.08, 1.6, 0.0), vec3(0.05, 0.035, 0.035)), 0.02);
+  garza = min(garza, sdCap(qp, vec3(-0.11, 1.6, 0.0), vec3(-0.24, 1.57, 0.0), 0.008));
+  if (poste < r.x) r = vec2(poste, 13.0);
+  if (garza < r.x) r = vec2(garza, 23.0);
+  return r;
+}
+void camara(float t, vec2 uv, out vec3 ro, out vec3 rd) {
+  vec2 tiemblo = vec2(0.0008 * sin(t * 0.9), 0.001 * sin(t * 0.7 + 1.0));
+  ro = vec3(-2.0 + 0.28 * t, 0.85 + 0.02 * sin(t * 0.5), 4.5);
+  vec3 obj = ro + vec3(12.0, -0.6 + 0.25 * smoothstep(0.0, 22.0, t), 0.6);
+  mirar(ro, obj, uv + tiemblo, 1.35, 0.0, rd);
+}
+</script>
 <script>
 "use strict";
-const LINEAS = [{"id":"01-martin-vero","quien":"martin","variante":"telefono","escena":"01-lancha","t":6,"texto":"Vero. Necesito que vengas.","dur":1.98},{"id":"01-vero-quepasa","quien":"veronica","variante":"off","escena":"01-lancha","t":9,"texto":"¿Qué pasa?","dur":0.66},{"id":"01-martin-jueves","quien":"martin","variante":"telefono","escena":"01-lancha","t":10.5,"texto":"No por teléfono. Vení el jueves.","dur":2.55},{"id":"01-vero-doce","quien":"veronica","variante":"off","escena":"01-lancha","t":16,"texto":"Hace doce años que vengo el primer sábado de cada mes. Nunca me pidió que viniera un jueves.","dur":4.89},{"id":"01-lanchero-aldao","quien":"lanchero","variante":"normal","escena":"01-lancha","t":22.5,"texto":"¿Va a lo de Aldao? El arroyo anda alto. La del mediodía es la última que entra hasta el Fraile.","dur":5.51},{"id":"01-vero-aldao","quien":"veronica","variante":"normal","escena":"01-lancha","t":27.2,"texto":"Sí. A lo de Aldao.","dur":1.34},{"id":"02-vero-lancha","quien":"veronica","variante":"off","escena":"02-puerta","t":1.5,"texto":"La lancha de Martín no estaba. La chata sí. Y la puerta de la galería estaba abierta, con la hoja contra la pared.","dur":6.02},{"id":"02-vero-toalla","quien":"veronica","variante":"off","escena":"02-puerta","t":9,"texto":"En la baranda había una toalla celeste, con flores. En esa casa no hay toallas con flores. Las toallas las compro yo.","dur":6.81},{"id":"02-ana-hola","quien":"ana","variante":"normal","escena":"02-puerta","t":17.5,"texto":"Hola.","dur":0.41},{"id":"02-vero-hola","quien":"veronica","variante":"normal","escena":"02-puerta","t":19,"texto":"Hola. ¿Quién sos?","dur":1.36},{"id":"02-ana-pareja","quien":"ana","variante":"normal","escena":"02-puerta","t":21,"texto":"Ana. Soy la pareja de Martín. ¿Vos sos la hermana?","dur":3.14},{"id":"02-vero-donde","quien":"veronica","variante":"normal","escena":"02-puerta","t":25,"texto":"Soy Verónica. ¿Dónde está?","dur":1.83},{"id":"02-ana-nose","quien":"ana","variante":"normal","escena":"02-puerta","t":27.5,"texto":"No sé. Salió el miércoles temprano y no volvió.","dur":2.73},{"id":"03-elias-vi","quien":"elias","variante":"normal","escena":"03-tinta","t":6,"texto":"Lo vi salir el miércoles a las seis. La maestra lo despidió en el muelle. No volvió.","dur":5.58},{"id":"03-vero-dormias","quien":"veronica","variante":"normal","escena":"03-tinta","t":13.5,"texto":"Me dijiste que dormías.","dur":1.34},{"id":"03-ana-importa","quien":"ana","variante":"normal","escena":"03-tinta","t":16,"texto":"Me levanté, lo despedí, me volví a dormir. ¿Importa?","dur":3.15},{"id":"03-elias-sudestada","quien":"elias","variante":"normal","escena":"03-tinta","t":22,"texto":"Viene sudestada, Verónica. Grande. Si te vas, andate hoy. Mañana no entra nadie.","dur":6.42},{"id":"03-vero-mequedo","quien":"veronica","variante":"normal","escena":"03-tinta","t":31,"texto":"Me quedo.","dur":0.53},{"id":"03-ana-yase","quien":"ana","variante":"normal","escena":"03-tinta","t":33.5,"texto":"Ya sé.","dur":0.51},{"id":"04-vero-giro","quien":"veronica","variante":"off","escena":"04-viento","t":9,"texto":"Esa noche el viento giró, y el arroyo empezó a correr al revés.","dur":3.33},{"id":"04-vero-libreta-junio","quien":"veronica","variante":"off","escena":"04-viento","t":17,"texto":"Sábado siete de junio. Ella vino. Trajo la bolsa.","dur":3.5},{"id":"04-vero-libreta-julio","quien":"veronica","variante":"off","escena":"04-viento","t":22,"texto":"Sábado cinco de julio. Ella no va a dejarme ir. No lo dice así.","dur":4.09},{"id":"05-vero-seis","quien":"veronica","variante":"off","escena":"05-hombre","t":1.5,"texto":"A las seis de la mañana, del otro lado del arroyo, entre los sauces del recreo abandonado, había un hombre en una chata.","dur":5.76},{"id":"05-vero-eh","quien":"veronica","variante":"grito","escena":"05-hombre","t":9,"texto":"¡Eh!","dur":0.32},{"id":"05-vero-remaba","quien":"veronica","variante":"off","escena":"05-hombre","t":17,"texto":"Remaba raro. Como al revés.","dur":1.9},{"id":"05-elias-mirando","quien":"elias","variante":"off","escena":"05-hombre","t":20,"texto":"Los que andan mirando casas no saben remar. Por eso se los conoce.","dur":4.15},{"id":"05-elias-grande","quien":"elias","variante":"off","escena":"05-hombre","t":25,"texto":"El Martín es grande, Verónica. Tiene treinta y ocho años. Vos lo tratás como si tuviera veintiséis.","dur":7.25},{"id":"06-vero-firma","quien":"veronica","variante":"off","escena":"06-taller","t":18,"texto":"Verónica Beatriz Aldao. La ve con la cola larga. No está calcada. Está aprendida.","dur":5.24},{"id":"06-vero-mano","quien":"veronica","variante":"off","escena":"06-taller","t":28,"texto":"Alguien que me conoce la mano.","dur":1.42},{"id":"07-vero-viernes","quien":"veronica","variante":"off","escena":"07-escalera","t":0.8,"texto":"El viernes a la noche el agua entró en la planta baja. Subimos lo que quedaba, a oscuras, con linternas.","dur":5.36},{"id":"07-ana-papa","quien":"ana","variante":"normal","escena":"07-escalera","t":6,"texto":"Mi papá tomaba. Me fui de casa a los diecisiete.","dur":2.78},{"id":"07-vero-secate","quien":"veronica","variante":"normal","escena":"07-escalera","t":10.5,"texto":"Tomá. Secate.","dur":1.4},{"id":"07-ana-grupo","quien":"ana","variante":"normal","escena":"07-escalera","t":15,"texto":"El grupo no arranca.","dur":1.12},{"id":"07-vero-dejalo","quien":"veronica","variante":"normal","escena":"07-escalera","t":17.5,"texto":"Dejalo.","dur":0.54},{"id":"07-vero-libreta-pastillas","quien":"veronica","variante":"off","escena":"07-escalera","t":22,"texto":"Ella me dejó las pastillas contadas sobre la mesa.","dur":2.41},{"id":"07-vero-libreta-llave","quien":"veronica","variante":"off","escena":"07-escalera","t":26,"texto":"Ella no sabe lo que es que te cierren con llave. Yo sí.","dur":3.04},{"id":"08-vero-baje","quien":"veronica","variante":"off","escena":"08-chata","t":0.6,"texto":"Bajé la escalera sin ponerme las botas. Desaté la chata, calcé los remos, y salí.","dur":4.76},{"id":"08-vero-martin","quien":"veronica","variante":"grito","escena":"08-chata","t":3,"texto":"¡Martín!","dur":0.56},{"id":"08-vero-tronco","quien":"veronica","variante":"off","escena":"08-chata","t":9.8,"texto":"Un tronco.","dur":0.71},{"id":"08-ana-morirte","quien":"ana","variante":"grito","escena":"08-chata","t":26,"texto":"¿Qué querés? ¿Morirte vos también?","dur":1.87},{"id":"09-ana-iba","quien":"ana","variante":"normal","escena":"09-pan","t":6,"texto":"Martín te lo iba a decir.","dur":1.3},{"id":"09-vero-boleto","quien":"veronica","variante":"normal","escena":"09-pan","t":9,"texto":"Me llamó para decirme que había un boleto de compraventa de mi casa, con mi firma, que yo no firmé.","dur":4.55},{"id":"09-ana-si","quien":"ana","variante":"normal","escena":"09-pan","t":16,"texto":"Sí.","dur":0.36},{"id":"09-vero-vos","quien":"veronica","variante":"normal","escena":"09-pan","t":18,"texto":"Y que vos la habías hecho.","dur":1.3},{"id":"09-ana-pensas","quien":"ana","variante":"normal","escena":"09-pan","t":21.5,"texto":"¿Vos pensás que yo…?","dur":1.02},{"id":"09-vero-pienso","quien":"veronica","variante":"normal","escena":"09-pan","t":24.5,"texto":"Pienso que mi hermano no está.","dur":1.57},{"id":"09-ana-nosabes","quien":"ana","variante":"normal","escena":"09-pan","t":29,"texto":"No sabés nada de él.","dur":1.09},{"id":"09-vero-firma","quien":"veronica","variante":"normal","escena":"09-pan","t":32,"texto":"Sé cómo firma.","dur":0.98},{"id":"09-ana-eso","quien":"ana","variante":"normal","escena":"09-pan","t":35,"texto":"Sí. Eso lo sabés.","dur":1.5},{"id":"10-acuna-escritura","quien":"acuna","variante":"normal","escena":"10-acuna","t":5,"texto":"Su hermano me dijo que usted estaba de acuerdo. La escritura es el martes a las once. Si no, la seña doble. Usted entiende.","dur":7.81},{"id":"10-vero-cuando","quien":"veronica","variante":"normal","escena":"10-acuna","t":15.5,"texto":"¿Cuándo lo vio por última vez?","dur":1.46},{"id":"10-acuna-miercoles","quien":"acuna","variante":"normal","escena":"10-acuna","t":18.5,"texto":"El miércoles. Lo dejé en la estación fluvial a las dos. Iba a ver al Turco por el motor.","dur":5.85},{"id":"10-vero-vivo","quien":"veronica","variante":"off","escena":"10-acuna","t":27,"texto":"Martín estaba vivo el miércoles a las dos de la tarde.","dur":2.43},{"id":"11-vero-mensaje","quien":"veronica","variante":"off","escena":"11-mensaje","t":6,"texto":"No puedo. Perdoname. Miércoles, catorce y diez.","dur":3.41},{"id":"11-ana-leiste","quien":"ana","variante":"normal","escena":"11-mensaje","t":12,"texto":"¿Leíste?","dur":0.53},{"id":"11-vero-si","quien":"veronica","variante":"normal","escena":"11-mensaje","t":14,"texto":"Sí.","dur":0.4},{"id":"11-ana-despedida","quien":"ana","variante":"normal","escena":"11-mensaje","t":16,"texto":"Es una despedida, Verónica. ¿No lo ves? Tu hermano se mató, y yo no puedo decirlo en voz alta.","dur":5.38},{"id":"11-vero-nosemato","quien":"veronica","variante":"normal","escena":"11-mensaje","t":24,"texto":"Mi hermano no se mató.","dur":1.3},{"id":"11-ana-libretas","quien":"ana","variante":"normal","escena":"11-mensaje","t":27,"texto":"Leé las libretas.","dur":0.96},{"id":"11-vero-lasleí","quien":"veronica","variante":"normal","escena":"11-mensaje","t":29.5,"texto":"Las leí. Dice: ella no va a dejarme ir.","dur":2.48},{"id":"11-ana-mejor","quien":"ana","variante":"normal","escena":"11-mensaje","t":34,"texto":"Yo nunca las abrí. Vos sí. Leelas mejor.","dur":2.7},{"id":"12-ana-radio","quien":"ana","variante":"normal","escena":"12-llave","t":4,"texto":"Voy a lo de Elías. A la radio. Que busquen un cuerpo, Verónica. Hace tres días que nadie busca.","dur":5.58},{"id":"12-vero-nadie","quien":"veronica","variante":"normal","escena":"12-llave","t":12.5,"texto":"Nadie sale de esta casa hasta que yo sepa qué pasó.","dur":2.57},{"id":"12-ana-correte","quien":"ana","variante":"normal","escena":"12-llave","t":17,"texto":"Correte.","dur":0.51},{"id":"12-ana-abri","quien":"ana","variante":"puerta","escena":"12-llave","t":24,"texto":"¡Verónica, abrí la puerta!","dur":1.35},{"id":"12-vero-manana","quien":"veronica","variante":"normal","escena":"12-llave","t":27,"texto":"Mañana. Cuando baje el agua. Cuando yo sepa.","dur":3.09},{"id":"12-ana-loca","quien":"ana","variante":"puerta","escena":"12-llave","t":31.5,"texto":"¡Estás loca!","dur":0.68},{"id":"12-vero-puedeser","quien":"veronica","variante":"normal","escena":"12-llave","t":33.5,"texto":"Puede ser.","dur":0.65},{"id":"13-vero-afuera","quien":"veronica","variante":"off","escena":"13-luz","t":1.5,"texto":"Afuera era la noche de la sudestada: negra, sin orillas, con el ruido.","dur":3.8},{"id":"13-vero-farol","quien":"veronica","variante":"off","escena":"13-luz","t":13,"texto":"Una luz de farol, quieta, que no era un reflejo.","dur":2.44},{"id":"14-vero-fechas","quien":"veronica","variante":"off","escena":"14-ella","t":4,"texto":"Siete de junio. Cinco de julio. Dos de agosto. Seis de septiembre. Cuatro de octubre.","dur":5.65},{"id":"14-vero-sabados","quien":"veronica","variante":"off","escena":"14-ella","t":13,"texto":"Primeros sábados.","dur":1.04},{"id":"14-vero-ellavino","quien":"veronica","variante":"off","escena":"14-ella","t":16.5,"texto":"Ella vino. Trajo la bolsa. Ella me dejó las pastillas contadas.","dur":4.05},{"id":"14-vero-arrastre","quien":"veronica","variante":"off","escena":"14-ella","t":25,"texto":"La ve con la cola larga. El arrastre del zurdo.","dur":2.73},{"id":"14-vero-soyyo","quien":"veronica","variante":"off","escena":"14-ella","t":31,"texto":"Él la escribió. Y ella soy yo.","dur":1.99},{"id":"14-vero-ana","quien":"veronica","variante":"grito","escena":"14-ella","t":40,"texto":"¡Ana!","dur":0.48},{"id":"15-vero-ana","quien":"veronica","variante":"grito","escena":"15-farol","t":1.5,"texto":"¡Ana!","dur":0.46},{"id":"15-vero-agarrate","quien":"veronica","variante":"grito","escena":"15-farol","t":7,"texto":"¡Agarrate!","dur":0.58},{"id":"15-vero-alto","quien":"veronica","variante":"off","escena":"15-farol","t":12,"texto":"El que lo traía era alto. Venía con el agua al pecho, con el farol en alto.","dur":4.13},{"id":"15-vero-gorra","quien":"veronica","variante":"off","escena":"15-farol","t":20.5,"texto":"La gorra. La barba de cuatro días. Los ojos de mi madre.","dur":3.79},{"id":"15-martin-vero","quien":"martin","variante":"normal","escena":"15-farol","t":29,"texto":"Vero.","dur":0.48},{"id":"15-vero-sali","quien":"veronica","variante":"normal","escena":"15-farol","t":32,"texto":"Salí del agua, Martín.","dur":1.27},{"id":"16-martin-salia","quien":"martin","variante":"normal","escena":"16-elias","t":4,"texto":"Me salía. La mano la hizo sola, de corrido, la ve con la cola y todo lo demás. La miré y era tuya. Era más tuya que la mía.","dur":8.63},{"id":"16-martin-nopude","quien":"martin","variante":"normal","escena":"16-elias","t":15,"texto":"Y no pude. Escribí: no puedo, perdoname, y se lo mandé a ella, porque a vos no te podía escribir ni eso. Y después pedí una ginebra. La primera en doce años.","dur":10.7},{"id":"16-elias-llaves","quien":"elias","variante":"normal","escena":"16-elias","t":28,"texto":"Le saqué las llaves y la botella. Quise que él fuera. Tampoco fue. En eso me equivoqué.","dur":5.98},{"id":"16-ana-cuatrodias","quien":"ana","variante":"normal","escena":"16-elias","t":36,"texto":"Cuatro días a trescientos metros. Con un farol. Con duraznos. Mientras yo llamaba a los hospitales.","dur":5.85},{"id":"16-ana-mevoy","quien":"ana","variante":"normal","escena":"16-elias","t":43.5,"texto":"Me voy en la primera colectiva.","dur":1.51},{"id":"16-martin-yase","quien":"martin","variante":"normal","escena":"16-elias","t":46,"texto":"Ya sé.","dur":0.62},{"id":"16-martin-martes","quien":"martin","variante":"normal","escena":"16-elias","t":48,"texto":"Es el martes, Vero. A las once. Si vamos los dos, tenés que firmar al lado de una firma tuya que hice yo. Delante de un escribano.","dur":8.29},{"id":"16-vero-yase","quien":"veronica","variante":"normal","escena":"16-elias","t":56.5,"texto":"Ya sé.","dur":0.54},{"id":"16-martin-nose","quien":"martin","variante":"normal","escena":"16-elias","t":58,"texto":"No sé qué querés que haga. Por eso te llamé.","dur":2.7},{"id":"17-vero-bajo","quien":"veronica","variante":"off","escena":"17-barro","t":0.8,"texto":"El domingo a la tarde el agua bajó. La casa estaba llena de barro, y mi hermano, vivo, baldeando la galería.","dur":5.82},{"id":"17-martin-lastomo","quien":"martin","variante":"normal","escena":"17-barro","t":5,"texto":"Las tomo porque si no las tomo, al mes siguiente me preguntás por qué quedan tantas. Las contás, Vero. Doce años.","dur":7.34},{"id":"17-vero-dejede","quien":"veronica","variante":"normal","escena":"17-barro","t":14,"texto":"¿Querés que deje de traerlas?","dur":1.32},{"id":"17-martin-preguntes","quien":"martin","variante":"normal","escena":"17-barro","t":17,"texto":"Quiero que me preguntes si las necesito. Una vez. Que me lo preguntes y que esperes a ver qué contesto.","dur":6.01},{"id":"17-vero-hernan","quien":"veronica","variante":"off","escena":"17-barro","t":26,"texto":"Hernán me dijo una vez que no te cuido. Que te administro.","dur":3.13},{"id":"17-martin-momento","quien":"martin","variante":"normal","escena":"17-barro","t":31,"texto":"Era una frase para el momento. Lo que pasa es que el momento duró doce años.","dur":4.63},{"id":"18-pereyra-ratifican","quien":"pereyra","variante":"normal","escena":"18-escribania","t":8,"texto":"Señora, señor: ¿ratifican lo firmado en el boleto?","dur":3.41},{"id":"18-vero-mejor","quien":"veronica","variante":"off","escena":"18-escribania","t":16,"texto":"Es mejor que la mía.","dur":1.16},{"id":"18-vero-noesmia","quien":"veronica","variante":"normal","escena":"18-escribania","t":20,"texto":"Esa firma no es mía. La hizo mi hermano. Y yo se la enseñé.","dur":3.99},{"id":"18-vero-lapicera","quien":"veronica","variante":"normal","escena":"18-escribania","t":27,"texto":"O me da la lapicera.","dur":1.17},{"id":"18-acuna-lomismo","quien":"acuna","variante":"normal","escena":"18-escribania","t":31,"texto":"Si la señora quiere vender hoy, con su firma, para mí es lo mismo.","dur":3.15},{"id":"18-pereyra-quiere","quien":"pereyra","variante":"normal","escena":"18-escribania","t":37,"texto":"¿Usted quiere vender, señora?","dur":1.77},{"id":"18-vero-si","quien":"veronica","variante":"normal","escena":"18-escribania","t":41,"texto":"Sí. Quiero vender.","dur":1.39},{"id":"18-vero-necesitas","quien":"veronica","variante":"normal","escena":"18-escribania","t":58,"texto":"¿Las necesitás?","dur":0.97},{"id":"18-martin-pensarlo","quien":"martin","variante":"normal","escena":"18-escribania","t":61.5,"texto":"No sé. Dejame pensarlo.","dur":2.12},{"id":"18-vero-bueno","quien":"veronica","variante":"normal","escena":"18-escribania","t":65,"texto":"Bueno.","dur":0.46},{"id":"18-vero-espero","quien":"veronica","variante":"off","escena":"18-escribania","t":67.5,"texto":"Y espero.","dur":0.7},{"id":"19-vero-moraleja","quien":"veronica","variante":"off","escena":"19-cierre","t":3,"texto":"Cuando los hechos dicen lo que una ya pensaba, es cuando menos hay que creerles.","dur":3.8}];
+const LINEAS = [{"id":"01-martin-vero","quien":"martin","variante":"telefono","escena":"01-lancha","t":6,"texto":"Vero. Necesito que vengas.","dur":1.98},{"id":"01-vero-quepasa","quien":"veronica","variante":"off","escena":"01-lancha","t":9,"texto":"¿Qué pasa?","dur":0.66},{"id":"01-martin-jueves","quien":"martin","variante":"telefono","escena":"01-lancha","t":10.5,"texto":"No por teléfono. Vení el jueves.","dur":2.55},{"id":"01-vero-doce","quien":"veronica","variante":"off","escena":"01-lancha","t":16,"texto":"Hace doce años que vengo el primer sábado de cada mes. Nunca me pidió que viniera un jueves.","dur":4.89},{"id":"01-lanchero-aldao","quien":"lanchero","variante":"normal","escena":"01-lancha","t":22.5,"texto":"¿Va a lo de Aldao? El arroyo anda alto. La del mediodía es la última que entra hasta el Fraile.","dur":5.51},{"id":"01-vero-aldao","quien":"veronica","variante":"normal","escena":"01-lancha","t":27.2,"texto":"Sí. A lo de Aldao.","dur":1.34},{"id":"02-vero-lancha","quien":"veronica","variante":"off","escena":"02-puerta","t":1.5,"texto":"La lancha de Martín no estaba. La chata sí. Y la puerta de la galería estaba abierta, con la hoja contra la pared.","dur":6.02},{"id":"02-vero-toalla","quien":"veronica","variante":"off","escena":"02-puerta","t":9,"texto":"En la baranda había una toalla celeste, con flores. En esa casa no hay toallas con flores. Las toallas las compro yo.","dur":6.81},{"id":"02-ana-hola","quien":"ana","variante":"normal","escena":"02-puerta","t":17.5,"texto":"Hola.","dur":0.41},{"id":"02-vero-hola","quien":"veronica","variante":"normal","escena":"02-puerta","t":19,"texto":"Hola. ¿Quién sos?","dur":1.36},{"id":"02-ana-pareja","quien":"ana","variante":"normal","escena":"02-puerta","t":21,"texto":"Ana. Soy la pareja de Martín. ¿Vos sos la hermana?","dur":3.14},{"id":"02-vero-donde","quien":"veronica","variante":"normal","escena":"02-puerta","t":25,"texto":"Soy Verónica. ¿Dónde está?","dur":1.83},{"id":"02-ana-nose","quien":"ana","variante":"normal","escena":"02-puerta","t":27.5,"texto":"No sé. Salió el miércoles temprano y no volvió.","dur":2.73},{"id":"03-elias-vi","quien":"elias","variante":"normal","escena":"03-tinta","t":16,"texto":"Lo vi salir el miércoles a las seis. La maestra lo despidió en el muelle. No volvió.","dur":5.58},{"id":"03-vero-dormias","quien":"veronica","variante":"normal","escena":"03-tinta","t":23,"texto":"Me dijiste que dormías.","dur":1.34},{"id":"03-ana-importa","quien":"ana","variante":"normal","escena":"03-tinta","t":25.5,"texto":"Me levanté, lo despedí, me volví a dormir. ¿Importa?","dur":3.15},{"id":"03-elias-sudestada","quien":"elias","variante":"normal","escena":"03-tinta","t":30,"texto":"Viene sudestada, Verónica. Grande. Si te vas, andate hoy. Mañana no entra nadie.","dur":6.42},{"id":"03-vero-mequedo","quien":"veronica","variante":"normal","escena":"03-tinta","t":37.3,"texto":"Me quedo.","dur":0.53},{"id":"03-ana-yase","quien":"ana","variante":"normal","escena":"03-tinta","t":38.7,"texto":"Ya sé.","dur":0.51},{"id":"04-vero-giro","quien":"veronica","variante":"off","escena":"04-viento","t":9,"texto":"Esa noche el viento giró, y el arroyo empezó a correr al revés.","dur":3.33},{"id":"04-vero-libreta-junio","quien":"veronica","variante":"off","escena":"04-viento","t":17,"texto":"Sábado siete de junio. Ella vino. Trajo la bolsa.","dur":3.5},{"id":"04-vero-libreta-julio","quien":"veronica","variante":"off","escena":"04-viento","t":22,"texto":"Sábado cinco de julio. Ella no va a dejarme ir. No lo dice así.","dur":4.09},{"id":"05-vero-seis","quien":"veronica","variante":"off","escena":"05-hombre","t":1.5,"texto":"A las seis de la mañana, del otro lado del arroyo, entre los sauces del recreo abandonado, había un hombre en una chata.","dur":5.76},{"id":"05-vero-eh","quien":"veronica","variante":"grito","escena":"05-hombre","t":9,"texto":"¡Eh!","dur":0.32},{"id":"05-vero-remaba","quien":"veronica","variante":"off","escena":"05-hombre","t":17,"texto":"Remaba raro. Como al revés.","dur":1.9},{"id":"05-elias-mirando","quien":"elias","variante":"off","escena":"05-hombre","t":20,"texto":"Los que andan mirando casas no saben remar. Por eso se los conoce.","dur":4.15},{"id":"05-elias-grande","quien":"elias","variante":"off","escena":"05-hombre","t":25,"texto":"El Martín es grande, Verónica. Tiene treinta y ocho años. Vos lo tratás como si tuviera veintiséis.","dur":7.25},{"id":"06-vero-firma","quien":"veronica","variante":"off","escena":"06-taller","t":18,"texto":"Verónica Beatriz Aldao. La ve con la cola larga. No está calcada. Está aprendida.","dur":5.24},{"id":"06-vero-mano","quien":"veronica","variante":"off","escena":"06-taller","t":28,"texto":"Alguien que me conoce la mano.","dur":1.42},{"id":"07-vero-viernes","quien":"veronica","variante":"off","escena":"07-escalera","t":0.8,"texto":"El viernes a la noche el agua entró en la planta baja. Subimos lo que quedaba, a oscuras, con linternas.","dur":5.36},{"id":"07-ana-papa","quien":"ana","variante":"normal","escena":"07-escalera","t":6,"texto":"Mi papá tomaba. Me fui de casa a los diecisiete.","dur":2.78},{"id":"07-vero-secate","quien":"veronica","variante":"normal","escena":"07-escalera","t":10.5,"texto":"Tomá. Secate.","dur":1.4},{"id":"07-ana-grupo","quien":"ana","variante":"normal","escena":"07-escalera","t":15,"texto":"El grupo no arranca.","dur":1.12},{"id":"07-vero-dejalo","quien":"veronica","variante":"normal","escena":"07-escalera","t":17.5,"texto":"Dejalo.","dur":0.54},{"id":"07-vero-libreta-pastillas","quien":"veronica","variante":"off","escena":"07-escalera","t":22,"texto":"Ella me dejó las pastillas contadas sobre la mesa.","dur":2.41},{"id":"07-vero-libreta-llave","quien":"veronica","variante":"off","escena":"07-escalera","t":26,"texto":"Ella no sabe lo que es que te cierren con llave. Yo sí.","dur":3.04},{"id":"08-vero-baje","quien":"veronica","variante":"off","escena":"08-chata","t":0.6,"texto":"Bajé la escalera sin ponerme las botas. Desaté la chata, calcé los remos, y salí.","dur":4.76},{"id":"08-vero-martin","quien":"veronica","variante":"grito","escena":"08-chata","t":3,"texto":"¡Martín!","dur":0.56},{"id":"08-vero-tronco","quien":"veronica","variante":"off","escena":"08-chata","t":9.8,"texto":"Un tronco.","dur":0.71},{"id":"08-ana-morirte","quien":"ana","variante":"grito","escena":"08-chata","t":26,"texto":"¿Qué querés? ¿Morirte vos también?","dur":1.87},{"id":"09-ana-iba","quien":"ana","variante":"normal","escena":"09-pan","t":6,"texto":"Martín te lo iba a decir.","dur":1.3},{"id":"09-vero-boleto","quien":"veronica","variante":"normal","escena":"09-pan","t":9,"texto":"Me llamó para decirme que había un boleto de compraventa de mi casa, con mi firma, que yo no firmé.","dur":4.55},{"id":"09-ana-si","quien":"ana","variante":"normal","escena":"09-pan","t":16,"texto":"Sí.","dur":0.36},{"id":"09-vero-vos","quien":"veronica","variante":"normal","escena":"09-pan","t":18,"texto":"Y que vos la habías hecho.","dur":1.3},{"id":"09-ana-pensas","quien":"ana","variante":"normal","escena":"09-pan","t":21.5,"texto":"¿Vos pensás que yo…?","dur":1.02},{"id":"09-vero-pienso","quien":"veronica","variante":"normal","escena":"09-pan","t":24.5,"texto":"Pienso que mi hermano no está.","dur":1.57},{"id":"09-ana-nosabes","quien":"ana","variante":"normal","escena":"09-pan","t":29,"texto":"No sabés nada de él.","dur":1.09},{"id":"09-vero-firma","quien":"veronica","variante":"normal","escena":"09-pan","t":32,"texto":"Sé cómo firma.","dur":0.98},{"id":"09-ana-eso","quien":"ana","variante":"normal","escena":"09-pan","t":35,"texto":"Sí. Eso lo sabés.","dur":1.5},{"id":"10-acuna-escritura","quien":"acuna","variante":"normal","escena":"10-acuna","t":5,"texto":"Su hermano me dijo que usted estaba de acuerdo. La escritura es el martes a las once. Si no, la seña doble. Usted entiende.","dur":7.81},{"id":"10-vero-cuando","quien":"veronica","variante":"normal","escena":"10-acuna","t":15.5,"texto":"¿Cuándo lo vio por última vez?","dur":1.46},{"id":"10-acuna-miercoles","quien":"acuna","variante":"normal","escena":"10-acuna","t":18.5,"texto":"El miércoles. Lo dejé en la estación fluvial a las dos. Iba a ver al Turco por el motor.","dur":5.85},{"id":"10-vero-vivo","quien":"veronica","variante":"off","escena":"10-acuna","t":27,"texto":"Martín estaba vivo el miércoles a las dos de la tarde.","dur":2.43},{"id":"11-vero-mensaje","quien":"veronica","variante":"off","escena":"11-mensaje","t":6,"texto":"No puedo. Perdoname. Miércoles, catorce y diez.","dur":3.41},{"id":"11-ana-leiste","quien":"ana","variante":"normal","escena":"11-mensaje","t":12,"texto":"¿Leíste?","dur":0.53},{"id":"11-vero-si","quien":"veronica","variante":"normal","escena":"11-mensaje","t":14,"texto":"Sí.","dur":0.4},{"id":"11-ana-despedida","quien":"ana","variante":"normal","escena":"11-mensaje","t":16,"texto":"Es una despedida, Verónica. ¿No lo ves? Tu hermano se mató, y yo no puedo decirlo en voz alta.","dur":5.38},{"id":"11-vero-nosemato","quien":"veronica","variante":"normal","escena":"11-mensaje","t":24,"texto":"Mi hermano no se mató.","dur":1.3},{"id":"11-ana-libretas","quien":"ana","variante":"normal","escena":"11-mensaje","t":27,"texto":"Leé las libretas.","dur":0.96},{"id":"11-vero-lasleí","quien":"veronica","variante":"normal","escena":"11-mensaje","t":29.5,"texto":"Las leí. Dice: ella no va a dejarme ir.","dur":2.48},{"id":"11-ana-mejor","quien":"ana","variante":"normal","escena":"11-mensaje","t":34,"texto":"Yo nunca las abrí. Vos sí. Leelas mejor.","dur":2.7},{"id":"12-ana-radio","quien":"ana","variante":"normal","escena":"12-llave","t":4,"texto":"Voy a lo de Elías. A la radio. Que busquen un cuerpo, Verónica. Hace tres días que nadie busca.","dur":5.58},{"id":"12-vero-nadie","quien":"veronica","variante":"normal","escena":"12-llave","t":12.5,"texto":"Nadie sale de esta casa hasta que yo sepa qué pasó.","dur":2.57},{"id":"12-ana-correte","quien":"ana","variante":"normal","escena":"12-llave","t":17,"texto":"Correte.","dur":0.51},{"id":"12-ana-abri","quien":"ana","variante":"puerta","escena":"12-llave","t":24,"texto":"¡Verónica, abrí la puerta!","dur":1.35},{"id":"12-vero-manana","quien":"veronica","variante":"normal","escena":"12-llave","t":27,"texto":"Mañana. Cuando baje el agua. Cuando yo sepa.","dur":3.09},{"id":"12-ana-loca","quien":"ana","variante":"puerta","escena":"12-llave","t":31.5,"texto":"¡Estás loca!","dur":0.68},{"id":"12-vero-puedeser","quien":"veronica","variante":"normal","escena":"12-llave","t":33.5,"texto":"Puede ser.","dur":0.65},{"id":"13-vero-afuera","quien":"veronica","variante":"off","escena":"13-luz","t":1.5,"texto":"Afuera era la noche de la sudestada: negra, sin orillas, con el ruido.","dur":3.8},{"id":"13-vero-farol","quien":"veronica","variante":"off","escena":"13-luz","t":13,"texto":"Una luz de farol, quieta, que no era un reflejo.","dur":2.44},{"id":"14-vero-fechas","quien":"veronica","variante":"off","escena":"14-ella","t":4,"texto":"Siete de junio. Cinco de julio. Dos de agosto. Seis de septiembre. Cuatro de octubre.","dur":5.65},{"id":"14-vero-sabados","quien":"veronica","variante":"off","escena":"14-ella","t":13,"texto":"Primeros sábados.","dur":1.04},{"id":"14-vero-ellavino","quien":"veronica","variante":"off","escena":"14-ella","t":16.5,"texto":"Ella vino. Trajo la bolsa. Ella me dejó las pastillas contadas.","dur":4.05},{"id":"14-vero-arrastre","quien":"veronica","variante":"off","escena":"14-ella","t":25,"texto":"La ve con la cola larga. El arrastre del zurdo.","dur":2.73},{"id":"14-vero-soyyo","quien":"veronica","variante":"off","escena":"14-ella","t":31,"texto":"Él la escribió. Y ella soy yo.","dur":1.99},{"id":"14-vero-ana","quien":"veronica","variante":"grito","escena":"14-ella","t":40,"texto":"¡Ana!","dur":0.48},{"id":"15-vero-ana","quien":"veronica","variante":"grito","escena":"15-farol","t":1.5,"texto":"¡Ana!","dur":0.46},{"id":"15-vero-agarrate","quien":"veronica","variante":"grito","escena":"15-farol","t":7,"texto":"¡Agarrate!","dur":0.58},{"id":"15-vero-alto","quien":"veronica","variante":"off","escena":"15-farol","t":12,"texto":"El que lo traía era alto. Venía con el agua al pecho, con el farol en alto.","dur":4.13},{"id":"15-vero-gorra","quien":"veronica","variante":"off","escena":"15-farol","t":20.5,"texto":"La gorra. La barba de cuatro días. Los ojos de mi madre.","dur":3.79},{"id":"15-martin-vero","quien":"martin","variante":"normal","escena":"15-farol","t":29,"texto":"Vero.","dur":0.48},{"id":"15-vero-sali","quien":"veronica","variante":"normal","escena":"15-farol","t":32,"texto":"Salí del agua, Martín.","dur":1.27},{"id":"16-martin-salia","quien":"martin","variante":"normal","escena":"16-elias","t":4,"texto":"Me salía. La mano la hizo sola, de corrido, la ve con la cola y todo lo demás. La miré y era tuya. Era más tuya que la mía.","dur":8.63},{"id":"16-martin-nopude","quien":"martin","variante":"normal","escena":"16-elias","t":15,"texto":"Y no pude. Escribí: no puedo, perdoname, y se lo mandé a ella, porque a vos no te podía escribir ni eso. Y después pedí una ginebra. La primera en doce años.","dur":10.7},{"id":"16-elias-llaves","quien":"elias","variante":"normal","escena":"16-elias","t":28,"texto":"Le saqué las llaves y la botella. Quise que él fuera. Tampoco fue. En eso me equivoqué.","dur":5.98},{"id":"16-ana-cuatrodias","quien":"ana","variante":"normal","escena":"16-elias","t":36,"texto":"Cuatro días a trescientos metros. Con un farol. Con duraznos. Mientras yo llamaba a los hospitales.","dur":5.85},{"id":"16-ana-mevoy","quien":"ana","variante":"normal","escena":"16-elias","t":43.5,"texto":"Me voy en la primera colectiva.","dur":1.51},{"id":"16-martin-yase","quien":"martin","variante":"normal","escena":"16-elias","t":46,"texto":"Ya sé.","dur":0.62},{"id":"16-martin-martes","quien":"martin","variante":"normal","escena":"16-elias","t":48,"texto":"Es el martes, Vero. A las once. Si vamos los dos, tenés que firmar al lado de una firma tuya que hice yo. Delante de un escribano.","dur":8.29},{"id":"16-vero-yase","quien":"veronica","variante":"normal","escena":"16-elias","t":56.5,"texto":"Ya sé.","dur":0.54},{"id":"16-martin-nose","quien":"martin","variante":"normal","escena":"16-elias","t":58,"texto":"No sé qué querés que haga. Por eso te llamé.","dur":2.7},{"id":"17-vero-bajo","quien":"veronica","variante":"off","escena":"17-barro","t":0.8,"texto":"El domingo a la tarde el agua bajó. La casa estaba llena de barro, y mi hermano, vivo, baldeando la galería.","dur":5.82},{"id":"17-martin-lastomo","quien":"martin","variante":"normal","escena":"17-barro","t":5,"texto":"Las tomo porque si no las tomo, al mes siguiente me preguntás por qué quedan tantas. Las contás, Vero. Doce años.","dur":7.34},{"id":"17-vero-dejede","quien":"veronica","variante":"normal","escena":"17-barro","t":14,"texto":"¿Querés que deje de traerlas?","dur":1.32},{"id":"17-martin-preguntes","quien":"martin","variante":"normal","escena":"17-barro","t":17,"texto":"Quiero que me preguntes si las necesito. Una vez. Que me lo preguntes y que esperes a ver qué contesto.","dur":6.01},{"id":"17-vero-hernan","quien":"veronica","variante":"off","escena":"17-barro","t":26,"texto":"Hernán me dijo una vez que no te cuido. Que te administro.","dur":3.13},{"id":"17-martin-momento","quien":"martin","variante":"normal","escena":"17-barro","t":31,"texto":"Era una frase para el momento. Lo que pasa es que el momento duró doce años.","dur":4.63},{"id":"18-pereyra-ratifican","quien":"pereyra","variante":"normal","escena":"18-escribania","t":8,"texto":"Señora, señor: ¿ratifican lo firmado en el boleto?","dur":3.41},{"id":"18-vero-mejor","quien":"veronica","variante":"off","escena":"18-escribania","t":16,"texto":"Es mejor que la mía.","dur":1.16},{"id":"18-vero-noesmia","quien":"veronica","variante":"normal","escena":"18-escribania","t":20,"texto":"Esa firma no es mía. La hizo mi hermano. Y yo se la enseñé.","dur":3.99},{"id":"18-vero-lapicera","quien":"veronica","variante":"normal","escena":"18-escribania","t":27,"texto":"O me da la lapicera.","dur":1.17},{"id":"18-acuna-lomismo","quien":"acuna","variante":"normal","escena":"18-escribania","t":31,"texto":"Si la señora quiere vender hoy, con su firma, para mí es lo mismo.","dur":3.15},{"id":"18-pereyra-quiere","quien":"pereyra","variante":"normal","escena":"18-escribania","t":37,"texto":"¿Usted quiere vender, señora?","dur":1.77},{"id":"18-vero-si","quien":"veronica","variante":"normal","escena":"18-escribania","t":41,"texto":"Sí. Quiero vender.","dur":1.39},{"id":"18-vero-necesitas","quien":"veronica","variante":"normal","escena":"18-escribania","t":58,"texto":"¿Las necesitás?","dur":0.97},{"id":"18-martin-pensarlo","quien":"martin","variante":"normal","escena":"18-escribania","t":61.5,"texto":"No sé. Dejame pensarlo.","dur":2.12},{"id":"18-vero-bueno","quien":"veronica","variante":"normal","escena":"18-escribania","t":65,"texto":"Bueno.","dur":0.46},{"id":"18-vero-espero","quien":"veronica","variante":"off","escena":"18-escribania","t":67.5,"texto":"Y espero.","dur":0.7},{"id":"19-vero-moraleja","quien":"veronica","variante":"off","escena":"19-cierre","t":3,"texto":"Cuando los hechos dicen lo que una ya pensaba, es cuando menos hay que creerles.","dur":3.8}];
 /* ---- síntesis de sonido: todo sale de osciladores, ruido y filtros de WebAudio ----
    sonidos(ctx, maestro, T0, desde, dur) devuelve una caja de herramientas para una escena: T0 es el instante absoluto del
    segundo 0 de la escena, desde son los segundos locales que se saltan (al mover la barra), dur la duración de la escena. */
@@ -2104,46 +3395,46 @@ const ESCENAS = [
   { id: "02-puerta", nombre: "La puerta abierta", dur: 32, defines: "#define NLUCES 1\n#define NSOMBRAS 1\n#define PASOS 100", fin: 0.8, fout: 0.8,
     textos: [],
     sonido: (S) => { S.viento(0, 32, 0.3, 0.45); S.oleaje(0, 32, 0.06); S.pasos(5.5, 15.8, 1.05); S.chapas(0, 32, 0.5); S.canilla(9.5, 17.5); } },
-  { id: "03-tinta", nombre: "La tinta", dur: 40, defines: "#define NLUCES 1\n#define PASOS 40", fin: 1.0, fout: 1.0, falta: true,
+  { id: "03-tinta", nombre: "La tinta", dur: 44, defines: "#define NLUCES 1\n#define NSOMBRAS 0\n#define PASOS 100", fin: 1.0, fout: 1.0,
     textos: [{ desde: 1.0, hasta: 4.5, clase: "arriba-izq", html: '<span class="cartel">Jueves, a la tarde</span>' }],
-    sonido: (S) => { S.viento(0, 40, 0.35, 0.55); S.oleaje(0, 40, 0.08); S.chapas(0, 40, 0.6); S.remada(0, 4, 2.4, 0.2, 0.2); S.perro(20.5, 2, 0.2); S.remada(36, 40, 2.4, 0.2, 0.2); } },
+    sonido: (S) => { S.viento(0, 44, 0.35, 0.65); S.oleaje(0, 44, 0.08); S.chapas(0, 44, 0.6); S.pasos(5.4, 12.4, 1.2); S.pasos(12.6, 14.4, 0.6); S.madera(14.6, 16.0); S.perro(20.5, 2, 0.2); S.madera(40.2, 41.2); S.pasos(41.6, 43.0, 0.7); } },
   { id: "04-viento", nombre: "El viento gira", dur: 30, defines: "#define NLUCES 2\n#define NSOMBRAS 1\n#define PASOS 100", fin: 1.0, fout: 1.0, rayos: [[11.0, -0.45]],
     textos: [{ desde: 1.0, hasta: 4.0, clase: "arriba-izq", html: '<span class="cartel">Jueves, a la noche</span>' }],
     sonido: (S) => { S.viento(0, 30, 0.5, 0.9); S.radio(0.5, 7.5); S.lluvia(8, 30, 0.0, 0.2); S.trueno(11.6); S.vidrios(0, 30); S.oleaje(0, 30, 0.1); S.trueno(26.5); } },
   { id: "05-hombre", nombre: "El hombre de la chata", dur: 33, defines: "#define NLUCES 1\n#define NSOMBRAS 0\n#define PASOS 100\n#define ALCANCE 70.0", fin: 1.2, fout: 0.8,
     textos: [{ desde: 1.0, hasta: 4.0, clase: "arriba-izq", html: '<span class="cartel">Viernes, de madrugada</span>' }],
     sonido: (S) => { S.viento(0, 33, 0.35, 0.6); S.lluvia(0, 33, 0.14, 0.14); S.corriente(0, 33, 0.25); S.remada(2, 15, 2.6, 0.12, 0.6); S.perro(9.0, 2, 0.25); S.mate(19.0); S.mate(27.5); } },
-  { id: "06-taller", nombre: "Una mano que me conoce", dur: 40, defines: "#define NLUCES 1\n#define PASOS 40", fin: 1.0, fout: 1.0, falta: true,
+  { id: "06-taller", nombre: "Una mano que me conoce", dur: 40, defines: "#define NLUCES 1\n#define NSOMBRAS 1\n#define PASOS 90\n#define ALCANCE 25.0\n#define PAPEL", fin: 1.0, fout: 1.0, rayos: [[33.4, 0.0]],
     textos: [{ desde: 1.0, hasta: 4.0, clase: "arriba-izq", html: '<span class="cartel">Viernes, a la tarde</span>' }],
-    sonido: (S) => { S.viento(0, 40, 0.3, 0.4, 700); S.lluvia(0, 40, 0.25, 0.25, 2200); S.cajon(8.0); S.papel(12.0); S.papel(31.0); S.trueno(34.0); } },
+    sonido: (S) => { S.viento(0, 40, 0.3, 0.4, 700); S.lluvia(0, 40, 0.25, 0.25, 2200); S.pasos(1.0, 6.5, 0.75); S.cajon(8.2); S.papel(13.0); S.papel(15.5); S.papel(31.0); S.trueno(34.0); } },
   { id: "07-escalera", nombre: "El agua sube por la escalera", dur: 32, defines: "#define NLUCES 2\n#define NSOMBRAS 2\n#define PASOS 90\n#define ALCANCE 30.0", fin: 1.0, fout: 0.0,
     textos: [{ desde: 1.0, hasta: 4.0, clase: "arriba-izq", html: '<span class="cartel">Viernes, a la noche</span>' }],
     sonido: (S) => { S.viento(0, 32, 0.18, 0.25, 900); S.goteo(0, 32); S.madera(0, 32); S.grupo(0, 20.0); S.motivo(22.5, 0.35); } },
   { id: "08-chata", nombre: "La chata", dur: 32, defines: "#define NLUCES 1\n#define NSOMBRAS 0\n#define PASOS 100", fin: 0.6, fout: 0.8,
     textos: [{ desde: 1.0, hasta: 4.0, clase: "arriba-izq", html: '<span class="cartel">Sábado, de madrugada</span>' }],
     sonido: (S) => { S.viento(0, 32, 0.4, 0.6); S.lluvia(0, 32, 0.12, 0.12); S.corriente(0, 32, 0.5); S.remada(0, 9, 1.9, 0.5, 0.3); S.golpe(9.4); S.perro(12.5, 3, 0.4); S.respiracion(2, 24); S.chapoteo(14, 25); } },
-  { id: "09-pan", nombre: "El pan", dur: 45, defines: "#define NLUCES 1\n#define PASOS 40", fin: 1.0, fout: 1.0, falta: true,
+  { id: "09-pan", nombre: "El pan", dur: 45, defines: "#define NLUCES 2\n#define NSOMBRAS 1\n#define PASOS 90\n#define ALCANCE 60.0\n#define GOTAS_VIDRIO 6.0", fin: 1.0, fout: 1.0,
     textos: [{ desde: 1.0, hasta: 4.0, clase: "arriba-izq", html: '<span class="cartel">Sábado, a la mañana</span>' }],
-    sonido: (S) => { S.viento(0, 45, 0.3, 0.35, 700); S.lluvia(0, 45, 0.3, 0.3, 2000); S.cuchillo(2.0); S.cuchillo(4.0); S.papel(7.0); S.cuchillo(17.0); S.madera(0, 45); } },
-  { id: "10-acuna", nombre: "El señor Acuña", dur: 35, defines: "#define NLUCES 1\n#define PASOS 40", fin: 1.0, fout: 1.0, falta: true,
+    sonido: (S) => { S.viento(0, 45, 0.3, 0.35, 700); S.lluvia(0, 45, 0.3, 0.3, 2000); S.cuchillo(2.0); S.cuchillo(4.0); S.papel(7.0); S.cuchillo(17.0); S.cuchillo(19.5); S.cuchillo(39.0); S.cuchillo(41.5); S.madera(0, 45); } },
+  { id: "10-acuna", nombre: "El señor Acuña", dur: 35, defines: "#define NLUCES 1\n#define NSOMBRAS 0\n#define PASOS 100", fin: 1.0, fout: 1.0,
     textos: [{ desde: 1.0, hasta: 4.0, clase: "arriba-izq", html: '<span class="cartel">Sábado, al mediodía</span>' }],
-    sonido: (S) => { S.viento(0, 35, 0.35, 0.4); S.lluvia(0, 35, 0.1, 0.06); S.oleaje(0, 35, 0.12); S.motor(0, 35, 0.5); } },
-  { id: "11-mensaje", nombre: "14.10", dur: 40, defines: "#define NLUCES 1\n#define PASOS 40", fin: 1.0, fout: 1.0, falta: true,
+    sonido: (S) => { S.viento(0, 35, 0.35, 0.4); S.lluvia(0, 35, 0.1, 0.06); S.oleaje(0, 35, 0.12); S.motor(0, 35, 0.5); S.pasos(30.5, 34.0, 0.7); } },
+  { id: "11-mensaje", nombre: "14.10", dur: 40, defines: "#define NLUCES 2\n#define NSOMBRAS 1\n#define PASOS 90\n#define ALCANCE 60.0\n#define GOTAS_VIDRIO 6.0", fin: 1.0, fout: 1.0, rayos: [[21.6, 0.0]],
     textos: [{ desde: 1.0, hasta: 4.0, clase: "arriba-izq", html: '<span class="cartel">Sábado, a la tarde</span>' }],
-    sonido: (S) => { S.viento(0, 40, 0.3, 0.4, 700); S.lluvia(0, 40, 0.3, 0.3, 2000); S.canilla(0, 10.5); S.trueno(22.0); S.madera(0, 40); } },
-  { id: "12-llave", nombre: "Con llave", dur: 35, defines: "#define NLUCES 1\n#define PASOS 40", fin: 1.0, fout: 1.0, falta: true,
+    sonido: (S) => { S.viento(0, 40, 0.3, 0.4, 700); S.lluvia(0, 40, 0.3, 0.3, 2000); S.canilla(0, 10.5); S.trueno(22.0); S.madera(0, 40); S.pasos(36.5, 39.5, 0.65); } },
+  { id: "12-llave", nombre: "Con llave", dur: 35, defines: "#define NLUCES 1\n#define NSOMBRAS 1\n#define PASOS 90\n#define ALCANCE 20.0", fin: 1.0, fout: 1.0,
     textos: [{ desde: 1.0, hasta: 4.0, clase: "arriba-izq", html: '<span class="cartel">Sábado, a la noche</span>' }],
     sonido: (S) => { S.viento(0, 35, 0.6, 0.95, 900); S.lluvia(0, 35, 0.3, 0.3, 1800); S.madera(0, 35); S.pasos(17.5, 21.0, 0.5); S.golpe(21.5); S.llave(22.5); S.golpePuerta(24.5); S.golpePuerta(25.3); S.golpePuerta(31.0); } },
   { id: "13-luz", nombre: "La luz en el galpón", dur: 20, defines: "#define NLUCES 2\n#define NSOMBRAS 1\n#define PASOS 80\n#define ALCANCE 400.0", fin: 1.0, fout: 1.0,
     textos: [],
     sonido: (S) => { S.viento(0, 20, 0.5, 0.95, 1200); S.lluvia(0, 20, 0.3, 0.3, 1800); S.madera(0, 20); } },
-  { id: "14-ella", nombre: "Ella", dur: 45, defines: "#define NLUCES 1\n#define PASOS 40", fin: 1.0, fout: 0.5, falta: true,
+  { id: "14-ella", nombre: "Ella", dur: 45, defines: "#define NLUCES 2\n#define NSOMBRAS 1\n#define PASOS 90\n#define ALCANCE 20.0\n#define PAPEL", fin: 1.0, fout: 0.5, rayos: [[41.5, 0.0]],
     textos: [{ desde: 1.0, hasta: 4.0, clase: "arriba-izq", html: '<span class="cartel">Domingo, 3.00</span>' }],
     sonido: (S) => { S.viento(0, 45, 0.4, 0.6, 900); S.lluvia(0, 45, 0.2, 0.2, 1800); S.madera(0, 45); S.papel(2.0); S.papel(23.5); S.pasos(36.0, 38.5, 0.6); S.llave(38.5); S.vientoEntra(39.5, 45); } },
   { id: "15-farol", nombre: "Salí del agua", dur: 38, defines: "#define NLUCES 2\n#define NSOMBRAS 1\n#define PASOS 110", fin: 1.0, fout: 1.5, rayos: [[2.4, 0.3], [4.55, -0.2], [6.3, -0.5]],
     textos: [{ desde: 1.0, hasta: 4.0, clase: "arriba-izq", html: '<span class="cartel">Domingo, 4.20</span>' }],
     sonido: (S) => { S.viento(0, 38, 0.6, 1.0); S.lluvia(0, 38, 0.15, 0.1); S.corriente(0, 38, 0.5); S.trueno(2.9); S.remada(0, 4.2, 1.9, 0.5, 0.4); S.vuelco(4.2); S.trueno(5.0); S.trueno(6.9); S.chapa(8.5); S.perro(9.5, 5, 0.6); S.perro(12.0, 3, 0.5); S.chapoteo(10, 28); S.motivo(19.0, 0.9); } },
-  { id: "16-elias", nombre: "La cocina de Elías", dur: 62, defines: "#define NLUCES 1\n#define PASOS 40", fin: 1.0, fout: 1.0, falta: true,
+  { id: "16-elias", nombre: "La cocina de Elías", dur: 62, defines: "#define NLUCES 3\n#define NSOMBRAS 1\n#define PASOS 90\n#define ALCANCE 20.0", fin: 1.0, fout: 1.0,
     textos: [{ desde: 1.0, hasta: 4.0, clase: "arriba-izq", html: '<span class="cartel">Domingo, 7.00</span>' }],
     sonido: (S) => { S.viento(0, 62, 0.25, 0.2, 700); S.lluvia(0, 62, 0.12, 0.06, 2000); S.lena(0, 62); S.radio(0.5, 3.5); S.mate(13.5); S.mate(33.0); S.mate(54.0); } },
   { id: "17-barro", nombre: "Barro", dur: 40, defines: "#define NLUCES 1\n#define NSOMBRAS 0\n#define PASOS 100\n#define MARCA 2.1", fin: 1.5, fout: 1.5,
@@ -2152,7 +3443,7 @@ const ESCENAS = [
   { id: "18-escribania", nombre: "Martes, once", dur: 70, defines: "#define NLUCES 1\n#define NSOMBRAS 1\n#define PASOS 90\n#define ALCANCE 40.0\n#define PAPEL", fin: 1.5, fout: 1.5,
     textos: [{ desde: 1.0, hasta: 4.5, clase: "arriba-izq", html: '<span class="cartel">Martes, 10.50 · Escribanía Pereyra, Tigre</span>' }],
     sonido: (S) => { S.ventilador(0, 55); S.papel(5.0); S.papel(14.0); S.lapicera(44.0, 48.0); S.lapicera(50.5, 53.0); S.motivoMayor(50.5, 0.8); S.calle(55, 70); } },
-  { id: "19-cierre", nombre: "Cierre", dur: 22, defines: "#define NLUCES 1\n#define PASOS 40", fin: 0.0, fout: 2.0,
+  { id: "19-cierre", nombre: "Cierre", dur: 22, defines: "#define NLUCES 1\n#define NSOMBRAS 0\n#define PASOS 80\n#define ALCANCE 90.0", fin: 0.0, fout: 2.0,
     textos: [{ desde: 2.5, hasta: 9.5, clase: "", html: '«Cuando los hechos dicen lo que una ya pensaba, es cuando menos hay que creerles.»' }, { desde: 10.5, hasta: 14.5, clase: "", html: 'Preguntá. Y después, esperá.' }, { desde: 15.5, hasta: 19.5, clase: "", html: '<span class="titulo">SUDESTADA</span>' }, { desde: 19.7, hasta: 21.8, clase: "", html: '<span class="chico">a partir de la novela · Programador nocturno · 2026</span>' }],
     sonido: (S) => { S.acorde(1.0, 14.0); S.pajaro(16.5, 1); S.viento(0, 22, 0.1, 0.05); } },
 ];
@@ -2232,6 +3523,8 @@ function dibujar(tg, esperar) {
   /* intertítulos */
   let tx = null; for (const x of e.textos || []) if (t >= x.desde && t < x.hasta) tx = x;
   if (tx) { if (textoP.dataset.html !== tx.html) { textoP.innerHTML = tx.html; textoP.dataset.html = tx.html; } textoDiv.className = "texto visible " + (tx.clase || ""); } else textoDiv.classList.remove("visible");
+  /* en el render a .mp4 cada cuadro se dibuja por separado, así que el fundido del cartel va por tiempo y no por transición CSS */
+  textoDiv.style.opacity = (modoRender && tx) ? String(Math.min(1, (t - tx.desde) / 0.7, (tx.hasta - t) / 0.7)) : "";
   /* subtítulo de la línea que se está diciendo */
   let ln = null; for (const l of e.lineas || []) if (t >= l.t - 0.1 && t < l.t + (l.dur || 2) + 0.25) ln = l;
   if (ln) { if (subP.dataset.id !== ln.id) { subP.textContent = ln.texto; subP.dataset.id = ln.id; } subDiv.classList.add("visible"); } else { subDiv.classList.remove("visible"); subP.dataset.id = ""; }
@@ -2240,7 +3533,7 @@ function dibujar(tg, esperar) {
 }
 
 /* ---- reproducción ---- */
-let inicio = 0, raf = 0, corriendo = false, ultimo = 0;
+let inicio = 0, raf = 0, corriendo = false, ultimo = 0, modoRender = false;
 function cuadro(now) {
   const tg = (now - inicio) / 1000;
   if (ultimo) adaptar(now - ultimo); ultimo = now;
@@ -2355,7 +3648,7 @@ try {
   } else dibujar(0.001, true);
 } catch (e) { aviso.style.display = "block"; aviso.textContent = "Tu navegador no pudo iniciar WebGL: " + (e.message || e); document.getElementById("play").disabled = true; console.error(e); }
 window.__listo = true;
-window.__render = (tg) => { document.getElementById("calidad").value = "1"; capa.style.display = "none"; textoDiv.style.transition = "none"; ajustar(); dibujar(tg, true); return true; };
+window.__render = (tg) => { document.getElementById("calidad").value = "1"; capa.style.display = "none"; textoDiv.style.transition = "none"; subDiv.style.transition = "none"; modoRender = true; ajustar(); dibujar(tg, true); return true; };
 window.__fuente = (i) => compilar(i).src;
 window.__escenas = () => ESCENAS.map((e) => ({ id: e.id, nombre: e.nombre, dur: e.dur, inicio: e.inicio, propia: !!fuente("glsl-" + e.id) }));
 window.__probarTodas = () => { const r = []; for (let i = 0; i < ESCENAS.length; i++) { try { asegurar(i, true); r.push({ id: ESCENAS[i].id, ok: true }); } catch (e) { r.push({ id: ESCENAS[i].id, ok: false, error: String(e.message || e) }); } } return r; };

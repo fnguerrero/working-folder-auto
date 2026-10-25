@@ -7,8 +7,8 @@ proyecto). La segunda versión del guion (`.nonstop/GUION.md`) sigue la novela d
 minutos: la lancha colectiva, la puerta abierta, Elías que avisa la sudestada, el viento que gira, el hombre de la chata,
 el boleto en el taller, el agua por la escalera, la chata que se da vuelta, el pan, el señor Acuña, el mensaje de las 14.10,
 la puerta con llave, la luz en el galpón, «ella», el farol en el agua, la cocina de Elías, el barro, la escribanía del
-martes con las dos firmas juntas y el cierre con la moraleja. Las escenas que todavía no tienen imagen se escuchan: el
-reproductor las pasa sobre un fondo oscuro con el diálogo y los subtítulos, y avisa que están por hacer.
+martes con las dos firmas juntas y el cierre con la moraleja. **Desde el 25/10 las veinte escenas tienen imagen propia**; lo que falta es pulirlas mirándolas en movimiento y
+renderizar el `.mp4` del guion nuevo.
 
 **Ver:** https://fnguerrero.github.io/working-folder-auto/experimentos/sudestada-el-corto/
 
@@ -17,11 +17,9 @@ reproductor las pasa sobre un fondo oscuro con el diálogo y los subtítulos, y 
 
 ## Qué hay
 
-- `index.html`: el reproductor. Reproduce el corto entero (724 s con el guion nuevo), con barra de tiempo para saltar, lista de escenas,
+- `index.html`: el reproductor. Reproduce el corto entero (728 s con el guion nuevo), con barra de tiempo para saltar, lista de escenas,
   calidad automática (mide cuánto tarda cada cuadro y baja o sube la resolución de render sola, de 0,3× a 1,5×; también
-  se puede fijar), «Grabar y descargar» (a `.webm` con el audio, en el navegador) y link al `.mp4`. Las escenas que todavía
-  no tienen shader propio se ven con el de la portada, con el diálogo, los subtítulos y una nota, y salen atenuadas en la
-  lista. `?t=90` dibuja el cuadro del segundo 90 quieto; `?escena=8&t=14` el segundo 14 de la escena 8.
+  se puede fijar), «Grabar y descargar» (a `.webm` con el audio, en el navegador) y link al `.mp4`. `?t=90` dibuja el cuadro del segundo 90 quieto; `?escena=8&t=14` el segundo 14 de la escena 8.
 - `voces/`: las líneas de diálogo (`lineas.json`: quién, en qué escena, desde cuándo, el texto y la duración real) y un
   `.ogg` por línea (Opus mono a 32 kb/s; las 109 líneas, cuatro minutos y medio de voz, pesan 1,5 MB). `generar.py` las sintetiza con
   [Piper](https://github.com/rhasspy/piper) (TTS neuronal, corre local) y ffmpeg: una voz por personaje (Verónica es
@@ -32,9 +30,10 @@ reproductor las pasa sobre un fondo oscuro con el diálogo y los subtítulos, y 
   habla) y las muestra como subtítulos; la casilla «Voces» las apaga (quedan los subtítulos). El render del `.mp4` las
   decodifica igual. Además del diálogo hay narración en off de Verónica (frases de la novela en primera persona), que
   salieron de la versión con `speechSynthesis` que Nico armó en la sesión del 24/10.
-- `src/`: la fuente. `comun.glsl` es la librería (ruido, primitivas, el rig de persona por postura y aspecto, la chata, la
-  lancha colectiva, la casa de dos plantas, el perro, los sauces, el cielo con tres regímenes, el agua, la iluminación y los
-  materiales), `main.glsl` el `main()` común, `escenas/NN-*.glsl` una escena por archivo (cada una define el mundo, la
+- `src/`: la fuente. `comun.glsl` es la librería (ruido, primitivas, el rig de persona por postura y aspecto con cinemática
+  inversa, posturas de pie, sentada, en silla y remando y la mezcla entre posturas, los aspectos de los seis personajes, la
+  chata, la lancha colectiva, el semirrígido, la casa de dos plantas por fuera y por dentro, la cocina de arriba, el perro,
+  los sauces, la firma de Verónica como curva, el cielo con tres regímenes, el agua, la iluminación y los materiales), `main.glsl` el `main()` común, `escenas/NN-*.glsl` una escena por archivo (cada una define el mundo, la
   cámara, el clima, el nivel del agua y las luces), `sonido.js` la síntesis y `reproductor.js` la línea de tiempo y el
   reproductor. `node build.js` arma `index.html` con todo adentro.
 - `render.js`: renderiza a 1280×720 y 30 fps con Chromium headless (WebGL por software) y ffmpeg, **de a una escena**
@@ -88,9 +87,13 @@ NODE_PATH=/opt/node-tools/node_modules node experimentos/sudestada-el-corto/rend
 ## Qué no se pudo probar
 
 - El rendimiento en una GPU real: en la nube se renderiza por software. Las escenas con personas cerca de cámara (la 2, la
-  15) son pesadas y la escribanía (18) es la más pesada de todas (habitación cerrada, cuatro personas, sombras: a 640 px un
-  cuadro cuesta 20 a 30 s por software, tres veces lo de las otras); la calidad automática baja la resolución hasta que
-  fluya, y en un celular conviene aceptar que se vea en baja.
+  15) son pesadas y los interiores con sombras (la escribanía, la cocina de Elías, la escalera de adentro) son los más
+  pesados de todos (habitación cerrada, cuatro personas, sombras: a 640 px un cuadro cuesta 20 a 35 s por software, tres o
+  cuatro veces lo de las exteriores); la calidad automática baja la resolución hasta que fluya, y en un celular conviene
+  aceptar que se vea en baja.
+- Las escenas se controlaron cuadro por cuadro (`tests/ver.js`) en seis a nueve instantes cada una, no en movimiento: una
+  mano que atraviesa algo entre dos instantes, o una transición brusca, se va a ver recién en el `.mp4` o reproduciendo en
+  una compu con GPU.
 - El sonido y las voces se verificaron solo como forma de onda (duración, tono medio, volumen normalizado) y con el
   `OfflineAudioContext`, sin parlantes: cómo suenan de verdad las voces de Piper en castellano (la tonada, el seseo
   escrito de las voces de España) y los niveles relativos necesitan una pasada con auriculares. Si una voz no convence, en

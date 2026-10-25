@@ -11,40 +11,9 @@ vec4 aguaExtra(vec3 pos, float t) { return vec4(0.0); }
 
 /* ---- la firma: «Verónica Beatriz Aldao», en cm sobre el papel. s de 0 a 1 recorre la V, la cola que baja por debajo del renglón
    y vuelve, «erónica», un salto en el aire y «Aldao». arrastre > 0,5 es la mano de Martín: el remate se arrastra hacia abajo. ---- */
-vec2 tramo(float k, vec2 a, vec2 b, vec2 c, vec2 d, vec2 e, vec2 f) {
-  float u = k * 5.0; int i = int(floor(u)); float g = fract(u);
-  if (i == 0) return mix(a, b, g); if (i == 1) return mix(b, c, g); if (i == 2) return mix(c, d, g); if (i == 3) return mix(d, e, g); return mix(e, f, min(g + float(i - 4), 1.0));
-}
-vec2 firmaPunto(float s, float arrastre) {
-  if (s < 0.1) { float k = s / 0.1; return vec2(0.55 * k, 1.15 - 1.3 * k + 0.08 * sin(k * PI)); }                       /* la V, bajada */
-  if (s < 0.2) { float k = (s - 0.1) / 0.1; return vec2(0.55 + 0.5 * k, -0.15 + 1.35 * k - 0.08 * sin(k * PI)); }       /* la V, subida */
-  if (s < 0.38) { float k = (s - 0.2) / 0.18; return tramo(k, vec2(1.05, 1.2), vec2(1.12, 0.35), vec2(0.95, -0.65), vec2(0.6, -0.6), vec2(0.78, -0.05), vec2(1.3, 0.22)); } /* la cola larga */
-  if (s < 0.72) { float k = (s - 0.38) / 0.34; float r = 0.13 + 0.12 * step(abs(k - 0.3), 0.07); return vec2(1.3 + 1.9 * k + r * sin(k * 2.0 * PI * 7.0), 0.2 + r * (1.0 - cos(k * 2.0 * PI * 7.0)) * 0.9); } /* erónica */
-  if (s < 0.78) { float k = (s - 0.72) / 0.06; return mix(vec2(3.2, 0.22), vec2(3.55, 0.3), k); }                      /* la pluma en el aire */
-  if (s < 0.95) { float k = (s - 0.78) / 0.17; float r = 0.13 + 0.3 * exp(-k * k / 0.012); return vec2(3.55 + 1.5 * k + r * sin(k * 2.0 * PI * 5.0), 0.2 + r * (1.0 - cos(k * 2.0 * PI * 5.0)) * 0.9); } /* Aldao */
-  float k = (s - 0.95) / 0.05; return vec2(5.05 + (0.25 + 0.55 * arrastre) * k, 0.25 - (0.05 + 0.4 * arrastre) * k);   /* el remate: corto, o arrastrado por el zurdo */
-}
-float tinta(vec2 uv, float avance, float pausa, float arrastre) {
-  if (uv.x < -0.3 || uv.x > 6.2 || uv.y < -1.0 || uv.y > 1.6) return 0.0;
-  float d = 1e3; vec2 prev = firmaPunto(0.0, arrastre);
-  for (int i = 1; i <= 64; i++) {
-    float s = float(i) / 64.0; if (s > avance) break;
-    vec2 q = firmaPunto(s, arrastre);
-    bool salto = (s > 0.72 && s <= 0.785) || (pausa > 0.5 && s > 0.38 && s <= 0.4);
-    if (!salto) { vec2 pa = uv - prev, ba = q - prev; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); d = min(d, length(pa - ba * h)); }
-    prev = q;
-  }
-  return smoothstep(0.05, 0.022, d);
-}
 /* cuánto de su firma lleva hecho Verónica (44 a 48 s, con la pausa de los nueve años antes de «erónica») y Martín (50,5 a 53, de corrido) */
 float avanceVero(float t) { float a = clamp((t - 44.0) / 1.7, 0.0, 1.0) * 0.38; a += clamp((t - 46.0) / 2.0, 0.0, 1.0) * 0.62; return a; }
 float avanceMartin(float t) { return clamp((t - 50.5) / 2.6, 0.0, 1.0); }
-/* renglones de texto impreso: líneas grises con cortes, para que parezca una escritura */
-float impreso(vec2 uv, float desde, float hasta) {
-  float fila = fract(uv.y * 2.0); float linea = smoothstep(0.0, 0.08, fila) * smoothstep(0.35, 0.27, fila);
-  float palabra = step(0.25, noise(vec2(uv.x * 4.0, floor(uv.y * 2.0) * 3.0)));
-  return linea * palabra * step(desde, uv.y) * step(uv.y, hasta) * step(1.8, uv.x) * step(uv.x, 19.4) * 0.55;
-}
 const vec3 FOTOCOPIA = vec3(0.3, 0.786, -0.2); /* el centro de cada papel sobre el escritorio, del lado de Verónica */
 vec3 escrituraEn(float t) { return vec3(mix(-0.17, 0.55, smoothstep(49.0, 49.9, t)), 0.787, -0.2); } /* Pereyra la corre hacia Martín */
 #define ESCRITURA escrituraEn(t)
@@ -70,36 +39,15 @@ float papel(vec3 p, float t) {
 }
 
 /* ---- las personas ---- */
-Pose poseSilla() {
-  /* sentada en una silla (asiento a 0,45), mirando a -x, las manos sobre la mesa o la falda */
-  Pose P;
-  P.cad = vec3(0.1, 0.52, 0.0); P.pecho = vec3(0.07, 0.78, 0.0); P.hom = vec3(0.05, 0.97, 0.0); P.cab = vec3(0.03, 1.22, 0.0);
-  P.homI = P.hom + vec3(0.0, -0.03, -0.18); P.homD = P.hom + vec3(0.0, -0.03, 0.18);
-  P.codoI = vec3(0.06, 0.72, -0.24); P.codoD = vec3(0.06, 0.72, 0.24);
-  P.manoI = vec3(-0.3, 0.8, -0.12); P.manoD = vec3(-0.3, 0.8, 0.12);
-  P.agarreI = vec3(0.0, -1.0, 0.0); P.agarreD = vec3(0.0, -1.0, 0.0);
-  P.rodI = vec3(-0.36, 0.5, -0.11); P.rodD = vec3(-0.36, 0.5, 0.11);
-  P.pieI = vec3(-0.42, 0.05, -0.12); P.pieD = vec3(-0.42, 0.05, 0.12);
-  P.yaw = 0.0; P.pitch = 0.0;
-  return P;
-}
 Aspecto aspMartinCamisa() { return Aspecto(0.0, 0.0, 1.0, 0.0, 0.0, 0.3, 42.0, 1.0); }
 Aspecto aspVeroSaco() { return Aspecto(1.0, 0.0, 2.0, 0.0, 0.0, 0.2, 49.0, 0.94); }
 Aspecto aspPereyra() { return Aspecto(0.0, 0.0, 1.0, 0.0, 0.0, 0.7, 50.0, 1.0); }
-Aspecto aspAcuna() { return Aspecto(0.0, 0.0, 1.0, 0.0, 0.0, 0.3, 43.0, 1.0); }
 /* posiciones (pie) y giro del marco local de cada uno (para mirar al ángulo φ del mundo, el marco gira φ + π) */
 const vec3 PV = vec3(0.05, 0.0, -0.64), PM = vec3(0.85, 0.0, -0.64), PP = vec3(0.0, 0.0, 0.95), PA = vec3(-1.35, 0.0, 0.55); /* las sillas pegadas al escritorio, para llegar al papel */
 const float RV = -PI * 0.5, RM = -PI * 0.5 + 0.25, RP = PI * 0.5, RA = PI - 0.45;
 /* la punta de la lapicera en el mundo, siguiendo la firma que se dibuja */
 vec3 puntaVero(float t) { vec2 u = firmaPunto(min(avanceVero(t), 0.999), 0.0) * 1.3; vec2 e = u + vec2(1.2, 21.0); return vec3(ESCRITURA.x - (e.x - 10.5) * 0.01, 0.79, ESCRITURA.z - (e.y - 14.8) * 0.01); }
 vec3 puntaMartin(float t) { vec2 u = firmaPunto(min(avanceMartin(t), 0.999), 1.0) * 1.2; vec2 e = u + vec2(10.5, 21.3); return vec3(ESCRITURA.x - (e.x - 10.5) * 0.01, 0.79, ESCRITURA.z - (e.y - 14.8) * 0.01); }
-float silla(vec3 q) {
-  /* silla de madera: asiento, respaldo y cuatro patas; q relativo al centro del asiento a nivel del piso, respaldo hacia +x */
-  float d = sdBox3(q - vec3(0.0, 0.45, 0.0), vec3(0.22, 0.02, 0.22)) - 0.01;
-  d = min(d, sdBox3(q - vec3(0.2, 0.72, 0.0), vec3(0.02, 0.25, 0.2)) - 0.005);
-  for (int i = 0; i < 4; i++) { vec3 pt = vec3(i < 2 ? -0.18 : 0.18, 0.22, mod(float(i), 2.0) < 0.5 ? -0.18 : 0.18); d = min(d, sdBox3(q - pt, vec3(0.02, 0.22, 0.02))); }
-  return d;
-}
 vec2 escribania(vec3 p, float t) {
   vec2 r = vec2(1e3, 0.0);
   /* la sala: una caja hueca de 5 × 3 × 4,4 con la ventana al este (+x) y la puerta atrás (-z) */
@@ -180,7 +128,7 @@ vec2 escribania(vec3 p, float t) {
     vec3 q = rotY(p - PA, RA);
     Pose P = poseSilla(); P.manoI = vec3(-0.22, 0.72, -0.02); P.manoD = vec3(-0.24, 0.74, 0.04); P.agarreI = vec3(0.0, 0.0, 1.0); P.agarreD = vec3(0.0, 0.0, -1.0);
     P.yaw = -0.35 + 0.25 * smoothstep(30.0, 31.0, t) * (1.0 - smoothstep(34.5, 35.5, t)); P.pitch = 0.05;
-    r = u2(r, persona(q, P, aspAcuna()));
+    r = u2(r, persona(q, P, aspectoAcuna()));
   } else if (da < r.x) r = vec2(da, 0.0);
   /* Verónica, en el medio: la lupa, después las manos en la mesa, después firma */
   float dv = length(p - (PV + vec3(0.0, 0.8, 0.0))) - 1.1;

@@ -106,3 +106,10 @@ Decisiones:
   que no digan la zeta; la entonación sigue siendo peninsular, y si a Nico no le cierra, se cambia el modelo en `generar.py`.
   Los gritos no se pueden sintetizar de verdad: se hacen con más volumen, compresión y un poco más de tono.
 - **Duración (24/10):** el guion suma 724 s; se recorta en el montaje a unos diez minutos cuando estén todas las escenas.
+- **Escena 3 (25/10):** dura 44 s en vez de 40 para que Elías ate, suba, se siente y hable sin apuro; las líneas se corren en
+  `lineas.json` (los tiempos del guion son «no antes de»). Elías es canoso, con gorra y pulóver; cuando se sienta, la gorra va
+  a la rodilla. Al irse no lo vemos bajar: corte a él en el muelle mirando el cielo.
+- **Escena 6 (25/10):** el taller es un galpón aparte, de chapa, con luz gris que entra por una ventana (una luz puntual en la
+  ventana, sin lluvia en pantalla porque estamos adentro). El boleto se mira desde los ojos de Verónica, con el papel derecho y
+  las firmas al pie; la suya se vuelve a dibujar desde cero mientras habla en off.
+- **Escena 19 (25/10):** no es negro: el arroyo en calma al sol bajo, después de la sudestada, con los carteles encima.
