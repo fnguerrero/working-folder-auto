@@ -474,5 +474,19 @@
   "detalle": "El calendario de feriados nacionales con los trasladables en su fecha real, los puentes y la ley o decreto de cada uno, y una calculadora: qué día cae 10 hábiles después del 15/10, cuántos hábiles hay entre dos fechas, si un día es feriado. La misma lista sale en JSON y en una clase C# con EsHabil, SumarHabiles y HabilesEntre, probada con .NET 8; confirmado hasta 2026 y 2027 a medias.",
   "destacado": false,
   "actualizado": "2026-10-25"
+ },
+ {
+  "slug": "datos-de-prueba",
+  "nombre": "Datos de prueba argentinos",
+  "categoria": "herramientas",
+  "descripcion": "Personas y empresas inventadas con DNI, CUIT/CUIL, CBU, alias y patente que pasan cualquier validador, con semilla y en JSON, CSV, SQL o C#. Con validador.",
+  "estado": "terminado",
+  "probar": "herramientas/datos-de-prueba/",
+  "desde": "2026-10-25",
+  "icono": "🪪",
+  "para": "devs",
+  "detalle": "Genera hasta 10.000 personas o empresas con pinta argentina (nombre según la época, DNI acorde a la edad, CUIL o CUIT con el dígito verificador correcto, CBU con sus dos dígitos de control, alias, patente vieja o Mercosur, dirección, teléfono con característica y mail de dominio reservado) para seeds, tests y demos sin usar datos de nadie. La misma semilla da siempre los mismos datos, y sale en JSON, CSV, INSERT de SQL Server o PostgreSQL, o una lista de records de C#. Al lado, un validador de CUIT, CBU, DNI y patentes que muestra la cuenta y de qué banco es.",
+  "destacado": false,
+  "actualizado": "2026-10-25"
  }
 ]

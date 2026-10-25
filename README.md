@@ -48,6 +48,7 @@ Trabaja directo sobre `main`. Si algo no te gusta, se mueve a `_archivo/`.
 | Memotest de animales | juegos | Cartas con ocho animales que suenan al darse vuelta; los pares festejan y se quedan abiertos. Para Valentín. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/juegos/memotest/) |
 | Dividir gastos | apps | Quién le debe cuánto a quién después de un asado o un viaje: saldos, la menor cantidad de transferencias y el resumen para WhatsApp. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/apps/dividir-gastos/) |
 | Feriados y días hábiles | herramientas | Feriados nacionales de 2024 a 2027 con su norma, calculadora de plazos en días hábiles y la clase C# para pegar. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/herramientas/feriados-y-habiles/) |
+| Datos de prueba argentinos | herramientas | Personas y empresas inventadas con DNI, CUIT/CUIL, CBU, alias y patente válidos, con semilla, en JSON, CSV, SQL o C#; y un validador. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/herramientas/datos-de-prueba/) |
 
 ## La vitrina
 

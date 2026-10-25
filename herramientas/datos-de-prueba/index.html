@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Datos de prueba argentinos</title>
+<style>
+  :root { --bg: #f3f5f7; --card: #fff; --fg: #1b1f24; --muted: #5f6873; --line: #dde2e8; --accent: #1f6fb2; --accent-fg: #fff; --sol: #c98a00; --ok: #2f7d4f; --mal: #c0392b; --code: #edf0f3; --suave: rgba(31, 111, 178, .07); }
+  @media (prefers-color-scheme: dark) { :root { --bg: #111418; --card: #1a1e24; --fg: #e8ebef; --muted: #9aa3ad; --line: #2e343c; --accent: #78b9ee; --accent-fg: #0b1a28; --sol: #f2c14e; --ok: #7bd39b; --mal: #f0867a; --code: #15191e; --suave: rgba(120, 185, 238, .1); } }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.45; }
+  header { padding: 18px 16px 6px; max-width: 1180px; margin: 0 auto; }
+  h1 { margin: 0; font-size: 1.5rem; }
+  h1 .sol { color: var(--sol); }
+  header p { margin: 4px 0 0; color: var(--muted); max-width: 90ch; }
+  main { max-width: 1180px; margin: 0 auto; padding: 10px 16px 32px; display: grid; gap: 14px; }
+  @media (min-width: 900px) { main { grid-template-columns: 380px minmax(0, 1fr); align-items: start; } .ancho { grid-column: 1 / -1; } }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+  .panel h2 { margin: 0 0 10px; font-size: 1rem; }
+  label.campo { display: block; font-size: .8rem; color: var(--muted); font-weight: 600; margin: 12px 0 4px; }
+  label.campo:first-of-type { margin-top: 0; }
+  input[type=text], input[type=number], select { font: inherit; width: 100%; min-height: 40px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
+  input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  button { font: inherit; font-size: .88rem; min-height: 40px; padding: 6px 14px; border-radius: 999px; cursor: pointer; border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+  button:hover { border-color: var(--accent); }
+  button[aria-pressed="true"], button.primario { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .seg { display: flex; flex-wrap: wrap; gap: 6px; }
+  .seg button { flex: 1 1 auto; }
+  .fila { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .fila > input, .fila > select { flex: 1 1 140px; width: auto; min-width: 0; }
+  .fila.junta { flex-wrap: nowrap; }
+  .fila.junta > button { flex: none; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .chips button { min-height: 34px; padding: 4px 11px; font-size: .8rem; }
+  .check { display: flex; gap: 8px; align-items: flex-start; font-size: .9rem; margin-top: 12px; cursor: pointer; }
+  .check input { width: 18px; height: 18px; margin: 2px 0 0; flex: none; accent-color: var(--accent); }
+  .acciones { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+  .estado { font-size: .85rem; color: var(--muted); }
+  .copiado { color: var(--ok); font-size: .85rem; }
+  .opciones { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; margin-top: 10px; }
+  .opciones > div { flex: 1 1 150px; min-width: 0; }
+  .opciones label.campo { margin-top: 0; }
+  .opciones .check { margin-top: 0; padding-bottom: 10px; flex: 1 1 150px; }
+  pre { background: var(--code); padding: 10px 12px; border-radius: 8px; overflow: auto; font-size: .8rem; margin: 10px 0 0; white-space: pre; max-height: 460px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .nota { font-size: .84rem; color: var(--muted); margin: 8px 0 0; }
+  .tabla { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: .82rem; }
+  th, td { text-align: left; padding: 6px 8px; border-top: 1px solid var(--line); white-space: nowrap; }
+  thead th { border-top: 0; color: var(--muted); font-weight: 600; font-size: .74rem; background: var(--suave); position: sticky; top: 0; }
+  td.validable { cursor: pointer; color: var(--accent); text-decoration: underline dotted; text-underline-offset: 3px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  td.nulo { color: var(--muted); font-style: italic; }
+  .veredicto { margin-top: 10px; border-left: 4px solid var(--line); border-radius: 8px; padding: 10px 12px; background: var(--suave); }
+  .veredicto.ok { border-left-color: var(--ok); } .veredicto.mal { border-left-color: var(--mal); }
+  .veredicto .sello { font-weight: 700; font-size: 1rem; }
+  .veredicto.ok .sello { color: var(--ok); } .veredicto.mal .sello { color: var(--mal); }
+  .veredicto dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 3px 12px; margin: 8px 0 0; font-size: .88rem; }
+  .veredicto dt { color: var(--muted); }
+  .veredicto dd { margin: 0; overflow-wrap: anywhere; }
+  .veredicto p { margin: 6px 0 0; font-size: .88rem; overflow-wrap: anywhere; }
+  .veredicto .calc { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .78rem; color: var(--muted); }
+  code { background: var(--code); padding: 1px 5px; border-radius: 4px; font-size: .9em; overflow-wrap: anywhere; }
+  .texto p, .texto li { font-size: .92rem; }
+  .texto h3 { font-size: .95rem; margin: 14px 0 4px; }
+  .texto h3:first-of-type { margin-top: 0; }
+  .texto ul { padding-left: 20px; margin: 4px 0; }
+  .oculto { display: none !important; }
+  .vacio { color: var(--muted); font-size: .9rem; padding: 10px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Datos de prueba <span class="sol">argentinos</span></h1>
+  <p>Personas y empresas inventadas con DNI, CUIT o CUIL, CBU con sus dos dígitos de control, alias, patente, dirección y teléfono con pinta argentina. Con semilla, para que salgan siempre los mismos, y en JSON, CSV, SQL o C#. Al lado, un validador de CUIT, CBU, DNI y patentes. Nada sale del navegador.</p>
+</header>
+<main>
+  <section class="panel" aria-label="Qué generar">
+    <h2>Qué generar</h2>
+    <label class="campo">Tipo</label>
+    <div class="seg" id="tipo" role="group" aria-label="Tipo">
+      <button type="button" data-tipo="persona" aria-pressed="true">👤 Personas</button>
+      <button type="button" data-tipo="empresa" aria-pressed="false">🏢 Empresas</button>
+    </div>
+    <label class="campo" for="cantidad">Cantidad (hasta 10.000)</label>
+    <input type="number" id="cantidad" min="1" max="10000" step="1" inputmode="numeric" value="20">
+    <div class="chips" id="cantidades">
+      <button type="button" data-n="10">10</button><button type="button" data-n="100">100</button><button type="button" data-n="1000">1.000</button><button type="button" data-n="10000">10.000</button>
+    </div>
+    <label class="campo" for="semilla">Semilla (la misma semilla da los mismos datos)</label>
+    <div class="fila junta">
+      <input type="text" id="semilla" value="mate" spellcheck="false" autocomplete="off">
+      <button type="button" id="dado" title="Otra semilla al azar" aria-label="Otra semilla al azar">🎲 Otra</button>
+    </div>
+    <label class="campo" for="patentes">Patentes</label>
+    <select id="patentes">
+      <option value="mezcla">Viejas y Mercosur, mezcladas</option>
+      <option value="mercosur">Solo Mercosur (AB 123 CD)</option>
+      <option value="vieja">Solo viejas (ABC 123)</option>
+    </select>
+    <label class="check"><input type="checkbox" id="separadores"> <span>DNI, CUIT y patente con puntos, guiones y espacios (<code>20-12345678-6</code> en vez de <code>20123456786</code>)</span></label>
+    <label class="campo">Campos</label>
+    <div class="chips" id="campos"></div>
+    <div class="chips"><button type="button" id="todos">Todos</button><button type="button" id="minimos">Lo mínimo</button></div>
+  </section>
+
+  <section class="panel" aria-label="Salida">
+    <h2>Salida</h2>
+    <div class="seg" id="formato" role="group" aria-label="Formato">
+      <button type="button" data-formato="json" aria-pressed="true">JSON</button>
+      <button type="button" data-formato="csv" aria-pressed="false">CSV</button>
+      <button type="button" data-formato="sql" aria-pressed="false">SQL</button>
+      <button type="button" data-formato="cs" aria-pressed="false">C#</button>
+    </div>
+    <div class="opciones oculto" id="opcCsv">
+      <div><label class="campo" for="separador">Separador</label>
+        <select id="separador"><option value=",">Coma (,)</option><option value=";">Punto y coma (;): el Excel en castellano</option><option value="&#9;">Tabulación</option></select></div>
+    </div>
+    <div class="opciones oculto" id="opcSql">
+      <div><label class="campo" for="dialecto">Base</label>
+        <select id="dialecto"><option value="sqlserver">SQL Server</option><option value="postgres">PostgreSQL</option></select></div>
+      <div><label class="campo" for="tabla">Tabla</label><input type="text" id="tabla" placeholder="Personas" spellcheck="false" autocomplete="off"></div>
+      <label class="check"><input type="checkbox" id="crear" checked> <span>Con <code>CREATE TABLE</code></span></label>
+    </div>
+    <div class="opciones oculto" id="opcCs">
+      <div><label class="campo" for="clase">Nombre del record</label><input type="text" id="clase" placeholder="Persona" spellcheck="false" autocomplete="off"></div>
+    </div>
+    <div class="acciones">
+      <button type="button" class="primario" id="copiar">📋 Copiar todo</button>
+      <button type="button" id="descargar">⬇️ Descargar</button>
+      <span class="copiado oculto" id="copiado" role="status"></span>
+    </div>
+    <p class="estado" id="resumen" aria-live="polite"></p>
+    <pre id="salida" tabindex="0" aria-label="Vista previa de la salida"></pre>
+    <p class="nota" id="notaSalida"></p>
+  </section>
+
+  <section class="panel ancho" aria-label="Vista previa">
+    <h2>Vista previa</h2>
+    <div class="tabla" id="tabla-previa"></div>
+    <p class="nota">Tocá un DNI, CUIT, CUIL, CBU, alias o patente para verlo en el validador.</p>
+  </section>
+
+  <section class="panel" aria-label="Validador" id="panelValidador">
+    <h2>Validador</h2>
+    <label class="campo" for="validar">Pegá un CUIT, CUIL, CBU, CVU, DNI, patente o alias</label>
+    <input type="text" id="validar" spellcheck="false" autocomplete="off" placeholder="20-12345678-6">
+    <div class="chips" id="ejemplos">
+      <button type="button" data-v="33-69345023-9">CUIT de ARCA</button>
+      <button type="button" data-v="30-54668997-9">CUIT de YPF</button>
+      <button type="button" data-v="2850590940090418135201">CBU de ejemplo</button>
+      <button type="button" data-v="20-12345678-5">Uno que no cierra</button>
+      <button type="button" data-v="12345678">DNI</button>
+      <button type="button" data-v="AE 123 KF">Patente</button>
+    </div>
+    <div class="veredicto oculto" id="veredicto" aria-live="polite"></div>
+  </section>
+
+  <section class="panel texto" aria-label="Cómo se calcula">
+    <h2>Cómo se calcula</h2>
+    <h3>CUIT y CUIL</h3>
+    <p>Once dígitos: prefijo (20 varón, 27 mujer, 30 sociedad), los ocho del DNI o del número de la empresa y un verificador. Cada uno de los diez primeros se multiplica por <code>5 4 3 2 7 6 5 4 3 2</code>, se suma, y el verificador es <code>11 − (suma mod 11)</code>; si da 11 va 0. Si da 10 no hay dígito posible: a las personas se les pone 23 (y sale 9 para varones y 4 para mujeres) y a las sociedades 33 o 34.</p>
+    <h3>CBU</h3>
+    <p>Veintidós dígitos en dos bloques. El primero es el banco (3), la sucursal (4) y un verificador con pesos <code>7 1 3 9 7 1 3</code>; el segundo, la cuenta (13) y un verificador con pesos <code>3 9 7 1 3 9 7 1 3 9 7 1 3</code>. En los dos, el dígito es lo que le falta a la suma para llegar a la decena siguiente. Un CVU (billeteras virtuales) usa la misma cuenta y empieza con <code>000</code>.</p>
+    <h3>Lo que no es real</h3>
+    <ul>
+      <li>Nombres, apellidos y calles salen de listas comunes y se combinan al azar: no es nadie.</li>
+      <li>El DNI sigue el año de nacimiento (los de 1960 andan por los 12 millones; los de 2000, por los 42) y no se repite en la tanda.</li>
+      <li>Los mails son de <code>example.com</code>, <code>example.net</code>, <code>example.org</code> o <code>.example</code>, dominios reservados para ejemplos: un mail de prueba no le llega a nadie.</li>
+      <li>Los bancos y las características telefónicas son reales, porque los validadores los miran; las cuentas y los números son al azar y no se usan para nada.</li>
+    </ul>
+  </section>
+</main>
+<script src="logica.js"></script>
+<script>
+(function () {
+  "use strict";
+  const D = window.DatosDePrueba;
+  const $ = (s) => document.querySelector(s);
+  const CLAVE = "datos-de-prueba:v1";
+  const PREVIA = 50, FILAS_TABLA = 20;
+  const MINIMOS = { persona: ["id", "nombre", "apellido", "dni", "cuil"], empresa: ["id", "razonSocial", "cuit"] };
+  const VALIDABLES = new Set(["dni", "cuil", "cuit", "cbu", "alias", "patente"]);
+  const todos = (tipo) => D.CAMPOS[tipo].map((c) => c.k);
+  const est = {
+    tipo: "persona", cantidad: 20, semilla: "mate", patentes: "mezcla", separadores: false, formato: "json",
+    separador: ",", dialecto: "sqlserver", tabla: "", crear: true, clase: "",
+    campos: { persona: todos("persona"), empresa: todos("empresa") }, validar: "",
+  };
+  try {
+    const g = JSON.parse(localStorage.getItem(CLAVE) || "null");
+    if (g && typeof g === "object") {
+      for (const k of Object.keys(est)) if (k !== "campos" && typeof g[k] === typeof est[k]) est[k] = g[k];
+      if (g.campos) for (const t of ["persona", "empresa"]) if (Array.isArray(g.campos[t])) est.campos[t] = g.campos[t].filter((k) => todos(t).includes(k));
+    }
+  } catch { /* sin memoria */ }
+  const guardar = () => { try { localStorage.setItem(CLAVE, JSON.stringify(est)); } catch { /* sin memoria */ } };
+
+  let registros = [];
+  const camposElegidos = () => todos(est.tipo).filter((k) => est.campos[est.tipo].includes(k));
+  const opcionesSalida = () => ({ tipo: est.tipo, separador: est.separador, dialecto: est.dialecto, tabla: est.tabla, crear: est.crear, clase: est.clase });
+  const cantidad = () => Math.max(1, Math.min(D.MAX_REGISTROS, Math.floor(Number(est.cantidad)) || 1));
+  const miles = (n) => n.toLocaleString("es-AR");
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+  function pintarControles() {
+    for (const b of document.querySelectorAll("#tipo button")) b.setAttribute("aria-pressed", String(b.dataset.tipo === est.tipo));
+    for (const b of document.querySelectorAll("#formato button")) b.setAttribute("aria-pressed", String(b.dataset.formato === est.formato));
+    $("#cantidad").value = est.cantidad; $("#semilla").value = est.semilla; $("#patentes").value = est.patentes;
+    $("#separadores").checked = est.separadores; $("#separador").value = est.separador; $("#dialecto").value = est.dialecto;
+    $("#tabla").value = est.tabla; $("#crear").checked = est.crear; $("#clase").value = est.clase; $("#validar").value = est.validar;
+    $("#tabla").placeholder = est.tipo === "empresa" ? "Empresas" : "Personas";
+    $("#clase").placeholder = est.tipo === "empresa" ? "Empresa" : "Persona";
+    $("#opcCsv").classList.toggle("oculto", est.formato !== "csv");
+    $("#opcSql").classList.toggle("oculto", est.formato !== "sql");
+    $("#opcCs").classList.toggle("oculto", est.formato !== "cs");
+    $("#campos").innerHTML = D.CAMPOS[est.tipo].map((c) => `<button type="button" data-campo="${c.k}" aria-pressed="${est.campos[est.tipo].includes(c.k)}">${esc(c.etiqueta)}</button>`).join("");
+  }
+
+  function generar() {
+    registros = D.generar({ tipo: est.tipo, cantidad: cantidad(), semilla: est.semilla, patentes: est.patentes, separadores: est.separadores });
+    pintarSalida();
+  }
+
+  function pintarSalida() {
+    const campos = camposElegidos();
+    const n = registros.length;
+    const nombre = est.tipo === "empresa" ? (n === 1 ? "empresa" : "empresas") : (n === 1 ? "persona" : "personas");
+    $("#copiar").disabled = $("#descargar").disabled = !campos.length;
+    if (!campos.length) {
+      $("#salida").textContent = ""; $("#notaSalida").textContent = "Elegí al menos un campo.";
+      $("#resumen").textContent = ""; $("#tabla-previa").innerHTML = '<p class="vacio">Elegí al menos un campo.</p>';
+      return;
+    }
+    const previa = D.exportar(est.formato, registros.slice(0, PREVIA), campos, opcionesSalida());
+    $("#salida").textContent = previa;
+    $("#resumen").textContent = `${miles(n)} ${nombre} · ${campos.length} ${campos.length === 1 ? "campo" : "campos"} · semilla «${est.semilla}»`;
+    if (n > PREVIA) {
+      const bytes = (new Blob([previa]).size * n) / PREVIA;
+      const tam = bytes > 1e6 ? `${(bytes / 1e6).toLocaleString("es-AR", { maximumFractionDigits: 1 })} MB` : `${Math.round(bytes / 1e3)} KB`;
+      $("#notaSalida").textContent = `Acá se ven los primeros ${PREVIA}; copiar y descargar llevan los ${miles(n)} (unos ${tam}).`;
+    } else $("#notaSalida").textContent = est.formato === "csv" ? "El archivo descargado lleva BOM para que Excel respete los acentos." : "";
+    const meta = D.CAMPOS[est.tipo].filter((c) => campos.includes(c.k));
+    const filas = registros.slice(0, FILAS_TABLA).map((r) => "<tr>" + meta.map((c) => {
+      const v = r[c.k];
+      if (v == null) return '<td class="nulo">—</td>';
+      return VALIDABLES.has(c.k) ? `<td class="validable" tabindex="0" title="Validarlo">${esc(v)}</td>` : `<td>${esc(v)}</td>`;
+    }).join("") + "</tr>");
+    $("#tabla-previa").innerHTML = `<table><thead><tr>${meta.map((c) => `<th scope="col">${esc(c.etiqueta)}</th>`).join("")}</tr></thead><tbody>${filas.join("")}</tbody></table>`;
+  }
+
+  let reloj = null;
+  const regenerarPronto = () => { clearTimeout(reloj); reloj = setTimeout(() => { generar(); guardar(); }, cantidad() > 2000 ? 250 : 80); };
+  const alCambiar = (fn, regenerar) => () => { fn(); guardar(); if (regenerar) regenerarPronto(); else pintarSalida(); };
+
+  // ---------- Controles ----------
+  $("#tipo").addEventListener("click", (e) => { const b = e.target.closest("button[data-tipo]"); if (!b || b.dataset.tipo === est.tipo) return; est.tipo = b.dataset.tipo; pintarControles(); guardar(); generar(); });
+  $("#formato").addEventListener("click", (e) => { const b = e.target.closest("button[data-formato]"); if (!b) return; est.formato = b.dataset.formato; pintarControles(); guardar(); pintarSalida(); });
+  $("#cantidad").addEventListener("input", alCambiar(() => { est.cantidad = Number($("#cantidad").value) || 1; }, true));
+  $("#cantidad").addEventListener("change", () => { est.cantidad = cantidad(); $("#cantidad").value = est.cantidad; guardar(); });
+  $("#cantidades").addEventListener("click", (e) => { const b = e.target.closest("button[data-n]"); if (!b) return; est.cantidad = Number(b.dataset.n); $("#cantidad").value = est.cantidad; guardar(); generar(); });
+  $("#semilla").addEventListener("input", alCambiar(() => { est.semilla = $("#semilla").value; }, true));
+  $("#dado").addEventListener("click", () => { est.semilla = D.semillaAlAzar(); $("#semilla").value = est.semilla; guardar(); generar(); });
+  $("#patentes").addEventListener("change", alCambiar(() => { est.patentes = $("#patentes").value; }, true));
+  $("#separadores").addEventListener("change", alCambiar(() => { est.separadores = $("#separadores").checked; }, true));
+  $("#campos").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-campo]"); if (!b) return;
+    const lista = est.campos[est.tipo], k = b.dataset.campo;
+    est.campos[est.tipo] = lista.includes(k) ? lista.filter((x) => x !== k) : lista.concat(k);
+    b.setAttribute("aria-pressed", String(est.campos[est.tipo].includes(k))); guardar(); pintarSalida();
+  });
+  $("#todos").addEventListener("click", () => { est.campos[est.tipo] = todos(est.tipo); pintarControles(); guardar(); pintarSalida(); });
+  $("#minimos").addEventListener("click", () => { est.campos[est.tipo] = MINIMOS[est.tipo].slice(); pintarControles(); guardar(); pintarSalida(); });
+  $("#separador").addEventListener("change", alCambiar(() => { est.separador = $("#separador").value; }));
+  $("#dialecto").addEventListener("change", alCambiar(() => { est.dialecto = $("#dialecto").value; }));
+  $("#tabla").addEventListener("input", alCambiar(() => { est.tabla = $("#tabla").value; }));
+  $("#crear").addEventListener("change", alCambiar(() => { est.crear = $("#crear").checked; }));
+  $("#clase").addEventListener("input", alCambiar(() => { est.clase = $("#clase").value; }));
+
+  // ---------- Copiar y descargar ----------
+  const textoCompleto = () => D.exportar(est.formato, registros, camposElegidos(), opcionesSalida());
+  function avisar(msg) { const c = $("#copiado"); c.textContent = msg; c.classList.remove("oculto"); clearTimeout(avisar.t); avisar.t = setTimeout(() => c.classList.add("oculto"), 2500); }
+  $("#copiar").addEventListener("click", async () => {
+    const t = textoCompleto();
+    try { await navigator.clipboard.writeText(t); }
+    catch {
+      const a = document.createElement("textarea"); a.value = t; a.setAttribute("readonly", ""); a.style.position = "fixed"; a.style.opacity = "0";
+      document.body.appendChild(a); a.select(); try { document.execCommand("copy"); } catch { /* nada */ } a.remove();
+    }
+    avisar(`✔ Copiado: ${miles(registros.length)} ${est.tipo === "empresa" ? "empresas" : "personas"}`);
+  });
+  $("#descargar").addEventListener("click", () => {
+    const t = textoCompleto();
+    const tipos = { json: "application/json", csv: "text/csv", sql: "application/sql", cs: "text/plain" };
+    const blob = new Blob([est.formato === "csv" ? "﻿" + t : t], { type: `${tipos[est.formato]};charset=utf-8` });
+    const a = document.createElement("a");
+    const semilla = est.semilla.replace(/[^\w-]+/g, "") || "datos";
+    a.href = URL.createObjectURL(blob); a.download = `${est.tipo === "empresa" ? "empresas" : "personas"}-${semilla}.${D.EXTENSIONES[est.formato]}`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    avisar("✔ Descargado");
+  });
+
+  // ---------- Validador ----------
+  const fila = (k, v) => `<dt>${k}</dt><dd>${v}</dd>`;
+  function pintarVeredicto() {
+    const r = D.analizar(est.validar);
+    const caja = $("#veredicto");
+    if (r.tipo === "vacio") { caja.classList.add("oculto"); return; }
+    caja.classList.remove("oculto", "ok", "mal"); caja.classList.add(r.valido ? "ok" : "mal");
+    let h = "";
+    if (r.tipo === "cuit") {
+      const persona = /^2/.test(r.prefijo);
+      h += `<div class="sello">${r.valido ? "✔ CUIT válido" : "✘ El CUIT no cierra"}</div><dl>`;
+      h += fila("CUIT", `<code>${esc(r.formateado)}</code>`);
+      h += fila("Prefijo", `${esc(r.prefijo)}: ${esc(r.clase || "desconocido")}`);
+      h += fila(persona ? "DNI" : "Número", esc(persona ? D.formatearDni(r.dni) : r.dni));
+      h += fila("Verificador", r.esperado === 10 ? "no hay con este prefijo" : `${r.digito}${r.valido ? "" : ` (tendría que ser ${r.esperado})`}`);
+      h += "</dl>";
+      if (r.error && !r.valido) h += `<p>${esc(r.error)}${r.sugerido ? ` El que cierra: <code>${esc(r.sugerido)}</code>.` : ""}</p>`;
+      else if (r.error) h += `<p>${esc(r.error)}</p>`;
+      h += `<p class="calc">${esc(r.cuenta)}</p>`;
+    } else if (r.tipo === "cbu") {
+      h += `<div class="sello">${r.valido ? `✔ ${r.esCvu ? "CVU" : "CBU"} válido` : `✘ El ${r.esCvu ? "CVU" : "CBU"} no cierra`}</div><dl>`;
+      h += fila(r.esCvu ? "Billetera" : "Banco", esc(r.banco || `código ${r.entidad} (no está en la tabla)`));
+      if (!r.esCvu) h += fila("Entidad", `<code>${esc(r.entidad)}</code>`) + fila("Sucursal", `<code>${esc(r.sucursal)}</code>`);
+      h += fila("Cuenta", `<code>${esc(r.nroCuenta)}</code>`);
+      h += fila("Primer bloque", r.ok1 ? `✔ verificador ${r.digito1}` : `✘ verificador ${r.digito1}, tendría que ser ${r.esperado1}`);
+      h += fila("Segundo bloque", r.ok2 ? `✔ verificador ${r.digito2}` : `✘ verificador ${r.digito2}, tendría que ser ${r.esperado2}`);
+      h += "</dl>";
+      if (!r.valido) h += `<p>${esc(r.error)} El que cierra: <code>${esc(r.sugerido)}</code>.</p>`;
+      h += `<p class="calc">Bloque 1: ${esc(r.cuenta1)}<br>Bloque 2: ${esc(r.cuenta2)}</p>`;
+    } else if (r.tipo === "dni") {
+      if (!r.valido) h += `<div class="sello">✘ ${esc(r.error)}</div>`;
+      else {
+        h += `<div class="sello">DNI ${esc(r.formateado)}</div><dl>`;
+        h += fila("CUIL varón", `<code>${esc(r.cuilM)}</code>`) + fila("CUIL mujer", `<code>${esc(r.cuilF)}</code>`);
+        if (r.anio) h += fila("Nacimiento", `cerca de ${r.anio} (aproximado, por el número)`);
+        h += "</dl>";
+      }
+    } else if (r.tipo === "patente") {
+      h += r.valido ? `<div class="sello">✔ Patente ${esc(r.formateada)}</div><p>Formato ${esc(r.formato)}.</p>` : `<div class="sello">✘ No es una patente</div><p>${esc(r.error)}</p>`;
+    } else if (r.tipo === "alias") {
+      h += r.valido ? `<div class="sello">✔ Alias con forma válida</div><p>Entre 6 y 20 caracteres con letras, números, puntos y guiones. Si existe o no, solo lo sabe el banco.</p>` : `<div class="sello">✘ No es un CUIT, CBU, DNI, patente ni alias</div><p>${esc(r.error)}</p>`;
+    } else h += `<div class="sello">✘ No lo reconozco</div><p>${esc(r.error)}</p>`;
+    caja.innerHTML = h;
+  }
+  function validar(v) { est.validar = v; $("#validar").value = v; guardar(); pintarVeredicto(); }
+  $("#validar").addEventListener("input", () => { est.validar = $("#validar").value; guardar(); pintarVeredicto(); });
+  $("#ejemplos").addEventListener("click", (e) => { const b = e.target.closest("button[data-v]"); if (b) validar(b.dataset.v); });
+  const tocarCelda = (td) => { validar(td.textContent); if (innerWidth < 900) $("#panelValidador").scrollIntoView({ behavior: "smooth", block: "start" }); };
+  $("#tabla-previa").addEventListener("click", (e) => { const td = e.target.closest("td.validable"); if (td) tocarCelda(td); });
+  $("#tabla-previa").addEventListener("keydown", (e) => { const td = e.target.closest("td.validable"); if (td && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); tocarCelda(td); } });
+
+  pintarControles(); generar(); pintarVeredicto();
+})();
+</script>
+</body>
+</html>
