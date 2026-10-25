@@ -7,3 +7,5 @@ se rendericen las escenas nuevas; render.js armar verifica que cada segmento dur
 escena-01.mp4: renderizada a 640×360, escalada a 1280×720 (2026-10-25), borrador: salió de una copia del proyecto anterior a dos
   arreglos de esa noche (las estrellas que se veían de día como puntitos en el cielo gris, y el pantalón oscuro de Verónica), así
   que se re-renderiza junto con las demás.
+escena-02.mp4: renderizada a 640×360, escalada a 1280×720 (2026-10-25), borrador de la misma copia que la 01 (mismas dos
+  diferencias con el shader actual: estrellas de día y el pantalón de Verónica); 90 min de render.

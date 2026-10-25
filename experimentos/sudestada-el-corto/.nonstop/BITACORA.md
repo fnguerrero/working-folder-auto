@@ -44,7 +44,7 @@
   que el e2e final corriera solo, pausé el render con `SIGSTOP` 20 minutos: la captura de cada cuadro tiene un tope de 10
   (`screenshot timeout`) y al reanudar el proceso murió; como `render.js cuadros` saltea los cuadros que ya existen, con
   relanzarlo retomó desde el 648 sin perder nada. Lección: pausar menos de 10 minutos o subir el tope antes de pausar. El
-  e2e solo tarda 20 min (los interiores de la noche 3 son pesados a 1280 px). La escena 1 en borrador quedó en 22 min.
+  e2e solo tarda 20 min (los interiores de la noche 3 son pesados a 1280 px). La escena 1 en borrador quedó en 22 min y la 2 en 90 (7,5 s por cuadro contra 1,5: la persona cerca de cámara y la sombra de la casa).
 
 ## 2026-10-24 (noche 2)
 
