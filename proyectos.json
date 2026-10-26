@@ -333,7 +333,7 @@
   "para": "devs",
   "detalle": "Pegás un JWT y te explica cada claim en castellano con las fechas en hora argentina, te marca si está vencido (con el ClockSkew de ASP.NET), te avisa de las trampas, verifica la firma y te deja el C# para validarlo.",
   "destacado": true,
-  "actualizado": "2026-10-20"
+  "actualizado": "2026-10-25"
  },
  {
   "slug": "pintar",
