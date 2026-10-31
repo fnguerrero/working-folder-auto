@@ -939,6 +939,7 @@ Material material(vec3 p, inout vec3 n, float mat, float t) {
     m.emis = c * 1.6; m.alb = vec3(0.02); m.brillo = 2.0; }
   else if (mat < 57.5 && mat > 56.5) { m.alb = vec3(0.85, 0.55, 0.25) * (0.85 + 0.3 * noise(p.xy * 60.0 + p.z * 60.0)); n = normalize(n + 0.05 * vec3(noise(p.yz * 80.0) - 0.5, noise(p.xz * 80.0) - 0.5, noise(p.xy * 80.0) - 0.5)); m.brillo = 0.2; } /* duraznos */
   else if (mat < 58.5 && mat > 57.5) { m.emis = vec3(0.2, 1.0, 0.3) * 3.0; } /* la lucecita verde del VHF */
+  else if (mat < 59.5 && mat > 58.5) { float borde = smoothstep(0.832, 0.836, p.y); m.alb = mix(vec3(0.82, 0.8, 0.72), vec3(0.08, 0.16, 0.4), borde) * (0.9 + 0.12 * noise(p.xz * 90.0 + p.y * 90.0)); m.brillo = 2.2; } /* jarros enlozados, blancos con el borde azul */
   else if (mat < 53.5) { float punto = noise(vec2(p.x * 120.0 + p.z * 120.0, p.y * 220.0)); m.alb = vec3(0.3, 0.25, 0.18) * (0.88 + 0.2 * punto) * (0.9 + 0.2 * noise(p.xy * 9.0 + p.z * 9.0)); n = normalize(n + 0.05 * vec3(noise(p.yz * 120.0) - 0.5, (punto - 0.5), noise(p.xy * 120.0 + 7.0) - 0.5)); m.brillo = 0.08; } /* el pulóver de lana de Elías */
   else { m.alb = vec3(0.3); }
   return m;

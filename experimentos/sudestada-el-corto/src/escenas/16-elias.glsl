@@ -69,7 +69,7 @@ vec2 mapaMundo(vec3 p, float t) {
   if (plato < r.x) r = vec2(plato, 20.0);
   if (duraznos < r.x) r = vec2(duraznos, 57.0);
   float jarros = max(sdCil(p - vec3(-0.4, 0.8, 0.28), 0.045, 0.04), -sdCil(p - vec3(-0.4, 0.82, 0.28), 0.045, 0.035));
-  if (jarros < r.x) r = vec2(jarros, 34.0);
+  if (jarros < r.x) r = vec2(jarros, 59.0); /* enlozados, no de fierro */
   vec3 qf = p - vec3(0.5, 0.76, -0.3);
   if (length(qf - vec3(0.0, 0.15, 0.0)) < 0.4) r = u2(r, farol(qf));
   float estante = sdBox3(p - vec3(1.2, 1.7, 1.95), vec3(0.5, 0.015, 0.12));
@@ -145,7 +145,7 @@ vec2 mapaMundo(vec3 p, float t) {
     vec2 v = persona(q, P, aspectoAna());
     /* la manta: un capullo alrededor del torso hasta el cuello */
     vec3 qs = q / 0.92; vec3 c = (P.cad + P.hom) * 0.5 + vec3(-0.02, 0.0, 0.0);
-    float manta = sdElip(qs - c, vec3(0.24, 0.3, 0.3)); manta = smin(manta, sdCap(qs, P.hom + vec3(-0.1, 0.06, -0.2), P.hom + vec3(-0.1, 0.06, 0.2), 0.08), 0.05);
+    float manta = sdElip(qs - c, vec3(0.2, 0.27, 0.25)); manta = smin(manta, sdCap(qs, P.hom + vec3(-0.07, 0.02, -0.16), P.hom + vec3(-0.07, 0.02, 0.16), 0.06), 0.04); /* que se le vea la cara y el cuello */
     manta += 0.006 * noise(qs.xy * 30.0 + qs.z * 30.0);
     v = u2(v, vec2(manta * 0.92, 36.0));
     r = u2(r, v);

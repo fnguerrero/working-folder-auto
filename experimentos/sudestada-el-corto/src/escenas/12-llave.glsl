@@ -6,7 +6,8 @@ vec3 sunDir(float t) { return normalize(vec3(0.5, 0.1, 1.0)); }
 float nivelAgua(float t) { return 2.48 + 0.015 * sin(t * 2.3) + 0.01 * sin(t * 3.7); } /* el agua a 30 cm del descanso */
 /* la vela: en el poste del pasamanos del descanso hasta que Verónica la lleva arriba (19 a 22,5) y la deja en el borde de la ventana del pasillo */
 vec3 posVela(float t) { return mix(vec3(0.82, 3.28, 1.3), vec3(-1.72, 4.45, 1.2), smoothstep(19.0, 22.5, t)); }
-Luz luz(int i, float t) { return Luz(posVela(t) + vec3(0.0, 0.14, 0.0), vec3(1.0, 0.72, 0.4), 4.2 + 0.7 * noise(vec2(t * 9.0, 0.0)) + 0.3 * sin(t * 31.0)); }
+Luz luz(int i, float t) { float forcejeo = smoothstep(17.0, 17.4, t) * (1.0 - smoothstep(19.5, 19.7, t)); /* el plano de costado del forcejeo quedaba muy oscuro */
+  return Luz(posVela(t) + vec3(0.0, 0.14, 0.0), vec3(1.0, 0.72, 0.4), (4.2 + 0.7 * noise(vec2(t * 9.0, 0.0)) + 0.3 * sin(t * 31.0)) * (1.0 + 0.7 * forcejeo)); }
 vec4 aguaExtra(vec3 pos, float t) { vec2 h = pos.xz + vec2(0.1 * t, 0.05 * t); float hojas = step(0.82, noise(h * 2.5)) * step(0.5, noise(h * 8.0 + 2.0)) * 0.8; return vec4(0.0, 0.0, 0.0, hojas); }
 float puertaAbierta(float t) { return 1.0 - smoothstep(21.0, 21.6, t); } /* abierta hasta el golpe */
 /* ---- Ana: baja el tramo de arriba (0 a 4), se planta en el descanso, forcejea (17,5 a 19,5), retrocede escalera arriba hasta la puerta (19,5 a 21) y adentro ---- */
@@ -64,8 +65,10 @@ vec2 mapaMundo(vec3 p, float t) {
     vec2 v = persona(q, P, aspectoAna());
     /* la capucha: un casquete alrededor de la cabeza, abierto adelante */
     vec3 hc = q / 0.92 - P.cab;
-    float capucha = max(length(hc * vec3(1.0, 0.95, 1.0) - vec3(0.02, 0.0, 0.0)) - 0.165, -(length(hc - vec3(0.02, 0.0, 0.0)) - 0.145));
-    capucha = max(capucha, (P.cab.x - 0.07) - (q.x / 0.92)); /* abierta en la cara */
+    /* con volumen y cayendo atrás hasta la nuca, pegada a la cabeza, y la abertura más ancha abajo, en el mentón (antes era un aro) */
+    float capucha = max(sdElip(hc - vec3(0.035, -0.035, 0.0), vec3(0.175, 0.205, 0.168)), -(length(hc - vec3(0.02, 0.0, 0.0)) - 0.132));
+    capucha = max(capucha, (P.cab.x - 0.055 - 0.25 * min(hc.y, 0.0)) - (q.x / 0.92)); /* abierta en la cara */
+    capucha += 0.004 * noise(hc.yz * 40.0 + hc.x * 20.0); /* arrugas de la tela */
     capucha = min(capucha, sdCap(q / 0.92, P.cab + vec3(0.05, -0.15, -0.14), P.hom + vec3(-0.05, 0.0, -0.17), 0.05));
     capucha = min(capucha, sdCap(q / 0.92, P.cab + vec3(0.05, -0.15, 0.14), P.hom + vec3(-0.05, 0.0, 0.17), 0.05));
     v = u2(v, vec2(capucha * 0.92, 26.0));
