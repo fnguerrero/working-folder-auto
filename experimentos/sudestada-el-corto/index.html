@@ -3516,7 +3516,12 @@ let actual = -1;
 function dibujar(tg, esperar) {
   tg = Math.max(0, Math.min(DUR - 0.001, tg));
   const i = escenaEn(tg); const e = asegurar(i, esperar);
-  if (!e) { cargando.textContent = `Preparando «${ESCENAS[i].nombre}»…`; return false; }
+  if (!e) {
+    /* con Direct3D (el backend por defecto de Chrome y Edge en Windows) cada escena tarda alrededor de un minuto en compilar; con Vulkan, menos de un segundo */
+    const lleva = (performance.now() - ESCENAS[i].t0) / 1000;
+    cargando.textContent = `Preparando «${ESCENAS[i].nombre}»… ${Math.round(lleva)} s` + (lleva > 8 ? " · Si tarda tanto, en chrome://flags poné «Choose ANGLE graphics backend» en Vulkan y reiniciá el navegador" : "");
+    return false;
+  }
   cargando.textContent = "";
   const t = tg - e.inicio;
   if (i !== actual) { actual = i; marcarEscena(i); if (corriendo && i + 1 < ESCENAS.length) compilar(i + 1); }
@@ -3550,8 +3555,9 @@ async function reproducir(desde) {
   if (!gl) return;
   desde = desde || 0; const mio = ++pedido;
   capa.classList.add("oculta"); corriendo = true; cancelAnimationFrame(raf);
-  /* con compilación en paralelo, se mandan a compilar todas las escenas de entrada y el driver las prepara de fondo */
-  if (paralelo) for (let i = 0; i < ESCENAS.length; i++) compilar(i);
+  /* se manda a compilar la escena de arranque y la siguiente; las demás, de a una a medida que se llega (mandar las veinte juntas
+     dejaba la pantalla negra varios minutos con Direct3D, donde cada una tarda cerca de un minuto) */
+  const i0 = escenaEn(desde); compilar(i0); if (i0 + 1 < ESCENAS.length) compilar(i0 + 1);
   if (!actx) { actx = new (window.AudioContext || window.webkitAudioContext)(); destinoGrab = actx.createMediaStreamDestination(); }
   if (actx.state === "suspended") actx.resume();
   try { await cargarVoces(actx, (n, total) => { cargando.textContent = `Cargando voces… ${n}/${total}`; }); } catch (e) { console.warn("sin voces:", e); }
