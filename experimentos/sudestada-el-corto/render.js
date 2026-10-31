@@ -18,7 +18,10 @@ const nn = (n) => String(n).padStart(2, "0");
 function servir() { return new Promise((res) => { const srv = http.createServer((req, r) => { let ruta = decodeURIComponent(req.url.split("?")[0]); if (ruta.endsWith("/")) ruta += "index.html"; const a = path.join(RAIZ, ruta); if (!fs.existsSync(a) || fs.statSync(a).isDirectory()) { r.writeHead(404); r.end(); return; } r.writeHead(200, { "Content-Type": "text/html; charset=utf-8" }); fs.createReadStream(a).pipe(r); }); srv.listen(0, "127.0.0.1", () => res({ srv, url: `http://127.0.0.1:${srv.address().port}/experimentos/sudestada-el-corto/` })); }); }
 async function abrir(url, ancho) {
   ancho = ancho || 1280; const alto = Math.round(ancho * 9 / 16);
-  const browser = await chromium.launch({ args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
+  /* GPU=1: con la placa de video por Vulkan y el Edge del sistema (en Windows compila en milisegundos y dibuja mucho más rápido que
+     SwiftShader); sin GPU, WebGL por software como en la nube */
+  const browser = process.env.GPU ? await chromium.launch({ channel: "msedge", args: ["--use-angle=vulkan", "--ignore-gpu-blocklist"] })
+    : await chromium.launch({ args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
   const page = await browser.newPage({ viewport: { width: ancho, height: alto }, deviceScaleFactor: 1 });
   await page.goto(url + "?t=0"); await page.waitForFunction(() => window.__listo === true, null, { timeout: 120000 });
   await page.evaluate(([w, h]) => { document.querySelector(".controles").style.display = "none"; document.getElementById("escenas").style.display = "none"; document.querySelectorAll("p.meta").forEach((e) => { e.style.display = "none"; }); document.body.style.padding = "0"; document.getElementById("marco").style.cssText = `width:${w}px;height:${h}px;border-radius:0;box-shadow:none`; document.getElementById("barra").remove(); document.getElementById("cargando").remove(); }, [ancho, alto]);
