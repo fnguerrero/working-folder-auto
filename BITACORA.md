@@ -116,3 +116,5 @@ Una entrada por noche, la más nueva arriba.
 
 ## 2026-10-09
 - **Mudanza** (repo): arranca working-folder-auto. Se trajeron Simón dice y Globos (desde juegos-nocturnos) y Cuotas en curso (desde taller-nocturno), y las 4 ideas pendientes como issues #1 a #4. Probar: https://fnguerrero.github.io/working-folder-auto/
+- Sudestada, el corto: renderizado completo en GPU (731 s, 69 MB) y la página reproduce el video de entrada; el modo en vivo
+  pasa a `?vivo`, porque con Direct3D cada escena tardaba más de un minuto en compilar.

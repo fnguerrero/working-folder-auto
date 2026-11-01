@@ -17,7 +17,9 @@ renderizar el `.mp4` del guion nuevo.
 
 ## Qué hay
 
-- `index.html`: el reproductor. Reproduce el corto entero (728 s con el guion nuevo), con barra de tiempo para saltar, lista de escenas,
+- `index.html`: de entrada muestra el **video ya renderizado** (`sudestada-el-corto.mp4`, 731 s, 1280×720, con voces),
+  porque en Windows con Direct3D (Chrome y Firefox) cada escena en vivo tarda más de un minuto en compilar. `?vivo` abre el
+  reproductor en vivo (WebGL): reproduce el corto entero, con barra de tiempo para saltar, lista de escenas,
   calidad automática (mide cuánto tarda cada cuadro y baja o sube la resolución de render sola, de 0,3× a 1,5×; también
   se puede fijar), «Grabar y descargar» (a `.webm` con el audio, en el navegador) y link al `.mp4`. `?t=90` dibuja el cuadro del segundo 90 quieto; `?escena=8&t=14` el segundo 14 de la escena 8.
 - `voces/`: las líneas de diálogo (`lineas.json`: quién, en qué escena, desde cuándo, el texto y la duración real) y un
@@ -36,14 +38,16 @@ renderizar el `.mp4` del guion nuevo.
   los sauces, la firma de Verónica como curva, el cielo con tres regímenes, el agua, la iluminación y los materiales), `main.glsl` el `main()` común, `escenas/NN-*.glsl` una escena por archivo (cada una define el mundo, la
   cámara, el clima, el nivel del agua y las luces), `sonido.js` la síntesis y `reproductor.js` la línea de tiempo y el
   reproductor. `node build.js` arma `index.html` con todo adentro.
-- `render.js`: renderiza a 1280×720 y 30 fps con Chromium headless (WebGL por software) y ffmpeg, **de a una escena**
+- `render.js`: renderiza a 1280×720 y 30 fps con Chromium headless (WebGL por software, o con `GPU=1` en el Edge del
+  sistema con ANGLE sobre Vulkan: unos 7 cuadros por segundo con 3 procesos, el corto entero en 70 min) y ffmpeg, **de a una escena**
   (`node render.js escena 8`), a `video/escena-NN.mp4`; `node render.js armar` concatena los segmentos que haya desde
   la escena 0 y les pega el audio renderizado con `OfflineAudioContext`. Por software un cuadro a 1280 px tarda de 30 a
   90 s según la escena (y a 640 px, de 3 a 6 s), así que los segmentos se hacen primero en **borrador a 640×360 escalado
   a 1280×720** (`node render.js escena 8 3 640`) y se van reemplazando por la versión a resolución completa noche a noche.
   `video/RESOLUCION.txt` dice cómo está renderizado cada uno; `armar` verifica que cada segmento dure lo que dura su
-  escena. `sudestada-el-corto.mp4` es, por ahora, el borrador de la primera noche (nueve escenas, 203 s, sin voces): se
-  reemplaza cuando las escenas del guion nuevo estén renderizadas.
+  escena. Los segmentos no se suben (pesan 140 MB a crf 23; están en `.gitignore`): solo
+  el `.mp4` armado a crf 28 (69 MB, por debajo del límite de 100 MB de GitHub). El del 31/10 es el corto completo, las 20
+  escenas a 1280 px en GPU.
 - `tests/corto.e2e.js`: Playwright a 360 y 1280 px: compilan los shaders de todas las escenas, cada escena con shader propio
   tiene imagen, Reproducir arranca, saltar desde la lista cambia de escena, sin scroll horizontal ni errores en consola.
   `tests/ver.js` renderiza uno o varios cuadros de una escena a PNG (`ver.js 18 3,18,46.5`), para mirarlos mientras se

@@ -1,11 +1,3 @@
-escena-00.mp4: renderizada a 1280×720 (2026-10-23)
-
-Los segmentos 01 a 09 del borrador de la primera noche (640×360 escalados, guion de nueve escenas y 203 s) se sacaron el
-24/10: el guion cambió (veinte escenas, diálogos con voz, el rig de las personas rehecho) y las escenas duran distinto, así que
-no servían para armar el .mp4 nuevo. Quedan en la historia de git. sudestada-el-corto.mp4 sigue siendo ese borrador hasta que
-se rendericen las escenas nuevas; render.js armar verifica que cada segmento dure lo que dura su escena.
-escena-01.mp4: renderizada a 640×360, escalada a 1280×720 (2026-10-25), borrador: salió de una copia del proyecto anterior a dos
-  arreglos de esa noche (las estrellas que se veían de día como puntitos en el cielo gris, y el pantalón oscuro de Verónica), así
-  que se re-renderiza junto con las demás.
-escena-02.mp4: renderizada a 640×360, escalada a 1280×720 (2026-10-25), borrador de la misma copia que la 01 (mismas dos
-  diferencias con el shader actual: estrellas de día y el pantalón de Verónica); 90 min de render.
+Las 20 escenas, renderizadas a 1280×720 y 30 fps el 2026-10-31 en GPU (GPU=1: Edge del sistema con ANGLE sobre Vulkan,
+3 procesos, unos 70 min en total). Los segmentos no se suben al repo (.gitignore): pesan 140 MB a crf 23. Se regeneran con
+`GPU=1 node render.js escena N 3 1280` y `node render.js armar` los junta con el audio en sudestada-el-corto.mp4 (crf 28).

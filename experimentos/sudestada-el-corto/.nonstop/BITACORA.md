@@ -95,3 +95,8 @@
 - El forcejeo sigue flojo por composición, no por luz: el poste del pasamanos (donde está la vela) queda entre Ana y Verónica y ocupa el centro del cuadro. Dos cámaras alternativas fallaron (una muy cerca, otra dentro de la pared); se volvió a la original y quedó anotado en el checklist.
 
 - Pantalla negra en la PC de Nico (Chrome en Windows): no eran las voces, era la compilación. Con Direct3D (el backend por defecto de ANGLE en Windows) la portada tarda 58-60 s en compilar, y el reproductor mandaba las veinte escenas juntas al apretar play. Con `--use-angle=vulkan` en la misma PC (RX 6600) tarda 29-82 ms. Ahora se compilan la escena de arranque y la siguiente, el resto de a una al llegar, y si una tarda más de 8 s el cartel dice cuánto lleva y sugiere poner Vulkan en chrome://flags.
+
+**31/10, a la noche (con Nico):** el corto completo quedó renderizado en la GPU de la PC de Nico (Edge del sistema con ANGLE
+sobre Vulkan, 20 escenas a 1280×720 en unos 70 min) y armado con voces: `sudestada-el-corto.mp4`, 731 s, 69 MB a crf 28. La
+página ahora arranca en modo video (carga en 0,3 s); `?vivo` es el reproductor WebGL de antes. Los segmentos quedan fuera del
+repo (`.gitignore`).

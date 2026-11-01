@@ -13,6 +13,10 @@
   body { display: flex; flex-direction: column; align-items: center; justify-content: center; justify-content: safe center; min-height: 100vh; padding: 16px; gap: 12px; } /* «safe»: si el contenido no entra, arranca arriba en vez de perderse por encima del borde */
   .marco { position: relative; flex-shrink: 0; width: min(100%, 1120px); aspect-ratio: 16 / 9; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
   canvas { display: block; width: 100%; height: 100%; }
+  /* modo video (por defecto): el .mp4 ya renderizado en lugar del canvas; los controles del modo en vivo se esconden */
+  #vid { display: none; position: absolute; inset: 0; width: 100%; height: 100%; background: #000; cursor: pointer; }
+  .modo-video #vid { display: block; } .modo-video canvas, .modo-video .solo-vivo { display: none !important; }
+  body:not(.modo-video) .solo-video { display: none !important; }
   .capa { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 20px; transition: opacity .4s; background: rgba(0,0,0,.35); }
   .capa.oculta { opacity: 0; pointer-events: none; }
   .capa h1 { font: 400 clamp(2rem, 7vw, 4.2rem)/1 Georgia, "Noto Serif", serif; letter-spacing: .08em; margin: 0; text-shadow: 0 2px 30px rgba(0,0,0,.8); }
@@ -55,13 +59,14 @@
 <body>
 <div class="marco" id="marco">
   <canvas id="c" width="1280" height="720"></canvas>
+  <video id="vid" src="sudestada-el-corto.mp4" preload="metadata" playsinline></video>
   <div class="texto" id="texto"><p id="textoP"></p></div>
   <div class="sub" id="sub"><p id="subP"></p></div>
   <div class="cargando" id="cargando"></div>
   <div class="barra" id="barra"><div class="fondo"></div><div id="cortes"></div><div class="avance" id="avance"></div></div>
   <div class="capa" id="capa">
     <h1>Sudestada</h1>
-    <p>El corto, a partir de la novela: una casa sobre pilotes, una crecida, un farol en el agua y una firma. Dibujado en shaders, con voces. En construcción: las escenas que todavía no tienen imagen se escuchan.</p>
+    <p>El corto, a partir de la novela: una casa sobre pilotes, una crecida, un farol en el agua y una firma. Dibujado en shaders, con voces.</p>
     <button type="button" id="play">▶ Reproducir</button>
     <p class="aviso" id="aviso">Tu navegador no pudo iniciar WebGL. Probá en Chrome o Firefox actualizados.</p>
   </div>
@@ -69,13 +74,15 @@
 <div class="escenas" id="escenas"></div>
 <div class="controles">
   <button type="button" class="sec" id="otra">↻ Desde el principio</button>
-  <button type="button" class="sec" id="grabar">⏺ Grabar y descargar (.webm)</button>
+  <button type="button" class="sec solo-vivo" id="grabar">⏺ Grabar y descargar (.webm)</button>
   <a class="meta" href="sudestada-el-corto.mp4" download id="mp4">⬇ Bajar el .mp4</a>
-  <label class="meta"><input type="checkbox" id="voces" checked> Voces</label>
-  <label class="meta">Calidad <select id="calidad"><option value="auto" selected>automática</option><option value="1.5">alta</option><option value="1">media</option><option value="0.6">baja</option><option value="0.4">mínima</option></select></label>
-  <span class="meta" id="estado"></span>
+  <label class="meta solo-vivo"><input type="checkbox" id="voces" checked> Voces</label>
+  <label class="meta solo-vivo">Calidad <select id="calidad"><option value="auto" selected>automática</option><option value="1.5">alta</option><option value="1">media</option><option value="0.6">baja</option><option value="0.4">mínima</option></select></label>
+  <span class="meta solo-vivo" id="estado"></span>
+  <a class="meta solo-video" href="?vivo">Ver en vivo (WebGL)</a>
+  <a class="meta solo-vivo" href="./">Ver el video</a>
 </div>
-<p class="meta">Si va a los saltos, la calidad automática baja sola la resolución hasta que fluya; también la podés fijar. Tocá la barra de abajo del cuadro para saltar, o el nombre de una escena. WebGL puro, sin librerías ni imágenes: cada escena es un fragment shader con raymarching; el viento, la lluvia, el motor, los remos y el piano, de WebAudio. Las voces son de <a href="https://github.com/rhasspy/piper">Piper</a>, sintetizadas en la nube (son los únicos archivos de audio). <a href="../../escritos/sudestada/">Leer la novela</a> · <a href="../diez-segundos/">Diez segundos</a>, de donde sale el motor · <a href="../../">← Volver a la vitrina</a></p>
+<p class="meta">Lo que se ve de entrada es el video ya renderizado. «Ver en vivo» lo dibuja en el navegador, cuadro por cuadro: anda fluido con Vulkan o en Linux y Mac, pero con Direct3D (Chrome y Firefox en Windows) cada escena tarda más de un minuto en compilar. En vivo, si va a los saltos, la calidad automática baja sola la resolución hasta que fluya; también la podés fijar. Tocá la barra de abajo del cuadro para saltar, o el nombre de una escena. WebGL puro, sin librerías ni imágenes: cada escena es un fragment shader con raymarching; el viento, la lluvia, el motor, los remos y el piano, de WebAudio. Las voces son de <a href="https://github.com/rhasspy/piper">Piper</a>, sintetizadas en la nube (son los únicos archivos de audio). <a href="../../escritos/sudestada/">Leer la novela</a> · <a href="../diez-segundos/">Diez segundos</a>, de donde sale el motor · <a href="../../">← Volver a la vitrina</a></p>
 <!--SHADERS-->
 <!--SCRIPTS-->
 </body>

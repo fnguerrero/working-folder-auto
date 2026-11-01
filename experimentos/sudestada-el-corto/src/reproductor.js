@@ -76,6 +76,12 @@ const gl = canvas.getContext("webgl", { antialias: false, preserveDrawingBuffer:
 const paralelo = gl && gl.getExtension("KHR_parallel_shader_compile");
 let gpu = ""; try { const dbg = gl && gl.getExtension("WEBGL_debug_renderer_info"); if (dbg) gpu = String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)).replace(/^ANGLE \(|\)$/g, "").slice(0, 60); } catch (e) { /* sin dato */ }
 let buf;
+/* ---- modo video: por defecto se ve el .mp4 ya renderizado. En vivo (WebGL) hay que compilar cada escena, y con Direct3D (Chrome y
+   Firefox en Windows) eso tarda más de un minuto por escena; ?vivo lo pide a propósito, y ?t / ?escena (pruebas y render) también */
+const qsModo = new URLSearchParams(location.search);
+const modoVideo = !qsModo.has("t") && !qsModo.has("escena") && !qsModo.has("vivo");
+const vid = document.getElementById("vid");
+function videoA(tg, tocar) { capa.classList.add("oculta"); vid.currentTime = Math.max(0, Math.min(DUR - 0.05, tg)); if (tocar) vid.play().catch(() => {}); }
 const fuente = (id) => { const s = document.getElementById(id); return s ? s.textContent : null; };
 /* arma y compila el programa de una escena: cabecera + comun + escena + main; si la escena no tiene shader todavía, usa el de la portada */
 function compilar(i) {
@@ -129,7 +135,7 @@ function dibujar(tg, esperar) {
   if (!e) {
     /* con Direct3D (el backend por defecto de Chrome y Edge en Windows) cada escena tarda alrededor de un minuto en compilar; con Vulkan, menos de un segundo */
     const lleva = (performance.now() - ESCENAS[i].t0) / 1000;
-    cargando.textContent = `Preparando «${ESCENAS[i].nombre}»… ${Math.round(lleva)} s` + (lleva > 8 ? " · Si tarda tanto, en chrome://flags poné «Choose ANGLE graphics backend» en Vulkan y reiniciá el navegador" : "");
+    cargando.textContent = `Preparando «${ESCENAS[i].nombre}»… ${Math.round(lleva)} s` +(lleva > 8 ? " · Con Direct3D tarda más de un minuto por escena; el video ya renderizado arranca al toque" : "");
     return false;
   }
   cargando.textContent = "";
@@ -162,6 +168,7 @@ function cuadro(now) {
 }
 let pedido = 0;
 async function reproducir(desde) {
+  if (modoVideo) { videoA(desde || 0, true); return; }
   if (!gl) return;
   desde = desde || 0; const mio = ++pedido;
   capa.classList.add("oculta"); corriendo = true; cancelAnimationFrame(raf);
@@ -177,7 +184,7 @@ async function reproducir(desde) {
 }
 function detener() { corriendo = false; cancelAnimationFrame(raf); callar(); }
 function terminar() { detener(); textoDiv.classList.remove("visible"); capa.querySelector("h1").textContent = "Fin"; capa.querySelector("p").textContent = "Sudestada, el corto. ¿Otra vez?"; document.getElementById("play").textContent = "↻ Otra vez"; capa.classList.remove("oculta"); if (grabadora && grabadora.state === "recording") grabadora.stop(); }
-function saltar(tg) { if (corriendo) reproducir(tg); else { ajustar(); try { dibujar(tg, true); } catch (e) { console.error(e); } } }
+function saltar(tg) { if (modoVideo) { videoA(tg, !vid.paused || vid.currentTime > 0); return; } if (corriendo) reproducir(tg); else { ajustar(); try { dibujar(tg, true); } catch (e) { console.error(e); } } }
 
 /* ---- sonido ---- */
 let actx, maestro, destinoGrab, fuentes = [];
@@ -255,7 +262,13 @@ function grabar() {
 
 /* ---- arranque ---- */
 const qs = new URLSearchParams(location.search);
-try {
+if (modoVideo) {
+  document.body.classList.add("modo-video");
+  vid.addEventListener("timeupdate", () => { const tg = vid.currentTime; avance.style.width = (tg / DUR * 100).toFixed(2) + "%"; const i = escenaEn(tg); if (i !== actual) { actual = i; marcarEscena(i); } });
+  vid.addEventListener("ended", () => { capa.querySelector("h1").textContent = "Fin"; capa.querySelector("p").textContent = "Sudestada, el corto. ¿Otra vez?"; document.getElementById("play").textContent = "↻ Otra vez"; capa.classList.remove("oculta"); });
+  vid.addEventListener("click", () => { if (vid.paused) vid.play().catch(() => {}); else vid.pause(); });
+  vid.addEventListener("error", () => { aviso.style.display = "block"; aviso.textContent = "No se pudo cargar el video. Probá la versión en vivo (abajo), que se dibuja en el navegador."; });
+} else try {
   if (!gl) throw new Error("sin WebGL");
   buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   escalaAuto = 0.5; ajustar();
@@ -277,7 +290,7 @@ document.getElementById("otra").addEventListener("click", () => reproducir(0));
 document.getElementById("grabar").addEventListener("click", grabar);
 document.getElementById("voces").addEventListener("change", () => { if (corriendo) reproducir(Math.max(0, (performance.now() - inicio) / 1000)); });
 document.getElementById("calidad").addEventListener("change", () => { ajustar(); if (!corriendo) dibujar(Math.max(0.001, (performance.now() - inicio) / 1000 * (inicio ? 1 : 0)), true); });
-addEventListener("resize", () => { ajustar(); if (!corriendo) dibujar(actual >= 0 ? Math.max(0.001, (performance.now() - inicio) / 1000) : 0.001, true); });
+addEventListener("resize", () => { if (modoVideo) return; ajustar(); if (!corriendo) dibujar(actual >= 0 ? Math.max(0.001, (performance.now() - inicio) / 1000) : 0.001, true); });
 /* el sonido entero renderizado a WAV sin parlantes (para el .mp4) */
 window.__wav = async (desde, hasta) => {
   desde = desde || 0; hasta = hasta || DUR;

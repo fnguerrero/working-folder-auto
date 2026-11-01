@@ -13,6 +13,10 @@
   body { display: flex; flex-direction: column; align-items: center; justify-content: center; justify-content: safe center; min-height: 100vh; padding: 16px; gap: 12px; } /* «safe»: si el contenido no entra, arranca arriba en vez de perderse por encima del borde */
   .marco { position: relative; flex-shrink: 0; width: min(100%, 1120px); aspect-ratio: 16 / 9; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
   canvas { display: block; width: 100%; height: 100%; }
+  /* modo video (por defecto): el .mp4 ya renderizado en lugar del canvas; los controles del modo en vivo se esconden */
+  #vid { display: none; position: absolute; inset: 0; width: 100%; height: 100%; background: #000; cursor: pointer; }
+  .modo-video #vid { display: block; } .modo-video canvas, .modo-video .solo-vivo { display: none !important; }
+  body:not(.modo-video) .solo-video { display: none !important; }
   .capa { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 20px; transition: opacity .4s; background: rgba(0,0,0,.35); }
   .capa.oculta { opacity: 0; pointer-events: none; }
   .capa h1 { font: 400 clamp(2rem, 7vw, 4.2rem)/1 Georgia, "Noto Serif", serif; letter-spacing: .08em; margin: 0; text-shadow: 0 2px 30px rgba(0,0,0,.8); }
@@ -55,13 +59,14 @@
 <body>
 <div class="marco" id="marco">
   <canvas id="c" width="1280" height="720"></canvas>
+  <video id="vid" src="sudestada-el-corto.mp4" preload="metadata" playsinline></video>
   <div class="texto" id="texto"><p id="textoP"></p></div>
   <div class="sub" id="sub"><p id="subP"></p></div>
   <div class="cargando" id="cargando"></div>
   <div class="barra" id="barra"><div class="fondo"></div><div id="cortes"></div><div class="avance" id="avance"></div></div>
   <div class="capa" id="capa">
     <h1>Sudestada</h1>
-    <p>El corto, a partir de la novela: una casa sobre pilotes, una crecida, un farol en el agua y una firma. Dibujado en shaders, con voces. En construcción: las escenas que todavía no tienen imagen se escuchan.</p>
+    <p>El corto, a partir de la novela: una casa sobre pilotes, una crecida, un farol en el agua y una firma. Dibujado en shaders, con voces.</p>
     <button type="button" id="play">▶ Reproducir</button>
     <p class="aviso" id="aviso">Tu navegador no pudo iniciar WebGL. Probá en Chrome o Firefox actualizados.</p>
   </div>
@@ -69,13 +74,15 @@
 <div class="escenas" id="escenas"></div>
 <div class="controles">
   <button type="button" class="sec" id="otra">↻ Desde el principio</button>
-  <button type="button" class="sec" id="grabar">⏺ Grabar y descargar (.webm)</button>
+  <button type="button" class="sec solo-vivo" id="grabar">⏺ Grabar y descargar (.webm)</button>
   <a class="meta" href="sudestada-el-corto.mp4" download id="mp4">⬇ Bajar el .mp4</a>
-  <label class="meta"><input type="checkbox" id="voces" checked> Voces</label>
-  <label class="meta">Calidad <select id="calidad"><option value="auto" selected>automática</option><option value="1.5">alta</option><option value="1">media</option><option value="0.6">baja</option><option value="0.4">mínima</option></select></label>
-  <span class="meta" id="estado"></span>
+  <label class="meta solo-vivo"><input type="checkbox" id="voces" checked> Voces</label>
+  <label class="meta solo-vivo">Calidad <select id="calidad"><option value="auto" selected>automática</option><option value="1.5">alta</option><option value="1">media</option><option value="0.6">baja</option><option value="0.4">mínima</option></select></label>
+  <span class="meta solo-vivo" id="estado"></span>
+  <a class="meta solo-video" href="?vivo">Ver en vivo (WebGL)</a>
+  <a class="meta solo-vivo" href="./">Ver el video</a>
 </div>
-<p class="meta">Si va a los saltos, la calidad automática baja sola la resolución hasta que fluya; también la podés fijar. Tocá la barra de abajo del cuadro para saltar, o el nombre de una escena. WebGL puro, sin librerías ni imágenes: cada escena es un fragment shader con raymarching; el viento, la lluvia, el motor, los remos y el piano, de WebAudio. Las voces son de <a href="https://github.com/rhasspy/piper">Piper</a>, sintetizadas en la nube (son los únicos archivos de audio). <a href="../../escritos/sudestada/">Leer la novela</a> · <a href="../diez-segundos/">Diez segundos</a>, de donde sale el motor · <a href="../../">← Volver a la vitrina</a></p>
+<p class="meta">Lo que se ve de entrada es el video ya renderizado. «Ver en vivo» lo dibuja en el navegador, cuadro por cuadro: anda fluido con Vulkan o en Linux y Mac, pero con Direct3D (Chrome y Firefox en Windows) cada escena tarda más de un minuto en compilar. En vivo, si va a los saltos, la calidad automática baja sola la resolución hasta que fluya; también la podés fijar. Tocá la barra de abajo del cuadro para saltar, o el nombre de una escena. WebGL puro, sin librerías ni imágenes: cada escena es un fragment shader con raymarching; el viento, la lluvia, el motor, los remos y el piano, de WebAudio. Las voces son de <a href="https://github.com/rhasspy/piper">Piper</a>, sintetizadas en la nube (son los únicos archivos de audio). <a href="../../escritos/sudestada/">Leer la novela</a> · <a href="../diez-segundos/">Diez segundos</a>, de donde sale el motor · <a href="../../">← Volver a la vitrina</a></p>
 <script id="glsl-comun" type="x-shader/x-fragment">
 precision highp float;
 uniform vec2 uRes; uniform float uT; uniform float uFlash; uniform vec3 uRayo; uniform float uFundido;
@@ -3466,6 +3473,12 @@ const gl = canvas.getContext("webgl", { antialias: false, preserveDrawingBuffer:
 const paralelo = gl && gl.getExtension("KHR_parallel_shader_compile");
 let gpu = ""; try { const dbg = gl && gl.getExtension("WEBGL_debug_renderer_info"); if (dbg) gpu = String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)).replace(/^ANGLE \(|\)$/g, "").slice(0, 60); } catch (e) { /* sin dato */ }
 let buf;
+/* ---- modo video: por defecto se ve el .mp4 ya renderizado. En vivo (WebGL) hay que compilar cada escena, y con Direct3D (Chrome y
+   Firefox en Windows) eso tarda más de un minuto por escena; ?vivo lo pide a propósito, y ?t / ?escena (pruebas y render) también */
+const qsModo = new URLSearchParams(location.search);
+const modoVideo = !qsModo.has("t") && !qsModo.has("escena") && !qsModo.has("vivo");
+const vid = document.getElementById("vid");
+function videoA(tg, tocar) { capa.classList.add("oculta"); vid.currentTime = Math.max(0, Math.min(DUR - 0.05, tg)); if (tocar) vid.play().catch(() => {}); }
 const fuente = (id) => { const s = document.getElementById(id); return s ? s.textContent : null; };
 /* arma y compila el programa de una escena: cabecera + comun + escena + main; si la escena no tiene shader todavía, usa el de la portada */
 function compilar(i) {
@@ -3519,7 +3532,7 @@ function dibujar(tg, esperar) {
   if (!e) {
     /* con Direct3D (el backend por defecto de Chrome y Edge en Windows) cada escena tarda alrededor de un minuto en compilar; con Vulkan, menos de un segundo */
     const lleva = (performance.now() - ESCENAS[i].t0) / 1000;
-    cargando.textContent = `Preparando «${ESCENAS[i].nombre}»… ${Math.round(lleva)} s` + (lleva > 8 ? " · Si tarda tanto, en chrome://flags poné «Choose ANGLE graphics backend» en Vulkan y reiniciá el navegador" : "");
+    cargando.textContent = `Preparando «${ESCENAS[i].nombre}»… ${Math.round(lleva)} s` +(lleva > 8 ? " · Con Direct3D tarda más de un minuto por escena; el video ya renderizado arranca al toque" : "");
     return false;
   }
   cargando.textContent = "";
@@ -3552,6 +3565,7 @@ function cuadro(now) {
 }
 let pedido = 0;
 async function reproducir(desde) {
+  if (modoVideo) { videoA(desde || 0, true); return; }
   if (!gl) return;
   desde = desde || 0; const mio = ++pedido;
   capa.classList.add("oculta"); corriendo = true; cancelAnimationFrame(raf);
@@ -3567,7 +3581,7 @@ async function reproducir(desde) {
 }
 function detener() { corriendo = false; cancelAnimationFrame(raf); callar(); }
 function terminar() { detener(); textoDiv.classList.remove("visible"); capa.querySelector("h1").textContent = "Fin"; capa.querySelector("p").textContent = "Sudestada, el corto. ¿Otra vez?"; document.getElementById("play").textContent = "↻ Otra vez"; capa.classList.remove("oculta"); if (grabadora && grabadora.state === "recording") grabadora.stop(); }
-function saltar(tg) { if (corriendo) reproducir(tg); else { ajustar(); try { dibujar(tg, true); } catch (e) { console.error(e); } } }
+function saltar(tg) { if (modoVideo) { videoA(tg, !vid.paused || vid.currentTime > 0); return; } if (corriendo) reproducir(tg); else { ajustar(); try { dibujar(tg, true); } catch (e) { console.error(e); } } }
 
 /* ---- sonido ---- */
 let actx, maestro, destinoGrab, fuentes = [];
@@ -3645,7 +3659,13 @@ function grabar() {
 
 /* ---- arranque ---- */
 const qs = new URLSearchParams(location.search);
-try {
+if (modoVideo) {
+  document.body.classList.add("modo-video");
+  vid.addEventListener("timeupdate", () => { const tg = vid.currentTime; avance.style.width = (tg / DUR * 100).toFixed(2) + "%"; const i = escenaEn(tg); if (i !== actual) { actual = i; marcarEscena(i); } });
+  vid.addEventListener("ended", () => { capa.querySelector("h1").textContent = "Fin"; capa.querySelector("p").textContent = "Sudestada, el corto. ¿Otra vez?"; document.getElementById("play").textContent = "↻ Otra vez"; capa.classList.remove("oculta"); });
+  vid.addEventListener("click", () => { if (vid.paused) vid.play().catch(() => {}); else vid.pause(); });
+  vid.addEventListener("error", () => { aviso.style.display = "block"; aviso.textContent = "No se pudo cargar el video. Probá la versión en vivo (abajo), que se dibuja en el navegador."; });
+} else try {
   if (!gl) throw new Error("sin WebGL");
   buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   escalaAuto = 0.5; ajustar();
@@ -3667,7 +3687,7 @@ document.getElementById("otra").addEventListener("click", () => reproducir(0));
 document.getElementById("grabar").addEventListener("click", grabar);
 document.getElementById("voces").addEventListener("change", () => { if (corriendo) reproducir(Math.max(0, (performance.now() - inicio) / 1000)); });
 document.getElementById("calidad").addEventListener("change", () => { ajustar(); if (!corriendo) dibujar(Math.max(0.001, (performance.now() - inicio) / 1000 * (inicio ? 1 : 0)), true); });
-addEventListener("resize", () => { ajustar(); if (!corriendo) dibujar(actual >= 0 ? Math.max(0.001, (performance.now() - inicio) / 1000) : 0.001, true); });
+addEventListener("resize", () => { if (modoVideo) return; ajustar(); if (!corriendo) dibujar(actual >= 0 ? Math.max(0.001, (performance.now() - inicio) / 1000) : 0.001, true); });
 /* el sonido entero renderizado a WAV sin parlantes (para el .mp4) */
 window.__wav = async (desde, hasta) => {
   desde = desde || 0; hasta = hasta || DUR;
