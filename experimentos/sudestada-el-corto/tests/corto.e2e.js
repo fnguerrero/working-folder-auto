@@ -10,7 +10,8 @@ function servir() { return new Promise((res) => { const srv = http.createServer(
 const estadisticas = async (page) => page.evaluate(() => { const c = document.getElementById("c"); const gl = c.getContext("webgl"); const px = new Uint8Array(c.width * c.height * 4); gl.readPixels(0, 0, c.width, c.height, gl.RGBA, gl.UNSIGNED_BYTE, px); let s = 0, s2 = 0, n = 0; for (let i = 0; i < px.length; i += 16) { const v = (px[i] + px[i + 1] + px[i + 2]) / 3; s += v; s2 += v * v; n++; } const m = s / n; return { media: m, desvio: Math.sqrt(s2 / n - m * m) }; });
 (async () => {
   const { srv, url } = await servir();
-  const browser = await chromium.launch({ args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] }); let fallas = 0;
+  const browser = process.env.GPU ? await chromium.launch({ channel: "msedge", args: ["--use-angle=vulkan", "--ignore-gpu-blocklist"] }) /* GPU=1: Edge del sistema, como ver.js y render.js */
+    : await chromium.launch({ args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] }); let fallas = 0;
   for (const [w, h] of [[360, 740], [1280, 800]]) {
     const ctx = await browser.newContext({ viewport: { width: w, height: h } }); const page = await ctx.newPage();
     const errores = []; page.on("pageerror", (e) => errores.push(String(e))); page.on("console", (m) => { if (m.type() === "error") errores.push(m.text()); });

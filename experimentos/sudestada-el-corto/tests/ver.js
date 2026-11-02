@@ -13,7 +13,9 @@ const nombre = (t) => tiempos.length > 1 ? salida.replace(/\.png$/i, "") + `-${t
 const srv = http.createServer((req, r) => { let ruta = decodeURIComponent(req.url.split("?")[0]); if (ruta.endsWith("/")) ruta += "index.html"; const a = path.join(RAIZ, ruta); if (!fs.existsSync(a) || fs.statSync(a).isDirectory()) { r.writeHead(404); r.end(); return; } r.writeHead(200, { "Content-Type": "text/html; charset=utf-8" }); fs.createReadStream(a).pipe(r); });
 srv.listen(0, "127.0.0.1", async () => {
   const url = `http://127.0.0.1:${srv.address().port}/experimentos/sudestada-el-corto/`;
-  const browser = await chromium.launch({ args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
+  /* GPU=1: Edge del sistema con la placa por Vulkan (como render.js); sin GPU, por software */
+  const browser = process.env.GPU ? await chromium.launch({ channel: "msedge", args: ["--use-angle=vulkan", "--ignore-gpu-blocklist"] })
+    : await chromium.launch({ args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
   const page = await browser.newPage({ viewport: { width: ancho, height: Math.round(ancho * 9 / 16) + 1 }, deviceScaleFactor: 1 });
   const errores = []; page.on("pageerror", (e) => errores.push(String(e))); page.on("console", (m) => { if (m.type() === "error") errores.push(m.text()); });
   await page.goto(url + "?t=0");

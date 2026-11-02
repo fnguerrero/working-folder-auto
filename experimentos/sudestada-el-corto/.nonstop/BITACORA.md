@@ -100,3 +100,9 @@
 sobre Vulkan, 20 escenas a 1280×720 en unos 70 min) y armado con voces: `sudestada-el-corto.mp4`, 731 s, 69 MB a crf 28. La
 página ahora arranca en modo video (carga en 0,3 s); `?vivo` es el reproductor WebGL de antes. Los segmentos quedan fuera del
 repo (`.gitignore`).
+
+## Noche 5 (02/11, local, con la GPU)
+- `ver.js` y el e2e aceptan `GPU=1` (Edge del sistema con Vulkan, como `render.js`): un cuadro a 960 px sale en 0,05 s después de compilar (~35 s la primera vez), contra 8 a 30 s por software. Playwright no está instalado en la PC: se usó una copia de `node_modules` (1.48.2) de otra sesión vía `NODE_PATH`.
+- Escena 12, el forcejeo: el bloque negro del centro del cuadro era un barrote de la baranda del hueco (x 1,6, z 1,75) a 10 cm de la cámara (que estaba en z 1,85), no el poste de la vela. Probé cuatro cámaras: desde el hueco de la escalera (z 0,3, negro: adentro de Verónica; z 0,45, pegada a su espalda), picada desde el pasillo (45 cm sobre las cabezas: las cabezas paradas en el descanso quedan por encima del piso de arriba) y de perfil puro (muy oscura). Quedó la del pasillo de atrás, mirando por el espacio entre los barrotes 1,1 y 1,6: a 17,6 s se ven las dos caras con la vela entre ellas; de 18 a 19,5 Verónica tapa a Ana (de espaldas, a contraluz), que en un forcejeo se banca. Vela +130 % en esos dos segundos.
+- Re-renderizada la escena 12 a 1280 px con la GPU (1050 cuadros, 6 min) y rearmado el `.mp4` (731 s, 69 MB).
+- E2e con `GPU=1`: compilan las veinte y todas tienen imagen; falla «saltar a una escena» en modo video (ver checklist).

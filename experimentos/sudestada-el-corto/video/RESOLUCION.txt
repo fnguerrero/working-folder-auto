@@ -1,3 +1,4 @@
 Las 20 escenas, renderizadas a 1280×720 y 30 fps el 2026-10-31 en GPU (GPU=1: Edge del sistema con ANGLE sobre Vulkan,
 3 procesos, unos 70 min en total). Los segmentos no se suben al repo (.gitignore): pesan 140 MB a crf 23. Se regeneran con
 `GPU=1 node render.js escena N 3 1280` y `node render.js armar` los junta con el audio en sudestada-el-corto.mp4 (crf 28).
+escena-12.mp4: renderizada a 1280×720 (2026-11-02)

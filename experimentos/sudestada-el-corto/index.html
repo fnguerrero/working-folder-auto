@@ -2345,7 +2345,7 @@ float nivelAgua(float t) { return 2.48 + 0.015 * sin(t * 2.3) + 0.01 * sin(t * 3
 /* la vela: en el poste del pasamanos del descanso hasta que Verónica la lleva arriba (19 a 22,5) y la deja en el borde de la ventana del pasillo */
 vec3 posVela(float t) { return mix(vec3(0.82, 3.28, 1.3), vec3(-1.72, 4.45, 1.2), smoothstep(19.0, 22.5, t)); }
 Luz luz(int i, float t) { float forcejeo = smoothstep(17.0, 17.4, t) * (1.0 - smoothstep(19.5, 19.7, t)); /* el plano de costado del forcejeo quedaba muy oscuro */
-  return Luz(posVela(t) + vec3(0.0, 0.14, 0.0), vec3(1.0, 0.72, 0.4), (4.2 + 0.7 * noise(vec2(t * 9.0, 0.0)) + 0.3 * sin(t * 31.0)) * (1.0 + 0.7 * forcejeo)); }
+  return Luz(posVela(t) + vec3(0.0, 0.14, 0.0), vec3(1.0, 0.72, 0.4), (4.2 + 0.7 * noise(vec2(t * 9.0, 0.0)) + 0.3 * sin(t * 31.0)) * (1.0 + 1.3 * forcejeo)); }
 vec4 aguaExtra(vec3 pos, float t) { vec2 h = pos.xz + vec2(0.1 * t, 0.05 * t); float hojas = step(0.82, noise(h * 2.5)) * step(0.5, noise(h * 8.0 + 2.0)) * 0.8; return vec4(0.0, 0.0, 0.0, hojas); }
 float puertaAbierta(float t) { return 1.0 - smoothstep(21.0, 21.6, t); } /* abierta hasta el golpe */
 /* ---- Ana: baja el tramo de arriba (0 a 4), se planta en el descanso, forcejea (17,5 a 19,5), retrocede escalera arriba hasta la puerta (19,5 a 21) y adentro ---- */
@@ -2456,7 +2456,7 @@ void camara(float t, vec2 uv, out vec3 ro, out vec3 rd) {
   if (t < 4.0) { float a = smoothstep(0.0, 4.0, t); ro = mix(vec3(1.55, 3.45, 0.75), vec3(1.5, 3.4, 0.8), a); obj = cabA + vec3(0.0, -0.3, 0.0); zoom = 1.3; }          /* desde el descanso, por detrás de Verónica: Ana que baja con la capucha */
   else if (t < 10.5) { float a = smoothstep(4.0, 10.5, t); ro = mix(vec3(1.55, 4.3, 1.75), vec3(1.5, 4.27, 1.7), a); obj = cabA + vec3(0.0, -0.05, 0.0); zoom = 1.9; }  /* Ana: «voy a lo de Elías» */
   else if (t < 17.3) { float a = smoothstep(10.5, 17.3, t); ro = mix(vec3(0.15, 4.25, 0.95), vec3(0.2, 4.23, 0.9), a); obj = cabV + vec3(0.0, -0.05, 0.0); zoom = 1.9; } /* Verónica: «nadie sale de esta casa» */
-  else if (t < 19.6) { ro = vec3(1.7, 3.95, 1.85); obj = vec3(0.8, 3.85, 1.2); zoom = 1.0; }                                                                              /* el forcejeo, de costado */
+  else if (t < 19.6) { ro = vec3(1.75, 4.35, 2.32); obj = vec3(0.88, 4.05, 1.22); zoom = 1.05; }                                                                              /* el forcejeo, de costado */
   else if (t < 23.5) { float a = smoothstep(19.6, 23.5, t); ro = mix(vec3(0.7, 4.95, 1.5), vec3(0.4, 4.9, 1.45), a); obj = vec3(-1.25, 4.55, 0.4); zoom = 1.35; }       /* desde el pasillo: la empuja adentro, cierra, la llave */
   else if (t < 27.5) { float a = smoothstep(23.5, 27.5, t); ro = mix(vec3(0.6, 4.95, 0.55), vec3(0.4, 4.9, 0.6), a); obj = vec3(-1.45, 4.7, 1.1); zoom = 1.2; }           /* se aparta hasta la pared del rellano y se sienta */
   else { float a = smoothstep(27.5, 35.0, t); ro = mix(vec3(0.35, 4.5, 1.25), vec3(0.25, 4.45, 1.3), a); obj = vec3(-1.55, 4.2, 1.2); zoom = 1.7; }                       /* sentada contra la pared, la vela arriba, la puerta de Ana a la izquierda */

@@ -84,6 +84,7 @@ renderizar el `.mp4` del guion nuevo.
 cd experimentos/sudestada-el-corto && node build.js                                       # arma index.html desde src/
 NODE_PATH=/opt/node-tools/node_modules node experimentos/sudestada-el-corto/tests/corto.e2e.js
 NODE_PATH=/opt/node-tools/node_modules node experimentos/sudestada-el-corto/tests/ver.js 18 3,46.5 /tmp/cuadro.png   # cuadros
+GPU=1 NODE_PATH=... node experimentos/sudestada-el-corto/tests/ver.js 12 17.6 cuadro.png 960   # en Windows con la placa (Edge del sistema por Vulkan); vale también para corto.e2e.js y render.js
 NODE_PATH=/opt/node-tools/node_modules node experimentos/sudestada-el-corto/render.js escena 1       # un segmento del .mp4
 NODE_PATH=/opt/node-tools/node_modules node experimentos/sudestada-el-corto/render.js armar          # el .mp4 con audio
 ```
