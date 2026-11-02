@@ -12,7 +12,7 @@ renderizar el `.mp4` del guion nuevo.
 
 **Ver:** https://fnguerrero.github.io/working-folder-auto/experimentos/sudestada-el-corto/
 
-**Estado:** en curso (pedido #15, de varias noches). Lo que hay y lo que falta está en `.nonstop/CHECKLIST.md`; la cocina
+**Estado:** terminado el 02/11/2026 (pedido #15, cinco noches): Nico lo dio por cerrado. Lo que quedaba por pulir sigue anotado en `.nonstop/CHECKLIST.md` por si algún día se retoma, pero no se toca sin un pedido nuevo. Lo que hay y lo que falta está en `.nonstop/CHECKLIST.md`; la cocina
 (spec, guion por escenas, bitácora) en `.nonstop/`.
 
 ## Qué hay

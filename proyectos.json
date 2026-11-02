@@ -424,7 +424,7 @@
   "nombre": "Sudestada, el corto",
   "categoria": "experimentos",
   "descripcion": "Una película animada a partir de la novela, con diálogos con voz: una casa sobre pilotes, una crecida, un farol en el agua y una firma, dibujada en WebGL puro con un shader por escena.",
-  "estado": "en curso",
+  "estado": "terminado",
   "probar": "experimentos/sudestada-el-corto/",
   "desde": "2026-10-23",
   "icono": "🎥",

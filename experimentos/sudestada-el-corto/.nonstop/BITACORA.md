@@ -106,3 +106,6 @@ repo (`.gitignore`).
 - Escena 12, el forcejeo: el bloque negro del centro del cuadro era un barrote de la baranda del hueco (x 1,6, z 1,75) a 10 cm de la cámara (que estaba en z 1,85), no el poste de la vela. Probé cuatro cámaras: desde el hueco de la escalera (z 0,3, negro: adentro de Verónica; z 0,45, pegada a su espalda), picada desde el pasillo (45 cm sobre las cabezas: las cabezas paradas en el descanso quedan por encima del piso de arriba) y de perfil puro (muy oscura). Quedó la del pasillo de atrás, mirando por el espacio entre los barrotes 1,1 y 1,6: a 17,6 s se ven las dos caras con la vela entre ellas; de 18 a 19,5 Verónica tapa a Ana (de espaldas, a contraluz), que en un forcejeo se banca. Vela +130 % en esos dos segundos.
 - Re-renderizada la escena 12 a 1280 px con la GPU (1050 cuadros, 6 min) y rearmado el `.mp4` (731 s, 69 MB).
 - E2e con `GPU=1`: compilan las veinte y todas tienen imagen; falla «saltar a una escena» en modo video (ver checklist).
+
+## Cierre (02/11)
+- Nico lo dio por terminado. Los `- [ ]` que quedan en el checklist son pulido opcional: no se retoman sin un pedido nuevo.
