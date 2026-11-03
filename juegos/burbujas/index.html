@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#bfe9ff">
+<link rel="icon" href="data:,">
+<title>Burbujas</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #bfe9ff; touch-action: none;
+    -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #mute { position: fixed; top: calc(10px + env(safe-area-inset-top)); right: calc(10px + env(safe-area-inset-right));
+    width: 52px; height: 52px; border: 0; border-radius: 16px; font-size: 1.6rem; background: rgba(255,255,255,.8);
+    box-shadow: 0 3px 0 rgba(0,0,0,.14); cursor: pointer; touch-action: manipulation; }
+  #mute:focus-visible { outline: 3px solid #e8572a; outline-offset: 2px; }
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="Burbujas para tocar"></canvas>
+<button id="mute" type="button" aria-label="Sonido" aria-pressed="false">🔊</button>
+<script>
+"use strict";
+(() => {
+  const cv = document.getElementById("c"), ctx = cv.getContext("2d");
+  const btn = document.getElementById("mute");
+  let W = 0, H = 0, dpr = 1;
+  function ajustar() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener("resize", ajustar); ajustar();
+
+  // ---- sonido ----
+  let silencio = false;
+  try { silencio = localStorage.getItem("burbujas-silencio") === "1"; } catch (e) {}
+  function pintarBoton() { btn.textContent = silencio ? "🔇" : "🔊"; btn.setAttribute("aria-pressed", String(silencio)); }
+  pintarBoton();
+  let ac = null, salida = null;
+  window.__sonidos = 0;
+  function audio() {
+    if (!ac) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      ac = new AC();
+      const comp = ac.createDynamicsCompressor();
+      salida = ac.createGain(); salida.gain.value = 0.7;
+      salida.connect(comp); comp.connect(ac.destination);
+    }
+    if (ac.state === "suspended") ac.resume();
+    return ac;
+  }
+  btn.addEventListener("click", () => {
+    silencio = !silencio; pintarBoton();
+    try { localStorage.setItem("burbujas-silencio", silencio ? "1" : "0"); } catch (e) {}
+    if (!silencio) { audio(); plop(0.5); }
+  });
+  btn.addEventListener("pointerdown", (e) => e.stopPropagation());
+
+  function barrido(tipo, f0, f1, dur, vol, t0) {
+    const a = ac, o = a.createOscillator(), g = a.createGain();
+    o.type = tipo; o.frequency.setValueAtTime(f0, t0); o.frequency.exponentialRampToValueAtTime(f1, t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(salida); o.start(t0); o.stop(t0 + dur + 0.02);
+  }
+  function plop(tam) { // tam 0..1: más grande, más grave
+    if (silencio || !audio()) return;
+    window.__sonidos++;
+    const t = ac.currentTime, f = 900 - 500 * tam + Math.random() * 120;
+    barrido("sine", f, f * 0.35, 0.16, 0.5, t);
+    barrido("triangle", f * 2, f * 0.7, 0.07, 0.15, t);
+  }
+  const SONIDOS = {
+    perro: (t) => { barrido("sawtooth", 420, 200, 0.12, 0.3, t); barrido("sawtooth", 440, 210, 0.12, 0.3, t + 0.2); },
+    gato: (t) => barrido("triangle", 500, 900, 0.18, 0.35, t) || barrido("triangle", 900, 450, 0.3, 0.35, t + 0.18),
+    pato: (t) => { barrido("square", 520, 380, 0.1, 0.18, t); barrido("square", 520, 380, 0.1, 0.18, t + 0.16); },
+    chancho: (t) => { barrido("square", 240, 170, 0.12, 0.2, t); barrido("square", 250, 160, 0.14, 0.2, t + 0.17); },
+    pollito: (t) => { for (let i = 0; i < 3; i++) barrido("sine", 1800, 2600, 0.07, 0.25, t + i * 0.1); },
+  };
+  function sonidoAnimal(n) { if (silencio || !audio()) return; window.__sonidos++; SONIDOS[n](ac.currentTime + 0.12); }
+
+  // ---- dibujo de animales (cara redonda, simple) ----
+  function ojos(x, y, r, sep) {
+    ctx.fillStyle = "#3a2d1f";
+    for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(x + s * sep, y, r, 0, 7); ctx.fill(); }
+    ctx.fillStyle = "#fff";
+    for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(x + s * sep + r * .3, y - r * .3, r * .35, 0, 7); ctx.fill(); }
+  }
+  function cara(color, x, y, r) { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); }
+  function elipse(c, x, y, rx, ry, rot) { ctx.fillStyle = c; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, rot || 0, 0, 7); ctx.fill(); }
+  const ANIMALES = {
+    perro(x, y, r) {
+      elipse("#8a5a34", x - r * .75, y - r * .1, r * .28, r * .55, .3); elipse("#8a5a34", x + r * .75, y - r * .1, r * .28, r * .55, -.3);
+      cara("#e8c28a", x, y, r * .8); elipse("#fff3dc", x, y + r * .3, r * .38, r * .28);
+      ojos(x, y - r * .15, r * .09, r * .3); elipse("#3a2d1f", x, y + r * .18, r * .12, r * .08);
+    },
+    gato(x, y, r) {
+      for (const s of [-1, 1]) { ctx.fillStyle = "#f2a65a"; ctx.beginPath(); ctx.moveTo(x + s * r * .75, y - r * .1); ctx.lineTo(x + s * r * .6, y - r * .95); ctx.lineTo(x + s * r * .15, y - r * .6); ctx.fill(); }
+      cara("#f2a65a", x, y, r * .8); ojos(x, y - r * .1, r * .09, r * .3);
+      elipse("#e87a8a", x, y + r * .15, r * .08, r * .06);
+      ctx.strokeStyle = "#3a2d1f"; ctx.lineWidth = 2; ctx.beginPath();
+      for (const s of [-1, 1]) for (const d of [-.1, .12]) { ctx.moveTo(x + s * r * .25, y + r * .25 + d * r); ctx.lineTo(x + s * r * .75, y + r * .2 + d * r * 2); }
+      ctx.stroke();
+    },
+    pato(x, y, r) {
+      cara("#ffd84a", x, y, r * .8); ojos(x, y - r * .2, r * .09, r * .3);
+      elipse("#ff8c2a", x, y + r * .22, r * .42, r * .2);
+    },
+    chancho(x, y, r) {
+      elipse("#f08ca0", x - r * .6, y - r * .6, r * .22, r * .3, -.5); elipse("#f08ca0", x + r * .6, y - r * .6, r * .22, r * .3, .5);
+      cara("#f6a8b8", x, y, r * .8); elipse("#ee7f97", x, y + r * .15, r * .35, r * .25);
+      ctx.fillStyle = "#a8445c"; for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(x + s * r * .12, y + r * .15, r * .05, 0, 7); ctx.fill(); }
+      ojos(x, y - r * .25, r * .08, r * .3);
+    },
+    pollito(x, y, r) {
+      cara("#ffe066", x, y, r * .75); ojos(x, y - r * .15, r * .08, r * .26);
+      ctx.fillStyle = "#ff8c2a"; ctx.beginPath(); ctx.moveTo(x - r * .12, y + r * .08); ctx.lineTo(x + r * .12, y + r * .08); ctx.lineTo(x, y + r * .28); ctx.fill();
+      ctx.strokeStyle = "#e9b800"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x, y - r * .75); ctx.lineTo(x - r * .08, y - r * .95); ctx.moveTo(x, y - r * .75); ctx.lineTo(x + r * .1, y - r * .93); ctx.stroke();
+    },
+  };
+  const NOMBRES = Object.keys(ANIMALES);
+
+  // ---- estado ----
+  const burbujas = [], gotas = [], saludos = [];
+  window.__estado = { burbujas, explotadas: 0, saludos };
+  let ultimoAnimal = -1, sinAnimal = 0;
+  const rnd = (a, b) => a + Math.random() * (b - a);
+
+  function nueva(enPantalla) {
+    const lado = Math.min(W, H);
+    const r = rnd(0.07, 0.15) * Math.max(lado, 320) * (W > H ? 1.3 : 1.6);
+    const rr = Math.max(34, Math.min(r, 120));
+    let animal = null;
+    if (++sinAnimal >= 6 && Math.random() < 0.5) {
+      sinAnimal = 0;
+      let i; do { i = Math.floor(Math.random() * NOMBRES.length); } while (i === ultimoAnimal);
+      ultimoAnimal = i; animal = NOMBRES[i];
+    }
+    burbujas.push({
+      x: rnd(rr, Math.max(rr + 1, W - rr)), y: enPantalla ? rnd(rr, H - rr) : H + rr + 10,
+      r: animal ? Math.max(rr, 58) : rr, vy: rnd(28, 55), fase: rnd(0, 7), hue: Math.floor(rnd(0, 360)), animal,
+    });
+  }
+  function explotar(b) {
+    const n = b.animal ? 22 : 14;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + rnd(-.2, .2), v = rnd(90, 230);
+      gotas.push({ x: b.x + Math.cos(a) * b.r * .9, y: b.y + Math.sin(a) * b.r * .9, vx: Math.cos(a) * v, vy: Math.sin(a) * v,
+        r: rnd(3, 7), hue: (b.hue + rnd(-40, 40) + 360) % 360, vida: 1 });
+    }
+    plop(Math.min(1, b.r / 120));
+    window.__estado.explotadas++;
+    if (b.animal) {
+      saludos.push({ x: b.x, y: b.y, r: b.r, animal: b.animal, t: 0 });
+      sonidoAnimal(b.animal);
+      if (navigator.vibrate) { try { navigator.vibrate(20); } catch (e) {} }
+    }
+  }
+  function tocar(px, py) {
+    for (let i = burbujas.length - 1; i >= 0; i--) {
+      const b = burbujas[i], dx = px - b.x, dy = py - b.y, h = b.r + 14; // un poco de tolerancia para dedos chiquitos
+      if (dx * dx + dy * dy <= h * h) { burbujas.splice(i, 1); explotar(b); return true; }
+    }
+    // tocar el vacío también hace algo: una burbujita nace ahí y explota enseguida
+    const f = { x: px, y: py, r: 22, vy: 0, fase: 0, hue: Math.floor(rnd(0, 360)), animal: null };
+    explotar(f);
+    return false;
+  }
+  cv.addEventListener("pointerdown", (e) => { e.preventDefault(); audio(); tocar(e.clientX, e.clientY); });
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "m" || e.key === "M") { btn.click(); return; }
+    if (e.key === " " || e.key === "Enter") { // con teclado: explota la burbuja más baja
+      if (e.target === btn) return;
+      e.preventDefault(); audio();
+      let b = null; for (const x of burbujas) if (!b || x.y > b.y) b = x;
+      if (b) { burbujas.splice(burbujas.indexOf(b), 1); explotar(b); }
+    }
+  });
+  window.__tocar = tocar;
+
+  function dibujarBurbuja(b, t) {
+    const wob = 1 + Math.sin(t * 2 + b.fase) * 0.025, rx = b.r * wob, ry = b.r / wob;
+    const g = ctx.createRadialGradient(b.x - rx * .3, b.y - ry * .3, rx * .1, b.x, b.y, rx);
+    g.addColorStop(0, `hsla(${b.hue},90%,92%,.15)`); g.addColorStop(.8, `hsla(${b.hue},90%,75%,.22)`); g.addColorStop(1, `hsla(${b.hue},95%,65%,.55)`);
+    if (b.animal) { ctx.save(); ANIMALES[b.animal](b.x, b.y, b.r * .8); ctx.restore(); }
+    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(b.x, b.y, rx, ry, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = `hsla(${b.hue},90%,60%,.7)`; ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.beginPath(); ctx.ellipse(b.x - rx * .4, b.y - ry * .45, rx * .16, ry * .09, -.6, 0, 7); ctx.fill();
+  }
+
+  let antes = performance.now(), reloj = 0, aparece = 0;
+  function cuadro(ahora) {
+    const dt = Math.min(0.05, (ahora - antes) / 1000); antes = ahora; reloj += dt;
+    const fondo = ctx.createLinearGradient(0, 0, 0, H);
+    fondo.addColorStop(0, "#bfe9ff"); fondo.addColorStop(1, "#ffe9f3");
+    ctx.fillStyle = fondo; ctx.fillRect(0, 0, W, H);
+
+    aparece -= dt;
+    const objetivo = Math.max(5, Math.min(10, Math.round(W * H / 60000)));
+    if (aparece <= 0 && burbujas.length < objetivo) { nueva(false); aparece = rnd(.5, 1.3); }
+
+    for (let i = burbujas.length - 1; i >= 0; i--) {
+      const b = burbujas[i];
+      b.y -= b.vy * dt; b.x += Math.sin(reloj * 1.2 + b.fase) * 18 * dt;
+      if (b.y < -b.r - 20) burbujas.splice(i, 1); // se van por arriba sin que pase nada
+    }
+    for (const b of burbujas) dibujarBurbuja(b, reloj);
+
+    for (let i = saludos.length - 1; i >= 0; i--) {
+      const s = saludos[i]; s.t += dt;
+      if (s.t > 3.5) { saludos.splice(i, 1); continue; }
+      const alfa = s.t > 2.8 ? 1 - (s.t - 2.8) / .7 : 1, k = 1 + Math.sin(s.t * 14) * .04 * Math.max(0, 1 - s.t / 1.2);
+      ctx.save(); ctx.globalAlpha = alfa;
+      const y = s.y - s.t * 14; // sigue subiendo despacito
+      ctx.translate(s.x, y); ctx.scale(k, k); ctx.rotate(Math.sin(s.t * 7) * .14);
+      ANIMALES[s.animal](0, 0, s.r * .95);
+      // manito que saluda
+      ctx.fillStyle = "#fff3dc"; ctx.strokeStyle = "#3a2d1f"; ctx.lineWidth = 2;
+      ctx.save(); ctx.translate(s.r * .85, s.r * .3); ctx.rotate(Math.sin(s.t * 12) * .5 - .3);
+      ctx.beginPath(); ctx.ellipse(0, -s.r * .2, s.r * .13, s.r * .26, 0, 0, 7); ctx.fill(); ctx.stroke(); ctx.restore();
+      ctx.restore();
+    }
+    for (let i = gotas.length - 1; i >= 0; i--) {
+      const p = gotas[i]; p.vida -= dt * 1.4;
+      if (p.vida <= 0) { gotas.splice(i, 1); continue; }
+      p.vy += 260 * dt; p.vx *= 0.985; p.x += p.vx * dt; p.y += p.vy * dt;
+      ctx.fillStyle = `hsla(${p.hue},90%,65%,${p.vida})`; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * p.vida + 1, 0, 7); ctx.fill();
+    }
+    requestAnimationFrame(cuadro);
+  }
+  for (let i = 0; i < 4; i++) nueva(true); // ya hay burbujas al abrir
+  burbujas.forEach((b, i) => { if (i === 1) { b.animal = "perro"; b.r = Math.max(b.r, 58); } });
+  requestAnimationFrame(cuadro);
+})();
+</script>
+</body>
+</html>

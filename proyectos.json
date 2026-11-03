@@ -488,5 +488,19 @@
   "detalle": "Genera hasta 10.000 personas o empresas con pinta argentina (nombre según la época, DNI acorde a la edad, CUIL o CUIT con el dígito verificador correcto, CBU con sus dos dígitos de control, alias, patente vieja o Mercosur, dirección, teléfono con característica y mail de dominio reservado) para seeds, tests y demos sin usar datos de nadie. La misma semilla da siempre los mismos datos, y sale en JSON, CSV, INSERT de SQL Server o PostgreSQL, o una lista de records de C#. Al lado, un validador de CUIT, CBU, DNI y patentes que muestra la cuenta y de qué banco es.",
   "destacado": false,
   "actualizado": "2026-10-25"
+ },
+ {
+  "slug": "burbujas",
+  "nombre": "Burbujas",
+  "categoria": "juegos",
+  "descripcion": "Burbujas que suben y explotan al tocarlas con plop y gotitas de color; a veces trae un animal que saluda. Para Valentín: sin puntaje ni perder.",
+  "estado": "terminado",
+  "probar": "juegos/burbujas/",
+  "desde": "2026-11-03",
+  "icono": "🫧",
+  "para": "1+",
+  "detalle": "Pantalla completa con burbujas transparentes que flotan hacia arriba. Al tocarlas (con varios dedos a la vez) explotan en gotitas con un plop sintetizado, y algunas llevan un perro, gato, pato, chancho o pollito que saluda y hace su sonido. Tocar el vacío también responde.",
+  "destacado": false,
+  "actualizado": "2026-11-03"
  }
 ]

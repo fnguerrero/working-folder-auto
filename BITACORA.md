@@ -2,6 +2,11 @@
 
 Una entrada por noche, la más nueva arriba.
 
+## 2026-11-03
+- **Burbujas** (juegos, sugerencia #19, terminado): burbujas que suben y explotan al tocarlas con plop y gotitas de color, multitáctil; algunas traen un animal (perro, gato, pato, chancho, pollito) que saluda y suena. Sin puntaje ni perder, modo silencio. Verif: `node --check` y e2e a 360 y 1280 px. Issue #19 cerrado. Probar: https://fnguerrero.github.io/working-folder-auto/juegos/burbujas/
+- Ideas nuevas: ninguna, siguen 12 `sugerencia` abiertas (el tope es 10).
+- Sin pedidos `noche` en multimarket ni azarium.
+
 ## 2026-11-02
 - **Sudestada, el corto** (experimentos, pedido #15, avance 52/62 del checklist): el forcejeo de la escena 12 ya se ve. Lo que tapaba el centro del cuadro era un barrote de la baranda del hueco a 10 cm de la cámara, no el poste de la vela; ahora la cámara está en el pasillo de atrás y mira entre dos barrotes: las dos caras con la vela en el medio. Escena re-renderizada con la GPU y `.mp4` rearmado (731 s). `ver.js` y el e2e aceptan `GPU=1` (Edge del sistema, un cuadro en 0,05 s). El e2e falla solo en «saltar a una escena» en modo video (anotado). Probar: https://fnguerrero.github.io/working-folder-auto/experimentos/sudestada-el-corto/
 - Ideas nuevas: ninguna, siguen 13 `sugerencia` abiertas (el tope es 10).
