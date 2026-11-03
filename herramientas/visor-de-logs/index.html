@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<title>Visor de logs</title>
+<style>
+  :root { --bg:#f6f5f1; --card:#fff; --fg:#1d1d1f; --muted:#6b6b70; --line:#e4e2dc; --accent:#5b4fd6; --accent-fg:#fff; --code:#f0eee8; --hl:#ffe58a;
+    --trace:#8a8a93; --debug:#5a7d9a; --info:#1e7e4f; --warn:#b7791f; --error:#c0392b; --fatal:#8e1b5e; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#111114; --card:#1b1b20; --fg:#ececf1; --muted:#9a9aa3; --line:#2a2a31; --accent:#9d93ff; --accent-fg:#15131f; --code:#15151a; --hl:#6b5a10;
+    --trace:#9a9aa3; --debug:#8fb6d6; --info:#6fd39a; --warn:#f0b454; --error:#ff7b6b; --fatal:#f08ac8; } }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,sans-serif; background:var(--bg); color:var(--fg); line-height:1.4; }
+  header, main { max-width:1200px; margin:0 auto; padding:0 16px; }
+  header { padding-top:16px; } h1 { margin:0; font-size:1.5rem; } header p { margin:4px 0 0; color:var(--muted); }
+  main { padding-bottom:30px; display:grid; gap:12px; margin-top:10px; }
+  a { color:var(--accent); }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; min-width:0; }
+  #soltar { border:2px dashed var(--line); border-radius:12px; padding:18px; text-align:center; color:var(--muted); }
+  #soltar.sobre { border-color:var(--accent); background:rgba(91,79,214,.07); }
+  textarea { width:100%; min-height:80px; font:.8rem ui-monospace,Menlo,Consolas,monospace; padding:8px; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--fg); resize:vertical; white-space:pre; }
+  input[type=text], input[type=datetime-local], select { font:inherit; font-size:.88rem; min-height:38px; padding:4px 8px; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--fg); min-width:0; }
+  button, label.btn { font:inherit; font-size:.85rem; min-height:38px; padding:5px 12px; border-radius:999px; cursor:pointer; border:1px solid var(--line); background:var(--card); color:var(--fg); display:inline-flex; align-items:center; gap:6px; }
+  button:hover, label.btn:hover { border-color:var(--accent); } button.on { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); }
+  button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, tr:focus-visible { outline:2px solid var(--accent); }
+  .fila { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:8px; }
+  .fila label { font-size:.82rem; color:var(--muted); display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .grow { flex:1 1 200px; } .grow input { width:100%; }
+  .niv { border-left:4px solid var(--c); } .niv .n { font-weight:700; color:var(--c); }
+  [data-n=trace]{--c:var(--trace)} [data-n=debug]{--c:var(--debug)} [data-n=info]{--c:var(--info)} [data-n=warn]{--c:var(--warn)} [data-n=error]{--c:var(--error)} [data-n=fatal]{--c:var(--fatal)}
+  #estado { font-size:.88rem; color:var(--muted); } #barra { height:6px; background:var(--line); border-radius:3px; overflow:hidden; display:none; margin-top:6px; } #barra i { display:block; height:100%; background:var(--accent); width:0; }
+  .tabla { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:.82rem; }
+  th { text-align:left; color:var(--muted); font-weight:600; padding:4px 8px; position:sticky; top:0; background:var(--card); }
+  td { padding:4px 8px; border-top:1px solid var(--line); vertical-align:top; }
+  tr.f { cursor:pointer; } tr.f:hover td { background:var(--code); }
+  td.h { white-space:nowrap; font-family:ui-monospace,Menlo,Consolas,monospace; color:var(--muted); } td.l { font-weight:700; color:var(--c); white-space:nowrap; }
+  td.m { overflow-wrap:anywhere; max-width:0; width:100%; min-width:200px; } td.m .cat { color:var(--muted); font-size:.75rem; display:block; }
+  mark { background:var(--hl); color:inherit; border-radius:2px; }
+  .det td { background:var(--code); }
+  .det dl { margin:0; display:grid; grid-template-columns:max-content 1fr; gap:2px 12px; font-size:.82rem; } .det dt { color:var(--muted); } .det dd { margin:0; overflow-wrap:anywhere; font-family:ui-monospace,Menlo,Consolas,monospace; }
+  .det pre { margin:8px 0 0; white-space:pre-wrap; overflow-wrap:anywhere; font-size:.78rem; max-height:320px; overflow:auto; }
+  .det .acc { margin-top:8px; display:flex; gap:6px; flex-wrap:wrap; }
+  .grupos { max-height:260px; overflow:auto; } .grupos button { display:grid; grid-template-columns:1fr auto auto; width:100%; border-radius:8px; text-align:left; gap:10px; margin-bottom:4px; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.78rem; }
+  .vacio { color:var(--muted); padding:20px; text-align:center; }
+  .chip b { margin-left:4px; }
+  .chip { border-left:4px solid var(--c); border-radius:8px; } .chip[aria-pressed=false] { opacity:.45; }
+  [hidden] { display:none !important; }
+  @media (max-width:600px) { td.h { white-space:normal; width:5.5em; font-size:.72rem; } td.m { min-width:120px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Visor de logs</h1>
+  <p>Abrí un log de Serilog, NLog, ASP.NET o texto plano, filtralo y seguí una petición de punta a punta. Nada sale de tu máquina.</p>
+</header>
+<main>
+  <section class="panel">
+    <div id="soltar" tabindex="0">
+      Arrastrá acá uno o varios archivos (<code>.log</code>, <code>.json</code>, <code>.txt</code>)
+      <div class="fila" style="justify-content:center">
+        <label class="btn">Elegir archivos<input id="arch" type="file" multiple hidden></label>
+        <button id="muestra" type="button">Cargar un log de muestra</button>
+        <button id="pegar" type="button">Pegar texto…</button>
+      </div>
+    </div>
+    <div id="cajaPegar" hidden>
+      <textarea id="texto" placeholder="Pegá líneas de log acá" spellcheck="false"></textarea>
+      <div class="fila"><button id="leerTexto" type="button" class="on">Leer</button></div>
+    </div>
+    <div id="estado" role="status" aria-live="polite">Sin datos todavía. Los archivos grandes se leen de a 8 MB para no colgar la pestaña.</div>
+    <div id="barra"><i></i></div>
+  </section>
+
+  <section class="panel" id="filtros" hidden>
+    <div class="fila" id="chips" role="group" aria-label="Niveles"></div>
+    <div class="fila">
+      <label class="grow">Texto <input id="fTexto" type="text" placeholder="buscar en mensaje, excepción y propiedades" autocomplete="off"></label>
+      <label><input id="fRegex" type="checkbox"> regex</label>
+      <label class="grow">Propiedades <input id="fProps" type="text" placeholder='UserId=42  Path~/api  Status!=200  RequestId' autocomplete="off" spellcheck="false"></label>
+    </div>
+    <div class="fila">
+      <label>Desde (UTC) <input id="fDesde" type="datetime-local" step="1"></label>
+      <label>Hasta (UTC) <input id="fHasta" type="datetime-local" step="1"></label>
+      <label id="lFuente" hidden>Archivo <select id="fFuente"></select></label>
+      <label>Clave de petición <select id="fClave"></select></label>
+      <button id="agrupar" type="button" aria-pressed="false">Agrupar por petición</button>
+      <button id="limpiar" type="button">Limpiar filtros</button>
+    </div>
+    <div class="fila"><span id="conteo" role="status" aria-live="polite"></span>
+      <span style="flex:1"></span>
+      <button id="expJson" type="button">Exportar JSON</button><button id="expCsv" type="button">Exportar CSV</button></div>
+  </section>
+
+  <section class="panel" id="panelGrupos" hidden>
+    <div class="fila" style="margin-top:0"><b id="tGrupos"></b></div>
+    <div class="grupos" id="grupos" style="margin-top:8px"></div>
+  </section>
+
+  <section class="panel tabla" id="panelTabla" hidden>
+    <table>
+      <thead><tr><th>Hora (UTC)</th><th>Nivel</th><th>Mensaje</th></tr></thead>
+      <tbody id="cuerpo"></tbody>
+    </table>
+    <div class="fila" style="justify-content:center"><button id="mas" type="button" hidden>Mostrar 300 más</button></div>
+  </section>
+  <p class="vacio" id="aviso" hidden></p>
+  <p style="color:var(--muted);font-size:.82rem">Detecta Serilog (compact y JSON normal), NLog JSON, <code>JsonConsoleFormatter</code> de ASP.NET, la consola de .NET y texto con fecha y nivel; las líneas sin fecha se pegan a la entrada anterior (stack traces). Una hora sin zona se toma como UTC. <a href="README.md">Más info</a></p>
+</main>
+<script src="logica.js"></script>
+<script>
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const PAG = 300, NIV = Logs.NIVELES, ETIQ = { trace:'Trace', debug:'Debug', info:'Info', warn:'Warn', error:'Error', fatal:'Fatal' };
+  let todas = [], vista = [], mostradas = 0, niveles = new Set(NIV), agrupando = false, abierta = null, claves = [], cargando = false;
+
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+  const num = n => n.toLocaleString('es-AR');
+  function fmtDur(ms) { return ms < 1000 ? ms + ' ms' : ms < 60000 ? (ms / 1000).toFixed(2) + ' s' : (ms / 60000).toFixed(1) + ' min'; }
+  function resaltar(s, q) {
+    s = String(s); if (!q) return esc(s);
+    const i = s.toLowerCase().indexOf(q); if (i < 0) return esc(s);
+    return esc(s.slice(0, i)) + '<mark>' + esc(s.slice(i, i + q.length)) + '</mark>' + resaltar(s.slice(i + q.length), q);
+  }
+  const aLocal = t => t == null ? '' : new Date(t).toISOString().slice(0, 19);
+  const deLocal = v => v ? Logs.parseHora(v.length === 16 ? v + ':00' : v) : null;
+
+  function opciones() {
+    return { niveles: niveles.size === 6 ? null : niveles, texto: $('fTexto').value.trim(), regex: $('fRegex').checked, props: $('fProps').value,
+      desde: deLocal($('fDesde').value), hasta: deLocal($('fHasta').value), fuente: $('fFuente').value };
+  }
+
+  function chips() {
+    const c = Logs.contarNiveles(todas);
+    $('chips').innerHTML = NIV.map(n => `<button type="button" class="chip" data-n="${n}" data-nv="${n}" aria-pressed="${niveles.has(n)}">${ETIQ[n]}<b>${num(c[n])}</b></button>`).join('');
+  }
+  $('chips').addEventListener('click', e => {
+    const b = e.target.closest('[data-nv]'); if (!b) return;
+    const n = b.dataset.nv;
+    if (niveles.size === 6) { niveles = new Set([n]); } else if (niveles.has(n)) { niveles.delete(n); if (!niveles.size) niveles = new Set(NIV); } else niveles.add(n);
+    chips(); aplicar();
+  });
+
+  let temp = 0;
+  function aplicar() { clearTimeout(temp); temp = setTimeout(recalcular, 120); }
+  function recalcular() {
+    vista = Logs.filtrar(todas, opciones());
+    $('conteo').textContent = `${num(vista.length)} de ${num(todas.length)} entradas`;
+    mostradas = 0; abierta = null; $('cuerpo').innerHTML = ''; mostrarMas();
+    renderGrupos();
+    const hay = todas.length > 0;
+    $('aviso').hidden = !hay || vista.length > 0; $('aviso').textContent = 'Ninguna entrada coincide con los filtros.';
+    $('panelTabla').hidden = !hay || !vista.length;
+  }
+  function mostrarMas() {
+    const q = $('fTexto').value.trim().toLowerCase(), plano = $('fRegex').checked ? '' : q;
+    const fin = Math.min(vista.length, mostradas + PAG), h = [];
+    for (let i = mostradas; i < fin; i++) {
+      const r = vista[i];
+      h.push(`<tr class="f niv" data-n="${r.nivel}" data-i="${i}" tabindex="0" aria-expanded="false"><td class="h">${esc(Logs.fmtHora(r.t))}</td><td class="l">${ETIQ[r.nivel]}</td><td class="m">${resaltar(r.msg.split('\n')[0].slice(0, 600), plano)}${r.cat ? `<span class="cat">${esc(r.cat)}</span>` : ''}</td></tr>`);
+    }
+    $('cuerpo').insertAdjacentHTML('beforeend', h.join(''));
+    mostradas = fin; $('mas').hidden = fin >= vista.length;
+    $('mas').textContent = `Mostrar ${Math.min(PAG, vista.length - fin)} más (faltan ${num(vista.length - fin)})`;
+  }
+  $('mas').onclick = mostrarMas;
+
+  function detalle(r, i) {
+    const props = Object.keys(r.props).map(k => `<dt>${esc(k)}</dt><dd>${esc(r.props[k])}</dd>`).join('');
+    const ks = claves.filter(k => r.props[k] != null);
+    const botones = ks.map(k => `<button type="button" data-peticion="${esc(k)}" data-v="${esc(r.props[k])}">Ver ${esc(k)} ${esc(String(r.props[k]).slice(0, 18))}</button>`).join('');
+    const msg = r.msg.indexOf('\n') >= 0 ? `<pre>${esc(r.msg)}</pre>` : '';
+    return `<tr class="det"><td colspan="3"><dl><dt>Formato</dt><dd>${esc(r.fmt)}${r.fuente ? ' · ' + esc(r.fuente) : ''} · línea ${r.n}</dd>${r.cat ? `<dt>Categoría</dt><dd>${esc(r.cat)}</dd>` : ''}<dt>Mensaje</dt><dd>${esc(r.msg.split('\n')[0])}</dd>${props}</dl>${msg}${r.ex ? `<pre>${esc(r.ex)}</pre>` : ''}<div class="acc">${botones}<button type="button" data-copiar="${i}">Copiar entrada</button></div></td></tr>`;
+  }
+  function alternar(tr) {
+    const sig = tr.nextElementSibling, i = +tr.dataset.i;
+    if (sig && sig.classList.contains('det')) { sig.remove(); tr.setAttribute('aria-expanded', 'false'); return; }
+    tr.insertAdjacentHTML('afterend', detalle(vista[i], i)); tr.setAttribute('aria-expanded', 'true');
+  }
+  $('cuerpo').addEventListener('click', e => {
+    const bp = e.target.closest('[data-peticion]');
+    if (bp) { const v = /\s/.test(bp.dataset.v) ? `"${bp.dataset.v}"` : bp.dataset.v; $('fProps').value = `${bp.dataset.peticion}=${v}`; recalcular(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    const bc = e.target.closest('[data-copiar]');
+    if (bc) { const t = Logs.aJSON([vista[+bc.dataset.copiar]]); try { navigator.clipboard.writeText(t); bc.textContent = 'Copiado'; } catch (x) { bc.textContent = 'No se pudo copiar'; } return; }
+    if (e.target.closest('.det')) return;
+    const tr = e.target.closest('tr.f'); if (tr) alternar(tr);
+  });
+  $('cuerpo').addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('tr.f')) { e.preventDefault(); alternar(e.target); } });
+
+  function renderGrupos() {
+    $('panelGrupos').hidden = !agrupando;
+    if (!agrupando) return;
+    const k = $('fClave').value;
+    if (!k) { $('tGrupos').textContent = 'No encontré una propiedad de petición (RequestId, TraceId, CorrelationId…).'; $('grupos').innerHTML = ''; return; }
+    const g = Logs.agrupar(vista, k);
+    $('tGrupos').textContent = `${num(g.length)} peticiones por ${k} (según los filtros de arriba)`;
+    $('grupos').innerHTML = g.slice(0, 200).map(x => `<button type="button" class="niv" data-n="${x.peor}" data-grupo="${esc(x.valor)}"><span>${esc(x.valor)}</span><span>${x.n} entr.</span><span>${x.desde != null ? fmtDur(x.hasta - x.desde) : ''}</span></button>`).join('') + (g.length > 200 ? `<div class="vacio">… y ${num(g.length - 200)} más; filtrá para acotar.</div>` : '');
+  }
+  $('grupos').addEventListener('click', e => {
+    const b = e.target.closest('[data-grupo]'); if (!b) return;
+    const v = b.dataset.grupo; $('fProps').value = `${$('fClave').value}=${/\s/.test(v) ? `"${v}"` : v}`;
+    agrupando = false; $('agrupar').setAttribute('aria-pressed', 'false'); $('agrupar').classList.remove('on'); recalcular();
+  });
+  $('agrupar').onclick = () => { agrupando = !agrupando; $('agrupar').setAttribute('aria-pressed', agrupando); $('agrupar').classList.toggle('on', agrupando); renderGrupos(); };
+
+  for (const id of ['fTexto', 'fProps', 'fDesde', 'fHasta']) $(id).addEventListener('input', aplicar);
+  $('fRegex').onchange = aplicar; $('fFuente').onchange = aplicar; $('fClave').onchange = renderGrupos;
+  $('limpiar').onclick = () => { $('fTexto').value = ''; $('fProps').value = ''; $('fDesde').value = ''; $('fHasta').value = ''; $('fFuente').value = ''; $('fRegex').checked = false; niveles = new Set(NIV); chips(); recalcular(); };
+
+  function bajar(nombre, tipo, contenido) {
+    const a = document.createElement('a'); const url = URL.createObjectURL(new Blob([contenido], { type: tipo }));
+    a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+  $('expJson').onclick = () => bajar('logs-filtrados.json', 'application/json', Logs.aJSON(vista));
+  $('expCsv').onclick = () => bajar('logs-filtrados.csv', 'text/csv', '﻿' + Logs.aCSV(vista, ';'));
+
+  // ---- Carga ----
+  const tick = () => new Promise(r => setTimeout(r, 0));
+  function progreso(p, txt) { $('barra').style.display = p == null ? 'none' : 'block'; if (p != null) $('barra').firstElementChild.style.width = Math.round(p * 100) + '%'; if (txt) $('estado').textContent = txt; }
+
+  async function leerArchivo(file, parser) {
+    const dec = new TextDecoder('utf-8'), TROZO = 8 * 1024 * 1024; let resto = '';
+    for (let off = 0; off < file.size; off += TROZO) {
+      const buf = await file.slice(off, off + TROZO).arrayBuffer();
+      const txt = resto + dec.decode(buf, { stream: off + TROZO < file.size });
+      const lineas = txt.split('\n'); resto = lineas.pop();
+      for (const l of lineas) parser.linea(l.charCodeAt(l.length - 1) === 13 ? l.slice(0, -1) : l, file.name);
+      progreso(Math.min(1, (off + TROZO) / file.size), `Leyendo ${file.name}… ${num(parser.rows.length)} entradas`);
+      await tick();
+    }
+    if (resto) parser.linea(resto, file.name);
+  }
+  async function cargar(fuentes) { // fuentes: [{nombre, file | texto}]
+    if (cargando) return; cargando = true;
+    try {
+      let filas = [], tam = 0;
+      for (const f of fuentes) {
+        const p = Logs.crearParser();
+        if (f.file) { tam += f.file.size; await leerArchivo(f.file, p); } else { tam += f.texto.length; f.texto.split(/\r?\n/).forEach(l => p.linea(l, f.nombre)); }
+        filas = filas.concat(p.rows);
+      }
+      todas = fuentes.length > 1 ? Logs.ordenarPorHora(filas) : filas;
+      todas.forEach((r, i) => { r.i = i; });
+      const fm = {}; todas.forEach(r => { fm[r.fmt] = (fm[r.fmt] || 0) + 1; });
+      const fmt = Object.keys(fm).sort((a, b) => fm[b] - fm[a]).map(k => `${k} (${num(fm[k])})`).join(', ');
+      progreso(null, todas.length ? `${num(todas.length)} entradas de ${fuentes.length} archivo${fuentes.length > 1 ? 's' : ''} (${(tam / 1048576).toFixed(1)} MB). Formato: ${fmt}.` : 'No encontré entradas en lo que cargaste.');
+      claves = Logs.claveDePeticion(todas);
+      $('fClave').innerHTML = claves.map(k => `<option>${esc(k)}</option>`).join('') || '<option value="">(ninguna)</option>';
+      const nombres = [...new Set(todas.map(r => r.fuente))];
+      $('lFuente').hidden = nombres.length < 2;
+      $('fFuente').innerHTML = '<option value="">Todos</option>' + nombres.map(n => `<option>${esc(n)}</option>`).join('');
+      niveles = new Set(NIV); $('fTexto').value = ''; $('fProps').value = ''; $('fDesde').value = ''; $('fHasta').value = '';
+      $('filtros').hidden = !todas.length; chips(); recalcular();
+      if (todas.length) { const ts = todas.map(r => r.t).filter(t => t != null); if (ts.length) { let mn = ts[0], mx = ts[0]; for (const t of ts) { if (t < mn) mn = t; if (t > mx) mx = t; } $('fDesde').title = 'Primera: ' + Logs.fmtHora(mn); $('fHasta').title = 'Última: ' + Logs.fmtHora(mx); } }
+    } catch (e) { progreso(null, 'No se pudo leer: ' + e.message); }
+    cargando = false;
+  }
+
+  $('arch').onchange = e => { const fs = [...e.target.files]; if (fs.length) cargar(fs.map(f => ({ nombre: f.name, file: f }))); e.target.value = ''; };
+  const zona = $('soltar');
+  ['dragenter', 'dragover'].forEach(ev => zona.addEventListener(ev, e => { e.preventDefault(); zona.classList.add('sobre'); }));
+  ['dragleave', 'drop'].forEach(ev => zona.addEventListener(ev, e => { e.preventDefault(); zona.classList.remove('sobre'); }));
+  zona.addEventListener('drop', e => { const fs = [...e.dataTransfer.files]; if (fs.length) cargar(fs.map(f => ({ nombre: f.name, file: f }))); });
+  $('pegar').onclick = () => { $('cajaPegar').hidden = !$('cajaPegar').hidden; if (!$('cajaPegar').hidden) $('texto').focus(); };
+  $('leerTexto').onclick = () => cargar([{ nombre: 'pegado', texto: $('texto').value }]);
+
+  function muestra() {
+    const L = [], t0 = Date.UTC(2026, 10, 3, 13, 0, 0), usuarios = ['ana', 'beto', 'cami', 'dani'], rutas = ['/api/pedidos', '/api/clientes/17', '/api/facturas', '/health'];
+    for (let i = 0; i < 40; i++) {
+      const rid = 'req-' + String(1000 + i), u = usuarios[i % 4], ruta = rutas[i % 4], t = t0 + i * 7300;
+      const iso = ms => new Date(ms).toISOString().replace('Z', '0000Z');
+      L.push(JSON.stringify({ '@t': iso(t), '@mt': 'HTTP {Method} {Path} iniciado', Method: 'GET', Path: ruta, RequestId: rid, UserId: u, SourceContext: 'Api.Middleware' }));
+      L.push(JSON.stringify({ '@t': iso(t + 12), '@mt': 'Consulta a la base en {Ms} ms', '@l': 'Debug', Ms: 5 + (i * 37) % 90, RequestId: rid, UserId: u, SourceContext: 'Api.Data' }));
+      if (i % 9 === 4) L.push(JSON.stringify({ '@t': iso(t + 400), '@mt': 'Timeout consultando {Servicio}', '@l': 'Error', '@x': 'System.TimeoutException: The operation has timed out.\n   at Api.Servicios.Facturador.EmitirAsync(Int32 id) in /src/Facturador.cs:line 88\n   at Api.Controllers.FacturasController.Post() in /src/FacturasController.cs:line 41', Servicio: 'facturador', RequestId: rid, UserId: u, SourceContext: 'Api.Controllers' }));
+      else if (i % 5 === 2) L.push(JSON.stringify({ '@t': iso(t + 150), '@mt': 'Respuesta lenta: {Ms} ms', '@l': 'Warning', Ms: 800 + i * 11, RequestId: rid, UserId: u, SourceContext: 'Api.Middleware' }));
+      L.push(JSON.stringify({ '@t': iso(t + 420 + (i % 9 === 4 ? 100 : 0)), '@mt': 'HTTP {Method} {Path} respondió {StatusCode}', Method: 'GET', Path: ruta, StatusCode: i % 9 === 4 ? 500 : 200, RequestId: rid, UserId: u, SourceContext: 'Api.Middleware' }));
+    }
+    return L.join('\n');
+  }
+  $('muestra').onclick = () => cargar([{ nombre: 'muestra.json', texto: muestra() }]);
+  window.__visor = { cargar, estado: () => ({ total: todas.length, vista: vista.length }) };
+})();
+</script>
+</body>
+</html>

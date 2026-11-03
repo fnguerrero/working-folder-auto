@@ -502,5 +502,19 @@
   "detalle": "Pantalla completa con burbujas transparentes que flotan hacia arriba. Al tocarlas (con varios dedos a la vez) explotan en gotitas con un plop sintetizado, y algunas llevan un perro, gato, pato, chancho o pollito que saluda y hace su sonido. Tocar el vacío también responde.",
   "destacado": false,
   "actualizado": "2026-11-03"
+ },
+ {
+  "slug": "visor-de-logs",
+  "nombre": "Visor de logs",
+  "categoria": "herramientas",
+  "descripcion": "Abrís logs de Serilog, NLog o ASP.NET en el navegador, filtrás por nivel, texto y propiedades y seguís una petición de punta a punta. Nada sale de tu máquina.",
+  "estado": "terminado",
+  "probar": "herramientas/visor-de-logs/",
+  "desde": "2026-11-03",
+  "icono": "🔎",
+  "para": "devs",
+  "detalle": "Arrastrás uno o varios archivos de log (JSON por línea o texto) y se muestran como tabla con filtros combinables, detalle con propiedades y stack trace, agrupado por RequestId o TraceId y export a JSON o CSV. Lee de a pedazos, así que aguanta archivos de decenas de MB sin colgar la pestaña.",
+  "destacado": false,
+  "actualizado": "2026-11-03"
  }
 ]
