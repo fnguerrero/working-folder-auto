@@ -2,6 +2,11 @@
 
 Una entrada por noche, la más nueva arriba.
 
+## 2026-11-06
+- **Cuánto sale el viaje** (apps, nuevo, terminado): costo real de un viaje en auto (nafta, peajes, estacionamiento, desgaste) por persona y por km, y comparación con otro medio con el punto de empate. Verif: 6 tests con `node --test` y e2e a 360 y 1280 px. Probar: https://fnguerrero.github.io/working-folder-auto/apps/cuanto-sale-el-viaje/
+- Ideas nuevas: ninguna, siguen 11 `sugerencia` abiertas (el tope es 10).
+- Sin pedidos `noche` en working-folder-auto, multimarket ni azarium.
+
 ## 2026-11-03
 - **Burbujas** (juegos, sugerencia #19, terminado): burbujas que suben y explotan al tocarlas con plop y gotitas de color, multitáctil; algunas traen un animal (perro, gato, pato, chancho, pollito) que saluda y suena. Sin puntaje ni perder, modo silencio. Verif: `node --check` y e2e a 360 y 1280 px. Issue #19 cerrado. Probar: https://fnguerrero.github.io/working-folder-auto/juegos/burbujas/
 - **Visor de logs** (herramientas, sugerencia #7, terminado): abre logs de Serilog (compact y normal), NLog JSON, ASP.NET JsonConsole, consola de .NET y texto plano; filtros por nivel, texto/regex, tiempo y propiedades (`UserId=42`, `Path~/api`), detalle con stack trace, agrupado por RequestId/TraceId, varios archivos ordenados por hora y export JSON/CSV. Lee de a 8 MB. Verif: 10 tests con `node --test` y e2e a 360 y 1280 px con un log de 50 MB (219 mil líneas) leído en ~2,5 s. No probado con logs reales de producción. Issue #7 cerrado. Probar: https://fnguerrero.github.io/working-folder-auto/herramientas/visor-de-logs/

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Cuánto sale el viaje</title>
+<style>
+  :root { --bg: #f4f6f8; --card: #fff; --fg: #1d242b; --muted: #627080; --line: #dde3e9; --accent: #1b6ec2; --accent-fg: #fff; --ok: #1f7a46; --mal: #b3402a; --suave: rgba(27,110,194,.08); }
+  @media (prefers-color-scheme: dark) { :root { --bg: #12171c; --card: #1b222a; --fg: #e8edf2; --muted: #98a6b5; --line: #2b3540; --accent: #6db0f2; --accent-fg: #0b1620; --ok: #6fd39a; --mal: #f28b74; --suave: rgba(109,176,242,.12); } }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.45; }
+  header, main { max-width: 900px; margin: 0 auto; padding: 0 16px; }
+  header { padding-top: 18px; }
+  h1 { margin: 0; font-size: 1.5rem; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  main { padding-bottom: 32px; display: grid; gap: 14px; margin-top: 12px; }
+  @media (min-width: 800px) { main { grid-template-columns: 1fr 1fr; align-items: start; } .ancho { grid-column: 1 / -1; } }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+  .panel h2 { margin: 0 0 10px; font-size: 1rem; }
+  .campo { display: grid; gap: 2px; margin-bottom: 10px; }
+  .campo label { font-weight: 600; font-size: .9rem; }
+  .campo small { color: var(--muted); }
+  input[type=number] { width: 100%; font: inherit; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); }
+  .fila { display: flex; gap: 8px; flex-wrap: wrap; }
+  .fila .campo { flex: 1 1 130px; }
+  .check { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .grande { font-size: 2rem; font-weight: 700; margin: 0; }
+  .grande small { font-size: .9rem; font-weight: 400; color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 5px 0; border-bottom: 1px solid var(--line); }
+  td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+  .veredicto { padding: 10px; border-radius: 10px; background: var(--suave); margin-top: 10px; }
+  .ok { color: var(--ok); font-weight: 600; } .mal { color: var(--mal); font-weight: 600; }
+  button { font: inherit; padding: 9px 14px; border: 0; border-radius: 8px; background: var(--accent); color: var(--accent-fg); cursor: pointer; margin-top: 10px; }
+  .nota { color: var(--muted); font-size: .85rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Cuánto sale el viaje</h1>
+  <p>Cargá los números de tu auto y del recorrido: te dice cuánto cuesta de verdad, por persona, y si conviene más que el micro o el tren.</p>
+</header>
+<main>
+  <section class="panel">
+    <h2>El recorrido</h2>
+    <div class="fila">
+      <div class="campo"><label for="km">Kilómetros (un tramo)</label><input id="km" type="number" min="0" inputmode="decimal" value="120"></div>
+      <div class="campo"><label for="personas">Personas</label><input id="personas" type="number" min="1" inputmode="numeric" value="2"></div>
+    </div>
+    <div class="check"><input id="idaVuelta" type="checkbox" checked><label for="idaVuelta">Ida y vuelta</label></div>
+    <div class="fila">
+      <div class="campo"><label for="peajes">Peajes por tramo ($)</label><input id="peajes" type="number" min="0" inputmode="decimal" value="0"></div>
+      <div class="campo"><label for="estacionamiento">Estacionamiento ($)</label><input id="estacionamiento" type="number" min="0" inputmode="decimal" value="0"></div>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>El auto</h2>
+    <div class="fila">
+      <div class="campo"><label for="consumo">Consumo (litros cada 100 km)</label><input id="consumo" type="number" min="0" step="0.1" inputmode="decimal" value="8"></div>
+      <div class="campo"><label for="precioLitro">Precio del litro ($)</label><input id="precioLitro" type="number" min="0" inputmode="decimal" value="1500"></div>
+    </div>
+    <div class="campo"><label for="desgasteKm">Desgaste por km ($)</label><input id="desgasteKm" type="number" min="0" inputmode="decimal" value="80"><small>Cubiertas, aceite, service y amortización. Si no sabés, 60 a 120 $/km es un orden de magnitud razonable; ajustalo a tu auto.</small></div>
+    <div class="campo"><label for="alternativa">Otro medio: costo por persona de todo el viaje ($, opcional)</label><input id="alternativa" type="number" min="0" inputmode="decimal" placeholder="Micro, tren, app..."></div>
+  </section>
+  <section class="panel ancho" aria-live="polite">
+    <h2>Resultado</h2>
+    <p class="grande" id="porPersona"></p>
+    <table id="detalle"></table>
+    <div class="veredicto" id="veredicto" hidden></div>
+    <button id="copiar" type="button">Copiar resumen</button> <span class="nota" id="msg"></span>
+    <p class="nota">Los precios son los que cargás vos: la página no trae ninguno y no guarda ni envía nada.</p>
+  </section>
+</main>
+<script src="logica.js"></script>
+<script>
+(function () {
+  var ids = ['km','personas','peajes','estacionamiento','consumo','precioLitro','desgasteKm','alternativa'];
+  var $ = function (i) { return document.getElementById(i); };
+  var ultimo = null, ultimoTxt = '';
+  function leer() {
+    var e = { idaVuelta: $('idaVuelta').checked };
+    ids.forEach(function (i) { e[i] = $(i).value; });
+    return e;
+  }
+  function render() {
+    var e = leer(), r = Viaje.calcular(e), p = Viaje.pesos;
+    ultimo = r; ultimoTxt = Viaje.resumen(e, r);
+    $('porPersona').innerHTML = p(r.porPersona) + ' <small>por persona (' + p(r.total) + ' en total)</small>';
+    var filas = [['Nafta (' + r.litros.toFixed(1).replace('.', ',') + ' litros)', r.nafta], ['Peajes', r.peajes], ['Estacionamiento', r.estacionamiento], ['Desgaste del auto', r.desgaste], ['Costo por km', r.porKm], ['Solo lo que sale del bolsillo hoy (sin desgaste)', r.sinDesgaste]];
+    $('detalle').innerHTML = filas.map(function (f) { return '<tr><td>' + f[0] + '</td><td>' + p(f[1]) + '</td></tr>'; }).join('');
+    var v = $('veredicto');
+    if (r.alternativa) {
+      v.hidden = false;
+      v.innerHTML = r.autoConviene
+        ? '<span class="ok">El auto conviene:</span> ' + p(r.diferencia) + ' menos por persona que el otro medio.'
+        : '<span class="mal">Conviene el otro medio:</span> el auto sale ' + p(r.diferencia) + ' más por persona. El auto empata o gana desde ' + r.personasParaEmpatar + ' personas.';
+    } else v.hidden = true;
+  }
+  ids.concat(['idaVuelta']).forEach(function (i) { $(i).addEventListener('input', render); });
+  $('copiar').addEventListener('click', function () {
+    var ok = function () { $('msg').textContent = 'Copiado.'; };
+    try { navigator.clipboard.writeText(ultimoTxt).then(ok, function () { $('msg').textContent = 'No se pudo copiar.'; }); }
+    catch (x) { $('msg').textContent = 'No se pudo copiar.'; }
+  });
+  render();
+})();
+</script>
+</body>
+</html>
