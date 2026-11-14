@@ -2,6 +2,12 @@
 
 Una entrada por noche, la más nueva arriba.
 
+## 2026-11-13
+- **Fechas en criollo** (herramientas, nuevo, terminado): pegás una fecha, un epoch (s, ms, µs) o los ticks de .NET y ves el mismo instante en nueve zonas con el desfase real de esa fecha, más ISO 8601, epoch y ticks para copiar, un snippet de C# y la diferencia entre dos momentos. Verif: 11 tests con `node --test` y e2e a 360 y 1280 px. No probado: horas ambiguas de un cambio de horario. Probar: https://fnguerrero.github.io/working-folder-auto/herramientas/fechas-en-criollo/
+- Ideas nuevas: ninguna, siguen 11 `sugerencia` abiertas (el tope es 10).
+- Sin pedidos `noche` en working-folder-auto, multimarket ni azarium.
+- Nota: arranqué una calculadora de aguinaldo y vacaciones y la descarté al ver que `apps/lo-que-te-corresponde` ya la cubre; la carpeta `apps/aguinaldo-y-vacaciones/` quedó sin commitear porque no pude borrarla (permiso denegado). Se puede borrar sin perder nada.
+
 ## 2026-11-06
 - **Cuánto sale el viaje** (apps, nuevo, terminado): costo real de un viaje en auto (nafta, peajes, estacionamiento, desgaste) por persona y por km, y comparación con otro medio con el punto de empate. Verif: 6 tests con `node --test` y e2e a 360 y 1280 px. Probar: https://fnguerrero.github.io/working-folder-auto/apps/cuanto-sale-el-viaje/
 - Ideas nuevas: ninguna, siguen 11 `sugerencia` abiertas (el tope es 10).

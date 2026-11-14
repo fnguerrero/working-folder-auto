@@ -530,5 +530,19 @@
     "detalle": "Cargás los kilómetros, el consumo, el precio del litro y las personas, y te dice el costo total, por persona y por km, aparte de lo que sale del bolsillo hoy. Si sumás el costo de otro medio, te dice cuál conviene y desde cuántas personas gana el auto.",
     "destacado": false,
     "actualizado": "2026-11-06"
+  },
+  {
+    "slug": "fechas-en-criollo",
+    "nombre": "Fechas en criollo",
+    "categoria": "herramientas",
+    "descripcion": "Pegás una fecha, un epoch o los ticks de .NET y ves la hora en UTC, Argentina y otras zonas, con ISO 8601 y la diferencia entre dos momentos.",
+    "estado": "terminado",
+    "probar": "herramientas/fechas-en-criollo/",
+    "desde": "2026-11-13",
+    "icono": "🕒",
+    "para": "devs",
+    "detalle": "Pegás una fecha, un epoch en segundos o milisegundos, o los ticks de .NET, y te muestra el mismo instante en nueve zonas, con el desfase real de esa fecha. Resuelve el «la base está en UTC y la pantalla dice otra hora», da los valores para copiar y un snippet de C# con DateTimeOffset y TimeZoneInfo.",
+    "destacado": false,
+    "actualizado": "2026-11-13"
   }
 ]

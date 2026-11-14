@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Fechas en criollo</title>
+<style>
+  :root { --bg: #f4f6f8; --card: #fff; --fg: #1d242b; --muted: #627080; --line: #dde3e9; --accent: #1b6ec2; --accent-fg: #fff; --mal: #b3402a; --suave: rgba(27,110,194,.08); }
+  @media (prefers-color-scheme: dark) { :root { --bg: #12171c; --card: #1b222a; --fg: #e8edf2; --muted: #98a6b5; --line: #2b3540; --accent: #6db0f2; --accent-fg: #0b1620; --mal: #f28b74; --suave: rgba(109,176,242,.12); } }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.45; }
+  header, main { max-width: 900px; margin: 0 auto; padding: 0 16px; }
+  header { padding-top: 18px; }
+  h1 { margin: 0; font-size: 1.5rem; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  main { padding-bottom: 32px; display: grid; gap: 14px; margin-top: 12px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+  .panel h2 { margin: 0 0 10px; font-size: 1rem; }
+  label { font-weight: 600; font-size: .9rem; display: block; margin-bottom: 2px; }
+  input, select, textarea { width: 100%; font: inherit; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); }
+  .fila { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
+  .fila > div { flex: 1 1 200px; }
+  .nota { color: var(--muted); font-size: .85rem; }
+  .error { color: var(--mal); font-weight: 600; }
+  .tabla { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 6px 8px 6px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  th { font-size: .8rem; color: var(--muted); font-weight: 600; }
+  td.mono, code, pre { font-family: ui-monospace, Consolas, monospace; font-size: .85rem; }
+  tr.destacada td { background: var(--suave); }
+  pre { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; overflow-x: auto; margin: 6px 0 0; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  button { font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--fg); cursor: pointer; }
+  button.p { background: var(--accent); color: var(--accent-fg); border: 0; }
+  .aviso { padding: 10px; border-radius: 10px; background: var(--suave); margin-top: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Fechas en criollo</h1>
+  <p>Pegá una fecha, un epoch o los ticks de .NET y mirá qué hora es en UTC, en Argentina y en otras zonas. Para cuando la base guarda en UTC y el reloj de tu pantalla dice otra cosa.</p>
+</header>
+<main>
+  <section class="panel">
+    <h2>¿Qué fecha tenés?</h2>
+    <div class="fila">
+      <div><label for="entrada">Fecha, epoch o ticks</label><input id="entrada" type="text" value="2026-11-13 07:00:00" autocomplete="off" spellcheck="false"></div>
+      <div><label for="zona">Si no trae zona, es de…</label><select id="zona"></select></div>
+      <div style="flex:0 0 auto"><button id="ahora" type="button" class="p">Ahora</button></div>
+    </div>
+    <div class="chips" id="ejemplos"></div>
+    <p id="tipo" class="nota" aria-live="polite"></p>
+    <p id="error" class="error" role="alert" hidden></p>
+  </section>
+
+  <section class="panel" id="resultado" aria-live="polite">
+    <h2>El mismo instante en cada zona</h2>
+    <div class="tabla"><table>
+      <thead><tr><th>Zona</th><th>Fecha y hora</th><th>Día</th><th>Desfase</th></tr></thead>
+      <tbody id="zonas"></tbody>
+    </table></div>
+    <div class="aviso" id="relativo"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Valores técnicos</h2>
+    <div class="tabla"><table><tbody id="tecnicos"></tbody></table></div>
+    <pre id="cs"></pre>
+  </section>
+
+  <section class="panel">
+    <h2>Cuánto pasó entre dos momentos</h2>
+    <div class="fila">
+      <div><label for="otra">Otra fecha (misma interpretación)</label><input id="otra" type="text" placeholder="2026-11-20 18:30" autocomplete="off" spellcheck="false"></div>
+    </div>
+    <p id="dif" class="nota" aria-live="polite">Cargá una segunda fecha para ver la diferencia.</p>
+  </section>
+  <p class="nota">Todo se calcula en tu navegador con la base de zonas horarias del sistema; no se envía nada. Argentina no cambia de horario desde 2009, por eso siempre es UTC−03:00.</p>
+</main>
+<script src="logica.js"></script>
+<script>
+(function () {
+  var $ = function (i) { return document.getElementById(i); };
+  var AR = 'America/Argentina/Buenos_Aires';
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function copiable(v) { return '<td class="mono">' + esc(v) + '</td><td><button type="button" data-copiar="' + esc(v) + '">Copiar</button></td>'; }
+
+  Fechas.ZONAS.forEach(function (z) { var o = document.createElement('option'); o.value = z[0]; o.textContent = z[1]; if (z[0] === 'UTC') o.selected = true; $('zona').appendChild(o); });
+  [['Epoch (s)', '1700000000'], ['Epoch (ms)', '1700000000000'], ['Ticks .NET', '638355968000000000'], ['ISO con Z', '2026-11-13T07:00:00Z'], ['dd/mm/aaaa', '13/11/2026 04:00']].forEach(function (e) {
+    var b = document.createElement('button'); b.type = 'button'; b.textContent = e[0]; b.addEventListener('click', function () { $('entrada').value = e[1]; render(); }); $('ejemplos').appendChild(b);
+  });
+
+  function relativo(ms) {
+    var d = Fechas.diferencia(Date.now(), ms), partes = [];
+    if (d.dias) partes.push(d.dias + ' d'); if (d.horas) partes.push(d.horas + ' h'); if (d.minutos) partes.push(d.minutos + ' min');
+    if (!partes.length) partes.push(d.segundos + ' s');
+    return (d.signo > 0 ? 'Dentro de ' : 'Hace ') + partes.join(' ');
+  }
+
+  function render() {
+    var tz = $('zona').value, r = Fechas.interpretar($('entrada').value, tz);
+    $('error').hidden = !r.error; $('resultado').hidden = !!r.error;
+    document.querySelectorAll('main > section').forEach(function (s, i) { if (i > 0 && i < 3) s.hidden = !!r.error; });
+    if (r.error) { $('error').textContent = 'No pude leerla: ' + r.error + '.'; $('tipo').textContent = ''; return; }
+    $('tipo').textContent = 'Lo leí como: ' + r.tipo + '.';
+    $('zonas').innerHTML = Fechas.ZONAS.map(function (z) {
+      var f = Fechas.formatear(r.ms, z[0]);
+      return '<tr' + (z[0] === AR ? ' class="destacada"' : '') + '><td>' + esc(z[1]) + '</td><td class="mono">' + f.texto + '</td><td>' + f.dia + '</td><td>' + f.offset + '</td></tr>';
+    }).join('');
+    $('relativo').textContent = relativo(r.ms) + '.';
+    var u = Fechas.formatear(r.ms, 'UTC'), a = Fechas.formatear(r.ms, AR);
+    var filas = [['ISO 8601 (UTC)', u.iso], ['ISO 8601 (Argentina)', a.iso], ['Epoch en segundos', String(Math.floor(r.ms / 1000))], ['Epoch en milisegundos', String(r.ms)], ['Ticks de .NET', Fechas.ticks(r.ms)]];
+    $('tecnicos').innerHTML = filas.map(function (f) { return '<tr><th scope="row">' + f[0] + '</th>' + copiable(f[1]) + '</tr>'; }).join('');
+    $('cs').textContent = Fechas.csharp(r.ms);
+    difer(r);
+  }
+
+  function difer(a) {
+    var t = $('otra').value.trim();
+    if (!t) { $('dif').textContent = 'Cargá una segunda fecha para ver la diferencia.'; return; }
+    var b = Fechas.interpretar(t, $('zona').value);
+    if (b.error) { $('dif').textContent = 'La segunda no se pudo leer: ' + b.error + '.'; return; }
+    var d = Fechas.diferencia(a.ms, b.ms);
+    $('dif').textContent = (d.signo > 0 ? 'La segunda es posterior: ' : 'La segunda es anterior: ') + d.dias + ' días, ' + d.horas + ' h, ' + d.minutos + ' min, ' + d.segundos + ' s (' + d.totalHoras.toString().replace('.', ',') + ' horas en total).';
+  }
+
+  ['entrada', 'zona', 'otra'].forEach(function (i) { $(i).addEventListener('input', render); });
+  $('ahora').addEventListener('click', function () { $('entrada').value = String(Date.now()); render(); });
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest && e.target.closest('[data-copiar]'); if (!t) return;
+    try { navigator.clipboard.writeText(t.getAttribute('data-copiar')).then(function () { t.textContent = 'Copiado'; setTimeout(function () { t.textContent = 'Copiar'; }, 1200); }); } catch (x) {}
+  });
+  render();
+})();
+</script>
+</body>
+</html>
