@@ -2,6 +2,9 @@
 
 Una entrada por noche, la más nueva arriba.
 
+## 2026-11-20
+- Modo LIVIANO (semanal 7%, cerca del ritmo del 11%): sin pedidos `noche` en working-folder-auto, multimarket ni azarium; no se hizo trabajo por cuenta propia.
+
 ## 2026-11-13
 - **Fechas en criollo** (herramientas, nuevo, terminado): pegás una fecha, un epoch (s, ms, µs) o los ticks de .NET y ves el mismo instante en nueve zonas con el desfase real de esa fecha, más ISO 8601, epoch y ticks para copiar, un snippet de C# y la diferencia entre dos momentos. Verif: 11 tests con `node --test` y e2e a 360 y 1280 px. No probado: horas ambiguas de un cambio de horario. Probar: https://fnguerrero.github.io/working-folder-auto/herramientas/fechas-en-criollo/
 - Ideas nuevas: ninguna, siguen 11 `sugerencia` abiertas (el tope es 10).
