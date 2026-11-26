@@ -600,5 +600,19 @@
     "detalle": "Un libro para el celular con cinco cuentos de seis páginas. Cada dibujo suena al tocarlo, hay lectura en voz alta con pausa y los textos están aparte para imprimir. Sin puntaje ni derrota.",
     "destacado": false,
     "actualizado": "2026-11-25"
+  },
+  {
+    "slug": "pintar-con-el-dedo",
+    "nombre": "Pintar con el dedo",
+    "categoria": "juegos",
+    "descripcion": "Pizarra a pantalla completa para los más chicos: colores grandes, sellos con sonido y el dibujo se guarda como imagen.",
+    "estado": "terminado",
+    "probar": "juegos/pintar-con-el-dedo/",
+    "desde": "2026-11-25",
+    "icono": "🎨",
+    "para": "1+",
+    "detalle": "Se dibuja con uno o varios dedos, con ocho colores, tres grosores y cinco sellos que suenan. Borrar pide dos toques separados y el dibujo se puede guardar como PNG.",
+    "destacado": false,
+    "actualizado": "2026-11-25"
   }
 ]

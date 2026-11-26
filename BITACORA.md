@@ -3,6 +3,7 @@
 Una entrada por noche, la más nueva arriba.
 
 ## 2026-11-25
+- **Pintar con el dedo** (juegos, sugerencia #1, de día, terminado): pizarra multitáctil con sellos y sonido. Verif: e2e headless en varios tamaños. No probado en celular físico ni con sonido. Probar: https://fnguerrero.github.io/working-folder-auto/juegos/pintar-con-el-dedo/
 - **La tormenta de reintentos** (experimentos, sugerencia #11, de día, terminado): simulador de reintentos, timeout y circuit breaker con snippet de C#. Verif: 15 tests y revisión en navegador a 360 px y escritorio. No probado: el C# no se compiló. Probar: https://fnguerrero.github.io/working-folder-auto/experimentos/tormenta-de-reintentos/
 - **Expensas en criollo** (apps, sugerencia #21, de día, terminado): en qué se va la plata de las expensas, mes contra mes. Verif: 17 tests y e2e a 360 y 1280 px. No probado con liquidaciones reales. Probar: https://fnguerrero.github.io/working-folder-auto/apps/expensas-en-criollo/
 - **Diario de precios** (apps, sugerencia #4, de día, terminado): inflación personal con los productos de siempre. Verif: 22 tests y e2e a 360 y 1280 px. Probar: https://fnguerrero.github.io/working-folder-auto/apps/diario-de-precios/

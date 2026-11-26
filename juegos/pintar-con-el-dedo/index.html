@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#fffdf5">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" href="data:,">
+<title>Pintar con el dedo</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #fffdf5; touch-action: none;
+    overscroll-behavior: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent; font-family: system-ui, sans-serif; }
+  body { position: fixed; inset: 0; }
+  #lienzo { position: absolute; left: 0; top: 0; display: block; touch-action: none; cursor: crosshair; }
+  button { box-sizing: border-box; width: 56px; height: 56px; flex: none; padding: 0; margin: 0; border: 0;
+    border-radius: 18px; background: #fff; box-shadow: 0 0 0 2px rgba(0,0,0,.12), 0 4px 0 2px rgba(0,0,0,.12);
+    display: grid; place-items: center; font-size: 28px; line-height: 1; cursor: pointer; position: relative;
+    touch-action: none; transition: transform .12s; }
+  button:focus-visible { outline: 4px dashed #1d4ed8; outline-offset: 4px; }
+  button[aria-pressed="true"] { transform: translateY(-3px);
+    box-shadow: inset 0 0 0 5px #111, inset 0 0 0 8px #fff, 0 6px 8px rgba(0,0,0,.35); }
+  #mute[aria-pressed="true"] { transform: none; box-shadow: 0 0 0 2px rgba(0,0,0,.12), 0 4px 0 2px rgba(0,0,0,.12); }
+  button svg { width: 44px; height: 44px; pointer-events: none; }
+  button span { pointer-events: none; }
+  .color { border-radius: 50%; }
+  .color[aria-pressed="true"]::after { content: ""; width: 12px; height: 22px; border: solid #fff;
+    border-width: 0 6px 6px 0; transform: translateY(-3px) rotate(45deg); filter: drop-shadow(0 0 2px #000); }
+  .punto { display: block; border-radius: 50%; background: #333; }
+  #paleta { position: fixed; left: 0; right: 0; bottom: 0; display: flex; flex-wrap: wrap; justify-content: center;
+    gap: 10px 4px; padding: 10px 2px calc(12px + env(safe-area-inset-bottom)); background: rgba(236,229,210,.94); }
+  #sellos { position: fixed; right: calc(8px + env(safe-area-inset-right)); top: calc(84px + env(safe-area-inset-top));
+    display: grid; grid-template-columns: 56px; gap: 10px; }
+  #borrar { position: fixed; left: calc(10px + env(safe-area-inset-left)); top: calc(10px + env(safe-area-inset-top)); }
+  #arriba { position: fixed; right: calc(10px + env(safe-area-inset-right)); top: calc(10px + env(safe-area-inset-top));
+    display: flex; gap: 12px; }
+  #borrar.armado { width: 128px; background: #d62828; animation: temblar .5s ease-in-out infinite; }
+  #borrar .si { display: none; color: #fff; font-size: 20px; font-weight: 800; }
+  #borrar.armado .si { display: block; }
+  #borrar.armado .no { display: none; }
+  @keyframes temblar { 0%,100% { rotate: 0deg; } 25% { rotate: -4deg; } 75% { rotate: 4deg; } }
+  #escoba { position: fixed; left: 0; top: 0; bottom: 0; width: 0; display: none; pointer-events: none; z-index: 5; }
+  #escoba::before { content: ""; position: absolute; left: -8px; top: 0; bottom: 0; width: 16px;
+    border-radius: 8px; background: #f4a62a; }
+  #escoba span { position: absolute; top: 45%; left: -45px; font-size: 90px; }
+  #aviso { position: fixed; left: 50%; top: calc(80px + env(safe-area-inset-top)); translate: -50% 0; padding: 10px 18px;
+    border-radius: 999px; background: #222; color: #fff; font-size: 18px; white-space: nowrap; pointer-events: none;
+    opacity: 0; transition: opacity .2s; }
+  #aviso.ver { opacity: 1; }
+  @media (max-height: 560px), (max-width: 339px) and (max-height: 640px) {
+    #sellos { grid-template-columns: 56px 56px; top: calc(76px + env(safe-area-inset-top)); }
+    #paleta { column-gap: 2px; }
+  }
+  @media (prefers-reduced-motion: reduce) { #borrar.armado { animation: none; } }
+</style>
+</head>
+<body>
+<canvas id="lienzo" aria-label="Pizarra para dibujar con el dedo"></canvas>
+<button id="borrar" type="button" aria-label="Borrar todo (tocar dos veces)"><span class="no">🗑️</span><span class="si">¿Borrar?</span></button>
+<div id="arriba">
+  <button id="mute" type="button" aria-label="Silencio" aria-pressed="false"><span>🔊</span></button>
+  <button id="guardar" type="button" aria-label="Guardar el dibujo"><span>💾</span></button>
+</div>
+<div id="sellos" role="group" aria-label="Sellos"></div>
+<div id="paleta" role="group" aria-label="Colores y grosor"></div>
+<div id="escoba" aria-hidden="true"><span>🧹</span></div>
+<div id="aviso" role="status"></div>
+<script>
+"use strict";
+(() => {
+  const FONDO = "#fffdf5", CLAVE = "pintar-dedo-dibujo", CLAVE_MUDO = "pintar-dedo-silencio";
+  const COLORES = [["rojo","#e63946"],["naranja","#f77f00"],["amarillo","#ffd000"],["verde","#2a9d4b"],
+    ["celeste","#38bdf8"],["azul","#2546c7"],["violeta","#8e44ad"],["negro","#222222"]];
+  const GROSORES = [{ nombre: "fino", linea: 8, sello: 72, punto: 12 }, { nombre: "mediano", linea: 20, sello: 112, punto: 24 },
+    { nombre: "grueso", linea: 44, sello: 172, punto: 40 }];
+  const svg = (cuerpo) => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="200" height="200">' + cuerpo + "</svg>";
+  const SELLOS = [
+    ["sol", svg('<g stroke="#f77f00" stroke-width="7" stroke-linecap="round"><path d="M50 5v13M50 82v13M5 50h13M82 50h13M18 18l9 9M73 73l9 9M82 18l-9 9M27 73l-9 9"/></g><circle cx="50" cy="50" r="25" fill="#ffd000" stroke="#f77f00" stroke-width="4"/><circle cx="41" cy="45" r="3.5" fill="#222"/><circle cx="59" cy="45" r="3.5" fill="#222"/><path d="M39 57q11 11 22 0" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/>')],
+    ["estrella", svg('<path d="M50 6l12.5 28 30.5 3.3-22.8 20.5 6.4 30L50 72.5 23.4 87.8l6.4-30L7 37.3 37.5 34z" fill="#ffd000" stroke="#c77800" stroke-width="5" stroke-linejoin="round"/>')],
+    ["corazón", svg('<path d="M50 90C22 70 7 53 7 34 7 21 17 12 29 12c9 0 17 5 21 13 4-8 12-13 21-13 12 0 22 9 22 22 0 19-15 36-43 56z" fill="#e63946" stroke="#9d1b28" stroke-width="5" stroke-linejoin="round"/>')],
+    ["auto", svg('<path d="M8 68V52q0-6 8-8l10-2 11-17q3-4 8-4h20q5 0 8 4l11 17 3 1q7 2 7 9v16q0 4-5 4H13q-5 0-5-4z" fill="#2546c7" stroke="#14266f" stroke-width="4" stroke-linejoin="round"/><path d="M36 42l8-13h8v13zM58 42V29h7l9 13z" fill="#bfe9ff"/><g fill="#222" stroke="#fff" stroke-width="4"><circle cx="28" cy="72" r="12"/><circle cx="73" cy="72" r="12"/></g>')],
+    ["flor", svg('<g fill="#f06bb0" stroke="#a8326f" stroke-width="4"><circle cx="50" cy="23" r="18"/><circle cx="76" cy="42" r="18"/><circle cx="66" cy="73" r="18"/><circle cx="34" cy="73" r="18"/><circle cx="24" cy="42" r="18"/></g><circle cx="50" cy="51" r="17" fill="#ffd000" stroke="#c77800" stroke-width="4"/>')]
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const cv = $("lienzo"), ctx = cv.getContext("2d"), paleta = $("paleta"), cajaSellos = $("sellos");
+  const params = new URLSearchParams(location.search);
+  const forzadoMudo = params.has("mudo");
+  const estado = { color: 0, grosor: 1, sello: null, trazos: new Map(), estampados: 0, barriendo: false,
+    listo: false, usado: { w: 0, h: 0 }, hayDibujo: false, guardados: 0, borrados: 0 };
+  window.__pizarra = estado;
+
+  // ---------- lienzo: nunca se achica, así girar el celular no recorta el dibujo ----------
+  let anchoP = 0, altoP = 0;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  function crecer(w, h) {
+    w = Math.max(anchoP, w); h = Math.max(altoP, h);
+    if (w === anchoP && h === altoP) return;
+    let copia = null;
+    if (anchoP) {
+      copia = document.createElement("canvas"); copia.width = cv.width; copia.height = cv.height;
+      copia.getContext("2d").drawImage(cv, 0, 0);
+    }
+    anchoP = w; altoP = h;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    cv.style.width = w + "px"; cv.style.height = h + "px";
+    ctx.fillStyle = FONDO; ctx.fillRect(0, 0, cv.width, cv.height);
+    if (copia) ctx.drawImage(copia, 0, 0);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+  }
+  const ajustar = () => crecer(window.innerWidth, window.innerHeight);
+  window.addEventListener("resize", ajustar); ajustar();
+  function marcar(x, y, r) {
+    estado.usado.w = Math.min(anchoP, Math.max(estado.usado.w, x + r));
+    estado.usado.h = Math.min(altoP, Math.max(estado.usado.h, y + r));
+    estado.hayDibujo = true;
+  }
+
+  // ---------- sonido ----------
+  let silencio = false, ac = null, salida = null;
+  try { silencio = localStorage.getItem(CLAVE_MUDO) === "1"; } catch (e) {}
+  window.__sonidos = [];
+  function audio() {
+    if (forzadoMudo || silencio) return null;
+    try {
+      if (!ac) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        ac = new AC();
+        const comp = ac.createDynamicsCompressor();
+        salida = ac.createGain(); salida.gain.value = 0.55;
+        salida.connect(comp); comp.connect(ac.destination);
+      }
+      if (ac.state !== "running") ac.resume();
+    } catch (e) { return null; }
+    return ac;
+  }
+  // [onda, frecuencia inicial, final, demora, duración, volumen]
+  const MELODIAS = {
+    "sol": [["sine",523,523,0,.14,.45],["sine",659,659,.09,.14,.45],["sine",784,784,.18,.24,.45]],
+    "estrella": [["triangle",1319,1319,0,.09,.3],["triangle",1760,1760,.07,.09,.3],["triangle",2093,2093,.14,.2,.25]],
+    "corazón": [["sine",190,110,0,.14,.8],["sine",210,120,.19,.18,.8]],
+    "auto": [["square",440,440,0,.13,.14],["square",554,554,0,.13,.12],["square",440,440,.18,.18,.14],["square",554,554,.18,.18,.12]],
+    "flor": [["sine",330,880,0,.28,.4],["triangle",660,1320,.08,.22,.12]],
+    "barrer": [["sawtooth",180,900,0,.7,.1],["sine",300,1200,.1,.65,.25]],
+    "guardar": [["sine",784,784,0,.12,.35],["sine",1047,1047,.1,.2,.35]],
+    "toque": [["sine",600,760,0,.08,.25]]
+  };
+  const ultimoSonido = {};
+  function sonar(nombre) {
+    if (silencio) return;
+    const ahora = performance.now();
+    if (ahora - (ultimoSonido[nombre] || -1e9) < 90) return; // varios dedos a la vez no saturan
+    ultimoSonido[nombre] = ahora;
+    window.__sonidos.push(nombre);
+    if (!audio()) return;
+    const t = ac.currentTime + 0.01;
+    for (const [onda, f0, f1, demora, dur, vol] of MELODIAS[nombre]) {
+      const o = ac.createOscillator(), g = ac.createGain(), a = t + demora;
+      o.type = onda; o.frequency.setValueAtTime(f0, a); o.frequency.exponentialRampToValueAtTime(f1, a + dur);
+      g.gain.setValueAtTime(0.0001, a); g.gain.exponentialRampToValueAtTime(vol, a + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, a + dur);
+      o.connect(g); g.connect(salida); o.start(a); o.stop(a + dur + 0.03);
+    }
+  }
+
+  // ---------- botones ----------
+  function boton(padre, etiqueta, clase, alElegir) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = clase; b.setAttribute("aria-label", etiqueta); b.setAttribute("aria-pressed", "false");
+    // pointerdown: responde también cuando es el segundo dedo (ahí el navegador no manda click)
+    b.addEventListener("pointerdown", (e) => { if (e.button === 0) alElegir(); });
+    b.addEventListener("click", (e) => { if (e.detail === 0) alElegir(); }); // teclado
+    padre.appendChild(b);
+    return b;
+  }
+  const botonesColor = COLORES.map(([nombre, hex], i) => {
+    const b = boton(paleta, "Color " + nombre + " (tecla " + (i + 1) + ")", "color", () => elegirColor(i));
+    b.style.background = hex; return b;
+  });
+  const botonesGrosor = GROSORES.map((g, i) => {
+    const b = boton(paleta, "Grosor " + g.nombre, "grosor", () => elegirGrosor(i));
+    const p = document.createElement("span"); p.className = "punto";
+    p.style.width = p.style.height = g.punto + "px"; b.appendChild(p); return b;
+  });
+  const imagenes = [];
+  const botonesSello = SELLOS.map(([nombre, dibujo], i) => {
+    const b = boton(cajaSellos, "Sello " + nombre, "sello", () => elegirSello(i));
+    b.innerHTML = dibujo;
+    const img = new Image(); img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(dibujo);
+    imagenes.push(img); return b;
+  });
+  function pintarSeleccion() {
+    botonesColor.forEach((b, i) => b.setAttribute("aria-pressed", String(estado.sello === null && i === estado.color)));
+    botonesGrosor.forEach((b, i) => b.setAttribute("aria-pressed", String(i === estado.grosor)));
+    botonesSello.forEach((b, i) => b.setAttribute("aria-pressed", String(i === estado.sello)));
+    document.querySelectorAll(".punto").forEach((p) => { p.style.background = COLORES[estado.color][1]; });
+  }
+  function elegirColor(i) { estado.color = i; estado.sello = null; pintarSeleccion(); sonar("toque"); }
+  function elegirGrosor(i) { estado.grosor = i; pintarSeleccion(); sonar("toque"); }
+  function elegirSello(i) { // tocar de nuevo el sello elegido vuelve al lápiz
+    estado.sello = estado.sello === i ? null : i; pintarSeleccion();
+    sonar(estado.sello === null ? "toque" : SELLOS[i][0]);
+  }
+  pintarSeleccion();
+
+  // ---------- dibujo con varios dedos ----------
+  const punto = (e) => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  function estampar(p) {
+    const i = estado.sello, lado = GROSORES[estado.grosor].sello, img = imagenes[i];
+    const poner = () => { ctx.drawImage(img, p.x - lado / 2, p.y - lado / 2, lado, lado); marcar(p.x, p.y, lado / 2); programarAutoguardado(); };
+    if (img.complete && img.naturalWidth) poner(); else img.addEventListener("load", poner, { once: true });
+    estado.estampados++; sonar(SELLOS[i][0]);
+  }
+  cv.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    if (e.button !== 0 || !estado.listo || estado.barriendo) return;
+    desarmar();
+    const p = punto(e);
+    if (estado.sello !== null) return estampar(p);
+    try { cv.setPointerCapture(e.pointerId); } catch (x) {}
+    const color = COLORES[estado.color][1], linea = GROSORES[estado.grosor].linea;
+    estado.trazos.set(e.pointerId, { color, linea, ultimo: p, medio: p });
+    ctx.fillStyle = color; ctx.beginPath(); ctx.arc(p.x, p.y, linea / 2, 0, Math.PI * 2); ctx.fill();
+    marcar(p.x, p.y, linea / 2);
+  });
+  // curva por los puntos medios: el trazo sale redondeado aunque lleguen pocos puntos
+  function tramo(t, desde, control, hasta) {
+    ctx.strokeStyle = t.color; ctx.lineWidth = t.linea;
+    ctx.beginPath(); ctx.moveTo(desde.x, desde.y); ctx.quadraticCurveTo(control.x, control.y, hasta.x, hasta.y); ctx.stroke();
+    marcar(hasta.x, hasta.y, t.linea / 2); marcar(control.x, control.y, t.linea / 2);
+  }
+  cv.addEventListener("pointermove", (e) => {
+    const t = estado.trazos.get(e.pointerId);
+    if (!t) return;
+    let lista = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
+    if (!lista.length) lista = [e];
+    for (const ev of lista) {
+      const p = punto(ev), medio = { x: (t.ultimo.x + p.x) / 2, y: (t.ultimo.y + p.y) / 2 };
+      tramo(t, t.medio, t.ultimo, medio);
+      t.ultimo = p; t.medio = medio;
+    }
+  });
+  function cerrar(id) {
+    const t = estado.trazos.get(id);
+    if (!t) return;
+    tramo(t, t.medio, t.ultimo, t.ultimo);
+    estado.trazos.delete(id);
+    programarAutoguardado();
+  }
+  ["pointerup", "pointercancel", "lostpointercapture"].forEach((n) => cv.addEventListener(n, (e) => cerrar(e.pointerId)));
+
+  // ---------- autoguardado: si se cierra o recarga sin querer, el dibujo vuelve ----------
+  let reloj = 0, sucio = false;
+  function autoguardar() {
+    clearTimeout(reloj);
+    if (!sucio || estado.barriendo || !estado.hayDibujo) return;
+    try {
+      localStorage.setItem(CLAVE, JSON.stringify({ w: anchoP, h: altoP, usado: estado.usado, png: cv.toDataURL("image/png") }));
+      sucio = false;
+    } catch (e) {} // sin lugar o bloqueado: se sigue dibujando igual
+  }
+  function programarAutoguardado() {
+    sucio = true; clearTimeout(reloj);
+    reloj = setTimeout(() => { if (estado.trazos.size) programarAutoguardado(); else autoguardar(); }, 900);
+  }
+  window.addEventListener("pagehide", autoguardar);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) { soltarTodo(); autoguardar(); } });
+  function soltarTodo() { [...estado.trazos.keys()].forEach(cerrar); }
+  window.addEventListener("blur", soltarTodo);
+  (function recuperar() {
+    let d = null;
+    try { d = JSON.parse(localStorage.getItem(CLAVE)); } catch (e) {}
+    if (!d || !d.png) { estado.listo = true; return; }
+    const img = new Image();
+    img.onload = () => {
+      crecer(d.w, d.h); // el guardado puede venir de la otra orientación
+      ctx.drawImage(img, 0, 0, d.w, d.h);
+      estado.usado = { w: d.usado.w, h: d.usado.h }; estado.hayDibujo = true; estado.listo = true;
+    };
+    img.onerror = () => { estado.listo = true; };
+    img.src = d.png;
+  })();
+  // ---------- borrar: dos toques separados ----------
+  const btnBorrar = $("borrar"), escoba = $("escoba");
+  const ESPERA_MIN = 450, ESPERA_MAX = 3500; // una ráfaga de manotazos no alcanza para borrar
+  let armadoEn = 0, relojBorrar = 0;
+  function desarmar() { armadoEn = 0; clearTimeout(relojBorrar); btnBorrar.classList.remove("armado"); }
+  btnBorrar.addEventListener("click", () => {
+    if (estado.barriendo) return;
+    const ahora = performance.now();
+    if (!armadoEn) {
+      armadoEn = ahora; btnBorrar.classList.add("armado"); sonar("toque");
+      avisar("Tocá otra vez para borrar");
+      relojBorrar = setTimeout(desarmar, ESPERA_MAX);
+    } else if (ahora - armadoEn >= ESPERA_MIN) { desarmar(); barrer(); }
+  });
+  function barrer() {
+    soltarTodo(); clearTimeout(reloj); sucio = false;
+    estado.barriendo = true; $("aviso").classList.remove("ver");
+    try { localStorage.removeItem(CLAVE); } catch (e) {}
+    sonar("barrer");
+    escoba.style.display = "block";
+    const inicio = performance.now(), dura = 800;
+    (function paso() {
+      const k = Math.min(1, (performance.now() - inicio) / dura), x = k * (window.innerWidth + 50);
+      ctx.fillStyle = FONDO; ctx.fillRect(0, 0, k < 1 ? x : anchoP, altoP);
+      escoba.style.transform = "translateX(" + x + "px)";
+      if (k < 1) return requestAnimationFrame(paso);
+      escoba.style.display = "none";
+      estado.barriendo = false; estado.hayDibujo = false; estado.usado = { w: 0, h: 0 }; estado.borrados++;
+    })();
+  }
+
+  // ---------- guardar como PNG ----------
+  let relojAviso = 0, ultimoGuardado = -1e9;
+  function avisar(texto) {
+    const a = $("aviso"); a.textContent = texto; a.classList.add("ver");
+    clearTimeout(relojAviso); relojAviso = setTimeout(() => a.classList.remove("ver"), 2200);
+  }
+  $("guardar").addEventListener("click", () => {
+    if (estado.barriendo || !estado.listo || performance.now() - ultimoGuardado < 3000) return;
+    ultimoGuardado = performance.now(); soltarTodo();
+    // lo que se ve, más lo dibujado fuera de pantalla si se giró el celular
+    const w = Math.max(window.innerWidth, estado.usado.w), h = Math.max(window.innerHeight, estado.usado.h);
+    const hoja = document.createElement("canvas");
+    hoja.width = Math.round(Math.min(w, anchoP) * dpr); hoja.height = Math.round(Math.min(h, altoP) * dpr);
+    const c = hoja.getContext("2d");
+    c.fillStyle = FONDO; c.fillRect(0, 0, hoja.width, hoja.height); c.drawImage(cv, 0, 0);
+    const d = new Date(), dos = (n) => String(n).padStart(2, "0");
+    const nombre = "dibujo-" + d.getFullYear() + dos(d.getMonth() + 1) + dos(d.getDate()) + "-" +
+      dos(d.getHours()) + dos(d.getMinutes()) + dos(d.getSeconds()) + ".png";
+    hoja.toBlob((blob) => {
+      if (!blob) return avisar("No se pudo guardar");
+      const a = document.createElement("a"), url = URL.createObjectURL(blob);
+      a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      estado.guardados++; sonar("guardar"); avisar("Dibujo guardado");
+    }, "image/png");
+  });
+
+  // ---------- silencio ----------
+  const btnMute = $("mute");
+  function pintarMute() { btnMute.firstChild.textContent = silencio || forzadoMudo ? "🔇" : "🔊"; btnMute.setAttribute("aria-pressed", String(silencio || forzadoMudo)); }
+  function alternarSilencio() {
+    silencio = !silencio; pintarMute();
+    try { localStorage.setItem(CLAVE_MUDO, silencio ? "1" : "0"); } catch (e) {}
+    sonar("toque");
+  }
+  btnMute.addEventListener("click", alternarSilencio);
+  pintarMute();
+
+  // ---------- teclado ----------
+  window.addEventListener("keydown", (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key >= "1" && e.key <= "8" && e.key.length === 1) elegirColor(Number(e.key) - 1);
+    else if (e.key === "+" || e.key === "=" || e.code === "NumpadAdd") elegirGrosor(Math.min(GROSORES.length - 1, estado.grosor + 1));
+    else if (e.key === "-" || e.code === "NumpadSubtract") elegirGrosor(Math.max(0, estado.grosor - 1));
+    else if (e.key === "m" || e.key === "M") alternarSilencio();
+  });
+
+  // ---------- que no se salga ni se rompa sin querer ----------
+  const frenar = (e) => e.preventDefault();
+  ["contextmenu", "dragstart", "selectstart", "gesturestart", "dblclick"].forEach((n) => document.addEventListener(n, frenar));
+  document.addEventListener("touchmove", frenar, { passive: false }); // sin scroll, zoom ni tirar para recargar
+  window.addEventListener("wheel", (e) => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+  // «Atrás»: el primero se absorbe; para salir de verdad hay que apretarlo dos veces seguidas
+  let trabado = false, ultimoAtras = -1e9;
+  try { trabado = !!(history.state && history.state.pizarra); } catch (e) {} // recarga: ya estaba puesta la traba
+  function trabar() {
+    if (trabado || performance.now() - ultimoAtras < 2500) return;
+    try { history.pushState({ pizarra: 1 }, ""); trabado = true; } catch (e) {}
+  }
+  window.addEventListener("popstate", () => {
+    if (!trabado) return;
+    trabado = false; ultimoAtras = performance.now(); autoguardar();
+    avisar("Atrás otra vez para salir");
+  });
+  // pantalla completa en el celular y audio habilitado: solo se puede desde un toque ya levantado
+  document.addEventListener("pointerup", (e) => {
+    trabar(); audio();
+    const raiz = document.documentElement;
+    if (e.pointerType === "touch" && !document.fullscreenElement && raiz.requestFullscreen && !params.has("ventana")) {
+      try { const r = raiz.requestFullscreen({ navigationUI: "hide" }); if (r) r.catch(() => {}); } catch (x) {}
+    }
+  }, true);
+  document.addEventListener("keydown", () => { trabar(); }, true);
+})();
+</script>
+</body>
+</html>
