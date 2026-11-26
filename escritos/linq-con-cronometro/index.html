@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Cuánto cuesta cada operador de LINQ y cuándo un for le gana: Where y Select, Any contra Count, ToList de más, First contra Find, MinBy, enumeración múltiple y qué cambió entre .NET 8, 9 y 10.">
+<title>LINQ con el cronómetro en la mano</title>
+<style>
+
+  :root {
+    --bg: #fbfaf7; --fg: #23201c; --suave: #6b655c; --linea: #e4e0d8; --panel: #f1eee7;
+    --acento: #1b6f7a; --bien: #2e7d32; --mal: #a4373a; --ojo: #b26a00;
+    --codigo-bg: #1e2430; --codigo-fg: #e6e9ef; --ancho: 76ch; --toc: 280px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #15171c; --fg: #e8e6e1; --suave: #a19c93; --linea: #2c3038; --panel: #1d2026;
+      --acento: #6fd0dc; --bien: #7bd389; --mal: #ff8a8d; --ojo: #ffbf5e; --codigo-bg: #0f1218; --codigo-fg: #e6e9ef; }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.6 Georgia, "Times New Roman", "Noto Serif", serif; }
+  a { color: var(--acento); }
+  code, pre, kbd { font-family: ui-monospace, "Cascadia Code", Consolas, "SF Mono", Menlo, monospace; }
+  code { font-size: .88em; background: var(--panel); padding: .1em .35em; border-radius: 5px; overflow-wrap: anywhere; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  h1, h2, h3, h4 { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.2; letter-spacing: -.01em; }
+  h1 { font-size: clamp(1.9rem, 5vw, 2.8rem); margin: .2em 0 .3em; }
+  h2 { font-size: 1.65rem; margin: 2.2em 0 .6em; padding-top: .6em; border-top: 1px solid var(--linea); }
+  h2 small { display: block; color: var(--suave); font-size: .55em; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .3em; }
+  h3 { font-size: 1.2rem; margin: 1.8em 0 .4em; }
+  p, ul, ol { margin: 0 0 1em; }
+  li { margin-bottom: .3em; }
+  .bajada { font-size: 1.15rem; color: var(--suave); font-family: system-ui, sans-serif; }
+  .meta { color: var(--suave); font-size: .9rem; font-family: system-ui, sans-serif; }
+  .marco { display: grid; grid-template-columns: 1fr; gap: 0 40px; max-width: 1200px; margin: 0 auto; padding: 24px 16px 80px; }
+  main { min-width: 0; max-width: 980px; }
+  main p, main ul, main ol, main h1, main h2, main h3, .ojo, .llevo, .bajada { max-width: var(--ancho); }
+  nav.toc { font-family: system-ui, sans-serif; font-size: .92rem; }
+  nav.toc ol { list-style: none; padding: 0; margin: 0; }
+  nav.toc li { margin: 0; }
+  nav.toc a { display: block; padding: 5px 10px; color: var(--suave); text-decoration: none; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--fg); }
+  nav.toc a.activo { color: var(--acento); border-left-color: var(--acento); }
+  nav.toc .num { display: inline-block; width: 2.2ch; color: var(--suave); opacity: .7; }
+  details.toc-movil { border: 1px solid var(--linea); border-radius: 12px; padding: 10px 14px; margin: 0 0 24px; background: var(--panel); }
+  details.toc-movil summary { cursor: pointer; font-weight: 700; font-family: system-ui, sans-serif; }
+  .toc-lateral { display: none; }
+  @media (min-width: 960px) {
+    .marco { grid-template-columns: var(--toc) minmax(0, 1fr); }
+    .toc-lateral { display: block; position: sticky; top: 16px; align-self: start; max-height: calc(100vh - 32px); overflow: auto; padding-right: 6px; }
+    details.toc-movil { display: none; }
+  }
+  pre { position: relative; margin: 0 0 1em; padding: 14px 16px; border-radius: 12px; background: var(--codigo-bg); color: var(--codigo-fg); font-size: .84rem; line-height: 1.5; overflow: auto; tab-size: 4; max-width: 100%; }
+  pre.sql { border-left: 4px solid var(--acento); }
+  pre.sql::before { content: "lo que mandó EF"; display: block; font: 600 .68rem system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--acento); margin-bottom: 6px; }
+  pre .copiar { position: absolute; top: 6px; right: 6px; font: 600 .72rem system-ui, sans-serif; background: rgba(255,255,255,.12); color: var(--codigo-fg); border: 0; border-radius: 6px; padding: 4px 8px; cursor: pointer; }
+  pre .copiar:hover { background: rgba(255,255,255,.22); }
+  .tabla { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 0 1.2em; border: 1px solid var(--linea); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; font: .86rem/1.4 system-ui, sans-serif; min-width: 620px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--linea); vertical-align: top; }
+  th { background: var(--panel); color: var(--suave); font-weight: 600; font-size: .78rem; letter-spacing: .03em; text-transform: uppercase; position: sticky; top: 0; }
+  tr:last-child td { border-bottom: 0; }
+  td:first-child { min-width: 190px; max-width: 360px; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td code { font-size: .8em; white-space: normal; }
+  td.bien { color: var(--bien); font-weight: 600; } td.mal { color: var(--mal); font-weight: 600; } td.medio { color: var(--ojo); font-weight: 600; }
+  .barra { display: inline-block; height: .7em; background: var(--acento); border-radius: 3px; vertical-align: middle; margin-right: 6px; opacity: .8; }
+  .base { font: 600 .68rem system-ui, sans-serif; color: var(--suave); border: 1px solid var(--linea); border-radius: 999px; padding: 1px 6px; margin-left: 4px; vertical-align: middle; }
+  .ojo { border-left: 4px solid var(--ojo); background: var(--panel); padding: 10px 14px; border-radius: 0 10px 10px 0; margin: 0 0 1.2em; font-size: .97em; }
+  .ojo b:first-child { font-family: system-ui, sans-serif; }
+  .llevo { border: 1px solid var(--linea); border-radius: 12px; padding: 12px 16px; margin: 1.2em 0; background: var(--panel); }
+  .llevo h4 { margin: 0 0 .4em; font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; color: var(--suave); }
+  .llevo ul { margin: 0; padding-left: 20px; }
+  .llevo li { margin-bottom: .25em; }
+  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 999px; font: .9rem system-ui, sans-serif; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .toast.visible { opacity: 1; }
+  td small { display: block; color: var(--suave); font-size: .78em; }
+  table.chuleta { min-width: 0; } table.chuleta td:first-child { min-width: 0; width: 45%; }
+  .grafico { border: 1px solid var(--linea); border-radius: 12px; padding: 14px; margin: 0 0 1.2em; background: var(--panel); font-family: system-ui, sans-serif; }
+  .controles { display: flex; flex-wrap: wrap; gap: 12px 20px; font-size: .9rem; }
+  .controles label { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; max-width: 100%; }
+  .controles select, .controles input { font: inherit; max-width: 100%; min-height: 36px; }
+  figure { margin: 10px 0 0; } figcaption { font-size: .85rem; color: var(--suave); }
+  figure svg { display: block; width: 100%; max-width: 720px; height: auto; }
+  svg text { fill: var(--suave); font: 10px system-ui, sans-serif; }
+  svg .eje { stroke: var(--linea); } svg .linea { fill: none; stroke: var(--acento); stroke-width: 2; } svg .entra { stroke: var(--ojo); stroke-width: 1.5; stroke-dasharray: 5 4; } svg circle { fill: var(--acento); }
+  .resumen { font-size: .95rem; margin: .8em 0 0; }
+</style>
+<style>
+  tr.corte td { border-top: 3px solid var(--linea); }
+  td small.b { color: var(--acento); }
+  table { min-width: 560px; }
+  td:first-child { min-width: 170px; }
+  abbr { text-decoration: none; color: var(--ojo); font-weight: 700; cursor: help; }
+</style>
+</head>
+<body>
+<div class="marco">
+<nav class="toc toc-lateral" aria-label="Índice"><ol id="toc-lateral"></ol></nav>
+<main>
+<p class="meta"><a href="../../">← Volver a la vitrina</a></p>
+<h1>LINQ con el cronómetro en la mano</h1>
+<p class="bajada">Las preguntas de LINQ que aparecen en un code review, medidas en .NET 8, 9 y 10: tiempo y memoria de cada variante, y la regla práctica que queda.</p>
+<p class="meta">.NET 8.0.34, 9.0.21 y 10.0.13 · Windows 11 x64, 16 procesadores lógicos, GC de estación · arnés propio con <code>Stopwatch</code> (no es BenchmarkDotNet) · todos los números salen de <a href="resultados.json">resultados.json</a> y de las <a href="resultados-crudos/linq-net8-corrida1.json">corridas crudas</a> del proyecto <a href="benchmarks/Casos.cs">benchmarks/</a>.</p>
+
+<details class="toc-movil"><summary>Índice</summary><nav class="toc"><ol id="toc-movil"></ol></nav></details>
+
+<h2 id="intro"><small>Antes de empezar</small>Cómo leer las tablas</h2>
+<p>Cada celda tiene la mediana (promedio de las medianas de <b>dos corridas</b> de 12 muestras cada una), abajo el rango entre la muestra más rápida y la más lenta, y en color lo que asigna una ejecución en el heap. Una línea gruesa separa grupos: <b>solo se comparan filas del mismo grupo</b>, que además devuelven el mismo resultado (el programa lo verifica antes de medir). El signo ≈ marca las celdas donde las dos corridas difirieron más de un 25 %: ahí creele al orden de magnitud y nada más.</p>
+<p>La misma fuente se compiló para <code>net8.0</code>, <code>net9.0</code> y <code>net10.0</code> con el SDK de .NET 10 (o sea, con C# 14 en .NET 10 y la versión de lenguaje que corresponde a cada uno en los otros).</p>
+<div class="ojo"><b>Ojo:</b> es una máquina de escritorio con otros procesos andando, sin aislar núcleos. Sirve para comparar <b>órdenes de magnitud</b>. Además, el JIT optimiza según lo que ve en la ejecución y según los datos: con otros datos (más o menos predecibles) varias filas cambian. No es BenchmarkDotNet.</div>
+<p>Unidades: 1 µs son 1.000 ns, 1 ms son 1.000.000 ns.</p>
+
+<h2 id="wheresum"><small>Capítulo 1</small>Where y Select contra un for</h2>
+<!-- codigo:wheresum -->
+<pre><code>static long Linq(int[] a) =&gt; a.Where(x =&gt; x % 2 == 0).Select(x =&gt; x * 3).Sum();
+static long Linq(List&lt;int&gt; l) =&gt; l.Where(x =&gt; x % 2 == 0).Select(x =&gt; x * 3).Sum();
+static long For(int[] a)
+{
+    int s = 0;
+    for (int i = 0; i &lt; a.Length; i++) { int x = a[i]; if (x % 2 == 0) s += x * 3; }
+    return s;
+}
+static long For(List&lt;int&gt; l)
+{
+    int s = 0;
+    for (int i = 0; i &lt; l.Count; i++) { int x = l[i]; if (x % 2 == 0) s += x * 3; }
+    return s;
+}
+static long Foreach(List&lt;int&gt; l)
+{
+    int s = 0;
+    foreach (var x in l) if (x % 2 == 0) s += x * 3;
+    return s;
+}</code></pre>
+<!-- /codigo -->
+<!-- tabla:wheresum -->
+<div class="tabla"><table data-capitulo="wheresum"><thead><tr><th>Variante</th><th class="n">.NET 8</th><th class="n">.NET 9</th><th class="n">.NET 10</th></tr></thead><tbody>
+<tr><td>array de 100 · for</td><td class="n">46 ns<small>45 ns a 48 ns</small><small class="b">0 B</small></td><td class="n">41 ns<small>36 ns a 45 ns</small><small class="b">0 B</small></td><td class="n">35 ns<small>32 ns a 40 ns</small><small class="b">0 B</small></td></tr>
+<tr><td>array de 100 · Where + Select + Sum</td><td class="n">170 ns<small>164 ns a 188 ns</small><small class="b">104 B</small></td><td class="n">141 ns<small>138 ns a 149 ns</small><small class="b">104 B</small></td><td class="n">138 ns<small>133 ns a 276 ns</small><small class="b">104 B</small></td></tr>
+<tr><td>List de 100 · for</td><td class="n">64 ns<small>58 ns a 71 ns</small><small class="b">0 B</small></td><td class="n">49 ns<small>48 ns a 55 ns</small><small class="b">0 B</small></td><td class="n">54 ns<small>49 ns a 73 ns</small><small class="b">0 B</small></td></tr>
+<tr><td>List de 100 · foreach</td><td class="n">66 ns<small>61 ns a 70 ns</small><small class="b">0 B</small></td><td class="n">54 ns<small>50 ns a 58 ns</small><small class="b">0 B</small></td><td class="n">53 ns<small>49 ns a 69 ns</small><small class="b">0 B</small></td></tr>
+<tr><td>List de 100 · Where + Select + Sum</td><td class="n">363 ns<small>359 ns a 432 ns</small><small class="b">152 B</small></td><td class="n">392 ns<small>379 ns a 413 ns</small><small class="b">152 B</small></td><td class="n">347 ns<small>340 ns a 549 ns</small><small class="b">152 B</small></td></tr>
+<tr class="corte"><td>array de 10.000 · for</td><td class="n">6,9 µs<small>6,8 µs a 8,3 µs</small><small class="b">0 B</small></td><td class="n">7,1 µs<small>6,8 µs a 8,7 µs</small><small class="b">0 B</small></td><td class="n">6,8 µs<small>6,6 µs a 7,6 µs</small><small class="b">0 B</small></td></tr>
+<tr><td>array de 10.000 · Where + Select + Sum</td><td class="n">16 µs<small>15 µs a 22 µs</small><small class="b">104 B</small></td><td class="n">11 µs<small>11 µs a 12 µs</small><small class="b">104 B</small></td><td class="n">11 µs<small>10 µs a 14 µs</small><small class="b">104 B</small></td></tr>
+<tr><td>List de 10.000 · for</td><td class="n">9,3 µs<small>9,1 µs a 10,0 µs</small><small class="b">0 B</small></td><td class="n">6,9 µs<small>6,8 µs a 8,9 µs</small><small class="b">0 B</small></td><td class="n">7,5 µs<small>6,7 µs a 8,5 µs</small><small class="b">0 B</small></td></tr>
+<tr><td>List de 10.000 · foreach</td><td class="n">9,7 µs<small>9,1 µs a 16 µs</small><small class="b">0 B</small></td><td class="n">6,4 µs<small>6,2 µs a 7,7 µs</small><small class="b">0 B</small></td><td class="n"><abbr title="las dos corridas difieren más de un 25 %">≈</abbr> 7,4 µs<small>6,3 µs a 9,9 µs</small><small class="b">0 B</small></td></tr>
+<tr><td>List de 10.000 · Where + Select + Sum</td><td class="n">31 µs<small>30 µs a 54 µs</small><small class="b">152 B</small></td><td class="n">42 µs<small>39 µs a 71 µs</small><small class="b">152 B</small></td><td class="n">38 µs<small>36 µs a 41 µs</small><small class="b">152 B</small></td></tr>
+</tbody></table></div>
+<!-- /tabla -->
+<p>El <code>for</code> gana siempre, entre 1,5 y 8 veces según el tamaño, la colección y la versión. La cadena de LINQ asigna una cantidad <b>fija</b> y chica (los iteradores: 104 bytes sobre array, 152 sobre <code>List</code>), no crece con los elementos. Lo que crece es el tiempo por elemento. Y no todo mejora al actualizar: sobre una <code>List</code> de 10.000, esta cadena midió más lenta en .NET 9 y 10 que en .NET 8.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul><li>En una pantalla o un endpoint con cientos de elementos, la diferencia son décimas de microsegundo: escribí lo que se lea mejor.</li><li>En un bucle caliente, medilo y, si pesa, escribí el <code>for</code>.</li></ul></div>
+
+<h2 id="any"><small>Capítulo 2</small>Any() contra Count() &gt; 0</h2>
+<!-- codigo:any -->
+<pre><code>// Una secuencia perezosa: no sabe cuántos elementos tiene hasta que se la recorre.
+static IEnumerable&lt;int&gt; Pares() =&gt; OrdenLista.Where(x =&gt; x % 2 == 0);
+static bool AnyPerezosa() =&gt; Pares().Any();
+static bool CountPerezosa() =&gt; Pares().Count() &gt; 0;
+static bool AnyPred() =&gt; Orden.Any(x =&gt; x == 10);
+static bool CountPred() =&gt; Orden.Count(x =&gt; x == 10) &gt; 0;
+static bool AnyLista() =&gt; OrdenLista.Any();
+static bool CountMetodoLista() =&gt; OrdenLista.Count() &gt; 0;
+static bool CountPropiedad() =&gt; OrdenLista.Count &gt; 0;</code></pre>
+<!-- /codigo -->
+<!-- tabla:any -->
+<div class="tabla"><table data-capitulo="any"><thead><tr><th>Variante</th><th class="n">.NET 8</th><th class="n">.NET 9</th><th class="n">.NET 10</th></tr></thead><tbody>
+<tr><td>secuencia perezosa · Any()</td><td class="n">36 ns<small>35 ns a 39 ns</small><small class="b">72 B</small></td><td class="n">24 ns<small>23 ns a 30 ns</small><small class="b">72 B</small></td><td class="n">24 ns<small>23 ns a 38 ns</small><small class="b">72 B</small></td></tr>
+<tr><td>secuencia perezosa · Count() &gt; 0</td><td class="n">14 µs<small>14 µs a 15 µs</small><small class="b">72 B</small></td><td class="n">19 µs<small>19 µs a 22 µs</small><small class="b">72 B</small></td><td class="n">19 µs<small>17 µs a 22 µs</small><small class="b">72 B</small></td></tr>
+<tr><td>array · Any(condición)</td><td class="n">30 ns<small>29 ns a 36 ns</small><small class="b">32 B</small></td><td class="n">8,8 ns<small>8,5 ns a 9,1 ns</small><small class="b">0 B</small></td><td class="n">8,6 ns<small>7,5 ns a 12 ns</small><small class="b">0 B</small></td></tr>
+<tr><td>array · Count(condición) &gt; 0</td><td class="n">12 µs<small>11 µs a 12 µs</small><small class="b">32 B</small></td><td class="n">2,4 µs<small>2,3 µs a 3,4 µs</small><small class="b">0 B</small></td><td class="n"><abbr title="las dos corridas difieren más de un 25 %">≈</abbr> 2,7 µs<small>2,3 µs a 4,6 µs</small><small class="b">0 B</small></td></tr>
+<tr><td>List · Any()</td><td class="n">8,1 ns<small>7,9 ns a 11 ns</small><small class="b">0 B</small></td><td class="n"><abbr title="las dos corridas difieren más de un 25 %">≈</abbr> 10 ns<small>7,6 ns a 14 ns</small><small class="b">0 B</small></td><td class="n">4,0 ns<small>3,8 ns a 5,4 ns</small><small class="b">0 B</small></td></tr>
+<tr><td>List · Count() &gt; 0</td><td class="n">7,2 ns<small>7,1 ns a 9,4 ns</small><small class="b">0 B</small></td><td class="n">8,2 ns<small>8,0 ns a 10,0 ns</small><small class="b">0 B</small></td><td class="n">4,0 ns<small>3,9 ns a 4,2 ns</small><small class="b">0 B</small></td></tr>
+<tr><td>List · Count &gt; 0 (propiedad)</td><td class="n">3,9 ns<small>3,8 ns a 4,1 ns</small><small class="b">0 B</small></td><td class="n">3,7 ns<small>3,7 ns a 4,4 ns</small><small class="b">0 B</small></td><td class="n">3,8 ns<small>3,7 ns a 4,8 ns</small><small class="b">0 B</small></td></tr>
+</tbody></table></div>
+<!-- /tabla -->
+<p>Sobre una secuencia perezosa, <code>Any()</code> frena en el primer elemento y <code>Count() &gt; 0</code> la recorre entera: <b>cientos de veces</b> de diferencia con 10.000 elementos. Con condición pasa lo mismo (el elemento buscado está al principio). Sobre una <code>List</code> directa las tres formas cuestan nanosegundos, porque la cantidad ya se sabe.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul><li>Para preguntar si hay alguno, <code>Any</code>. Nunca está mal.</li><li>Si el tipo es <code>List</code> o array, <code>Count</code> / <code>Length</code> como propiedad es igual de bueno.</li></ul></div>
+
+<h2 id="tolist"><small>Capítulo 3</small>El ToList() de más</h2>
+<!-- codigo:tolist -->
+<pre><code>static long ToListEnCadaPaso() =&gt; A10k.Where(x =&gt; x % 2 == 0).ToList().Select(x =&gt; x * 3).ToList().Where(x =&gt; x &gt; 100).ToList().Sum();
+static long UnaSolaCadena() =&gt; A10k.Where(x =&gt; x % 2 == 0).Select(x =&gt; x * 3).Where(x =&gt; x &gt; 100).Sum();
+static long ForeachConToList() { long s = 0; foreach (var x in A10k.Where(x =&gt; x &gt; 500).ToList()) s += x; return s; }
+static long ForeachDirecto() { long s = 0; foreach (var x in A10k.Where(x =&gt; x &gt; 500)) s += x; return s; }
+static long ContarConToList() =&gt; A10k.Where(x =&gt; x &gt; 500).ToList().Count;
+static long ContarDirecto() =&gt; A10k.Count(x =&gt; x &gt; 500);</code></pre>
+<!-- /codigo -->
+<!-- tabla:tolist -->
+<div class="tabla"><table data-capitulo="tolist"><thead><tr><th>Variante</th><th class="n">.NET 8</th><th class="n">.NET 9</th><th class="n">.NET 10</th></tr></thead><tbody>
+<tr><td>una sola cadena y Sum()</td><td class="n">77 µs<small>71 µs a 90 µs</small><small class="b">160 B</small></td><td class="n">70 µs<small>65 µs a 75 µs</small><small class="b">160 B</small></td><td class="n"><abbr title="las dos corridas difieren más de un 25 %">≈</abbr> 45 µs<small>29 µs a 78 µs</small><small class="b">160 B</small></td></tr>
+<tr><td>ToList() en cada paso</td><td class="n">35 µs<small>33 µs a 38 µs</small><small class="b">148 KB</small></td><td class="n">40 µs<small>34 µs a 54 µs</small><small class="b">59 KB</small></td><td class="n"><abbr title="las dos corridas difieren más de un 25 %">≈</abbr> 28 µs<small>17 µs a 41 µs</small><small class="b">59 KB</small></td></tr>
+<tr class="corte"><td>foreach sobre el Where</td><td class="n">11 µs<small>10 µs a 11 µs</small><small class="b">48 B</small></td><td class="n">9,6 µs<small>9,3 µs a 17 µs</small><small class="b">48 B</small></td><td class="n">9,5 µs<small>9,1 µs a 11 µs</small><small class="b">48 B</small></td></tr>
+<tr><td>foreach sobre Where().ToList()</td><td class="n">46 µs<small>42 µs a 67 µs</small><small class="b">64 KB</small></td><td class="n"><abbr title="las dos corridas difieren más de un 25 %">≈</abbr> 35 µs<small>27 µs a 61 µs</small><small class="b">19 KB</small></td><td class="n">32 µs<small>31 µs a 39 µs</small><small class="b">19 KB</small></td></tr>
+<tr class="corte"><td>Count(condición)</td><td class="n">29 µs<small>27 µs a 37 µs</small><small class="b">32 B</small></td><td class="n">34 µs<small>32 µs a 40 µs</small><small class="b">0 B</small></td><td class="n">24 µs<small>23 µs a 30 µs</small><small class="b">0 B</small></td></tr>
+<tr><td>Where().ToList().Count</td><td class="n">43 µs<small>39 µs a 46 µs</small><small class="b">64 KB</small></td><td class="n"><abbr title="las dos corridas difieren más de un 25 %">≈</abbr> 30 µs<small>25 µs a 39 µs</small><small class="b">19 KB</small></td><td class="n">30 µs<small>26 µs a 31 µs</small><small class="b">19 KB</small></td></tr>
+</tbody></table></div>
+<!-- /tabla -->
+<p>Acá la regla de memoria se complica. En <b>memoria</b> es clara: materializar cuesta de 20 a 150 KB por ejecución donde la cadena directa asigna menos de 200 bytes. En <b>tiempo</b>, para <code>foreach</code> el <code>ToList()</code> fue bastante más lento. Pero en la cadena con <code>Sum()</code> pasó al revés: con <code>ToList()</code> en cada paso las medianas fueron más bajas en .NET 8 y 9, y en .NET 10 las dos corridas no coincidieron. Una explicación posible (no verificada): recorrer y sumar una lista ya armada tiene caminos más rápidos que atravesar tres iteradores.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul><li>Un <code>ToList()</code> que se recorre una sola vez es basura para el GC: sacalo.</li><li>Contra una base de datos es otra discusión (trae filas de más); acá todo es en memoria.</li></ul></div>
+
+<h2 id="first"><small>Capítulo 4</small>First contra Find</h2>
+<p>Se busca el elemento del medio entre 10.000.</p>
+<!-- codigo:first -->
+<pre><code>static long ListaFirst() =&gt; OrdenLista.First(x =&gt; x == 5000);
+static long ListaFind() =&gt; OrdenLista.Find(x =&gt; x == 5000);
+static long ListaForeach() { foreach (var x in OrdenLista) if (x == 5000) return x; return -1; }
+static long ArrayFirst() =&gt; Orden.First(x =&gt; x == 5000);
+static long ArrayArrayFind() =&gt; Array.Find(Orden, x =&gt; x == 5000);
+static long ArrayFor() { for (int i = 0; i &lt; Orden.Length; i++) if (Orden[i] == 5000) return Orden[i]; return -1; }</code></pre>
+<!-- /codigo -->
+<!-- tabla:first -->
+<div class="tabla"><table data-capitulo="first"><thead><tr><th>Variante</th><th class="n">.NET 8</th><th class="n">.NET 9</th><th class="n">.NET 10</th></tr></thead><tbody>
+<tr><td>List · foreach</td><td class="n">2,5 µs<small>2,3 µs a 3,5 µs</small><small class="b">0 B</small></td><td class="n">2,3 µs<small>2,2 µs a 2,4 µs</small><small class="b">0 B</small></td><td class="n">2,3 µs<small>2,2 µs a 2,7 µs</small><small class="b">0 B</small></td></tr>
+<tr><td>List · Find</td><td class="n">3,5 µs<small>3,4 µs a 3,7 µs</small><small class="b">0 B</small></td><td class="n">3,2 µs<small>2,9 µs a 3,9 µs</small><small class="b">0 B</small></td><td class="n">2,3 µs<small>2,3 µs a 5,3 µs</small><small class="b">0 B</small></td></tr>
+<tr><td>List · First</td><td class="n">6,2 µs<small>6,1 µs a 7,4 µs</small><small class="b">40 B</small></td><td class="n">1,2 µs<small>1,1 µs a 1,5 µs</small><small class="b">0 B</small></td><td class="n">1,2 µs<small>1,1 µs a 1,3 µs</small><small class="b">0 B</small></td></tr>
+<tr><td>array · for</td><td class="n">2,3 µs<small>2,3 µs a 3,1 µs</small><small class="b">0 B</small></td><td class="n"><abbr title="las dos corridas difieren más de un 25 %">≈</abbr> 1,7 µs<small>1,1 µs a 3,1 µs</small><small class="b">0 B</small></td><td class="n">1,2 µs<small>1,1 µs a 1,3 µs</small><small class="b">0 B</small></td></tr>
+<tr><td>array · Array.Find</td><td class="n">3,5 µs<small>3,4 µs a 5,1 µs</small><small class="b">0 B</small></td><td class="n"><abbr title="las dos corridas difieren más de un 25 %">≈</abbr> 2,0 µs<small>1,7 µs a 3,1 µs</small><small class="b">0 B</small></td><td class="n">1,2 µs<small>1,1 µs a 1,6 µs</small><small class="b">0 B</small></td></tr>
+<tr><td>array · First</td><td class="n">25 µs<small>24 µs a 28 µs</small><small class="b">32 B</small></td><td class="n">9,7 µs<small>9,1 µs a 12 µs</small><small class="b">0 B</small></td><td class="n">10 µs<small>10 µs a 14 µs</small><small class="b">0 B</small></td></tr>
+</tbody></table></div>
+<!-- /tabla -->
+<p>La respuesta depende de la versión. En .NET 8, <code>First</code> sobre un array fue unas 10 veces más lento que el <code>for</code> y <code>List.Find</code> le ganaba a <code>First</code>. En .NET 9 y 10, <code>First</code> sobre <code>List</code> pasó a estar entre lo más rápido; sobre array mejoró mucho pero siguió varias veces atrás del <code>for</code> y de <code>Array.Find</code>.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul><li>Cambiar <code>First</code> por <code>Find</code> «por rendimiento» era razonable en .NET 8; en 9 y 10, sobre una lista, ya no.</li><li>Todas son búsquedas lineales. Si se repite, la mejora está en el capítulo 8.</li></ul></div>
+
+<h2 id="minby"><small>Capítulo 5</small>OrderBy().First() contra MinBy</h2>
+<!-- codigo:minby -->
+<pre><code>static long OrderByFirst() =&gt; Prods.OrderBy(p =&gt; p.Precio).First().Id;
+static long ConMinBy() =&gt; Prods.MinBy(p =&gt; p.Precio)!.Id;
+static long MinimoAMano()
+{
+    var m = Prods[0];
+    for (int i = 1; i &lt; Prods.Length; i++) if (Prods[i].Precio &lt; m.Precio) m = Prods[i];
+    return m.Id;
+}
+static long Top10Take() =&gt; Prods.OrderByDescending(p =&gt; p.Precio).Take(10).ToList().Sum(p =&gt; p.Id);
+static long Top10ToListAntes() =&gt; Prods.OrderByDescending(p =&gt; p.Precio).ToList().Take(10).Sum(p =&gt; p.Id);</code></pre>
+<!-- /codigo -->
+<!-- tabla:minby -->
+<div class="tabla"><table data-capitulo="minby"><thead><tr><th>Variante</th><th class="n">.NET 8</th><th class="n">.NET 9</th><th class="n">.NET 10</th></tr></thead><tbody>
+<tr><td>mínimo · for</td><td class="n">4,7 µs<small>4,6 µs a 5,3 µs</small><small class="b">0 B</small></td><td class="n">4,2 µs<small>4,1 µs a 4,3 µs</small><small class="b">0 B</small></td><td class="n">4,0 µs<small>3,7 µs a 5,9 µs</small><small class="b">0 B</small></td></tr>
+<tr><td>mínimo · MinBy</td><td class="n">24 µs<small>23 µs a 25 µs</small><small class="b">32 B</small></td><td class="n">19 µs<small>19 µs a 21 µs</small><small class="b">32 B</small></td><td class="n">9,0 µs<small>8,5 µs a 12 µs</small><small class="b">0 B</small></td></tr>
+<tr><td>mínimo · OrderBy().First()</td><td class="n">34 µs<small>33 µs a 46 µs</small><small class="b">128 B</small></td><td class="n">29 µs<small>27 µs a 36 µs</small><small class="b">120 B</small></td><td class="n">9,8 µs<small>9,4 µs a 10 µs</small><small class="b">120 B</small></td></tr>
+<tr class="corte"><td>10 más caros · OrderByDescending().Take(10)</td><td class="n">48 µs<small>45 µs a 51 µs</small><small class="b">157 KB</small></td><td class="n">40 µs<small>36 µs a 43 µs</small><small class="b">157 KB</small></td><td class="n"><abbr title="las dos corridas difieren más de un 25 %">≈</abbr> 36 µs<small>29 µs a 48 µs</small><small class="b">157 KB</small></td></tr>
+<tr><td>10 más caros · OrderByDescending().ToList().Take(10)</td><td class="n">635 µs<small>610 µs a 787 µs</small><small class="b">235 KB</small></td><td class="n">593 µs<small>577 µs a 629 µs</small><small class="b">235 KB</small></td><td class="n">596 µs<small>579 µs a 738 µs</small><small class="b">235 KB</small></td></tr>
+</tbody></table></div>
+<!-- /tabla -->
+<p>En .NET 8 y 9, <code>OrderBy().First()</code> fue algo más lento que <code>MinBy</code>, aunque no ordena todo (asigna unos 120 bytes). En .NET 10 quedaron prácticamente iguales. El <code>for</code> a mano ganó en las tres versiones. En cambio, escribir <code>ToList()</code> antes del <code>Take(10)</code> obliga a ordenar los 10.000: más de 10 veces más lento.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul><li><code>MinBy</code> / <code>MaxBy</code> dicen lo que querés y no son peores.</li><li>El <code>Take</code> va pegado al <code>OrderBy</code>, antes de cualquier <code>ToList()</code>.</li><li>Atención al caso vacío: no se comportan igual que <code>First</code> con todos los tipos.</li></ul></div>
+
+<h2 id="multiple"><small>Capítulo 6</small>Enumerar varias veces</h2>
+<!-- codigo:multiple -->
+<pre><code>// "Caro" hace algo de trabajo por elemento: simula una proyección con cálculo.
+static int Caro(Prod p) { int h = p.Precio; for (int i = 0; i &lt; 20; i++) h = unchecked(h * 31 + i); return h &amp; 1023; }
+static IEnumerable&lt;int&gt; Puntajes() =&gt; Prods.Select(Caro);
+
+static long TresRecorridas() { var q = Puntajes(); return q.Count() + (long)q.Sum() + q.Max(); }
+static long Materializada() { var q = Puntajes().ToList(); return q.Count + (long)q.Sum() + q.Max(); }
+static long UnForeach()
+{
+    int n = 0, s = 0, max = int.MinValue;
+    foreach (var x in Puntajes()) { n++; s += x; if (x &gt; max) max = x; }
+    return n + (long)s + max;
+}</code></pre>
+<!-- /codigo -->
+<!-- tabla:multiple -->
+<div class="tabla"><table data-capitulo="multiple"><thead><tr><th>Variante</th><th class="n">.NET 8</th><th class="n">.NET 9</th><th class="n">.NET 10</th></tr></thead><tbody>
+<tr><td>Count() + Sum() + Max() sobre la secuencia</td><td class="n">303 µs<small>295 µs a 312 µs</small><small class="b">96 B</small></td><td class="n">304 µs<small>297 µs a 352 µs</small><small class="b">96 B</small></td><td class="n">286 µs<small>278 µs a 364 µs</small><small class="b">96 B</small></td></tr>
+<tr><td>ToList() una vez y después las tres</td><td class="n">88 µs<small>87 µs a 91 µs</small><small class="b">39 KB</small></td><td class="n">85 µs<small>83 µs a 126 µs</small><small class="b">39 KB</small></td><td class="n">85 µs<small>82 µs a 98 µs</small><small class="b">39 KB</small></td></tr>
+<tr><td>un solo foreach</td><td class="n">90 µs<small>87 µs a 133 µs</small><small class="b">48 B</small></td><td class="n">90 µs<small>86 µs a 95 µs</small><small class="b">48 B</small></td><td class="n">87 µs<small>84 µs a 91 µs</small><small class="b">48 B</small></td></tr>
+</tbody></table></div>
+<!-- /tabla -->
+<p>Un <code>IEnumerable</code> armado con <code>Select</code> no guarda nada: cada <code>Count()</code>, <code>Sum()</code> o <code>Max()</code> vuelve a ejecutar la proyección. Contado aparte: con 10.000 elementos se ejecutó <b>30.000 veces</b> en las tres recorridas y 10.000 materializando una vez. En tiempo, más de 3 veces. Materializar costó 40 KB.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul><li>Si vas a consumir una secuencia dos veces, materializala (o juntá todo en un recorrido).</li><li>Si detrás hay una consulta a la base o un archivo, cada recorrida lo repite.</li></ul></div>
+
+<h2 id="iteradores"><small>Capítulo 7</small>Qué cambió con la versión</h2>
+<p>Desde .NET Core, LINQ reconoce combinaciones de operadores y toma atajos. .NET 9 y 10 sumaron más. Acá cada fila se compara consigo misma entre columnas.</p>
+<!-- codigo:iteradores -->
+<pre><code>static long SelectElementAt() =&gt; Orden.Select(x =&gt; x * 2).ElementAt(5000);
+static long WhereSelectToArray() =&gt; A10k.Where(x =&gt; x % 2 == 0).Select(x =&gt; x * 3).ToArray().Length;
+static long RangeSelectToList() =&gt; Enumerable.Range(0, 10_000).Select(x =&gt; x * 2).ToList()[9999];
+static long DistinctFirst() =&gt; A10k.Distinct().First();
+static long OrderByPrimero() =&gt; A10k.OrderBy(x =&gt; x).First();
+static long OrderByContains() =&gt; A10k.OrderBy(x =&gt; x).Contains(A10k[5000]) ? 1 : 0;
+static long ReverseFirst() =&gt; Orden.Reverse&lt;int&gt;().First();   // sin &lt;int&gt;, en C# 14 se elige Span.Reverse
+static long AppendCadena()
+{
+    IEnumerable&lt;int&gt; q = A100;
+    for (int i = 0; i &lt; 100; i++) q = q.Append(i);
+    return q.ToArray().Length;
+}
+static long SelectManyCount() =&gt; Prods.SelectMany(p =&gt; A100).Take(100_000).Count();
+static long SkipTakeToArray() =&gt; Orden.Where(x =&gt; x &gt;= 0).Skip(100).Take(100).ToArray()[0];</code></pre>
+<!-- /codigo -->
+<!-- tabla:iteradores -->
+<div class="tabla"><table data-capitulo="iteradores"><thead><tr><th>Variante</th><th class="n">.NET 8</th><th class="n">.NET 9</th><th class="n">.NET 10</th></tr></thead><tbody>
+<tr><td>Select().ElementAt(5000)</td><td class="n">28 ns<small>26 ns a 35 ns</small><small class="b">48 B</small></td><td class="n">24 ns<small>24 ns a 25 ns</small><small class="b">48 B</small></td><td class="n">20 ns<small>19 ns a 25 ns</small><small class="b">48 B</small></td></tr>
+<tr><td>Where().Select().ToArray()</td><td class="n">14 µs<small>13 µs a 18 µs</small><small class="b">52 KB</small></td><td class="n">11 µs<small>9,4 µs a 18 µs</small><small class="b">20 KB</small></td><td class="n"><abbr title="las dos corridas difieren más de un 25 %">≈</abbr> 9,9 µs<small>8,3 µs a 15 µs</small><small class="b">20 KB</small></td></tr>
+<tr><td>Range().Select().ToList()</td><td class="n">4,7 µs<small>4,5 µs a 5,1 µs</small><small class="b">39 KB</small></td><td class="n">3,7 µs<small>3,3 µs a 5,5 µs</small><small class="b">39 KB</small></td><td class="n">3,6 µs<small>3,4 µs a 4,2 µs</small><small class="b">39 KB</small></td></tr>
+<tr><td>Distinct().First()</td><td class="n">51 ns<small>49 ns a 54 ns</small><small class="b">328 B</small></td><td class="n">15 ns<small>15 ns a 20 ns</small><small class="b">64 B</small></td><td class="n">13 ns<small>12 ns a 15 ns</small><small class="b">64 B</small></td></tr>
+<tr><td>OrderBy().First()</td><td class="n">23 µs<small>23 µs a 25 µs</small><small class="b">128 B</small></td><td class="n"><abbr title="las dos corridas difieren más de un 25 %">≈</abbr> 18 µs<small>14 µs a 28 µs</small><small class="b">120 B</small></td><td class="n">9,4 µs<small>9,0 µs a 10 µs</small><small class="b">88 B</small></td></tr>
+<tr><td>OrderBy().Contains()</td><td class="n">756 µs<small>747 µs a 869 µs</small><small class="b">117 KB</small></td><td class="n">832 µs<small>811 µs a 979 µs</small><small class="b">117 KB</small></td><td class="n">47 ns<small>41 ns a 59 ns</small><small class="b">88 B</small></td></tr>
+<tr><td>Reverse().First()</td><td class="n">2,1 µs<small>1,9 µs a 2,3 µs</small><small class="b">39 KB</small></td><td class="n">13 ns<small>13 ns a 16 ns</small><small class="b">48 B</small></td><td class="n">11 ns<small>10 ns a 13 ns</small><small class="b">48 B</small></td></tr>
+<tr><td>100 Append() y ToArray()</td><td class="n">1,7 µs<small>1,6 µs a 1,9 µs</small><small class="b">12 KB</small></td><td class="n">1,7 µs<small>1,6 µs a 2,2 µs</small><small class="b">12 KB</small></td><td class="n">1,5 µs<small>1,5 µs a 1,9 µs</small><small class="b">12 KB</small></td></tr>
+<tr><td>SelectMany().Take(100.000).Count()</td><td class="n">298 µs<small>295 µs a 306 µs</small><small class="b">31 KB</small></td><td class="n">255 µs<small>250 µs a 292 µs</small><small class="b">31 KB</small></td><td class="n">295 µs<small>290 µs a 341 µs</small><small class="b">31 KB</small></td></tr>
+<tr><td>Where().Skip(100).Take(100).ToArray()</td><td class="n">939 ns<small>916 ns a 989 ns</small><small class="b">1,2 KB</small></td><td class="n">656 ns<small>645 ns a 691 ns</small><small class="b">584 B</small></td><td class="n">813 ns<small>785 ns a 1,2 µs</small><small class="b">584 B</small></td></tr>
+</tbody></table></div>
+<!-- /tabla -->
+<p>Los saltos grandes que se midieron: <code>OrderBy().Contains()</code> en .NET 10 deja de ordenar (de cientos de microsegundos y 120 KB a decenas de nanosegundos); <code>Reverse().First()</code> desde .NET 9 ya no copia el array (de unos 2 µs y 40 KB a unos 12 ns); <code>Distinct().First()</code> desde .NET 9 es varias veces más barato; <code>Where().Select().ToArray()</code> asigna menos de la mitad. Otros casos, como <code>SelectMany</code> o la cadena de <code>Append</code>, quedaron casi igual.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul><li>Actualizar de runtime mejora código que nadie tocó, pero no todo, y alguna fila puede empeorar.</li><li>Una regla de rendimiento sobre LINQ tiene que decir para qué versión vale.</li></ul></div>
+
+<h2 id="contains"><small>Capítulo 8</small>Buscar adentro de un bucle</h2>
+<!-- codigo:contains -->
+<pre><code>static long ContainsEnLista() =&gt; Pedidos.Count(id =&gt; Habilitados.Contains(id));
+static long ContainsEnHashSet() { var set = Habilitados.ToHashSet(); return Pedidos.Count(id =&gt; set.Contains(id)); }
+
+static long BuscarConFirst()
+{
+    long s = 0;
+    foreach (var id in Pedidos) s += Prods.First(p =&gt; p.Id == id).Precio;
+    return s;
+}
+static long BuscarConDiccionario()
+{
+    var porId = Prods.ToDictionary(p =&gt; p.Id);
+    long s = 0;
+    foreach (var id in Pedidos) s += porId[id].Precio;
+    return s;
+}</code></pre>
+<!-- /codigo -->
+<!-- tabla:contains -->
+<div class="tabla"><table data-capitulo="contains"><thead><tr><th>Variante</th><th class="n">.NET 8</th><th class="n">.NET 9</th><th class="n">.NET 10</th></tr></thead><tbody>
+<tr><td>1.000 pedidos contra 1.000 ids · List.Contains</td><td class="n">38 µs<small>35 µs a 40 µs</small><small class="b">32 B</small></td><td class="n">36 µs<small>34 µs a 41 µs</small><small class="b">0 B</small></td><td class="n">37 µs<small>35 µs a 41 µs</small><small class="b">0 B</small></td></tr>
+<tr><td>1.000 pedidos contra 1.000 ids · ToHashSet() y Contains</td><td class="n">13 µs<small>13 µs a 13 µs</small><small class="b">18 KB</small></td><td class="n">14 µs<small>13 µs a 16 µs</small><small class="b">17 KB</small></td><td class="n">10 µs<small>9,4 µs a 11 µs</small><small class="b">17 KB</small></td></tr>
+<tr class="corte"><td>1.000 búsquedas en 10.000 productos · First por cada una</td><td class="n">2,6 ms<small>2,5 ms a 3,4 ms</small><small class="b">117 KB</small></td><td class="n">471 µs<small>461 µs a 559 µs</small><small class="b">86 KB</small></td><td class="n">465 µs<small>453 µs a 561 µs</small><small class="b">86 KB</small></td></tr>
+<tr><td>1.000 búsquedas en 10.000 productos · ToDictionary una vez</td><td class="n">158 µs<small>152 µs a 204 µs</small><small class="b">276 KB</small></td><td class="n">145 µs<small>140 µs a 151 µs</small><small class="b">276 KB</small></td><td class="n">130 µs<small>124 µs a 157 µs</small><small class="b">276 KB</small></td></tr>
+</tbody></table></div>
+<!-- /tabla -->
+<p>Con 1.000 contra 1.000, armar un <code>HashSet</code> en cada ejecución ya conviene (unas 3 veces). Con 1.000 búsquedas por clave en 10.000 productos, un diccionario fue más de 10 veces más rápido en .NET 8 y unas 3 veces en .NET 9 y 10, a cambio de más memoria. La distancia crece con el producto de los dos tamaños.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul><li>Un <code>First</code> o un <code>List.Contains</code> adentro de un <code>foreach</code> es un bucle doble escondido.</li><li>Armá el <code>ToDictionary</code> o <code>ToHashSet</code> una vez, afuera.</li></ul></div>
+
+<h2 id="detalles"><small>Capítulo 9</small>Detalles que se discuten</h2>
+<!-- codigo:detalles -->
+<pre><code>    static long LambdaSinCaptura() =&gt; A100.Count(static x =&gt; x &gt; 500);
+    static long LambdaConCaptura() { int umbral = _umbral; return A100.Count(x =&gt; x &gt; umbral); }
+    static long WhereCount() =&gt; A10k.Where(x =&gt; x &gt; 500).Count();
+    static long CountConPredicado() =&gt; A10k.Count(x =&gt; x &gt; 500);
+
+    static long GroupByContar() =&gt; Prods.GroupBy(p =&gt; p.Categoria).ToDictionary(g =&gt; g.Key, g =&gt; g.Count())[7];
+#if NET9_0_OR_GREATER
+    static long CountByContar() =&gt; Prods.CountBy(p =&gt; p.Categoria).ToDictionary()[7];
+#endif</code></pre>
+<!-- /codigo -->
+<!-- tabla:detalles -->
+<div class="tabla"><table data-capitulo="detalles"><thead><tr><th>Variante</th><th class="n">.NET 8</th><th class="n">.NET 9</th><th class="n">.NET 10</th></tr></thead><tbody>
+<tr><td>lambda sin captura (array de 100)</td><td class="n">244 ns<small>238 ns a 250 ns</small><small class="b">32 B</small></td><td class="n">235 ns<small>224 ns a 297 ns</small><small class="b">0 B</small></td><td class="n">217 ns<small>200 ns a 312 ns</small><small class="b">0 B</small></td></tr>
+<tr><td>lambda que captura una variable local</td><td class="n">266 ns<small>260 ns a 281 ns</small><small class="b">120 B</small></td><td class="n">245 ns<small>238 ns a 311 ns</small><small class="b">88 B</small></td><td class="n">177 ns<small>157 ns a 190 ns</small><small class="b">24 B</small></td></tr>
+<tr class="corte"><td>Count(condición)</td><td class="n">28 µs<small>27 µs a 37 µs</small><small class="b">32 B</small></td><td class="n">35 µs<small>33 µs a 38 µs</small><small class="b">0 B</small></td><td class="n">29 µs<small>22 µs a 36 µs</small><small class="b">0 B</small></td></tr>
+<tr><td>Where(condición).Count()</td><td class="n"><abbr title="las dos corridas difieren más de un 25 %">≈</abbr> 10 µs<small>8,1 µs a 12 µs</small><small class="b">48 B</small></td><td class="n">9,2 µs<small>9,0 µs a 9,6 µs</small><small class="b">48 B</small></td><td class="n">18 µs<small>16 µs a 20 µs</small><small class="b">48 B</small></td></tr>
+<tr class="corte"><td>GroupBy().ToDictionary(g =&gt; g.Count())</td><td class="n">102 µs<small>99 µs a 148 µs</small><small class="b">168 KB</small></td><td class="n">93 µs<small>89 µs a 112 µs</small><small class="b">168 KB</small></td><td class="n">90 µs<small>88 µs a 115 µs</small><small class="b">168 KB</small></td></tr>
+<tr><td>CountBy().ToDictionary() (.NET 9+)</td><td class="n">no existe</td><td class="n">58 µs<small>56 µs a 71 µs</small><small class="b">3,2 KB</small></td><td class="n">56 µs<small>55 µs a 58 µs</small><small class="b">3,2 KB</small></td></tr>
+</tbody></table></div>
+<!-- /tabla -->
+<p>Capturar una variable local agrega una asignación. <code>Count(condición)</code> contra <code>Where(condición).Count()</code> dio al revés de lo esperado: la segunda salió más rápida en las tres versiones con estos datos (valores al azar y una condición que se cumple la mitad de las veces), aunque con corridas que se mueven bastante; no alcanza para recomendar cambiar código. <code>CountBy</code> (desde .NET 9) bajó el tiempo cerca de un 40 % y la memoria de unos 170 KB a 3 KB contra <code>GroupBy</code>, porque no guarda los elementos de cada grupo.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul><li>Para contar o sumar por clave en .NET 9 o más, <code>CountBy</code> / <code>AggregateBy</code> (este último no se midió).</li><li>No reescribas <code>Count(condición)</code> por micro-rendimiento.</li></ul></div>
+
+<h2 id="chuleta"><small>Para el code review</small>Si ves esto, hacé esto</h2>
+<div class="tabla"><table class="chuleta"><thead><tr><th>Si ves</th><th>Hacé</th></tr></thead><tbody>
+<tr><td><code>q.Count() &gt; 0</code> sobre un <code>IEnumerable</code></td><td><code>q.Any()</code></td></tr>
+<tr><td><code>First</code> o <code>Contains</code> de lista dentro de un bucle</td><td><code>ToDictionary</code> / <code>ToHashSet</code> afuera del bucle</td></tr>
+<tr><td>El mismo <code>IEnumerable</code> consumido dos veces o más</td><td><code>ToList()</code> una vez, o un solo recorrido</td></tr>
+<tr><td><code>.ToList()</code> antes de <code>Take</code>, <code>Count</code> o un <code>foreach</code></td><td>Sacalo</td></tr>
+<tr><td><code>OrderBy(...).First()</code></td><td><code>MinBy</code> (con cuidado en el caso vacío)</td></tr>
+<tr><td><code>GroupBy(...).ToDictionary(g =&gt; g.Key, g =&gt; g.Count())</code> en .NET 9+</td><td><code>CountBy(...)</code></td></tr>
+<tr><td>LINQ en un camino caliente con muchos elementos</td><td>Medí y, si pesa, <code>for</code></td></tr>
+<tr><td><code>First</code> contra <code>Find</code>, <code>Count(x)</code> contra <code>Where(x).Count()</code></td><td>No lo discutas sin medir en tu versión</td></tr>
+</tbody></table></div>
+
+<h2 id="reproducir"><small>Apéndice</small>Correrlo en tu máquina</h2>
+<p>SDK de .NET 10, sin paquetes. Desde la carpeta <code>benchmarks/</code>:</p>
+<pre><code>dotnet build -c Release
+dotnet bin/Release/net8.0/Benchmarks.dll verificar
+dotnet bin/Release/net8.0/Benchmarks.dll medir linq.json
+dotnet bin/Release/net10.0/Benchmarks.dll medir linq10.json first</code></pre>
+<p>Qué <b>no</b> se probó: BenchmarkDotNet, Linux, ARM, GC de servidor, otros tamaños y distribuciones de datos, PLINQ, y LINQ contra una base de datos (eso está en <a href="../efcore-con-cronometro/">EF Core con el cronómetro en la mano</a>).</p>
+</main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+<script src="pagina.js"></script>
+</body>
+</html>

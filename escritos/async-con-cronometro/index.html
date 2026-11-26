@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Cuánto cuesta de verdad un await en .NET: Task contra ValueTask, ConfigureAwait, sync-over-async bajo carga, async void, Task.Run, IAsyncEnumerable y asignaciones, medido en .NET 8 y .NET 10.">
+<title>Async con el cronómetro en la mano</title>
+<style>
+
+  :root {
+    --bg: #fbfaf7; --fg: #23201c; --suave: #6b655c; --linea: #e4e0d8; --panel: #f1eee7;
+    --acento: #1b6f7a; --bien: #2e7d32; --mal: #a4373a; --ojo: #b26a00;
+    --codigo-bg: #1e2430; --codigo-fg: #e6e9ef; --ancho: 76ch; --toc: 280px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #15171c; --fg: #e8e6e1; --suave: #a19c93; --linea: #2c3038; --panel: #1d2026;
+      --acento: #6fd0dc; --bien: #7bd389; --mal: #ff8a8d; --ojo: #ffbf5e; --codigo-bg: #0f1218; --codigo-fg: #e6e9ef; }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.6 Georgia, "Times New Roman", "Noto Serif", serif; }
+  a { color: var(--acento); }
+  code, pre, kbd { font-family: ui-monospace, "Cascadia Code", Consolas, "SF Mono", Menlo, monospace; }
+  code { font-size: .88em; background: var(--panel); padding: .1em .35em; border-radius: 5px; overflow-wrap: anywhere; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  h1, h2, h3, h4 { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.2; letter-spacing: -.01em; }
+  h1 { font-size: clamp(1.9rem, 5vw, 2.8rem); margin: .2em 0 .3em; }
+  h2 { font-size: 1.65rem; margin: 2.2em 0 .6em; padding-top: .6em; border-top: 1px solid var(--linea); }
+  h2 small { display: block; color: var(--suave); font-size: .55em; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .3em; }
+  h3 { font-size: 1.2rem; margin: 1.8em 0 .4em; }
+  p, ul, ol { margin: 0 0 1em; }
+  li { margin-bottom: .3em; }
+  .bajada { font-size: 1.15rem; color: var(--suave); font-family: system-ui, sans-serif; }
+  .meta { color: var(--suave); font-size: .9rem; font-family: system-ui, sans-serif; }
+  .marco { display: grid; grid-template-columns: 1fr; gap: 0 40px; max-width: 1200px; margin: 0 auto; padding: 24px 16px 80px; }
+  main { min-width: 0; max-width: 980px; }
+  main p, main ul, main ol, main h1, main h2, main h3, .ojo, .llevo, .bajada { max-width: var(--ancho); }
+  nav.toc { font-family: system-ui, sans-serif; font-size: .92rem; }
+  nav.toc ol { list-style: none; padding: 0; margin: 0; }
+  nav.toc li { margin: 0; }
+  nav.toc a { display: block; padding: 5px 10px; color: var(--suave); text-decoration: none; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--fg); }
+  nav.toc a.activo { color: var(--acento); border-left-color: var(--acento); }
+  nav.toc .num { display: inline-block; width: 2.2ch; color: var(--suave); opacity: .7; }
+  details.toc-movil { border: 1px solid var(--linea); border-radius: 12px; padding: 10px 14px; margin: 0 0 24px; background: var(--panel); }
+  details.toc-movil summary { cursor: pointer; font-weight: 700; font-family: system-ui, sans-serif; }
+  .toc-lateral { display: none; }
+  @media (min-width: 960px) {
+    .marco { grid-template-columns: var(--toc) minmax(0, 1fr); }
+    .toc-lateral { display: block; position: sticky; top: 16px; align-self: start; max-height: calc(100vh - 32px); overflow: auto; padding-right: 6px; }
+    details.toc-movil { display: none; }
+  }
+  pre { position: relative; margin: 0 0 1em; padding: 14px 16px; border-radius: 12px; background: var(--codigo-bg); color: var(--codigo-fg); font-size: .84rem; line-height: 1.5; overflow: auto; tab-size: 4; max-width: 100%; }
+  pre.sql { border-left: 4px solid var(--acento); }
+  pre.sql::before { content: "lo que mandó EF"; display: block; font: 600 .68rem system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--acento); margin-bottom: 6px; }
+  pre .copiar { position: absolute; top: 6px; right: 6px; font: 600 .72rem system-ui, sans-serif; background: rgba(255,255,255,.12); color: var(--codigo-fg); border: 0; border-radius: 6px; padding: 4px 8px; cursor: pointer; }
+  pre .copiar:hover { background: rgba(255,255,255,.22); }
+  .tabla { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 0 1.2em; border: 1px solid var(--linea); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; font: .86rem/1.4 system-ui, sans-serif; min-width: 620px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--linea); vertical-align: top; }
+  th { background: var(--panel); color: var(--suave); font-weight: 600; font-size: .78rem; letter-spacing: .03em; text-transform: uppercase; position: sticky; top: 0; }
+  tr:last-child td { border-bottom: 0; }
+  td:first-child { min-width: 190px; max-width: 360px; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td code { font-size: .8em; white-space: normal; }
+  td.bien { color: var(--bien); font-weight: 600; } td.mal { color: var(--mal); font-weight: 600; } td.medio { color: var(--ojo); font-weight: 600; }
+  .barra { display: inline-block; height: .7em; background: var(--acento); border-radius: 3px; vertical-align: middle; margin-right: 6px; opacity: .8; }
+  .base { font: 600 .68rem system-ui, sans-serif; color: var(--suave); border: 1px solid var(--linea); border-radius: 999px; padding: 1px 6px; margin-left: 4px; vertical-align: middle; }
+  .ojo { border-left: 4px solid var(--ojo); background: var(--panel); padding: 10px 14px; border-radius: 0 10px 10px 0; margin: 0 0 1.2em; font-size: .97em; }
+  .ojo b:first-child { font-family: system-ui, sans-serif; }
+  .llevo { border: 1px solid var(--linea); border-radius: 12px; padding: 12px 16px; margin: 1.2em 0; background: var(--panel); }
+  .llevo h4 { margin: 0 0 .4em; font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; color: var(--suave); }
+  .llevo ul { margin: 0; padding-left: 20px; }
+  .llevo li { margin-bottom: .25em; }
+  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 999px; font: .9rem system-ui, sans-serif; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .toast.visible { opacity: 1; }
+  td small { display: block; color: var(--suave); font-size: .78em; }
+  table.chuleta { min-width: 0; } table.chuleta td:first-child { min-width: 0; width: 45%; }
+  .grafico { border: 1px solid var(--linea); border-radius: 12px; padding: 14px; margin: 0 0 1.2em; background: var(--panel); font-family: system-ui, sans-serif; }
+  .controles { display: flex; flex-wrap: wrap; gap: 12px 20px; font-size: .9rem; }
+  .controles label { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; max-width: 100%; }
+  .controles select, .controles input { font: inherit; max-width: 100%; min-height: 36px; }
+  figure { margin: 10px 0 0; } figcaption { font-size: .85rem; color: var(--suave); }
+  figure svg { display: block; width: 100%; max-width: 720px; height: auto; }
+  svg text { fill: var(--suave); font: 10px system-ui, sans-serif; }
+  svg .eje { stroke: var(--linea); } svg .linea { fill: none; stroke: var(--acento); stroke-width: 2; } svg .entra { stroke: var(--ojo); stroke-width: 1.5; stroke-dasharray: 5 4; } svg circle { fill: var(--acento); }
+  .resumen { font-size: .95rem; margin: .8em 0 0; }
+</style>
+</head>
+<body>
+<div class="marco">
+<nav class="toc toc-lateral" aria-label="Índice"><ol id="toc-lateral"></ol></nav>
+<main>
+<p class="meta"><a href="../../">← Volver a la vitrina</a></p>
+<h1>Async con el cronómetro en la mano</h1>
+<p class="bajada">Ocho preguntas sobre <code>async</code>/<code>await</code> en .NET, cada una con el código de las variantes, lo que tardaron, lo que asignaron y la regla que queda. Para discutir un code review con números en vez de con reglas de memoria.</p>
+<p class="meta">.NET 8.0.34 y .NET 10.0.13 · Windows 11 x64, 16 procesadores lógicos, GC de estación · arnés propio con <code>Stopwatch</code> (no es BenchmarkDotNet) · todos los números salen de <a href="resultados.json">resultados.json</a> y de las <a href="resultados-crudos/micro-net8-corrida1.json">corridas crudas</a> del proyecto <a href="benchmarks/Casos.cs">benchmarks/</a>.</p>
+
+<details class="toc-movil"><summary>Índice</summary><nav class="toc"><ol id="toc-movil"></ol></nav></details>
+
+<h2 id="intro"><small>Antes de empezar</small>Cómo se midió y cuánto creerle</h2>
+<p>No había BenchmarkDotNet disponible, así que el arnés es propio: calibra cuántas operaciones entran en una muestra de unos 30 ms, calienta en tres tandas con pausas para que el JIT por niveles termine, y toma <b>12 muestras</b>. Las mediciones de tiempo y memoria se corrieron <b>dos veces</b> en cada runtime (el thread pool del capítulo 4, una). En las tablas, el número grande es la mediana (el promedio de las dos medianas) y abajo va el rango entre la muestra más rápida y la más lenta. Los bytes salen de <code>GC.GetAllocatedBytesForCurrentThread</code> cuando todo pasa en un hilo, y de <code>GC.GetTotalAllocatedBytes</code> cuando la operación salta entre hilos (ahí puede colarse algún byte de otro lado).</p>
+<div class="ojo"><b>Ojo:</b> es una máquina de escritorio con otros procesos andando, sin aislar núcleos ni fijar la frecuencia. Los números sirven para comparar <b>órdenes de magnitud</b> y variantes entre sí. Una diferencia del 10 % o menos entre dos filas, acá, es empate.</div>
+<p>Unidades: 1 µs son 1.000 ns, 1 ms son 1.000.000 ns.</p>
+
+<h2 id="await"><small>Capítulo 1</small>¿Cuánto cuesta un await?</h2>
+<p>Depende de una sola cosa: si lo que se espera <b>ya terminó</b> o no. Si terminó, el método sigue de largo en el mismo hilo. Si no, hay que guardar el estado, devolver el hilo y retomar después.</p>
+<!-- codigo:await -->
+<pre><code>[MethodImpl(MethodImplOptions.NoInlining)]
+static int Sincrono() =&gt; _valor;
+
+static async Task&lt;int&gt; AsyncSinEsperar() { await Task.CompletedTask; return _valor; }
+static async Task&lt;int&gt; AsyncAwaitTareaLista() =&gt; await TareaGuardada;
+static async Task&lt;int&gt; AsyncConYield() { await Task.Yield(); return _valor; }
+static async Task&lt;int&gt; AsyncConDelay() { await Task.Delay(1); return _valor; }</code></pre>
+<!-- /codigo -->
+<!-- tabla:await -->
+<div class="tabla"><table data-capitulo="await"><thead><tr><th>Variante</th><th class="n">.NET 8</th><th class="n">Asigna</th><th class="n">.NET 10</th><th class="n">Asigna</th></tr></thead><tbody>
+<tr><td>Método sincrónico</td><td class="n">1,4 ns<small>1,3 ns a 1,5 ns</small></td><td class="n">0 B</td><td class="n">1,2 ns<small>1,1 ns a 1,2 ns</small></td><td class="n">0 B</td></tr>
+<tr><td>async + await Task.CompletedTask</td><td class="n">13 ns<small>12 ns a 15 ns</small></td><td class="n">72 B</td><td class="n">9,9 ns<small>9,6 ns a 11 ns</small></td><td class="n">72 B</td></tr>
+<tr><td>async + await de una Task ya terminada</td><td class="n">18 ns<small>13 ns a 23 ns</small></td><td class="n">72 B</td><td class="n">10 ns<small>9,8 ns a 12 ns</small></td><td class="n">72 B</td></tr>
+<tr><td>await Task.Yield() (suspende de verdad)</td><td class="n">436 ns<small>416 ns a 457 ns</small></td><td class="n">96 B</td><td class="n">395 ns<small>386 ns a 412 ns</small></td><td class="n">96 B</td></tr>
+<tr><td>await Task.Delay(1) (timer)</td><td class="n">16 ms<small>15 ms a 17 ms</small></td><td class="n">440 B</td><td class="n">15 ms<small>14 ms a 17 ms</small></td><td class="n">440 B</td></tr>
+</tbody></table></div>
+<!-- /tabla -->
+<p>Un <code>async</code> que completa sincrónicamente cuesta unos 10 a 20 ns y asigna 72 bytes (la <code>Task&lt;int&gt;</code> del resultado). Suspender de verdad con <code>Task.Yield()</code> sube a unos 400 ns y 96 bytes: unas 30 veces más, y aun así menos de medio microsegundo. La última fila es otra historia: <code>Task.Delay(1)</code> tardó <b>alrededor de 15 ms</b>, porque en esta máquina con Windows el timer no despertó antes de eso.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul><li>Frente a una consulta de 1 ms, el costo del <code>await</code> no se ve: es miles de veces menor.</li><li>En un bucle de millones de llamadas que casi siempre completan solas, sí suma.</li><li>No uses <code>Task.Delay(1)</code> creyendo que esperás 1 ms.</li></ul></div>
+
+<h2 id="valuetask"><small>Capítulo 2</small>¿ValueTask es más rápido?</h2>
+<p>El caso para el que existe: un método que casi siempre tiene el valor en caché. Se midió con 100 %, 90 % y 0 % de aciertos.</p>
+<!-- codigo:valuetask -->
+<pre><code>// Un método que casi siempre tiene el valor en caché.
+// "cada" = 1 de cada cuántas llamadas tiene que ir a buscarlo (0 = nunca).
+static bool EnCache(int cada) =&gt; cada == 0 || ++_contador % cada != 0;
+
+static async Task&lt;int&gt; LeerTask(int cada)
+{
+    if (EnCache(cada)) return _valor;
+    await Task.Yield(); return _valor;
+}
+
+static async ValueTask&lt;int&gt; LeerValueTask(int cada)
+{
+    if (EnCache(cada)) return _valor;
+    await Task.Yield(); return _valor;
+}
+
+// Sin "async" en el camino rápido: devuelve siempre la misma Task ya terminada.
+static Task&lt;int&gt; LeerTaskGuardada(int cada) =&gt; EnCache(cada) ? TareaGuardada : Buscar();
+static async Task&lt;int&gt; Buscar() { await Task.Yield(); return _valor; }
+
+[AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder&lt;&gt;))]
+static async ValueTask&lt;int&gt; LeerValueTaskConPool(int cada)
+{
+    if (EnCache(cada)) return _valor;
+    await Task.Yield(); return _valor;
+}</code></pre>
+<!-- /codigo -->
+<!-- tabla:valuetask -->
+<div class="tabla"><table data-capitulo="valuetask"><thead><tr><th>Variante</th><th class="n">.NET 8</th><th class="n">Asigna</th><th class="n">.NET 10</th><th class="n">Asigna</th></tr></thead><tbody>
+<tr><td>100 % en caché · async Task&lt;int&gt;</td><td class="n">16 ns<small>13 ns a 22 ns</small></td><td class="n">72 B</td><td class="n">11 ns<small>10 ns a 12 ns</small></td><td class="n">72 B</td></tr>
+<tr><td>100 % en caché · async ValueTask&lt;int&gt;</td><td class="n">9,2 ns<small>7,1 ns a 12 ns</small></td><td class="n">0 B</td><td class="n">5,4 ns<small>5,3 ns a 5,8 ns</small></td><td class="n">0 B</td></tr>
+<tr><td>100 % en caché · Task guardada y reusada</td><td class="n">1,8 ns<small>1,7 ns a 2,0 ns</small></td><td class="n">0 B</td><td class="n">1,6 ns<small>1,6 ns a 1,8 ns</small></td><td class="n">0 B</td></tr>
+<tr><td>100 % en caché · ValueTask con builder de pool</td><td class="n">7,9 ns<small>7,6 ns a 9,9 ns</small></td><td class="n">0 B</td><td class="n">5,9 ns<small>5,6 ns a 7,2 ns</small></td><td class="n">0 B</td></tr>
+<tr><td>90 % en caché · async Task&lt;int&gt;</td><td class="n">47 ns<small>44 ns a 50 ns</small></td><td class="n">74 B</td><td class="n">43 ns<small>42 ns a 45 ns</small></td><td class="n">74 B</td></tr>
+<tr><td>90 % en caché · async ValueTask&lt;int&gt;</td><td class="n">42 ns<small>40 ns a 45 ns</small></td><td class="n">10 B</td><td class="n">40 ns<small>39 ns a 42 ns</small></td><td class="n">10 B</td></tr>
+<tr><td>90 % en caché · Task guardada y reusada</td><td class="n">41 ns<small>38 ns a 45 ns</small></td><td class="n">10 B</td><td class="n">40 ns<small>38 ns a 41 ns</small></td><td class="n">10 B</td></tr>
+<tr><td>90 % en caché · ValueTask con builder de pool</td><td class="n">41 ns<small>40 ns a 43 ns</small></td><td class="n">0 B</td><td class="n">41 ns<small>39 ns a 42 ns</small></td><td class="n">0 B</td></tr>
+<tr><td>0 % en caché · async Task&lt;int&gt;</td><td class="n">408 ns<small>393 ns a 430 ns</small></td><td class="n">96 B</td><td class="n">414 ns<small>407 ns a 422 ns</small></td><td class="n">96 B</td></tr>
+<tr><td>0 % en caché · async ValueTask&lt;int&gt;</td><td class="n">424 ns<small>412 ns a 441 ns</small></td><td class="n">104 B</td><td class="n">445 ns<small>438 ns a 457 ns</small></td><td class="n">104 B</td></tr>
+<tr><td>0 % en caché · Task guardada y reusada</td><td class="n">420 ns<small>400 ns a 439 ns</small></td><td class="n">96 B</td><td class="n">423 ns<small>406 ns a 438 ns</small></td><td class="n">96 B</td></tr>
+<tr><td>0 % en caché · ValueTask con builder de pool</td><td class="n">431 ns<small>418 ns a 443 ns</small></td><td class="n">0 B</td><td class="n">481 ns<small>469 ns a 488 ns</small></td><td class="n">0 B</td></tr>
+</tbody></table></div>
+<!-- /tabla -->
+<p>Con todo en caché, <code>async ValueTask</code> evita los 72 bytes y fue más rápido que <code>async Task</code>. Pero la fila que gana es la menos glamorosa: <b>devolver una <code>Task</code> guardada, sin <code>async</code></b>, tarda menos de 2 ns y no asigna. Eso sirve cuando el valor cacheado es siempre el mismo objeto. Con 90 % de aciertos las cuatro variantes quedan cerca en tiempo (alrededor de 40 a 50 ns), porque el 10 % que espera domina; las asignaciones sí cambian. Con 0 %, <code>ValueTask</code> asigna <b>más</b> que <code>Task</code> (104 contra 96 bytes) y no es más rápido.</p>
+<p>El builder con pool (<code>PoolingAsyncValueTaskMethodBuilder</code>) dejó las asignaciones en cero en los tres casos, pero no mejoró el tiempo, y en .NET 10 con 0 % de aciertos salió más lento. Exige además respetar al pie las reglas de <code>ValueTask</code> (un solo <code>await</code>), porque el objeto se reusa.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul><li><code>ValueTask</code> ahorra una asignación en el camino sincrónico. Si el método casi siempre espera, no ahorra nada.</li><li>Antes de cambiar la firma, probá devolver una <code>Task</code> ya creada.</li><li>El pool es una herramienta para cuando un profiler ya señaló esas asignaciones.</li></ul></div>
+
+<h2 id="configureawait"><small>Capítulo 3</small>¿Cuánto pesa ConfigureAwait(false)?</h2>
+<p>Una «biblioteca» hace diez esperas reales. Se llama desde un lugar sin <code>SynchronizationContext</code> (como un controlador de ASP.NET Core) y desde un contexto de un solo hilo con cola propia, armado a mano para imitar el de una aplicación de escritorio. No es WinForms ni WPF: un message loop real cuesta distinto.</p>
+<!-- codigo:configureawait -->
+<pre><code>// "Biblioteca": diez esperas reales seguidas. El que la llama espera una sola vez.
+static async Task&lt;int&gt; DiezEsperas(bool seguirContexto)
+{
+    int t = 0;
+    for (int i = 0; i &lt; 10; i++)
+        t += await Task.Run(static () =&gt; 1).ConfigureAwait(seguirContexto);
+    return t;
+}</code></pre>
+<!-- /codigo -->
+<!-- tabla:configureawait -->
+<div class="tabla"><table data-capitulo="configureawait"><thead><tr><th>Variante</th><th class="n">.NET 8</th><th class="n">Asigna</th><th class="n">.NET 10</th><th class="n">Asigna</th></tr></thead><tbody>
+<tr><td>Sin contexto (como ASP.NET Core) · ConfigureAwait(true)</td><td class="n">3,8 µs<small>3,6 µs a 4,1 µs</small></td><td class="n">832 B</td><td class="n">3,8 µs<small>3,7 µs a 3,9 µs</small></td><td class="n">832 B</td></tr>
+<tr><td>Contexto de un hilo (como la UI) · ConfigureAwait(true)</td><td class="n">8,0 µs<small>7,3 µs a 8,6 µs</small></td><td class="n">1,4 KB</td><td class="n">7,6 µs<small>6,8 µs a 8,1 µs</small></td><td class="n">1,4 KB</td></tr>
+<tr><td>Sin contexto (como ASP.NET Core) · ConfigureAwait(false)</td><td class="n">3,7 µs<small>3,6 µs a 4,4 µs</small></td><td class="n">832 B</td><td class="n">3,8 µs<small>3,7 µs a 4,2 µs</small></td><td class="n">832 B</td></tr>
+<tr><td>Contexto de un hilo (como la UI) · ConfigureAwait(false)</td><td class="n">4,1 µs<small>4,0 µs a 4,4 µs</small></td><td class="n">880 B</td><td class="n">4,1 µs<small>3,9 µs a 5,8 µs</small></td><td class="n">880 B</td></tr>
+</tbody></table></div>
+<!-- /tabla -->
+<p>Sin contexto, <code>true</code> y <code>false</code> dan lo mismo en tiempo y en bytes: no hay nada que capturar. Con contexto, <code>true</code> manda cada continuación de vuelta al hilo de la UI (<b>10 <code>Post</code> por llamada contra 1</b>, el del que llama) y tarda cerca del doble. Son unos 400 ns por espera: poco en tiempo, pero cada uno ocupa el hilo que dibuja la pantalla.</p>
+<p>Lo importante es otra cosa. Si alguien bloquea ese hilo con <code>.Wait()</code> o <code>.Result</code>:</p>
+<!-- codigo:deadlock -->
+<pre><code>static async Task&lt;int&gt; Pide(bool seguirContexto)
+{
+    await Task.Delay(50).ConfigureAwait(seguirContexto);
+    return 1;
+}
+
+// En el hilo del contexto, bloquea con .Wait() esperando un método async. ¿Termina?
+static bool TerminaBloqueando(bool seguirContexto)
+{
+    var ui = new ContextoDeUnHilo();        // un hilo descartable: puede quedar trabado para siempre
+    var fin = new ManualResetEventSlim();
+    ui.Post(_ =&gt; { Pide(seguirContexto).Wait(); fin.Set(); }, null);
+    return fin.Wait(2000);
+}</code></pre>
+<!-- /codigo -->
+<p>Con <code>ConfigureAwait(true)</code> el programa <b>no terminó</b> (se esperó 2 segundos): la continuación quiere volver a un hilo que está esperando justamente esa continuación. Con <code>false</code> terminó. Pasó igual en .NET 8 y .NET 10.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul><li>En código de aplicación de ASP.NET Core, agregar <code>ConfigureAwait(false)</code> no cambió nada medible.</li><li>En una biblioteca que puede usarse desde una UI, sí corresponde.</li><li><code>false</code> esquiva este deadlock, pero el problema de fondo es bloquear: hay que esperar con <code>await</code>.</li></ul></div>
+
+<h2 id="hambre"><small>Capítulo 4</small>La API que se traba: sync-over-async</h2>
+<p>Entran pedidos al thread pool a un ritmo fijo durante 10 segundos (llegan igual aunque el servidor esté atrasado). Cada uno espera 100 ms de «base de datos». Además, cada 250 ms entra un «health check» que no hace nada: lo que tarda en contestar es lo que espera cualquier pedido en la cola. No hay HTTP ni Kestrel: es el thread pool solo, un proceso nuevo por escenario, una corrida de cada uno.</p>
+<!-- codigo:hambre -->
+<pre><code>// Espera sin ocupar un hilo.
+static async Task PedidoAsync() =&gt; await Task.Delay(EsperaMs);
+
+// Sync-over-async: una operación async a la que alguien le pone .Result.
+static async Task&lt;int&gt; Consulta() { await Task.Delay(EsperaMs); return 1; }
+static int PedidoResult() =&gt; Consulta().Result;
+
+// Bloqueo "a secas", sin Task de por medio.
+static void PedidoSleep() =&gt; Thread.Sleep(EsperaMs);</code></pre>
+<!-- /codigo -->
+
+<div class="grafico" id="grafico">
+<div class="controles">
+<label>Runtime <select id="g-rt"><option value="net8">.NET 8</option><option value="net10">.NET 10</option></select></label>
+<label>Variante <select id="g-modo"><option value="async">await</option><option value="result" selected>.Result</option><option value="result200">.Result + 200 hilos mínimos</option><option value="sleep">Thread.Sleep</option></select></label>
+<label>Pedidos por segundo que llegan: <output id="g-ritmo-v">400</output> <input id="g-ritmo" type="range" min="0" max="3" step="1" value="2" aria-label="Pedidos por segundo que llegan"></label>
+</div>
+<p class="resumen" id="g-resumen" aria-live="polite"></p>
+<figure><figcaption>Pedidos que salen por segundo (la línea punteada es lo que entra)</figcaption><svg id="g-salida" viewBox="0 0 320 150" role="img" aria-label="Pedidos terminados por segundo a lo largo del tiempo"></svg></figure>
+<figure><figcaption>Hilos del thread pool</figcaption><svg id="g-hilos" viewBox="0 0 320 150" role="img" aria-label="Cantidad de hilos del thread pool a lo largo del tiempo"></svg></figure>
+<noscript><p>El gráfico necesita JavaScript. Las tablas de abajo tienen los mismos escenarios.</p></noscript>
+</div>
+
+<!-- tabla:hambre-net8 -->
+<div class="tabla"><table data-capitulo="hambre-net8"><thead><tr><th>.NET 8 · variante</th><th class="n">Pedidos/s que llegan</th><th class="n">Salen por segundo</th><th class="n">Latencia p50</th><th class="n">Latencia p99</th><th class="n">Peor «health check»</th><th class="n">Hilos a los 10 s</th><th class="n">Sin contestar</th></tr></thead><tbody>
+<tr><td>await</td><td class="n">100</td><td class="n">99</td><td class="n">109 ms</td><td class="n">112 ms</td><td class="n">1,8 ms</td><td class="n">5</td><td class="n">0</td></tr>
+<tr><td>await</td><td class="n">200</td><td class="n">198</td><td class="n">109 ms</td><td class="n">112 ms</td><td class="n">1,8 ms</td><td class="n">6</td><td class="n">0</td></tr>
+<tr><td>await</td><td class="n">400</td><td class="n">396</td><td class="n">109 ms</td><td class="n">112 ms</td><td class="n">1,8 ms</td><td class="n">9</td><td class="n">0</td></tr>
+<tr><td>await</td><td class="n">800</td><td class="n">791</td><td class="n">110 ms</td><td class="n">113 ms</td><td class="n">1,7 ms</td><td class="n">14</td><td class="n">0</td></tr>
+<tr><td>.Result</td><td class="n">100</td><td class="n">99</td><td class="n">109 ms</td><td class="n">113 ms</td><td class="n">1,7 ms</td><td class="n">16</td><td class="n">0</td></tr>
+<tr><td>.Result</td><td class="n">200</td><td class="n">198</td><td class="n">109 ms</td><td class="n">112 ms</td><td class="n">1,7 ms</td><td class="n">30</td><td class="n">0</td></tr>
+<tr><td>.Result</td><td class="n">400</td><td class="n">140</td><td class="n">13 s</td><td class="n">46 s</td><td class="n">39 s</td><td class="n">132</td><td class="n">0</td></tr>
+<tr><td>.Result</td><td class="n">800</td><td class="n">123</td><td class="n">17 s</td><td class="n">50 s</td><td class="n">50 s</td><td class="n">132</td><td class="n">4.276</td></tr>
+<tr><td>.Result + 200 hilos mínimos</td><td class="n">100</td><td class="n">99</td><td class="n">109 ms</td><td class="n">112 ms</td><td class="n">1,8 ms</td><td class="n">16</td><td class="n">0</td></tr>
+<tr><td>.Result + 200 hilos mínimos</td><td class="n">200</td><td class="n">198</td><td class="n">109 ms</td><td class="n">112 ms</td><td class="n">1,8 ms</td><td class="n">30</td><td class="n">0</td></tr>
+<tr><td>.Result + 200 hilos mínimos</td><td class="n">400</td><td class="n">396</td><td class="n">109 ms</td><td class="n">112 ms</td><td class="n">1,8 ms</td><td class="n">54</td><td class="n">0</td></tr>
+<tr><td>.Result + 200 hilos mínimos</td><td class="n">800</td><td class="n">792</td><td class="n">109 ms</td><td class="n">112 ms</td><td class="n">1,6 ms</td><td class="n">102</td><td class="n">0</td></tr>
+<tr><td>Thread.Sleep</td><td class="n">100</td><td class="n">99</td><td class="n">109 ms</td><td class="n">111 ms</td><td class="n">1,7 ms</td><td class="n">14</td><td class="n">0</td></tr>
+<tr><td>Thread.Sleep</td><td class="n">200</td><td class="n">160</td><td class="n">1,7 s</td><td class="n">2,1 s</td><td class="n">2,0 s</td><td class="n">22</td><td class="n">0</td></tr>
+<tr><td>Thread.Sleep</td><td class="n">400</td><td class="n">154</td><td class="n">7,9 s</td><td class="n">13 s</td><td class="n">13 s</td><td class="n">19</td><td class="n">0</td></tr>
+<tr><td>Thread.Sleep</td><td class="n">800</td><td class="n">154</td><td class="n">18 s</td><td class="n">28 s</td><td class="n">27 s</td><td class="n">19</td><td class="n">0</td></tr>
+</tbody></table></div>
+<!-- /tabla -->
+<!-- tabla:hambre-net10 -->
+<div class="tabla"><table data-capitulo="hambre-net10"><thead><tr><th>.NET 10 · variante</th><th class="n">Pedidos/s que llegan</th><th class="n">Salen por segundo</th><th class="n">Latencia p50</th><th class="n">Latencia p99</th><th class="n">Peor «health check»</th><th class="n">Hilos a los 10 s</th><th class="n">Sin contestar</th></tr></thead><tbody>
+<tr><td>await</td><td class="n">100</td><td class="n">99</td><td class="n">109 ms</td><td class="n">112 ms</td><td class="n">2,4 ms</td><td class="n">5</td><td class="n">0</td></tr>
+<tr><td>await</td><td class="n">200</td><td class="n">198</td><td class="n">109 ms</td><td class="n">112 ms</td><td class="n">2,5 ms</td><td class="n">6</td><td class="n">0</td></tr>
+<tr><td>await</td><td class="n">400</td><td class="n">396</td><td class="n">109 ms</td><td class="n">112 ms</td><td class="n">2,4 ms</td><td class="n">7</td><td class="n">0</td></tr>
+<tr><td>await</td><td class="n">800</td><td class="n">791</td><td class="n">109 ms</td><td class="n">112 ms</td><td class="n">2,5 ms</td><td class="n">12</td><td class="n">0</td></tr>
+<tr><td>.Result</td><td class="n">100</td><td class="n">99</td><td class="n">109 ms</td><td class="n">112 ms</td><td class="n">2,7 ms</td><td class="n">16</td><td class="n">0</td></tr>
+<tr><td>.Result</td><td class="n">200</td><td class="n">198</td><td class="n">109 ms</td><td class="n">112 ms</td><td class="n">2,3 ms</td><td class="n">29</td><td class="n">0</td></tr>
+<tr><td>.Result</td><td class="n">400</td><td class="n">146</td><td class="n">13 s</td><td class="n">44 s</td><td class="n">37 s</td><td class="n">132</td><td class="n">0</td></tr>
+<tr><td>.Result</td><td class="n">800</td><td class="n">122</td><td class="n">17 s</td><td class="n">49 s</td><td class="n">49 s</td><td class="n">132</td><td class="n">4.282</td></tr>
+<tr><td>.Result + 200 hilos mínimos</td><td class="n">100</td><td class="n">99</td><td class="n">109 ms</td><td class="n">111 ms</td><td class="n">2,6 ms</td><td class="n">16</td><td class="n">0</td></tr>
+<tr><td>.Result + 200 hilos mínimos</td><td class="n">200</td><td class="n">198</td><td class="n">109 ms</td><td class="n">111 ms</td><td class="n">2,8 ms</td><td class="n">30</td><td class="n">0</td></tr>
+<tr><td>.Result + 200 hilos mínimos</td><td class="n">400</td><td class="n">396</td><td class="n">109 ms</td><td class="n">112 ms</td><td class="n">2,3 ms</td><td class="n">54</td><td class="n">0</td></tr>
+<tr><td>.Result + 200 hilos mínimos</td><td class="n">800</td><td class="n">792</td><td class="n">110 ms</td><td class="n">112 ms</td><td class="n">2,3 ms</td><td class="n">103</td><td class="n">0</td></tr>
+<tr><td>Thread.Sleep</td><td class="n">100</td><td class="n">99</td><td class="n">109 ms</td><td class="n">111 ms</td><td class="n">2,5 ms</td><td class="n">14</td><td class="n">0</td></tr>
+<tr><td>Thread.Sleep</td><td class="n">200</td><td class="n">157</td><td class="n">1,7 s</td><td class="n">2,4 s</td><td class="n">2,3 s</td><td class="n">20</td><td class="n">0</td></tr>
+<tr><td>Thread.Sleep</td><td class="n">400</td><td class="n">154</td><td class="n">7,6 s</td><td class="n">12 s</td><td class="n">12 s</td><td class="n">20</td><td class="n">0</td></tr>
+<tr><td>Thread.Sleep</td><td class="n">800</td><td class="n">155</td><td class="n">17 s</td><td class="n">24 s</td><td class="n">24 s</td><td class="n">20</td><td class="n">0</td></tr>
+</tbody></table></div>
+<!-- /tabla -->
+<p>Con <code>await</code>, de 100 a 800 pedidos por segundo salen todos en unos 109 ms, con menos de 20 hilos. Con <code>.Result</code> anda igual de bien hasta 200 por segundo, y ahí está la trampa: <b>en las pruebas con poca carga no se nota</b>. A 400 se derrumba: salen alrededor de 140 por segundo, el p99 pasa los 40 segundos, el «health check» que no hace nada tarda decenas de segundos y el pool llega a 132 hilos a los 10 segundos. A 800, miles de pedidos seguían sin contestar 45 segundos después de cortar la carga.</p>
+<p>¿Por qué 132 hilos no alcanzan, si en teoría harían falta unos 40 para 400 pedidos de 100 ms? La explicación que cierra con lo medido (no se instrumentó el runtime para demostrarlo): cada espera que termina necesita un hilo libre para completar la <code>Task</code> que alguien está bloqueado esperando, y ese trabajo hace cola detrás de los pedidos nuevos, que a su vez se bloquean.</p>
+<p><code>Thread.Sleep</code> salió peor que <code>.Result</code> a 200 por segundo: se quedó en unos 20 hilos. El pool desde .NET 6 se entera cuando un hilo suyo se bloquea esperando una <code>Task</code> y agrega hilos más rápido; con <code>Sleep</code> esa ayuda no aparece. Subir el mínimo a 200 hilos salvó todos los escenarios medidos, pero es un parche: con esperas más largas o más carga el techo vuelve a aparecer, y acá no se midió.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul><li>API que «se traba cada tanto» con la CPU baja: buscá <code>.Result</code>, <code>.Wait()</code> y <code>GetAwaiter().GetResult()</code>.</li><li>Mirá el contador <code>threadpool-queue-length</code> y cuántos hilos tiene el pool (<code>dotnet-counters</code>).</li><li><code>ThreadPool.SetMinThreads</code> compra tiempo mientras se arregla el código. El arreglo es <code>await</code> de punta a punta.</li></ul></div>
+
+<h2 id="asyncvoid"><small>Capítulo 5</small>async void</h2>
+<!-- codigo:asyncvoid -->
+<pre><code>static int _acumulado;
+static async void NadaVoid() { await Task.CompletedTask; _acumulado++; }
+static async Task NadaTask() { await Task.CompletedTask; _acumulado++; }</code></pre>
+<!-- /codigo -->
+<!-- tabla:asyncvoid -->
+<div class="tabla"><table data-capitulo="asyncvoid"><thead><tr><th>Variante</th><th class="n">.NET 8</th><th class="n">Asigna</th><th class="n">.NET 10</th><th class="n">Asigna</th></tr></thead><tbody>
+<tr><td>async void</td><td class="n">6,8 ns<small>6,7 ns a 7,5 ns</small></td><td class="n">0 B</td><td class="n">5,3 ns<small>5,1 ns a 5,5 ns</small></td><td class="n">0 B</td></tr>
+<tr><td>async Task con await</td><td class="n">6,7 ns<small>6,5 ns a 7,5 ns</small></td><td class="n">0 B</td><td class="n">5,3 ns<small>5,1 ns a 6,9 ns</small></td><td class="n">0 B</td></tr>
+</tbody></table></div>
+<!-- /tabla -->
+<p>En tiempo y memoria, cuando completa sin esperar, son iguales. La diferencia no es de rendimiento. Se lanzó un proceso aparte para cada caso, con la excepción después de una espera y un <code>try/catch</code> alrededor de la llamada:</p>
+<!-- codigo:excepcion -->
+<pre><code>static async void ExplotaVoid() { await Task.Delay(50); throw new InvalidOperationException("boom"); }
+static async Task ExplotaTask() { await Task.Delay(50); throw new InvalidOperationException("boom"); }</code></pre>
+<!-- /codigo -->
+<div class="tabla"><table><thead><tr><th>Método</th><th>¿La atrapó el catch?</th><th>¿El proceso siguió vivo?</th></tr></thead><tbody>
+<tr><td><code>async void</code></td><td class="mal">No</td><td class="mal">No: excepción sin atrapar, el proceso se cayó</td></tr>
+<tr><td><code>async Task</code> sin <code>await</code></td><td class="mal">No</td><td>Sí, y nadie se enteró del error</td></tr>
+</tbody></table></div>
+<div class="llevo"><h4>Qué me llevo</h4><ul><li><code>async void</code> solo para manejadores de eventos, con <code>try/catch</code> adentro.</li><li>Una <code>Task</code> sin <code>await</code> no tira el proceso, pero se traga el error: tampoco sirve para «disparar y olvidar».</li></ul></div>
+
+<h2 id="taskrun"><small>Capítulo 6</small>Task.Run adentro de una API</h2>
+<!-- codigo:taskrun -->
+<pre><code>[MethodImpl(MethodImplOptions.NoInlining)]
+static int Trabajo(int vueltas)
+{
+    int h = _valor;
+    for (int i = 0; i &lt; vueltas; i++) h = unchecked(h * 31 + i);
+    return h;
+}
+static Task&lt;int&gt; Directo(int vueltas) =&gt; Task.FromResult(Trabajo(vueltas));
+static async Task&lt;int&gt; ConTaskRun(int vueltas) =&gt; await Task.Run(() =&gt; Trabajo(vueltas));</code></pre>
+<!-- /codigo -->
+<!-- tabla:taskrun -->
+<div class="tabla"><table data-capitulo="taskrun"><thead><tr><th>Variante</th><th class="n">.NET 8</th><th class="n">Asigna</th><th class="n">.NET 10</th><th class="n">Asigna</th></tr></thead><tbody>
+<tr><td>Trabajo chico · llamada directa</td><td class="n">9,9 ns<small>9,5 ns a 11 ns</small></td><td class="n">72 B</td><td class="n">9,8 ns<small>9,3 ns a 12 ns</small></td><td class="n">72 B</td></tr>
+<tr><td>Trabajo chico · await Task.Run</td><td class="n">464 ns<small>449 ns a 476 ns</small></td><td class="n">256 B</td><td class="n">461 ns<small>445 ns a 709 ns</small></td><td class="n">255 B</td></tr>
+<tr><td>Trabajo grande · llamada directa</td><td class="n">6,8 µs<small>6,7 µs a 7,0 µs</small></td><td class="n">72 B</td><td class="n">6,8 µs<small>6,7 µs a 7,0 µs</small></td><td class="n">72 B</td></tr>
+<tr><td>Trabajo grande · await Task.Run</td><td class="n">7,3 µs<small>7,1 µs a 7,5 µs</small></td><td class="n">256 B</td><td class="n">7,2 µs<small>7,0 µs a 7,5 µs</small></td><td class="n">256 B</td></tr>
+</tbody></table></div>
+<!-- /tabla -->
+<p><code>await Task.Run</code> agrega unos 450 ns y 180 bytes: el pasaje a otro hilo del <b>mismo pool</b> que ya estaba atendiendo el pedido. Con un trabajo chico eso lo hace unas 45 veces más caro; con uno de varios microsegundos queda en alrededor de un 7 %. En ninguno de los dos casos gana nada: el que llama espera igual.</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul><li>En un controlador, envolver trabajo en <code>Task.Run</code> para que «sea async» no libera capacidad: ocupa otro hilo.</li><li>Tiene sentido en una UI (sacar trabajo del hilo que dibuja) o para paralelizar a propósito, midiendo.</li></ul></div>
+
+<h2 id="streaming"><small>Capítulo 7</small>IAsyncEnumerable contra la lista entera</h2>
+<!-- codigo:streaming -->
+<pre><code>public sealed record Fila(int Id, int Monto);
+
+static async Task&lt;List&lt;Fila&gt;&gt; TraerLista(int total, int pagina)
+{
+    var lista = new List&lt;Fila&gt;();
+    for (int i = 0; i &lt; total; i++)
+    {
+        if (pagina &gt; 0 &amp;&amp; i % pagina == 0) await Task.Yield();   // "llegó otra página"
+        lista.Add(new Fila(i, i % 100));
+    }
+    return lista;
+}
+
+static async IAsyncEnumerable&lt;Fila&gt; Recorrer(int total, int pagina)
+{
+    for (int i = 0; i &lt; total; i++)
+    {
+        if (pagina &gt; 0 &amp;&amp; i % pagina == 0) await Task.Yield();
+        yield return new Fila(i, i % 100);
+    }
+}</code></pre>
+<!-- /codigo -->
+<!-- tabla:streaming -->
+<div class="tabla"><table data-capitulo="streaming"><thead><tr><th>Variante</th><th class="n">.NET 8</th><th class="n">Asigna</th><th class="n">.NET 10</th><th class="n">Asigna</th></tr></thead><tbody>
+<tr><td>10.000 filas sin esperas · List&lt;Fila&gt;</td><td class="n">301 µs<small>293 µs a 345 µs</small></td><td class="n">491 KB</td><td class="n">310 µs<small>279 µs a 340 µs</small></td><td class="n">491 KB</td></tr>
+<tr><td>10.000 filas sin esperas · IAsyncEnumerable&lt;Fila&gt;</td><td class="n">226 µs<small>213 µs a 260 µs</small></td><td class="n">234 KB</td><td class="n">145 µs<small>140 µs a 152 µs</small></td><td class="n">234 KB</td></tr>
+<tr><td>10.000 filas en páginas de 1.000 · List&lt;Fila&gt;</td><td class="n">344 µs<small>308 µs a 356 µs</small></td><td class="n">491 KB</td><td class="n">320 µs<small>302 µs a 358 µs</small></td><td class="n">491 KB</td></tr>
+<tr><td>10.000 filas en páginas de 1.000 · IAsyncEnumerable&lt;Fila&gt;</td><td class="n">342 µs<small>327 µs a 369 µs</small></td><td class="n">235 KB</td><td class="n">213 µs<small>193 µs a 232 µs</small></td><td class="n">235 KB</td></tr>
+</tbody></table></div>
+<!-- /tabla -->
+<p>Recorriendo 10.000 filas, el stream asignó la mitad (no hay lista que crezca y se copie). Sin esperas fue más rápido, con una ventaja mayor en .NET 10; en páginas de 1.000 siguió ganando en .NET 10 y empató en .NET 8. La otra diferencia se ve con 100.000 filas que llegan en 100 páginas, cada una después de un <code>Task.Delay(5)</code> (que acá tarda unos 15 ms), cinco repeticiones:</p>
+<!-- tabla:primero -->
+<div class="tabla"><table data-capitulo="primero"><thead><tr><th>100.000 filas</th><th class="n">.NET 8 · primer elemento</th><th class="n">.NET 8 · total</th><th class="n">.NET 8 · memoria viva</th><th class="n">.NET 10 · primer elemento</th><th class="n">.NET 10 · total</th><th class="n">.NET 10 · memoria viva</th></tr></thead><tbody>
+<tr><td>List&lt;Fila&gt;</td><td class="n">1,6 s</td><td class="n">1,6 s</td><td class="n">3,3 MB</td><td class="n">1,6 s</td><td class="n">1,6 s</td><td class="n">3,3 MB</td></tr>
+<tr><td>IAsyncEnumerable&lt;Fila&gt;</td><td class="n">11 ms</td><td class="n">1,6 s</td><td class="n">136 B</td><td class="n">11 ms</td><td class="n">1,6 s</td><td class="n">136 B</td></tr>
+</tbody></table></div>
+<!-- /tabla -->
+<p>El total es el mismo, porque lo marca la espera. El primer elemento llega más de 100 veces antes, y a punto de terminar quedaban vivos unos 3,3 MB con la lista contra unos pocos cientos de bytes con el stream (las filas ya consumidas se pueden recolectar).</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul><li>Para resultados grandes que se procesan de a uno, el stream baja la memoria y adelanta la primera respuesta.</li><li>Mientras dura, la fuente (conexión, reader) sigue abierta: un consumidor lento la retiene.</li><li>Si vas a recorrer dos veces o necesitás la cantidad, pedí la lista.</li></ul></div>
+
+<h2 id="asignaciones"><small>Capítulo 8</small>ValueTask mal usado y las asignaciones</h2>
+<!-- codigo:valuetaskmal -->
+<pre><code>static ValueTask&lt;int&gt; Listo() =&gt; new(_valor);
+static async ValueTask&lt;int&gt; ListoAsync() { await Task.CompletedTask; return _valor; }
+
+[MethodImpl(MethodImplOptions.NoInlining)]
+static int Consumir(object o) =&gt; o is ValueTask&lt;int&gt; v ? v.Result &amp; 1 : 0;</code></pre>
+<!-- /codigo -->
+<!-- tabla:valuetaskmal -->
+<div class="tabla"><table data-capitulo="valuetaskmal"><thead><tr><th>Variante</th><th class="n">.NET 8</th><th class="n">Asigna</th><th class="n">.NET 10</th><th class="n">Asigna</th></tr></thead><tbody>
+<tr><td>await de un ValueTask, como corresponde</td><td class="n">1,7 ns<small>1,7 ns a 1,8 ns</small></td><td class="n">0 B</td><td class="n">1,7 ns<small>1,6 ns a 1,9 ns</small></td><td class="n">0 B</td></tr>
+<tr><td>método async ValueTask que no espera</td><td class="n">7,3 ns<small>7,0 ns a 12 ns</small></td><td class="n">0 B</td><td class="n">5,8 ns<small>5,5 ns a 6,1 ns</small></td><td class="n">0 B</td></tr>
+<tr><td>.AsTask() antes del await</td><td class="n">6,7 ns<small>6,1 ns a 7,8 ns</small></td><td class="n">72 B</td><td class="n">6,5 ns<small>5,7 ns a 9,0 ns</small></td><td class="n">72 B</td></tr>
+<tr><td>ValueTask pasado como object (boxing)</td><td class="n">5,3 ns<small>4,8 ns a 6,8 ns</small></td><td class="n">32 B</td><td class="n">5,1 ns<small>4,7 ns a 5,6 ns</small></td><td class="n">32 B</td></tr>
+<tr><td>Task.WhenAll de dos ValueTask (.AsTask())</td><td class="n">80 ns<small>73 ns a 99 ns</small></td><td class="n">344 B</td><td class="n">47 ns<small>44 ns a 60 ns</small></td><td class="n">304 B</td></tr>
+<tr><td>dos ValueTask guardados y esperados en orden</td><td class="n">9,0 ns<small>8,9 ns a 9,1 ns</small></td><td class="n">0 B</td><td class="n">9,1 ns<small>9,0 ns a 10 ns</small></td><td class="n">0 B</td></tr>
+</tbody></table></div>
+<!-- /tabla -->
+<p>Un <code>ValueTask</code> que ya tiene el resultado no cuesta casi nada. Cada vez que se lo convierte en otra cosa, aparece la asignación que se quería evitar: <code>.AsTask()</code> crea la <code>Task</code> (72 bytes), pasarlo como <code>object</code> lo encajona (32 bytes) y juntarlos en un <code>WhenAll</code> suma varios cientos. Esperar dos guardados en orden no asigna.</p>
+<div class="ojo"><b>Ojo:</b> esperar <b>dos veces el mismo</b> <code>ValueTask</code>, o leer <code>.Result</code> antes de que termine, es uso inválido. Con un resultado inmediato puede parecer que anda; con uno respaldado por un objeto reusado (como el builder con pool) el comportamiento no está definido. No se midió porque no hay un resultado correcto que medir.</div>
+<p>La máquina de estados en sí se ve en los capítulos 1 y 2: sin suspender, un método <code>async ValueTask</code> no asigna; al suspender, el estado pasa al heap (los 96 a 104 bytes de las filas que esperan).</p>
+<div class="llevo"><h4>Qué me llevo</h4><ul><li>Un <code>ValueTask</code> se espera una vez, enseguida, y no se guarda.</li><li>Si el código lo termina pasando a <code>WhenAll</code> con <code>.AsTask()</code>, probablemente convenía devolver <code>Task</code>.</li></ul></div>
+
+<h2 id="chuleta"><small>Para el code review</small>Si ves esto, hacé esto</h2>
+<div class="tabla"><table class="chuleta"><thead><tr><th>Si ves</th><th>Hacé</th></tr></thead><tbody>
+<tr><td><code>.Result</code> / <code>.Wait()</code> en un request</td><td>Cambialo por <code>await</code>. Es lo más caro de todo este escrito.</td></tr>
+<tr><td><code>async void</code> fuera de un evento</td><td><code>async Task</code> y que alguien lo espere.</td></tr>
+<tr><td><code>Task.Run</code> envolviendo trabajo en un controlador</td><td>Llamalo directo.</td></tr>
+<tr><td><code>ValueTask</code> «porque es más rápido»</td><td>Pedí el porcentaje de caminos sincrónicos y la medición.</td></tr>
+<tr><td>Discusión sobre <code>ConfigureAwait(false)</code></td><td>Biblioteca: sí. Aplicación ASP.NET Core: no cambia el resultado.</td></tr>
+<tr><td><code>ToListAsync()</code> de miles de filas para recorrerlas una vez</td><td>Probá <code>IAsyncEnumerable</code>.</td></tr>
+</tbody></table></div>
+
+<h2 id="reproducir"><small>Apéndice</small>Correrlo en tu máquina</h2>
+<p>Hace falta el SDK de .NET 10 (compila para 8, 9 y 10; si tenés solo el 8, dejá <code>net8.0</code> en <code>TargetFrameworks</code>). No usa paquetes. Desde la carpeta <code>benchmarks/</code>:</p>
+<pre><code>dotnet build -c Release
+dotnet bin/Release/net8.0/Benchmarks.dll micro micro.json
+dotnet bin/Release/net8.0/Benchmarks.dll hambre hambre.json result 400 10</code></pre>
+<p>Qué <b>no</b> se probó: BenchmarkDotNet, Linux, un servidor con pocos núcleos (el capítulo 4 cambia mucho: con menos hilos mínimos el derrumbe llega antes), GC de servidor, ASP.NET Core con pedidos HTTP reales ni una UI real.</p>
+</main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+<!-- datos:grafico -->
+<script type="application/json" id="datos-grafico">{"net8":{"async":{"100":[[0.51,5,74,0],[1.02,5,104,0],[1.52,5,98,4],[2.01,5,99,3],[2.51,5,100,4],[3.01,5,100,3],[3.51,5,100,4],[4.01,5,100,3],[4.51,5,101,3],[5.01,5,100,3],[5.5,5,99,4],[6.01,5,102,3],[6.5,5,98,5],[7.01,5,102,4],[7.51,5,98,5],[8.01,5,100,4],[8.5,5,102,4],[9,5,98,4],[9.5,5,100,3],[10.01,5,100,3]],"200":[[0.51,6,150,0],[1.01,6,199,5],[1.51,6,201,4],[2.01,6,201,6],[2.51,6,199,6],[3.01,6,201,4],[3.51,6,200,7],[4.01,6,200,5],[4.51,6,200,7],[5.01,6,198,7],[5.51,6,202,6],[6.01,6,201,6],[6.51,6,200,7],[7.01,6,199,6],[7.51,6,199,6],[8.02,6,200,6],[8.51,6,201,5],[9.01,6,202,6],[9.51,6,198,6],[10.01,6,201,4]],"400":[[0.5,9,300,0],[1.01,9,399,11],[1.51,9,404,12],[2.01,9,397,9],[2.51,9,406,0],[3.01,9,395,7],[3.51,9,400,7],[4.01,9,400,9],[4.51,9,401,10],[5.01,9,400,9],[5.51,9,398,9],[6.01,9,402,8],[6.51,9,400,8],[7,9,401,9],[7.5,9,399,9],[8,9,400,11],[8.5,9,400,9],[9.01,9,397,10],[9.51,9,402,10],[10.01,9,401,7]],"800":[[0.5,14,596,0],[1,14,802,14],[1.51,14,799,16],[2,14,807,12],[2.51,14,795,16],[3.01,14,803,15],[3.51,14,797,16],[4,14,802,22],[4.5,14,799,16],[5.01,14,798,15],[5.51,14,804,23],[6.01,14,798,14],[6.5,14,794,15],[7,14,807,16],[7.51,14,797,15],[8,14,806,22],[8.5,14,798,14],[9,14,799,22],[9.5,14,800,16],[10,14,800,15]]},"result":{"100":[[0.5,15,73,0],[1,16,100,4],[1.5,16,100,3],[2,16,100,2],[2.51,16,99,4],[3,16,100,4],[3.51,16,104,0],[4,16,96,5],[4.5,16,100,4],[5,16,100,4],[5.5,16,100,4],[6.02,16,101,3],[6.5,16,99,3],[7.02,16,101,2],[7.52,16,100,3],[8.02,16,98,5],[8.51,16,100,4],[9.01,16,101,4],[9.51,16,100,2],[10,16,100,3]],"200":[[0.51,28,150,0],[1.01,28,200,3],[1.51,28,200,6],[2.01,28,200,7],[2.52,29,199,8],[3.01,29,203,3],[3.51,29,204,0],[4.01,29,194,6],[4.51,30,201,8],[5.01,30,200,7],[5.51,30,199,6],[6.01,30,200,6],[6.51,30,201,8],[7.01,30,199,3],[7.51,30,200,6],[8.01,30,199,8],[8.51,30,201,7],[9,30,201,8],[9.5,30,198,8],[10.01,30,201,4]],"400":[[0.51,46,174,91],[1,55,280,135],[1.5,63,251,218],[2.02,69,200,335],[2.51,76,209,433],[3.01,82,175,550],[3.51,86,168,664],[4.02,91,149,794],[4.5,95,124,930],[5.02,99,109,1081],[5.5,103,113,1222],[6,107,102,1380],[6.5,110,162,1478],[7.01,114,107,1644],[7.51,117,105,1789],[8.01,120,84,1950],[8.51,123,70,2121],[9.01,126,64,2302],[9.51,129,72,2465],[10.01,132,72,2615]],"800":[[0.5,47,160,295],[1.02,55,212,614],[1.51,63,177,924],[2.01,70,181,1215],[2.51,76,150,1558],[3.01,82,206,1854],[3.51,86,101,2211],[4,91,151,2530],[4.5,95,110,2879],[5,99,112,3221],[5.5,103,116,3567],[6,107,102,3919],[6.5,110,78,4278],[7.01,114,113,4632],[7.51,117,80,4994],[8.01,120,89,5347],[8.51,123,84,5722],[9.01,127,86,6074],[9.51,129,66,6449],[10.01,132,82,6789]]},"result200":{"100":[[0.51,16,75,0],[1.01,16,100,2],[1.51,16,102,0],[2.01,16,98,2],[2.51,16,100,3],[3,16,98,4],[3.5,16,100,5],[4.02,16,101,4],[4.52,16,100,4],[5,16,99,5],[5.51,16,100,5],[6.01,16,100,4],[6.51,16,101,2],[7.01,16,100,1],[7.51,16,100,5],[8.01,16,98,5],[8.51,16,102,2],[9,16,98,5],[9.5,16,100,5],[10,16,101,4]],"200":[[0.5,28,149,0],[1.01,28,201,6],[1.51,28,200,3],[2.01,28,200,4],[2.51,28,200,6],[3.01,28,199,5],[3.51,28,201,7],[4.01,28,200,4],[4.51,28,199,7],[5.01,28,201,7],[5.51,28,200,7],[6.01,28,200,7],[6.51,28,200,6],[7.01,28,198,7],[7.51,28,201,7],[8.01,28,200,6],[8.51,28,200,3],[9.01,28,200,7],[9.5,28,199,6],[10,29,199,7]],"400":[[0.51,50,300,0],[1.01,51,400,12],[1.51,52,402,13],[2.01,52,398,12],[2.51,53,401,12],[3.01,53,401,8],[3.5,53,399,12],[4,53,400,7],[4.51,53,400,7],[5.01,53,401,10],[5.5,53,401,14],[6.01,53,398,15],[6.51,53,400,14],[7.01,53,399,15],[7.51,53,399,14],[8.01,53,402,13],[8.51,53,402,13],[9,54,401,12],[9.5,54,397,9],[10,54,399,12]],"800":[[0.51,100,601,0],[1.01,101,801,23],[1.51,102,801,23],[2.01,102,800,26],[2.5,102,802,23],[3,102,799,25],[3.5,102,800,21],[4.01,102,798,24],[4.51,102,802,16],[5,102,798,27],[5.5,102,802,25],[6,102,800,14],[6.51,102,800,13],[7.01,102,801,24],[7.52,102,797,24],[8.01,102,800,26],[8.51,102,803,22],[9.01,102,798,23],[9.51,102,803,23],[10.01,102,801,19]]},"sleep":{"100":[[0.5,13,78,0],[1,14,100,1],[1.52,14,99,2],[2,14,101,0],[2.51,14,99,2],[3,14,101,1],[3.5,14,100,1],[4.01,14,99,1],[4.51,14,100,1],[5.01,14,100,1],[5.51,14,100,2],[6.01,14,100,1],[6.51,14,100,1],[7.01,14,100,1],[7.51,14,100,1],[8.01,14,98,0],[8.51,14,100,1],[9.01,14,100,1],[9.51,14,100,1],[10.01,14,100,0]],"200":[[0.51,16,119,24],[1.01,17,148,49],[1.51,17,160,72],[2.01,17,150,97],[2.51,17,150,124],[3.01,17,151,149],[3.51,17,142,178],[4.01,17,158,199],[4.51,17,155,222],[5.01,17,153,247],[5.51,17,150,272],[6.01,17,138,303],[6.51,18,159,323],[7.01,20,161,340],[7.51,20,190,345],[8.01,20,172,359],[8.51,20,174,374],[9.01,20,174,388],[9.51,21,185,393],[10.01,22,206,387]],"400":[[0.51,16,125,126],[1.01,17,141,253],[1.51,17,161,375],[2.01,17,168,493],[2.51,17,132,630],[3.01,17,159,752],[3.51,17,134,886],[4.01,17,163,1003],[4.51,17,156,1128],[5.01,17,150,1254],[5.51,17,162,1374],[6.01,17,128,1511],[6.51,19,161,1630],[7.01,19,162,1750],[7.51,19,180,1860],[8,19,163,1978],[8.5,19,150,2108],[9,19,160,2230],[9.5,19,140,2357],[10,19,189,2462]],"800":[[0.51,16,125,332],[1.01,17,155,655],[1.51,17,146,982],[2.01,17,171,1297],[2.51,17,132,1634],[3.01,17,160,1954],[3.51,17,128,2293],[4.01,17,166,2612],[4.51,17,159,2932],[5.01,17,149,3259],[5.5,17,164,3578],[6,17,128,3916],[6.5,17,160,4238],[7,19,168,4552],[7.5,19,168,4870],[8,19,188,5176],[8.5,19,136,5514],[9,19,161,5833],[9.51,19,141,6169],[10.01,19,174,6473]]}},"net10":{"async":{"100":[[0.5,4,74,0],[1,5,100,5],[1.51,5,101,3],[2,5,98,4],[2.5,5,100,5],[3,5,100,5],[3.5,5,100,2],[4,5,100,4],[4.5,5,100,5],[5,5,100,5],[5.52,5,101,4],[6.01,5,99,4],[6.51,5,99,5],[7.01,5,100,4],[7.51,5,100,3],[8.01,5,100,5],[8.51,5,100,3],[9.01,5,101,3],[9.51,5,100,3],[10,5,100,3]],"200":[[0.5,6,148,0],[1,6,200,6],[1.5,6,201,5],[2,6,200,6],[2.5,6,200,6],[3.01,6,201,6],[3.51,6,201,5],[4,6,198,7],[4.5,6,201,7],[5,6,200,6],[5.5,6,200,0],[6,6,201,4],[6.5,6,199,4],[7.01,6,201,4],[7.51,6,201,5],[8,6,198,6],[8.51,6,201,0],[9,6,201,4],[9.5,6,200,6],[10.02,6,198,3]],"400":[[0.52,7,302,0],[1.01,7,401,7],[1.51,7,400,11],[2.01,7,399,7],[2.51,7,400,9],[3.01,7,401,6],[3.51,7,400,9],[4.01,7,400,8],[4.51,7,399,7],[5.01,7,398,12],[5.51,7,403,12],[6.01,7,400,10],[6.51,7,400,11],[7.01,7,398,8],[7.5,7,403,11],[8.01,7,397,7],[8.51,7,400,8],[9.01,7,401,9],[9.51,7,401,8],[10.01,7,399,2]],"800":[[0.51,12,603,0],[1.01,12,804,13],[1.51,12,799,16],[2.01,12,799,14],[2.5,12,793,16],[3,12,804,15],[3.5,12,800,23],[4,12,801,15],[4.51,12,824,14],[5.01,12,777,15],[5.51,12,801,15],[6.01,12,795,15],[6.51,12,803,15],[7.01,12,800,17],[7.51,12,800,26],[8.02,12,797,18],[8.51,12,799,23],[9.01,12,803,13],[9.5,12,803,17],[10,12,798,14]]},"result":{"100":[[0.5,15,74,0],[1,16,100,4],[1.51,16,99,5],[2,16,101,5],[2.52,16,101,4],[3.02,16,100,4],[3.5,16,99,4],[4.01,16,99,3],[4.5,16,101,5],[5.01,16,100,5],[5.51,16,100,5],[6.01,16,100,3],[6.51,16,100,2],[7.01,16,101,4],[7.51,16,99,1],[8,16,101,3],[8.51,16,98,5],[9,16,101,2],[9.5,16,100,5],[10.01,16,101,2]],"200":[[0.5,29,150,0],[1.01,29,198,7],[1.51,29,201,6],[2.01,29,201,7],[2.52,29,198,8],[3.02,29,202,4],[3.52,29,198,6],[4.01,29,201,6],[4.5,29,199,8],[5.01,29,201,6],[5.5,29,199,4],[6.01,29,202,7],[6.52,29,200,7],[7.01,29,198,7],[7.51,29,201,4],[8.01,29,199,7],[8.51,29,201,4],[9.01,29,200,7],[9.51,29,199,4],[10.02,29,199,1]],"400":[[0.5,46,197,71],[1,55,296,108],[1.5,63,246,202],[2.02,69,220,306],[2.51,76,227,395],[3.01,81,188,502],[3.51,86,148,635],[4.01,91,139,763],[4.51,95,122,903],[5.01,99,99,1057],[5.51,103,138,1170],[6,106,133,1315],[6.5,110,116,1463],[7,113,96,1630],[7.5,116,98,1778],[8,120,117,1912],[8.5,123,82,2074],[9,126,74,2241],[9.5,129,84,2398],[10,132,92,2551]],"800":[[0.51,47,126,316],[1.01,55,226,618],[1.51,63,222,910],[2.01,70,189,1200],[2.51,76,168,1523],[3,82,193,1834],[3.51,86,116,2180],[4,91,148,2504],[4.51,95,110,2854],[5,99,108,3203],[5.51,103,106,3551],[6.01,107,126,3886],[6.5,110,99,4252],[7.02,114,127,4585],[7.5,117,84,4937],[8.02,120,88,5306],[8.51,123,30,5703],[9.01,127,60,6064],[9.51,129,40,6459],[10.01,132,78,6793]]},"result200":{"100":[[0.51,16,74,0],[1.01,16,100,5],[1.51,16,101,3],[2.01,16,100,5],[2.51,16,100,5],[3.01,16,100,5],[3.51,16,101,4],[4.01,16,101,4],[4.5,16,98,3],[5,16,100,4],[5.5,16,100,0],[6,16,100,5],[6.51,16,102,3],[7.01,16,98,3],[7.5,16,101,4],[8.02,16,101,4],[8.5,16,99,3],[9,16,100,5],[9.52,16,101,3],[10,16,99,4]],"200":[[0.5,29,150,0],[1,29,200,6],[1.52,29,198,4],[2.01,29,201,6],[2.51,29,200,6],[3.01,29,201,7],[3.51,29,200,7],[4.01,29,199,8],[4.5,29,199,8],[5,29,200,6],[5.51,29,201,8],[6,29,199,4],[6.5,29,200,6],[7.01,29,200,8],[7.51,29,200,7],[8,29,201,6],[8.51,29,199,6],[9.01,30,200,7],[9.51,30,201,6],[10.01,30,198,3]],"400":[[0.51,52,300,2],[1.01,52,401,13],[1.5,53,400,13],[2,53,401,8],[2.5,53,401,15],[3,53,398,13],[3.5,53,402,14],[4.01,53,398,13],[4.5,53,403,12],[5,53,398,15],[5.51,53,400,14],[6,53,400,14],[6.5,53,400,10],[7,53,401,14],[7.5,53,400,13],[8,53,402,12],[8.5,53,399,9],[9,53,398,8],[9.5,54,402,10],[10,54,400,12]],"800":[[0.51,99,601,0],[1.01,99,802,17],[1.51,101,799,24],[2.01,101,801,13],[2.51,102,803,24],[3.01,102,798,23],[3.51,102,800,23],[4.01,102,799,24],[4.51,102,799,25],[5,102,800,23],[5.52,102,800,30],[6,102,799,24],[6.5,102,802,23],[7.01,102,798,22],[7.5,103,799,25],[8,103,800,25],[8.5,103,800,25],[9,103,802,17],[9.5,103,801,23],[10.01,103,799,17]]},"sleep":{"100":[[0.5,13,78,0],[1,14,100,0],[1.5,14,100,1],[2,14,100,0],[2.5,14,100,3],[3.02,14,99,2],[3.51,14,100,0],[4.01,14,100,1],[4.51,14,100,1],[5,14,100,1],[5.5,14,100,1],[6.01,14,100,1],[6.51,14,100,2],[7.01,14,96,2],[7.51,14,104,0],[8.01,14,97,2],[8.51,14,102,1],[9,14,101,2],[9.5,14,101,1],[10,14,98,1]],"200":[[0.51,16,123,24],[1.01,17,141,53],[1.51,17,161,72],[2.01,17,153,97],[2.51,17,149,124],[3.01,17,152,148],[3.51,17,141,179],[4.01,17,162,197],[4.5,17,147,222],[5.02,17,156,248],[5.5,17,153,272],[6,17,140,302],[6.5,18,163,320],[7.01,19,150,340],[7.51,19,186,351],[8.01,19,164,372],[8.51,19,153,395],[9.01,19,173,409],[9.51,20,170,422],[10.01,20,192,421]],"400":[[0.51,16,126,125],[1.01,17,147,251],[1.51,17,154,375],[2.01,17,164,493],[2.5,17,139,627],[3,17,157,749],[3.5,17,135,883],[4,17,164,1000],[4.5,17,148,1129],[5,17,158,1252],[5.5,17,151,1377],[6,17,138,1510],[6.5,19,167,1625],[7.01,19,156,1751],[7.51,19,182,1861],[8.01,19,177,1976],[8.52,19,131,2113],[9,19,161,2231],[9.5,19,144,2357],[10.02,20,187,2460]],"800":[[0.51,16,126,329],[1.01,17,157,651],[1.52,17,141,986],[2.01,17,170,1302],[2.51,17,132,1639],[3.01,17,161,1957],[3.51,17,147,2284],[4.01,17,148,2611],[4.51,17,157,2927],[5,17,150,3258],[5.51,17,162,3580],[6,17,128,3917],[6.5,19,161,4233],[7,19,176,4546],[7.5,19,166,4865],[8,19,184,5178],[8.51,19,125,5526],[9.01,19,161,5846],[9.51,20,136,6175],[10.01,20,200,6467]]}}}</script>
+<!-- /datos -->
+<script src="pagina.js"></script>
+</body>
+</html>

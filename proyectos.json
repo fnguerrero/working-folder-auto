@@ -670,5 +670,33 @@
     "detalle": "Elegís mes de entrada, de salida y monto, y ves cuánto tenías en cada opción, con datos oficiales. Faltan el dólar blue y la inflación alternativa de 2007 a mediados de 2012. No es asesoramiento financiero.",
     "destacado": false,
     "actualizado": "2026-11-26"
+  },
+  {
+    "slug": "async-con-cronometro",
+    "nombre": "Async con el cronómetro en la mano",
+    "categoria": "escritos",
+    "descripcion": "Cuánto cuesta de verdad un await en .NET: Task contra ValueTask, ConfigureAwait, sync-over-async bajo carga y asignaciones, medido en .NET 8 y 10.",
+    "estado": "terminado",
+    "probar": "escritos/async-con-cronometro/",
+    "desde": "2026-11-26",
+    "icono": "⏳",
+    "para": "devs",
+    "detalle": "Ocho capítulos con el código, los números y la regla práctica, más un gráfico de cómo se ahoga el thread pool cuando alguien usa .Result bajo carga.",
+    "destacado": false,
+    "actualizado": "2026-11-26"
+  },
+  {
+    "slug": "linq-con-cronometro",
+    "nombre": "LINQ con el cronómetro en la mano",
+    "categoria": "escritos",
+    "descripcion": "Qué cuesta cada operador de LINQ y cuándo un for le gana, medido en .NET 8, 9 y 10.",
+    "estado": "terminado",
+    "probar": "escritos/linq-con-cronometro/",
+    "desde": "2026-11-26",
+    "icono": "🔗",
+    "para": "devs",
+    "detalle": "Nueve capítulos con tiempo y memoria de cada variante y una tabla «si ves esto, hacé esto» para discutir en code review.",
+    "destacado": false,
+    "actualizado": "2026-11-26"
   }
 ]

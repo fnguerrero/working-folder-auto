@@ -62,6 +62,8 @@ Trabaja directo sobre `main`. Si algo no te gusta, se mueve a `_archivo/`.
 | De Newtonsoft.Json a System.Text.Json | escritos | Guía para migrar un backend .NET: qué cambia de comportamiento, equivalencias de atributos y converters, polimorfismo, source generators y checklist. | terminado | [abrir](https://github.com/fnguerrero/working-folder-auto/tree/main/escritos/newtonsoft-a-system-text-json) |
 | Clementina y los que vinieron después | escritos | Historia de la computación en Argentina en siete capítulos cortos, con fuentes enlazadas y lo que no se pudo confirmar. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/escritos/historia-computacion-argentina/) |
 | Plazo fijo, dólar o inflación | experimentos | Comparador histórico desde 2004: plazo fijo, dólar oficial y pesos quietos contra la inflación, con gráfico y ventanas. | en curso | [abrir](https://fnguerrero.github.io/working-folder-auto/experimentos/plazo-fijo-vs-dolar/) |
+| Async con el cronómetro en la mano | escritos | Cuánto cuesta de verdad un await en .NET: Task contra ValueTask, ConfigureAwait, sync-over-async bajo carga y asignaciones, medido en .NET 8 y 10. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/escritos/async-con-cronometro/) |
+| LINQ con el cronómetro en la mano | escritos | Qué cuesta cada operador de LINQ y cuándo un for le gana, medido en .NET 8, 9 y 10. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/escritos/linq-con-cronometro/) |
 
 ## La vitrina
 
