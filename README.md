@@ -58,6 +58,7 @@ Trabaja directo sobre `main`. Si algo no te gusta, se mueve a `_archivo/`.
 | Diario de precios | apps | Anotás el precio de lo que comprás siempre y ves tu inflación personal, mensual e interanual, al lado de la oficial. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/apps/diario-de-precios/) |
 | Cuentos para Valentín | escritos | Cinco cuentos cortos ilustrados para leer de a dos: tocás los dibujos para que suenen y el celular los puede leer en voz alta. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/escritos/cuentos-para-valentin/) |
 | Pintar con el dedo | juegos | Pizarra a pantalla completa para los más chicos: colores grandes, sellos con sonido y el dibujo se guarda como imagen. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/juegos/pintar-con-el-dedo/) |
+| La sudestada en números | experimentos | Mové el viento, la marea y los ríos y mirá cómo sube el Río de la Plata hasta el Delta, con un modelo de juguete. | en curso | [abrir](https://fnguerrero.github.io/working-folder-auto/experimentos/sudestada-en-numeros/) |
 
 ## La vitrina
 

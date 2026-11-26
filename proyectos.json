@@ -614,5 +614,19 @@
     "detalle": "Se dibuja con uno o varios dedos, con ocho colores, tres grosores y cinco sellos que suenan. Borrar pide dos toques separados y el dibujo se puede guardar como PNG.",
     "destacado": false,
     "actualizado": "2026-11-25"
+  },
+  {
+    "slug": "sudestada-en-numeros",
+    "nombre": "La sudestada en números",
+    "categoria": "experimentos",
+    "descripcion": "Mové el viento, la marea y los ríos y mirá cómo sube el Río de la Plata hasta el Delta, con un modelo de juguete.",
+    "estado": "en curso",
+    "probar": "experimentos/sudestada-en-numeros/",
+    "desde": "2026-11-25",
+    "icono": "🌊",
+    "para": "todos",
+    "detalle": "Un simulador del estuario en una dimensión con mapa animado y curvas en cuatro puntos. Compara crecidas con datos publicados y cuenta sin vueltas dónde el modelo se equivoca.",
+    "destacado": false,
+    "actualizado": "2026-11-25"
   }
 ]
