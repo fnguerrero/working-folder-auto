@@ -656,5 +656,19 @@
     "detalle": "De Clementina y el Instituto de Cálculo a las calculadoras Cifra, las computadoras hogareñas de los 80, la llegada de Internet y el software de exportación. Tiene línea de tiempo y modo lectura, y separa lo documentado de la anécdota.",
     "destacado": false,
     "actualizado": "2026-11-26"
+  },
+  {
+    "slug": "plazo-fijo-vs-dolar",
+    "nombre": "Plazo fijo, dólar o inflación",
+    "categoria": "experimentos",
+    "descripcion": "Comparador histórico desde 2004: plazo fijo, dólar oficial y pesos quietos contra la inflación, con gráfico y ventanas.",
+    "estado": "en curso",
+    "probar": "experimentos/plazo-fijo-vs-dolar/",
+    "desde": "2026-11-26",
+    "icono": "💵",
+    "para": "todos",
+    "detalle": "Elegís mes de entrada, de salida y monto, y ves cuánto tenías en cada opción, con datos oficiales. Faltan el dólar blue y la inflación alternativa de 2007 a mediados de 2012. No es asesoramiento financiero.",
+    "destacado": false,
+    "actualizado": "2026-11-26"
   }
 ]

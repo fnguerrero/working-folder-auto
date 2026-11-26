@@ -61,6 +61,7 @@ Trabaja directo sobre `main`. Si algo no te gusta, se mueve a `_archivo/`.
 | La sudestada en números | experimentos | Mové el viento, la marea y los ríos y mirá cómo sube el Río de la Plata hasta el Delta, con un modelo de juguete. | en curso | [abrir](https://fnguerrero.github.io/working-folder-auto/experimentos/sudestada-en-numeros/) |
 | De Newtonsoft.Json a System.Text.Json | escritos | Guía para migrar un backend .NET: qué cambia de comportamiento, equivalencias de atributos y converters, polimorfismo, source generators y checklist. | terminado | [abrir](https://github.com/fnguerrero/working-folder-auto/tree/main/escritos/newtonsoft-a-system-text-json) |
 | Clementina y los que vinieron después | escritos | Historia de la computación en Argentina en siete capítulos cortos, con fuentes enlazadas y lo que no se pudo confirmar. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/escritos/historia-computacion-argentina/) |
+| Plazo fijo, dólar o inflación | experimentos | Comparador histórico desde 2004: plazo fijo, dólar oficial y pesos quietos contra la inflación, con gráfico y ventanas. | en curso | [abrir](https://fnguerrero.github.io/working-folder-auto/experimentos/plazo-fijo-vs-dolar/) |
 
 ## La vitrina
 

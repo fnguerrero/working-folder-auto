@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plazo fijo, dólar o inflación</title>
+<meta name="description" content="Comparador histórico argentino: plazo fijo, dólar oficial y pesos quietos contra la inflación, mes a mes desde 2004.">
+<link rel="icon" href="data:,">
+<style>
+:root{--fondo:#f6f6f3;--panel:#fff;--tinta:#191a1c;--suave:#585b60;--borde:#d9d9d3;--acento:#1f5fae;--aviso:#fff3d1;--avisoT:#5c4300;
+--pf:#2a78d6;--dolar:#c25a12;--blue:#7a4fc4;--nada:#6b6f75;--mezcla:#0f8a63}
+@media (prefers-color-scheme:dark){:root{--fondo:#141517;--panel:#1d1f22;--tinta:#eeeeea;--suave:#a9adb3;--borde:#33363b;--acento:#7db3f5;--aviso:#3a2f0e;--avisoT:#ffe08a;
+--pf:#5aa2f0;--dolar:#f08c45;--blue:#b08cf0;--nada:#a0a4aa;--mezcla:#3fc795}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--tinta);font:16px/1.5 system-ui,Segoe UI,Roboto,sans-serif}
+main{max-width:960px;margin:0 auto;padding:16px}
+h1{font-size:1.6rem;margin:.4em 0 .2em;line-height:1.2}h2{font-size:1.15rem;margin:0 0 .6em}
+p{margin:.4em 0}.suave{color:var(--suave);font-size:.9rem}a{color:var(--acento)}
+section{background:var(--panel);border:1px solid var(--borde);border-radius:10px;padding:14px;margin:14px 0;min-width:0}
+.campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:10px}
+#pesos{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+@media (max-width:500px){main{padding:16px 12px}th,td{padding:5px 4px;font-size:.8rem}th{white-space:normal}}
+label{display:flex;flex-direction:column;font-size:.85rem;color:var(--suave);gap:3px;min-width:0}
+input,select,button{font:inherit;color:var(--tinta);background:var(--fondo);border:1px solid var(--borde);border-radius:7px;padding:8px;min-height:42px;width:100%}
+button{cursor:pointer;width:auto;padding:8px 14px}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,svg:focus-visible{outline:3px solid var(--acento);outline-offset:2px}
+fieldset{border:1px dashed var(--borde);border-radius:8px;margin:12px 0 0;padding:8px 10px}
+legend{font-size:.85rem;color:var(--suave)}
+.check{flex-direction:row;align-items:center;gap:8px;min-height:42px}.check input{width:20px;min-height:20px}
+.aviso{background:var(--aviso);color:var(--avisoT);border-radius:8px;padding:10px 12px;margin:10px 0;font-size:.92rem}
+.tarjetas{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.tarjeta{border:1px solid var(--borde);border-top:5px solid var(--c);border-radius:9px;padding:10px 12px;min-width:0}
+.tarjeta h3{margin:0;font-size:.95rem}.tarjeta b{display:block;font-size:1.35rem;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.tabla{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numeric:tabular-nums}
+th,td{border-bottom:1px solid var(--borde);padding:6px 8px;text-align:right;white-space:nowrap}th:first-child,td:first-child{text-align:left}
+.punto{display:inline-block;width:11px;height:11px;border-radius:50%;background:var(--c);margin-right:6px}
+.leyenda{display:flex;flex-wrap:wrap;gap:14px;font-size:.88rem;margin:6px 0}
+svg{display:block;width:100%;height:auto;touch-action:pan-y}
+svg text{fill:var(--suave);font-size:12px}
+#lectura{min-height:3em;font-size:.88rem;font-variant-numeric:tabular-nums}
+.barra{display:flex;height:18px;border-radius:5px;overflow:hidden;margin:8px 0;background:var(--borde)}.barra i{background:var(--c)}
+.botones{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+<h1>Plazo fijo, dólar o inflación</h1>
+<p class="suave">Qué habría pasado con tus pesos, mes a mes, con datos publicados desde 2004. Es un comparador histórico: no recomienda qué hacer ni dice nada del futuro. <a href="ANALISIS.md">Análisis</a> · <a href="FUENTES.md">Fuentes</a></p>
+<p class="aviso" id="avisoFalta">Faltan dos series: el <b>dólar blue</b> (no hay publicación oficial) y la <b>inflación alternativa entre enero de 2007 y julio de 2012</b>. Podés cargarlas con un CSV propio más abajo.</p>
+<p class="aviso" id="avisoInventado" role="alert" hidden><b>DATOS INVENTADOS:</b> estás viendo el archivo de ejemplo. El blue y la inflación cargados no son reales y no sirven para sacar ninguna conclusión.</p>
+
+<section aria-labelledby="t1">
+<h2 id="t1">Simulador</h2>
+<form id="form">
+<div class="campos">
+<label>Mes de entrada<input type="month" id="desde" required></label>
+<label>Mes de salida<input type="month" id="hasta" required></label>
+<label>Monto en pesos de ese momento<input type="text" inputmode="decimal" id="monto" value="100000"></label>
+<label>Plazo fijo<select id="renovacion">
+<option value="compuesto">Renovar todos los meses, con intereses</option>
+<option value="capital">Renovar solo el capital</option>
+<option value="una">Una sola vez (30 días) y queda quieto</option>
+</select></label>
+<label>Inflación<select id="inflacion">
+<option value="referencia">De referencia (INDEC y CABA, con hueco)</option>
+<option value="indec">INDEC oficial completa (cuestionada 2007-2015)</option>
+</select></label>
+</div>
+<fieldset>
+<legend>Mezcla (se compra al entrar y no se toca)</legend>
+<label class="check"><input type="checkbox" id="usarMezcla"> Sumar una mezcla a la comparación</label>
+<div class="campos" id="pesos" hidden>
+<label>% plazo fijo<input type="number" id="mPf" min="0" max="100" value="50"></label>
+<label>% dólar oficial<input type="number" id="mDolar" min="0" max="100" value="50"></label>
+<label id="campoBlue" hidden>% dólar blue<input type="number" id="mBlue" min="0" max="100" value="0"></label>
+<label>% pesos quietos<input type="number" id="mNada" min="0" max="100" value="0"></label>
+</div>
+<p class="suave" id="notaMezcla" hidden></p>
+</fieldset>
+</form>
+<div id="mensajes" aria-live="polite"></div>
+<div class="tarjetas" id="tarjetas" aria-live="polite"></div>
+</section>
+
+<section aria-labelledby="t2" id="secGrafico">
+<h2 id="t2">Evolución</h2>
+<div class="campos">
+<label>Ver en<select id="vista"><option value="nominal">Pesos de cada mes (nominales)</option><option value="hoy">Pesos de hoy</option></select></label>
+<label class="check"><input type="checkbox" id="escalaLog"> Escala logarítmica</label>
+</div>
+<div class="leyenda" id="leyenda"></div>
+<svg id="grafico" tabindex="0" role="img" aria-label="Gráfico de líneas por estrategia"></svg>
+<p id="lectura" class="suave" aria-live="polite"></p>
+</section>
+
+<section aria-labelledby="t3">
+<h2 id="t3">Ventanas: quién ganó y por cuánto</h2>
+<p class="suave">Se prueba cada mes de entrada posible con la misma duración. Gana la que termina con más pesos; el margen es la ventaja sobre la segunda. Usa el modo de plazo fijo y la inflación elegidos arriba. La mezcla no compite.</p>
+<div class="campos">
+<label>Duración<select id="largo">
+<option value="1">1 mes</option><option value="3">3 meses</option><option value="6">6 meses</option>
+<option value="12" selected>12 meses</option><option value="24">2 años</option><option value="60">5 años</option><option value="120">10 años</option>
+</select></label>
+</div>
+<div id="resumen"></div>
+<div class="tabla"><table id="porDecada"></table></div>
+<details><summary>Períodos seguidos con el mismo ganador</summary><div class="tabla"><table id="rachas"></table></div></details>
+</section>
+
+<section aria-labelledby="t4">
+<h2 id="t4">Cargar tus datos</h2>
+<p class="suave">CSV con la columna <code>mes</code> (AAAA-MM) y <code>dolar_blue</code> (pesos por dólar, promedio del mes) y/o <code>inflacion_alt_pct</code> (variación mensual en %). La inflación cargada solo llena huecos. Queda en este navegador; no se manda a ningún lado y nadie la verifica.</p>
+<label>Archivo CSV<input type="file" id="archivo" accept=".csv,text/csv"></label>
+<div class="botones">
+<button type="button" id="ejemplo">Probar con ejemplo INVENTADO</button>
+<button type="button" id="quitar" hidden>Quitar mis datos</button>
+</div>
+<div id="estadoCarga" aria-live="polite"></div>
+</section>
+
+<section>
+<h2>Lo que esto no dice</h2>
+<p class="suave">No incluye impuestos, comisiones, diferencia entre compra y venta, cupos ni restricciones para comprar dólares (con cepo, el oficial muchas veces no se podía comprar). La tasa es un promedio publicado, no la de tu banco. El dólar es el mayorista de referencia, más bajo que el que paga una persona. Se usan promedios mensuales y un plazo fijo de 30 días por mes.</p>
+<p class="suave" id="cobertura"></p>
+</section>
+</main>
+<script src="lib.js"></script>
+<script src="datos.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

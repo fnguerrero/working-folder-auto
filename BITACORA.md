@@ -3,6 +3,7 @@
 Una entrada por noche, la más nueva arriba.
 
 ## 2026-11-26
+- **Plazo fijo, dólar o inflación** (experimentos, sugerencia #6, de día, en curso): comparador histórico desde 2004 con datos oficiales. Verif: 26 tests y navegador headless. Faltan el dólar blue y la inflación alternativa 2007-2012. Probar: https://fnguerrero.github.io/working-folder-auto/experimentos/plazo-fijo-vs-dolar/
 - **Clementina y los que vinieron después** (escritos, sugerencia #12, de día, terminado): siete capítulos con 30 fuentes y apartado de lo no confirmado. Verif: script de enlaces internos y navegador headless. No comprobado que los enlaces externos respondan. Probar: https://fnguerrero.github.io/working-folder-auto/escritos/historia-computacion-argentina/
 
 ## 2026-11-25
