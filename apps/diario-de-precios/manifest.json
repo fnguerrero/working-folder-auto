@@ -1,0 +1,14 @@
+{
+  "name": "Diario de precios",
+  "short_name": "Precios",
+  "description": "Anotá lo que comprás siempre y mirá tu propia inflación.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#9a4d14",
+  "theme_color": "#7a3e12",
+  "lang": "es-AR",
+  "icons": [
+    { "src": "icono.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

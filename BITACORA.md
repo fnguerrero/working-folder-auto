@@ -2,6 +2,13 @@
 
 Una entrada por noche, la más nueva arriba.
 
+## 2026-11-25
+- **La tormenta de reintentos** (experimentos, sugerencia #11, de día, terminado): simulador de reintentos, timeout y circuit breaker con snippet de C#. Verif: 15 tests y revisión en navegador a 360 px y escritorio. No probado: el C# no se compiló. Probar: https://fnguerrero.github.io/working-folder-auto/experimentos/tormenta-de-reintentos/
+- **Expensas en criollo** (apps, sugerencia #21, de día, terminado): en qué se va la plata de las expensas, mes contra mes. Verif: 17 tests y e2e a 360 y 1280 px. No probado con liquidaciones reales. Probar: https://fnguerrero.github.io/working-folder-auto/apps/expensas-en-criollo/
+- **Diario de precios** (apps, sugerencia #4, de día, terminado): inflación personal con los productos de siempre. Verif: 22 tests y e2e a 360 y 1280 px. Probar: https://fnguerrero.github.io/working-folder-auto/apps/diario-de-precios/
+- **Cuentos para Valentín** (escritos, sugerencia #9, de día, terminado): cinco cuentos ilustrados con sonido y lectura en voz alta. Verif: 4 tests y navegador headless; no escuchado al oído. Probar: https://fnguerrero.github.io/working-folder-auto/escritos/cuentos-para-valentin/
+- **Cuotas en curso** y **Dividir gastos** (apps, mejora): su service worker borraba las cachés de las otras apps del sitio; ahora solo las propias.
+
 ## 2026-11-20
 - Modo LIVIANO (semanal 7%, cerca del ritmo del 11%): sin pedidos `noche` en working-folder-auto, multimarket ni azarium; no se hizo trabajo por cuenta propia.
 

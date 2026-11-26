@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Expensas en criollo</title>
+<meta name="description" content="Pegá la liquidación de expensas y mirá en qué se va la plata, mes contra mes y contra la inflación.">
+<meta name="theme-color" content="#0f6b5c">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icono.svg" type="image/svg+xml">
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+<header>
+  <h1><img src="icono.svg" alt="" width="32" height="32"> Expensas en criollo</h1>
+  <p>En qué se va la plata, mes contra mes. Todo queda en tu navegador.</p>
+</header>
+
+<nav id="tabs" aria-label="Secciones">
+  <button type="button" data-tab="resumen">Resumen</button>
+  <button type="button" data-tab="cargar">Cargar mes</button>
+  <button type="button" data-tab="datos">Historial y datos</button>
+</nav>
+
+<main>
+  <div id="aviso-guardado" class="alerta oculto" role="alert"></div>
+  <div id="banner-ejemplo" class="alerta oculto">
+    <span><strong>Estás viendo un ejemplo con datos inventados.</strong> Al guardar tu primer mes, el ejemplo se va.</span>
+    <button type="button" id="btn-empezar" class="principal">Empezar con los míos</button>
+  </div>
+
+  <section id="sec-resumen">
+    <div id="vacio" class="tarjeta oculto">
+      <h2>Todavía no hay meses cargados</h2>
+      <p>Pegá el texto de la liquidación o cargá los rubros a mano. Con dos meses ya se puede comparar.</p>
+      <div class="botones">
+        <button type="button" class="principal" data-ir="cargar">Cargar un mes</button>
+        <button type="button" data-accion="ejemplo">Ver el ejemplo</button>
+      </div>
+    </div>
+    <div id="resumen">
+      <div class="fila">
+        <label>Mes a mirar <select id="sel-mes"></select></label>
+        <span id="contra" class="suave"></span>
+      </div>
+      <div class="tarjeta" id="criollo" aria-live="polite"></div>
+      <div id="cifras" class="cifras"></div>
+      <div class="columnas">
+        <div>
+          <div class="tarjeta" id="caja-saltos">
+            <h2>Saltos fuera de lo normal</h2>
+            <p id="regla" class="suave"></p>
+            <ul id="saltos" class="lista"></ul>
+          </div>
+          <div class="tarjeta" id="caja-preguntas">
+            <h2>Para preguntarle a la administración</h2>
+            <ol id="preguntas"></ol>
+            <button type="button" id="btn-copiar" class="principal">Copiar resumen y preguntas</button>
+            <textarea id="copia-manual" class="oculto" rows="8" readonly aria-label="Texto para copiar"></textarea>
+          </div>
+        </div>
+        <div class="tarjeta">
+          <h2>En qué se va la plata</h2>
+          <p class="suave">Tocá una categoría para ver sus rubros.</p>
+          <div id="categorias"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="sec-cargar" class="oculto">
+    <div class="tarjeta">
+      <h2>Cargar un mes</h2>
+      <div class="fila">
+        <label>Mes de los gastos <input type="month" id="c-mes" min="1900-01" max="2099-12" placeholder="AAAA-MM"></label>
+        <label>Inflación de ese mes (%) <input type="text" inputmode="decimal" id="c-inflacion" placeholder="opcional"></label>
+      </div>
+      <div id="c-existe" class="alerta oculto">
+        <span></span>
+        <button type="button" id="btn-traer">Traerlo para editar</button>
+      </div>
+    </div>
+    <div class="columnas">
+      <div class="tarjeta">
+        <h3>1. Pegá la liquidación</h3>
+        <p class="suave">Un rubro por renglón, con el importe al final. Si hay varias columnas de importes, se toma la última.</p>
+        <textarea id="c-texto" rows="10" aria-label="Texto de la liquidación" placeholder="Sueldo del encargado   1.233.000,00&#10;Abono ascensores   243.000,00&#10;Fondo de reserva   175.000,00"></textarea>
+        <div class="botones">
+          <button type="button" id="btn-leer" class="principal">Leer el texto</button>
+          <button type="button" id="btn-agregar">Agregar rubro a mano</button>
+          <button type="button" id="btn-copiar-nombres">Traer los rubros del último mes</button>
+        </div>
+        <div id="c-lectura" aria-live="polite"></div>
+      </div>
+      <div class="tarjeta">
+        <h3>2. Revisá y guardá</h3>
+        <ul id="filas" class="lista"></ul>
+        <p id="c-suma" class="total"></p>
+        <p id="c-error" class="error" role="alert"></p>
+        <div class="botones">
+          <button type="button" id="btn-guardar" class="principal">Guardar el mes</button>
+          <button type="button" id="btn-limpiar">Vaciar el formulario</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="sec-datos" class="oculto">
+    <div class="tarjeta">
+      <h2>Mes a mes</h2>
+      <div id="barras"></div>
+      <div class="tabla-caja" tabindex="0" role="region" aria-label="Categorías por mes"><table id="tabla"></table></div>
+    </div>
+    <div class="columnas">
+      <div class="tarjeta">
+        <h2>Meses cargados</h2>
+        <ul id="meses" class="lista"></ul>
+      </div>
+      <div class="tarjeta">
+        <h2>Inflación mensual (%)</h2>
+        <p class="suave">La app no la trae sola: copiá el dato del INDEC (indec.gob.ar). Si salteaste meses, completá también los del medio.</p>
+        <div id="inflaciones"></div>
+      </div>
+    </div>
+    <div class="columnas">
+      <div class="tarjeta">
+        <h2>Ajustes</h2>
+        <label>Tu coeficiente de expensas (%) <input type="text" inputmode="decimal" id="a-coef" placeholder="opcional, ej. 4,2"></label>
+        <label>Salta si sube más que la referencia por (puntos) <input type="text" inputmode="decimal" id="a-puntos"></label>
+        <label>y la plata de más es al menos (% del total del mes) <input type="text" inputmode="decimal" id="a-peso"></label>
+        <p id="a-error" class="error" role="alert"></p>
+      </div>
+      <div class="tarjeta">
+        <h2>Tus datos</h2>
+        <p class="suave">Se guardan solo en este navegador. Exportá una copia para no perderlos o para pasarlos a otro equipo.</p>
+        <div class="botones">
+          <button type="button" id="btn-exportar" class="principal">Exportar (JSON)</button>
+          <button type="button" id="btn-importar">Importar</button>
+          <button type="button" data-accion="ejemplo">Cargar el ejemplo</button>
+          <button type="button" id="btn-borrar" class="peligro">Borrar todo</button>
+        </div>
+        <input type="file" id="in-importar" accept=".json,application/json" class="oculto" aria-label="Archivo para importar">
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="oculto" role="status">
+  <span></span>
+  <button type="button" id="btn-deshacer">Deshacer</button>
+  <button type="button" id="btn-cerrar" aria-label="Cerrar aviso">×</button>
+</div>
+
+<noscript><p>Esta app necesita JavaScript.</p></noscript>
+<script src="logica.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -53,6 +53,10 @@ Trabaja directo sobre `main`. Si algo no te gusta, se mueve a `_archivo/`.
 | Feriados y días hábiles | herramientas | Feriados nacionales de 2024 a 2027 con su norma, calculadora de plazos en días hábiles y la clase C# para pegar. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/herramientas/feriados-y-habiles/) |
 | Datos de prueba argentinos | herramientas | Personas y empresas inventadas con DNI, CUIT/CUIL, CBU, alias y patente válidos, con semilla, en JSON, CSV, SQL o C#; y un validador. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/herramientas/datos-de-prueba/) |
 | Fechas en criollo | herramientas | Pegás una fecha, un epoch o los ticks de .NET y ves la hora en UTC, Argentina y otras zonas. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/herramientas/fechas-en-criollo/) |
+| La tormenta de reintentos | experimentos | Simulá reintentos, timeouts y circuit breaker contra un servicio que falla y mirá cuánta carga extra le cae. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/experimentos/tormenta-de-reintentos/) |
+| Expensas en criollo | apps | Pegás la liquidación de expensas y ves en qué se va la plata, mes contra mes y contra la inflación. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/apps/expensas-en-criollo/) |
+| Diario de precios | apps | Anotás el precio de lo que comprás siempre y ves tu inflación personal, mensual e interanual, al lado de la oficial. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/apps/diario-de-precios/) |
+| Cuentos para Valentín | escritos | Cinco cuentos cortos ilustrados para leer de a dos: tocás los dibujos para que suenen y el celular los puede leer en voz alta. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/escritos/cuentos-para-valentin/) |
 
 ## La vitrina
 

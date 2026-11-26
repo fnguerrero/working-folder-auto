@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2b2350">
+<title>Cuentos para Valentín</title>
+<meta name="description" content="Cuentos cortos ilustrados para leer de a dos, con sonidos y lectura en voz alta.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%93%96%3C/text%3E%3C/svg%3E">
+<style>
+  :root { --fondo: #2b2350; --papel: #fff8ec; --tinta: #33233f; --suave: #cfc6f2; --color: #ffd166; }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--fondo); color: var(--papel);
+    font-family: ui-rounded, "Nunito", "Segoe UI", system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button, a { font: inherit; touch-action: manipulation; }
+  :focus-visible { outline: 4px solid #fff; outline-offset: 2px; }
+  svg { display: block; }
+
+  /* ---------- portada ---------- */
+  #portada { max-width: 960px; margin: 0 auto; padding: 20px 16px 32px; }
+  #portada h1 { margin: 4px 0; font-size: clamp(1.7rem, 7vw, 2.8rem); text-align: center; }
+  #portada > p { margin: 0 0 20px; text-align: center; color: var(--suave); }
+  #lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr)); }
+  .tarjeta {
+    display: flex; flex-direction: column; height: 100%; text-decoration: none; color: var(--tinta);
+    background: var(--papel); border-radius: 22px; overflow: hidden; border: 5px solid var(--color);
+    transition: transform .15s;
+  }
+  .tarjeta:hover { transform: translateY(-3px); }
+  .mini svg { width: 100%; height: auto; }
+  .datos { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px 14px; }
+  .datos strong { font-size: 1.3rem; }
+  details { margin-top: 24px; color: var(--suave); }
+  summary { cursor: pointer; padding: 10px 0; }
+  details a { color: var(--papel); display: inline-block; padding: 6px 0; }
+  details ul { margin: 6px 0; padding-left: 20px; }
+
+  /* ---------- libro ---------- */
+  #libro {
+    height: 100vh; height: 100dvh; display: grid; gap: 8px; overflow: hidden;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+    grid-template-areas: "barra" "escena" "texto" "puntos" "controles";
+    padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+    max-width: 1200px; margin: 0 auto;
+  }
+  .barra { grid-area: barra; display: flex; align-items: center; gap: 8px; }
+  .barra h2 { flex: 1; min-width: 0; margin: 0; font-size: 1.05rem; line-height: 1.2; text-align: center; }
+  .chico {
+    flex: none; width: 46px; height: 46px; border-radius: 50%; border: 0; cursor: pointer;
+    background: #4a3f7a; color: var(--papel); font-size: 1.25rem; padding: 0;
+  }
+  .chico[aria-pressed="false"] { opacity: .5; }
+  #op-leer[aria-pressed="true"] { background: var(--color); }
+
+  #escena {
+    grid-area: escena; position: relative; min-height: 0; overflow: hidden;
+    touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; cursor: pointer;
+  }
+  #lienzo { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; container-type: size; }
+  /* la caja del dibujo respeta la proporción 5:4: así las esquinas redondeadas se ven siempre */
+  #lienzo svg { width: 100%; height: 100%; width: min(100cqw, 125cqh); height: min(80cqw, 100cqh); border-radius: 18px; }
+  .toca { cursor: pointer; outline: none; }
+  .toca:focus-visible { filter: drop-shadow(0 0 4px #fff) drop-shadow(0 0 8px #ff2d75); }
+  .toca.salta { animation: salta .6s ease-out; transform-box: fill-box; transform-origin: 50% 100%; }
+  @keyframes salta {
+    0% { transform: none; } 20% { transform: scale(1.14, .88); } 45% { transform: translateY(-14px) scale(.94, 1.1); }
+    70% { transform: scale(1.06, .95); } 100% { transform: none; }
+  }
+  #globos { position: absolute; inset: 0; pointer-events: none; }
+  .globo {
+    position: absolute; transform: translate(-50%, -100%); white-space: nowrap;
+    background: #fff; color: var(--tinta); border: 3px solid var(--tinta); border-radius: 999px;
+    padding: 6px 16px; font-size: 1.5rem; font-weight: 800; animation: globo 1.5s ease-out forwards;
+  }
+  @keyframes globo {
+    0% { opacity: 0; scale: .5; } 15% { opacity: 1; scale: 1.1; } 25% { scale: 1; }
+    80% { opacity: 1; translate: 0 -14px; } 100% { opacity: 0; translate: 0 -22px; }
+  }
+  .entra-der { animation: der .3s ease-out; }
+  .entra-izq { animation: izq .3s ease-out; }
+  @keyframes der { from { opacity: 0; transform: translateX(40px); } }
+  @keyframes izq { from { opacity: 0; transform: translateX(-40px); } }
+
+  #texto {
+    grid-area: texto; margin: 0 auto; width: 100%; max-width: 34em; max-height: 34vh; overflow-y: auto;
+    background: var(--papel); color: var(--tinta); border-radius: 18px; border-bottom: 6px solid var(--color);
+    padding: 12px 16px; text-align: center; text-wrap: balance; font-weight: 700; line-height: 1.3;
+    font-size: clamp(1.35rem, 1.1rem + 1.5vw, 2rem);
+    display: flex; align-items: safe center; justify-content: center; min-height: 4.6em;
+  }
+  #fin { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+  #fin button, #leer {
+    border: 0; cursor: pointer; border-radius: 999px; background: var(--color); color: var(--tinta);
+    font-weight: 800; min-height: 58px; padding: 8px 22px; font-size: 1.15rem;
+  }
+  .es-fin #texto { min-height: 0; font-size: 2.2rem; }
+  .pie { grid-area: puntos; display: flex; justify-content: center; gap: 7px; min-height: 10px; }
+  .pie i { width: 10px; height: 10px; border-radius: 50%; background: #6a5ea3; }
+  .pie i.actual { background: var(--color); transform: scale(1.35); }
+  .controles { grid-area: controles; display: flex; align-items: center; justify-content: center; gap: 14px; }
+  .flecha {
+    width: 72px; height: 64px; border: 0; border-radius: 20px; cursor: pointer;
+    background: var(--papel); color: var(--tinta); font-size: 1.7rem; font-weight: 800;
+  }
+  .flecha:disabled { opacity: .25; cursor: default; }
+  #leer { flex: 0 1 190px; min-height: 64px; white-space: nowrap; }
+
+  #aviso {
+    position: fixed; left: 50%; top: 64px; transform: translateX(-50%); z-index: 5; width: max-content; max-width: calc(100% - 32px);
+    background: #fff; color: var(--tinta); border-radius: 14px; padding: 10px 16px; text-align: center; font-weight: 700;
+    box-shadow: 0 6px 24px #0006; pointer-events: none;
+  }
+  .solo-lectores { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+
+  @media (min-width: 900px) and (min-height: 561px) { #texto { min-height: 3.4em; } }
+  /* celular acostado y pantallas bajas: dibujo a la izquierda, texto a la derecha */
+  @media (orientation: landscape) and (max-height: 560px) {
+    #libro {
+      grid-template-columns: minmax(0, 3fr) minmax(250px, 2fr);
+      grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+      grid-template-areas: "escena barra" "escena texto" "escena fin" "escena puntos" "escena controles";
+      column-gap: 12px;
+    }
+    #texto { max-height: none; min-height: 0; align-self: center; font-size: clamp(1.1rem, 4.6vh, 1.6rem); max-block-size: 100%; }
+    #fin { grid-area: fin; }
+    #leer, .flecha { min-height: 52px; height: 52px; }
+    .flecha { width: 60px; }
+  }
+  /* con el "Fin" hay una fila más */
+  @media not all and (orientation: landscape) and (max-height: 560px) {
+    #libro.es-fin { grid-template-rows: auto minmax(0, 1fr) auto auto auto auto; grid-template-areas: "barra" "escena" "texto" "fin" "puntos" "controles"; }
+    #fin { grid-area: fin; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .entra-der, .entra-izq, .toca.salta { animation: none; }
+    .tarjeta { transition: none; }
+  }
+</style>
+</head>
+<body>
+  <main id="portada">
+    <h1>📖 Cuentos para Valentín</h1>
+    <p>Elegí un cuento. Pasá las páginas con el dedo y tocá los dibujos para que suenen.</p>
+    <ul id="lista"></ul>
+    <noscript><p>Para ver los dibujos hace falta JavaScript. Los textos están en la carpeta <a href="cuentos/">cuentos</a>.</p></noscript>
+    <details>
+      <summary>Textos para imprimir o leer sin pantalla</summary>
+      <ul id="imprimir"></ul>
+    </details>
+  </main>
+
+  <section id="libro" hidden aria-label="Cuento">
+    <header class="barra">
+      <button type="button" class="chico" id="casa" aria-label="Volver a la portada">🏠</button>
+      <h2 id="titulo-cuento"></h2>
+      <button type="button" class="chico" id="op-leer" aria-label="Leer cada página al pasarla" title="Leer cada página al pasarla">📢</button>
+      <button type="button" class="chico" id="op-sonidos" aria-label="Sonidos al tocar" title="Sonidos al tocar">🔔</button>
+    </header>
+    <div id="escena">
+      <div id="lienzo"></div>
+      <div id="globos" aria-hidden="true"></div>
+    </div>
+    <p id="texto" aria-live="polite"></p>
+    <div id="fin" hidden>
+      <button type="button" id="otra-vez">🔁 Otra vez</button>
+      <button type="button" id="otro">📚 Otro cuento</button>
+    </div>
+    <div class="pie"><span id="numero" class="solo-lectores"></span><span id="puntos" class="pie" aria-hidden="true"></span></div>
+    <nav class="controles" aria-label="Páginas">
+      <button type="button" class="flecha" id="anterior" aria-label="Página anterior">◀</button>
+      <button type="button" id="leer"><span id="leer-icono" aria-hidden="true">🔊</span> <span id="leer-texto">Leer</span></button>
+      <button type="button" class="flecha" id="siguiente" aria-label="Página siguiente">▶</button>
+    </nav>
+  </section>
+
+  <div id="aviso" role="status" hidden></div>
+
+  <script src="dibujos.js"></script>
+  <script src="cuentos.js"></script>
+  <script src="sonidos.js"></script>
+  <script src="voz.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

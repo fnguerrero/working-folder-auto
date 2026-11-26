@@ -1,5 +1,6 @@
 // Service worker mínimo: habilita la instalación y deja la app usable sin conexión.
-const CACHE = "cuotas-en-curso-v1";
+const PREFIJO = "cuotas-en-curso-";
+const CACHE = PREFIJO + "v2";
 const ARCHIVOS = ["./", "./index.html", "./logica.js", "./manifest.json", "./icono.svg"];
 
 self.addEventListener("install", (evento) => {
@@ -11,7 +12,7 @@ self.addEventListener("install", (evento) => {
 self.addEventListener("activate", (evento) => {
   evento.waitUntil(
     caches.keys()
-      .then((claves) => Promise.all(claves.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((claves) => Promise.all(claves.filter((k) => k.startsWith(PREFIJO) && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });

@@ -544,5 +544,61 @@
     "detalle": "Pegás una fecha, un epoch en segundos o milisegundos, o los ticks de .NET, y te muestra el mismo instante en nueve zonas, con el desfase real de esa fecha. Resuelve el «la base está en UTC y la pantalla dice otra hora», da los valores para copiar y un snippet de C# con DateTimeOffset y TimeZoneInfo.",
     "destacado": false,
     "actualizado": "2026-11-13"
+  },
+  {
+    "slug": "tormenta-de-reintentos",
+    "nombre": "La tormenta de reintentos",
+    "categoria": "experimentos",
+    "descripcion": "Simulá reintentos, timeouts y circuit breaker contra un servicio que falla y mirá cuánta carga extra le cae.",
+    "estado": "terminado",
+    "probar": "experimentos/tormenta-de-reintentos/",
+    "desde": "2026-11-25",
+    "icono": "🌩️",
+    "para": "devs",
+    "detalle": "Elegís el incidente y la política y ves intentos por segundo, éxito, p99 y cuánto tarda en recuperarse, comparado contra tres políticas. Sale el código de Microsoft.Extensions.Http.Resilience con tus valores.",
+    "destacado": false,
+    "actualizado": "2026-11-25"
+  },
+  {
+    "slug": "expensas-en-criollo",
+    "nombre": "Expensas en criollo",
+    "categoria": "apps",
+    "descripcion": "Pegás la liquidación de expensas y ves en qué se va la plata, mes contra mes y contra la inflación.",
+    "estado": "terminado",
+    "probar": "apps/expensas-en-criollo/",
+    "desde": "2026-11-25",
+    "icono": "🏢",
+    "para": "todos",
+    "detalle": "Cargás los rubros de cada mes pegando el texto de la liquidación o a mano, y te muestra cuánto pesa cada uno, cuánto subió y qué saltó fuera de lo normal. Arma las preguntas para la administración y todo queda en tu navegador, con exportación a JSON.",
+    "destacado": false,
+    "actualizado": "2026-11-25"
+  },
+  {
+    "slug": "diario-de-precios",
+    "nombre": "Diario de precios",
+    "categoria": "apps",
+    "descripcion": "Anotás el precio de lo que comprás siempre y ves tu inflación personal, mensual e interanual, al lado de la oficial.",
+    "estado": "terminado",
+    "probar": "apps/diario-de-precios/",
+    "desde": "2026-11-25",
+    "icono": "🛒",
+    "para": "todos",
+    "detalle": "Cargás en la góndola el precio de la leche, la yerba o la nafta y ves cómo evoluciona cada producto y tu canasta, ponderada por lo que consumís. Compara contra el número oficial que cargás a mano y avisa cuando algo sube mucho más que el resto.",
+    "destacado": false,
+    "actualizado": "2026-11-25"
+  },
+  {
+    "slug": "cuentos-para-valentin",
+    "nombre": "Cuentos para Valentín",
+    "categoria": "escritos",
+    "descripcion": "Cinco cuentos cortos ilustrados para leer de a dos: tocás los dibujos para que suenen y el celular los puede leer en voz alta.",
+    "estado": "terminado",
+    "probar": "escritos/cuentos-para-valentin/",
+    "desde": "2026-11-25",
+    "icono": "📖",
+    "para": "1+",
+    "detalle": "Un libro para el celular con cinco cuentos de seis páginas. Cada dibujo suena al tocarlo, hay lectura en voz alta con pausa y los textos están aparte para imprimir. Sin puntaje ni derrota.",
+    "destacado": false,
+    "actualizado": "2026-11-25"
   }
 ]

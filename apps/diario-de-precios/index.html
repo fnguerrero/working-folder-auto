@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#7a3e12">
+<meta name="description" content="Anotá lo que comprás siempre y mirá tu propia inflación. Sin cuentas y sin red.">
+<title>Diario de precios</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icono.svg" type="image/svg+xml">
+<style>
+  :root { --bg: #f7f4ef; --card: #fff; --fg: #26201b; --muted: #6d6259; --line: #e3dbd1; --accent: #9a4d14; --accent-fg: #fff; --sube: #a8321f; --baja: #1d7044; --aviso: #fdf0d5; --suave: rgba(154,77,20,.08); }
+  @media (prefers-color-scheme: dark) { :root { --bg: #161310; --card: #211d19; --fg: #eee8e1; --muted: #ab9f93; --line: #3a332c; --accent: #eda063; --accent-fg: #231204; --sube: #f58b74; --baja: #74d29e; --aviso: #3b2f17; --suave: rgba(237,160,99,.12); } }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.45; overflow-wrap: break-word; }
+  header, main { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+  header { padding-top: 14px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+  h1 { margin: 0; font-size: 1.35rem; }
+  h2 { margin: 0 0 10px; font-size: 1.05rem; }
+  h3 { margin: 0 0 4px; font-size: .95rem; }
+  nav { display: flex; gap: 4px; }
+  nav a { padding: 9px 14px; border-radius: 999px; color: var(--fg); text-decoration: none; border: 1px solid var(--line); background: var(--card); }
+  nav a[aria-current] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); font-weight: 600; }
+  main { padding-top: 14px; padding-bottom: 110px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  @media (min-width: 760px) { main { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } .ancho { grid-column: 1 / -1; } }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; min-width: 0; }
+  .aviso { background: var(--aviso); }
+  .aviso p { margin: 4px 0; }
+  .nota { color: var(--muted); font-size: .86rem; margin: 6px 0 0; }
+  a { color: var(--accent); }
+  input, select, button { font: inherit; color: inherit; }
+  input, select { width: 100%; min-width: 0; min-height: 44px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); }
+  button, .boton { min-height: 44px; padding: 8px 14px; border: 1px solid var(--accent); border-radius: 9px; background: var(--accent); color: var(--accent-fg); cursor: pointer; font-weight: 600; }
+  button.secundario { background: transparent; color: var(--accent); }
+  button.chico { min-height: 36px; padding: 4px 10px; font-size: .85rem; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .campo { display: grid; gap: 3px; font-weight: 600; font-size: .88rem; }
+  .campo > * { font-weight: 400; font-size: 1rem; }
+  .campo > span { font-weight: 600; font-size: .88rem; }
+  .campo small { color: var(--muted); font-size: .8rem; }
+  form { display: grid; gap: 10px; }
+  .fila { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+  .fila > .campo { flex: 1 1 130px; }
+  .fila > .campo:has(select) { flex-basis: 175px; }
+  .error { color: var(--sube); margin: 0; font-size: .9rem; }
+  .error:empty { display: none; }
+  .lista { list-style: none; margin: 0; padding: 0; }
+  .lista > li { border-top: 1px solid var(--line); }
+  .lista > li:first-child { border-top: 0; }
+  .producto { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 11px 4px; background: transparent; border: 0; color: var(--fg); text-align: left; font-weight: 400; border-radius: 6px; }
+  .producto > span { display: grid; min-width: 0; }
+  .producto > span:last-child { text-align: right; flex: none; }
+  .producto small { color: var(--muted); }
+  .producto b { font-variant-numeric: tabular-nums; }
+  .rapida { background: var(--suave); border-radius: 10px; padding: 10px; margin-bottom: 10px; }
+  .rapida input[name=precio] { font-size: 1.35rem; }
+  .sube { color: var(--sube); } .baja { color: var(--baja); }
+  .producto small.sube { color: var(--sube); } .producto small.baja { color: var(--baja); }
+  .cifras { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .cifra span { display: block; color: var(--muted); font-size: .82rem; }
+  .cifra b { display: block; font-size: 1.8rem; font-variant-numeric: tabular-nums; }
+  .cifra.oficial b { color: var(--muted); }
+  .tabla { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; font-variant-numeric: tabular-nums; }
+  th, td { padding: 7px 4px; border-bottom: 1px solid var(--line); text-align: right; vertical-align: middle; }
+  th:first-child, td:first-child { text-align: left; }
+  th { font-size: .78rem; color: var(--muted); font-weight: 600; }
+  .segmentos { display: flex; gap: 6px; margin-bottom: 8px; }
+  svg.grafico { display: block; width: 100%; height: auto; }
+  .grafico .eje { stroke: var(--line); }
+  .grafico .linea { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .grafico circle { fill: var(--accent); }
+  .grafico text { fill: var(--muted); font-size: 11px; }
+  details summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+  #aviso { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); width: min(560px, calc(100% - 24px)); display: flex; gap: 10px; align-items: center; justify-content: space-between; background: var(--fg); color: var(--bg); padding: 10px 12px; border-radius: 12px; box-shadow: 0 6px 24px rgba(0,0,0,.3); z-index: 5; }
+  #aviso button { background: var(--bg); border-color: var(--bg); color: var(--fg); flex: none; }
+  .solo-lector { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Diario de precios</h1>
+  <nav aria-label="Secciones">
+    <a href="#anotar" data-vista="anotar">Anotar</a>
+    <a href="#canasta" data-vista="canasta">Canasta</a>
+    <a href="#datos" data-vista="datos">Datos</a>
+  </nav>
+</header>
+<main id="vista"><noscript><p class="panel">La app necesita JavaScript.</p></noscript></main>
+<div id="aviso" role="status" hidden><span id="avisoTexto"></span><button type="button" id="deshacer">Deshacer</button></div>
+<script src="logica.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

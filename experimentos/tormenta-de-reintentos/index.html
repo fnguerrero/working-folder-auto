@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:,">
+<title>La tormenta de reintentos</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --card: #fff; --fg: #1d1d1f; --muted: #66666c; --line: #e4e2dc; --accent: #5b4fd6; --accent-fg: #fff;
+    --verde: #1e7e4f; --amarillo: #a86c14; --rojo: #c0392b; --azul: #1d4ed8; --caida: rgba(192, 57, 43, .10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111114; --card: #1b1b20; --fg: #ececf1; --muted: #a0a0a9; --line: #2a2a31; --accent: #9d93ff; --accent-fg: #15131f;
+      --verde: #6fd39a; --amarillo: #f0b454; --rojo: #ff7b6b; --azul: #93c5fd; --caida: rgba(255, 123, 107, .13);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.45; }
+  header, main { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
+  header { padding-top: 18px; }
+  h1 { margin: 0; font-size: 1.5rem; }
+  h2 { margin: 0 0 10px; font-size: 1rem; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  a { color: var(--accent); }
+  main { display: grid; gap: 14px; grid-template-columns: 320px minmax(0, 1fr); align-items: start; padding-top: 12px; padding-bottom: 32px; }
+  @media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } }
+  .col { display: grid; gap: 14px; min-width: 0; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+  .botones { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  button { font: inherit; font-size: .85rem; min-height: 40px; padding: 6px 12px; border-radius: 999px; cursor: pointer; border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+  button:hover { border-color: var(--accent); }
+  button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  fieldset { border: 0; border-top: 1px solid var(--line); margin: 0; padding: 8px 0; min-width: 0; }
+  summary { cursor: pointer; font-weight: 600; min-height: 40px; display: flex; align-items: center; }
+  .campo { display: grid; grid-template-columns: minmax(0, 1fr) 108px; gap: 8px; align-items: center; margin: 6px 0; font-size: .9rem; }
+  .campo input, .campo select { font: inherit; width: 100%; min-height: 40px; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+  .campo input[type="checkbox"] { width: 24px; min-height: 24px; height: 24px; justify-self: end; accent-color: var(--accent); }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+  .tile { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+  .tile b { display: block; font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+  .tile span { color: var(--muted); font-size: .8rem; }
+  #diagnostico { border-left: 6px solid var(--verde); }
+  #diagnostico[data-nivel="amarillo"] { border-left-color: var(--amarillo); }
+  #diagnostico[data-nivel="rojo"] { border-left-color: var(--rojo); }
+  #diagnostico ul { margin: 0; padding-left: 18px; }
+  canvas { display: block; width: 100%; height: 210px; }
+  .leyenda { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .8rem; color: var(--muted); margin-top: 6px; }
+  .leyenda i { display: inline-block; width: 14px; height: 4px; margin-right: 5px; vertical-align: middle; }
+  .tabla { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: .85rem; font-variant-numeric: tabular-nums; }
+  th, td { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  pre { overflow-x: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-size: .8rem; margin: 0 0 8px; }
+  .texto p, .texto li { font-size: .92rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>La tormenta de reintentos</h1>
+  <p>Qué le pasa a un servicio que anda mal cuando todos sus clientes reintentan a la vez. <a href="../../">Volver a la vitrina</a></p>
+</header>
+<main>
+  <div class="col">
+    <section class="panel">
+      <h2>El incidente</h2>
+      <div class="botones" id="incidentes"></div>
+      <h2>La política</h2>
+      <div class="botones" id="politicas"></div>
+      <form id="form"></form>
+      <div class="botones"><button type="button" id="otra">Otra tirada</button><button type="button" id="link">Copiar link</button></div>
+    </section>
+  </div>
+  <div class="col">
+    <section class="panel" id="diagnostico" aria-live="polite"></section>
+    <section class="tiles" id="tiles"></section>
+    <section class="panel">
+      <h2>Intentos que le llegan al servicio, por segundo</h2>
+      <canvas id="carga" role="img" aria-label="Pedidos nuevos e intentos por segundo"></canvas>
+      <div class="leyenda"><span><i style="background:var(--muted)"></i>pedidos nuevos</span><span><i style="background:var(--accent)"></i>intentos (con reintentos)</span><span><i style="background:var(--caida);height:10px"></i>incidente</span></div>
+    </section>
+    <section class="panel">
+      <h2>Qué pasó con los pedidos que entraron en cada segundo</h2>
+      <canvas id="resultado" role="img" aria-label="Pedidos resueltos y fallidos por segundo"></canvas>
+      <div class="leyenda"><span><i style="background:var(--verde)"></i>bien</span><span><i style="background:var(--rojo)"></i>fallaron</span><span><i style="background:var(--amarillo)"></i>de los fallados, cortados por el breaker</span></div>
+    </section>
+    <section class="panel">
+      <h2>Latencia p99 hasta la respuesta final (ms)</h2>
+      <canvas id="latencia" role="img" aria-label="Latencia p99 por segundo"></canvas>
+    </section>
+    <section class="panel">
+      <h2>La misma tormenta, cuatro políticas</h2>
+      <div class="tabla" id="comparacion"></div>
+    </section>
+    <section class="panel">
+      <h2>Tu política en C#</h2>
+      <pre id="codigo"></pre>
+      <div class="botones"><button type="button" id="copiar">Copiar código</button></div>
+    </section>
+    <section class="panel texto">
+      <h2>Cómo leerlo</h2>
+      <ul>
+        <li><b>Amplificación</b>: intentos que llegan al servicio por cada pedido nuevo. Con todo fallando y N reintentos tiende a N + 1.</li>
+        <li><b>Trabajo tirado</b>: el cliente corta por timeout pero el servicio igual termina de procesar. Si la cola es larga, casi todo lo que procesa ya no le sirve a nadie y no se recupera.</li>
+        <li><b>Circuit breaker</b>: deja de llamar cuando la proporción de fallas pasa el umbral. Pierde algunos pedidos que podrían haber salido, a cambio de dejar respirar al servicio.</li>
+        <li>Los reintentos sirven para fallas sueltas y cortas. Contra una caída larga no salvan casi nada.</li>
+      </ul>
+      <h2>Qué supone el modelo</h2>
+      <p>Llegadas al azar (Poisson), un servicio con capacidad fija y cola limitada (cola llena responde error al instante), tiempos lognormales y sin cancelación del lado del servidor. El breaker es por instancia de tu API y el pedido cortado no se reintenta. Los pedidos entran durante la duración elegida; los que quedan pendientes al final se resuelven igual, pero sus reintentos tardíos no se grafican. El jitter es «full jitter» (entre 0 y la espera calculada); Polly usa otro algoritmo, así que los números de producción no van a ser idénticos. Sirve para comparar políticas entre sí, no para predecir tu sistema.</p>
+      <p>Para ver la otra mitad del problema: <a href="../colas-p99/">Por qué explota el p99</a>.</p>
+    </section>
+  </div>
+</main>
+<script src="logica.js"></script>
+<script>
+(function () {
+  const R = window.Reintentos;
+  const INCIDENTES = {
+    caida: { nombre: 'Caída de 15 s', caidaDesde: 15, caidaHasta: 30, fallaCaida: 0.9, lentitudCaida: 3, fallaBase: 0.005, capacidad: 35, cola: 1000 },
+    lento: { nombre: 'Servicio lento', caidaDesde: 15, caidaHasta: 30, fallaCaida: 0, lentitudCaida: 8, fallaBase: 0.005, capacidad: 40, cola: 2000 },
+    sueltas: { nombre: 'Fallas sueltas', caidaDesde: 0, caidaHasta: 0, fallaCaida: 0, lentitudCaida: 1, fallaBase: 0.1, capacidad: 60, cola: 1000 },
+  };
+  const GRUPOS = [
+    ['Reintentos y timeout', true, [['reintentos', 'Reintentos'], ['backoff', 'Espera', [['fijo', 'Fija'], ['exponencial', 'Exponencial']]], ['espera', 'Espera base (ms)'], ['esperaMax', 'Espera máxima (ms)'], ['jitter', 'Jitter'], ['timeout', 'Timeout por intento (ms)']]],
+    ['Circuit breaker', false, [['breaker', 'Usar breaker'], ['umbral', 'Abre con esta proporción de fallas (0 a 1)'], ['minimo', 'Mínimo de pedidos en la ventana'], ['ventana', 'Ventana (s)'], ['apertura', 'Tiempo abierto (s)'], ['instancias', 'Instancias de tu API']]],
+    ['Tráfico y servicio', false, [['rps', 'Pedidos por segundo'], ['capacidad', 'Pedidos en paralelo que aguanta'], ['cola', 'Cola máxima'], ['latencia', 'Latencia normal (ms)'], ['dispersion', 'Dispersión (0 a 1,5)'], ['fallaBase', 'Fallas normales (0 a 1)'], ['duracion', 'Duración (s)']]],
+    ['Detalle del incidente', false, [['caidaDesde', 'Empieza (s)'], ['caidaHasta', 'Termina (s)'], ['fallaCaida', 'Fallas (0 a 1)'], ['lentitudCaida', 'Veces más lento']]],
+  ];
+  const $ = id => document.getElementById(id);
+  const form = $('form');
+  let cfg = R.normalizar(Object.assign({}, R.BASE, INCIDENTES.caida));
+  let ultimo = null;
+
+  // El link compartido manda sobre los valores por defecto.
+  const p = new URLSearchParams(location.hash.slice(1));
+  const deLink = {};
+  for (const [k, v] of p) if (k in R.BASE) deLink[k] = (k === 'jitter' || k === 'breaker') ? v === 'true' : k === 'backoff' ? v : Number(v);
+  cfg = R.normalizar(Object.assign(cfg, deLink));
+
+  for (const [titulo, abierto, campos] of GRUPOS) {
+    const f = document.createElement('fieldset'), d = document.createElement('details'), s = document.createElement('summary');
+    s.textContent = titulo; d.open = abierto && innerWidth > 860; d.append(s);
+    for (const [k, texto, opciones] of campos) {
+      const l = document.createElement('label'); l.className = 'campo';
+      const t = document.createElement('span'); t.textContent = texto;
+      let c;
+      if (opciones) { c = document.createElement('select'); for (const [v, n] of opciones) c.add(new Option(n, v)); }
+      else { c = document.createElement('input'); if (typeof R.BASE[k] === 'boolean') c.type = 'checkbox'; else { c.type = 'number'; c.step = 'any'; c.inputMode = 'decimal'; } }
+      c.name = k; l.append(t, c); d.append(l);
+    }
+    f.append(d); form.append(f);
+  }
+
+  function volcar() {
+    for (const c of form.elements) {
+      if (!c.name) continue;
+      if (c.type === 'checkbox') c.checked = cfg[c.name]; else c.value = cfg[c.name];
+    }
+  }
+  function botones(cont, lista, aplicar) {
+    for (const [clave, e] of Object.entries(lista)) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = e.nombre; b.dataset.clave = clave;
+      b.onclick = () => { const v = Object.assign({}, e); delete v.nombre; cfg = R.normalizar(Object.assign({}, cfg, aplicar(v))); volcar(); correr(); };
+      cont.append(b);
+    }
+  }
+  botones($('incidentes'), INCIDENTES, v => v);
+  botones($('politicas'), R.ESCENARIOS, v => v);
+  function marcar(cont, lista) {
+    for (const b of $(cont).children) {
+      const e = lista[b.dataset.clave];
+      b.setAttribute('aria-pressed', String(Object.keys(e).every(k => k === 'nombre' || cfg[k] === e[k])));
+    }
+  }
+
+  const n = (v, d = 0) => v.toLocaleString('es-AR', { maximumFractionDigits: d, minimumFractionDigits: d });
+  const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+  function grafico(id, series, apilado) {
+    const cv = $(id), dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+    cv.width = W * dpr; cv.height = H * dpr;
+    const g = cv.getContext('2d'); g.scale(dpr, dpr);
+    const dur = ultimo.cfg.duracion, izq = 46, abajo = 20, arriba = 8, w = W - izq - 8, h = H - abajo - arriba;
+    const max = Math.max(1, ...series.flatMap(s => s.datos)) * 1.08;
+    const x = i => izq + i / dur * w, y = v => arriba + h - v / max * h;
+    g.fillStyle = css('--caida');
+    g.fillRect(x(ultimo.cfg.caidaDesde), arriba, x(ultimo.cfg.caidaHasta) - x(ultimo.cfg.caidaDesde), h);
+    g.font = '11px system-ui'; g.strokeStyle = css('--line'); g.fillStyle = css('--muted'); g.lineWidth = 1;
+    for (let k = 0; k <= 4; k++) {
+      const v = max * k / 4;
+      g.beginPath(); g.moveTo(izq, y(v)); g.lineTo(izq + w, y(v)); g.stroke();
+      g.textAlign = 'right'; g.fillText(n(v), izq - 5, y(v) + 4);
+    }
+    g.textAlign = 'center';
+    for (let k = 0; k <= 4; k++) g.fillText(Math.round(dur * k / 4) + ' s', Math.min(x(dur * k / 4), W - 16), H - 5);
+    for (const s of series) {
+      if (apilado) {
+        g.fillStyle = css(s.color);
+        s.datos.forEach((v, i) => { const base = s.base ? s.base[i] : 0; if (v) g.fillRect(x(i), y(base + v), Math.max(1, w / dur - 1), y(base) - y(base + v)); });
+      } else {
+        g.strokeStyle = css(s.color); g.lineWidth = 2; g.beginPath();
+        s.datos.forEach((v, i) => i ? g.lineTo(x(i + .5), y(v)) : g.moveTo(x(.5), y(v)));
+        g.stroke();
+      }
+    }
+  }
+
+  function dibujar() {
+    const s = ultimo.serie;
+    grafico('carga', [{ datos: s.map(c => c.pedidos), color: '--muted' }, { datos: s.map(c => c.intentos), color: '--accent' }]);
+    const bien = s.map(c => c.bien), cort = s.map(c => c.cortados);
+    grafico('resultado', [
+      { datos: bien, color: '--verde' },
+      { datos: cort, base: bien, color: '--amarillo' },
+      { datos: s.map(c => c.mal - c.cortados), base: s.map(c => c.bien + c.cortados), color: '--rojo' },
+    ], true);
+    grafico('latencia', [{ datos: s.map(c => c.p99), color: '--azul' }]);
+  }
+
+  function tile(valor, texto) {
+    const d = document.createElement('div'); d.className = 'tile';
+    const b = document.createElement('b'); b.textContent = valor;
+    const s = document.createElement('span'); s.textContent = texto;
+    d.append(b, s); return d;
+  }
+  const recup = r => r.cfg.caidaHasta <= r.cfg.caidaDesde ? '—' : r.recuperacion === null ? 'no llega' : n(r.recuperacion) + ' s';
+
+  function correr() {
+    const lista = R.comparar(cfg);
+    ultimo = lista[0].r;
+    const sin = lista.find(x => x.clave === 'sin').r, T = ultimo.totales, hay = cfg.caidaHasta > cfg.caidaDesde;
+    const d = R.diagnosticar(ultimo, sin), caja = $('diagnostico');
+    caja.dataset.nivel = d.nivel;
+    const h = document.createElement('h2'); h.textContent = { verde: 'Aguanta bien', amarillo: 'Hay para ajustar', rojo: 'Tormenta' }[d.nivel];
+    const ul = document.createElement('ul');
+    for (const f of d.frases) { const li = document.createElement('li'); li.textContent = f; ul.append(li); }
+    caja.replaceChildren(h, ul);
+    $('tiles').replaceChildren(
+      tile(n(ultimo.exito * 100, 1) + '%', 'pedidos que salieron bien'),
+      tile(n(hay ? ultimo.amplificacionCaida : ultimo.amplificacion, 2) + '×', hay ? 'intentos por pedido en el incidente' : 'intentos por pedido'),
+      tile(n(ultimo.pico), 'pico de intentos en un segundo'),
+      tile(n(ultimo.p50) + ' ms', 'p50 de los que salieron bien'),
+      tile(n(ultimo.p99) + ' ms', 'p99 de los que salieron bien'),
+      tile(recup(ultimo), 'en recuperarse tras el incidente'),
+      tile(n(T.cortados), 'cortados por el breaker'),
+      tile(n(T.desperdiciados), 'intentos de trabajo tirado'),
+    );
+    const t = document.createElement('table');
+    const fila = (celdas, tag) => { const tr = t.insertRow(); for (const c of celdas) { const e = document.createElement(tag); e.textContent = c; tr.append(e); } };
+    fila(['Política', 'Éxito', hay ? 'Intentos/pedido en el incidente' : 'Intentos/pedido', 'Pico/s', 'p99 bien', 'Recupera', 'Trabajo tirado'], 'th');
+    for (const x of lista) { const r = x.r; fila([x.nombre, n(r.exito * 100, 1) + '%', n(hay ? r.amplificacionCaida : r.amplificacion, 2) + '×', n(r.pico), n(r.p99) + ' ms', recup(r), n(r.totales.desperdiciados)], 'td'); }
+    $('comparacion').replaceChildren(t);
+    $('codigo').textContent = R.csharp(cfg);
+    marcar('incidentes', INCIDENTES); marcar('politicas', R.ESCENARIOS);
+    dibujar();
+  }
+
+  let espera = 0;
+  form.addEventListener('input', e => {
+    const c = e.target;
+    if (c.type === 'number' && c.value === '') return;
+    cfg[c.name] = c.type === 'checkbox' ? c.checked : c.name === 'backoff' ? c.value : Number(c.value);
+    clearTimeout(espera);
+    espera = setTimeout(() => { cfg = R.normalizar(cfg); correr(); }, 350);
+  });
+  form.addEventListener('change', () => { clearTimeout(espera); cfg = R.normalizar(cfg); volcar(); correr(); });
+  form.addEventListener('submit', e => e.preventDefault());
+
+  async function copiar(boton, texto) {
+    const antes = boton.textContent;
+    try { await navigator.clipboard.writeText(texto); boton.textContent = 'Copiado'; }
+    catch (e) { boton.textContent = 'No se pudo copiar'; }
+    setTimeout(() => { boton.textContent = antes; }, 1500);
+  }
+  $('copiar').onclick = e => copiar(e.target, $('codigo').textContent);
+  $('link').onclick = e => {
+    history.replaceState(null, '', '#' + new URLSearchParams(Object.entries(cfg)).toString());
+    copiar(e.target, location.href);
+  };
+  $('otra').onclick = () => { cfg.semilla = (cfg.semilla + 1) >>> 0; correr(); };
+  let ancho = innerWidth;
+  addEventListener('resize', () => { if (innerWidth !== ancho) { ancho = innerWidth; dibujar(); } });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', dibujar);
+
+  volcar(); correr();
+})();
+</script>
+</body>
+</html>
