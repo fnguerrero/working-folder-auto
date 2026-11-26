@@ -59,6 +59,7 @@ Trabaja directo sobre `main`. Si algo no te gusta, se mueve a `_archivo/`.
 | Cuentos para Valentín | escritos | Cinco cuentos cortos ilustrados para leer de a dos: tocás los dibujos para que suenen y el celular los puede leer en voz alta. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/escritos/cuentos-para-valentin/) |
 | Pintar con el dedo | juegos | Pizarra a pantalla completa para los más chicos: colores grandes, sellos con sonido y el dibujo se guarda como imagen. | terminado | [abrir](https://fnguerrero.github.io/working-folder-auto/juegos/pintar-con-el-dedo/) |
 | La sudestada en números | experimentos | Mové el viento, la marea y los ríos y mirá cómo sube el Río de la Plata hasta el Delta, con un modelo de juguete. | en curso | [abrir](https://fnguerrero.github.io/working-folder-auto/experimentos/sudestada-en-numeros/) |
+| De Newtonsoft.Json a System.Text.Json | escritos | Guía para migrar un backend .NET: qué cambia de comportamiento, equivalencias de atributos y converters, polimorfismo, source generators y checklist. | terminado | [abrir](https://github.com/fnguerrero/working-folder-auto/tree/main/escritos/newtonsoft-a-system-text-json) |
 
 ## La vitrina
 

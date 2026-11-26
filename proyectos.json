@@ -628,5 +628,19 @@
     "detalle": "Un simulador del estuario en una dimensión con mapa animado y curvas en cuatro puntos. Compara crecidas con datos publicados y cuenta sin vueltas dónde el modelo se equivoca.",
     "destacado": false,
     "actualizado": "2026-11-25"
+  },
+  {
+    "slug": "newtonsoft-a-system-text-json",
+    "nombre": "De Newtonsoft.Json a System.Text.Json",
+    "categoria": "escritos",
+    "descripcion": "Guía para migrar un backend .NET: qué cambia de comportamiento, equivalencias de atributos y converters, polimorfismo, source generators y checklist.",
+    "estado": "terminado",
+    "probar": "https://github.com/fnguerrero/working-folder-auto/tree/main/escritos/newtonsoft-a-system-text-json",
+    "desde": "2026-11-25",
+    "icono": "🔁",
+    "para": "devs",
+    "detalle": "Los casos que más muerden al pasar de Newtonsoft.Json a System.Text.Json, varios sin ningún error a la vista, con tests de ejemplo. Incluye tablas de equivalencias y un checklist para pegar en el PR.",
+    "destacado": false,
+    "actualizado": "2026-11-25"
   }
 ]

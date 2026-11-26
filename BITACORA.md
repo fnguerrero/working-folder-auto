@@ -3,6 +3,7 @@
 Una entrada por noche, la más nueva arriba.
 
 ## 2026-11-25
+- **De Newtonsoft.Json a System.Text.Json** (escritos, sugerencia #5, de día, terminado): once capítulos, checklist y tests de ejemplo (142 casos en verde). No probado: publicación nativa AOT. Probar: https://github.com/fnguerrero/working-folder-auto/tree/main/escritos/newtonsoft-a-system-text-json
 - **La sudestada en números** (experimentos, sugerencia #17, de día, en curso): modelo 1D del estuario. Verif: 16 tests y navegador headless. La validación es floja: reprueba septiembre 2013 (da 1,10 m contra 2,91 publicado) y en los otros casos el viento es supuesto. Probar: https://fnguerrero.github.io/working-folder-auto/experimentos/sudestada-en-numeros/
 - **Pintar con el dedo** (juegos, sugerencia #1, de día, terminado): pizarra multitáctil con sellos y sonido. Verif: e2e headless en varios tamaños. No probado en celular físico ni con sonido. Probar: https://fnguerrero.github.io/working-folder-auto/juegos/pintar-con-el-dedo/
 - **La tormenta de reintentos** (experimentos, sugerencia #11, de día, terminado): simulador de reintentos, timeout y circuit breaker con snippet de C#. Verif: 15 tests y revisión en navegador a 360 px y escritorio. No probado: el C# no se compiló. Probar: https://fnguerrero.github.io/working-folder-auto/experimentos/tormenta-de-reintentos/
