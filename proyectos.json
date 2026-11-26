@@ -642,5 +642,19 @@
     "detalle": "Los casos que más muerden al pasar de Newtonsoft.Json a System.Text.Json, varios sin ningún error a la vista, con tests de ejemplo. Incluye tablas de equivalencias y un checklist para pegar en el PR.",
     "destacado": false,
     "actualizado": "2026-11-25"
+  },
+  {
+    "slug": "historia-computacion-argentina",
+    "nombre": "Clementina y los que vinieron después",
+    "categoria": "escritos",
+    "descripcion": "Historia de la computación en Argentina en siete capítulos cortos, con fuentes enlazadas y lo que no se pudo confirmar.",
+    "estado": "terminado",
+    "probar": "escritos/historia-computacion-argentina/",
+    "desde": "2026-11-26",
+    "icono": "💾",
+    "para": "todos",
+    "detalle": "De Clementina y el Instituto de Cálculo a las calculadoras Cifra, las computadoras hogareñas de los 80, la llegada de Internet y el software de exportación. Tiene línea de tiempo y modo lectura, y separa lo documentado de la anécdota.",
+    "destacado": false,
+    "actualizado": "2026-11-26"
   }
 ]

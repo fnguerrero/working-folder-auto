@@ -2,6 +2,9 @@
 
 Una entrada por noche, la más nueva arriba.
 
+## 2026-11-26
+- **Clementina y los que vinieron después** (escritos, sugerencia #12, de día, terminado): siete capítulos con 30 fuentes y apartado de lo no confirmado. Verif: script de enlaces internos y navegador headless. No comprobado que los enlaces externos respondan. Probar: https://fnguerrero.github.io/working-folder-auto/escritos/historia-computacion-argentina/
+
 ## 2026-11-25
 - **De Newtonsoft.Json a System.Text.Json** (escritos, sugerencia #5, de día, terminado): once capítulos, checklist y tests de ejemplo (142 casos en verde). No probado: publicación nativa AOT. Probar: https://github.com/fnguerrero/working-folder-auto/tree/main/escritos/newtonsoft-a-system-text-json
 - **La sudestada en números** (experimentos, sugerencia #17, de día, en curso): modelo 1D del estuario. Verif: 16 tests y navegador headless. La validación es floja: reprueba septiembre 2013 (da 1,10 m contra 2,91 publicado) y en los otros casos el viento es supuesto. Probar: https://fnguerrero.github.io/working-folder-auto/experimentos/sudestada-en-numeros/
