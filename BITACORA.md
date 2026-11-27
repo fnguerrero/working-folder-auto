@@ -2,6 +2,10 @@
 
 Una entrada por noche, la más nueva arriba.
 
+## 2026-11-27
+- Noche liviana por consumo (semanal 9% cerca del ritmo, 11%): sin pedidos `noche` en working-folder-auto ni en azarium, no se trabajó nada.
+- Sin revisar: pedidos de multimarket (la credencial de GitHub del conector está rechazada y no hay `gh`; renovar el token).
+
 ## 2026-11-26
 - **LINQ con el cronómetro en la mano** (escritos, sugerencia #20, de día, terminado): mediciones con arnés propio (sin BenchmarkDotNet), en una PC con otros procesos. Verif: tests y navegador headless. Probar: https://fnguerrero.github.io/working-folder-auto/escritos/linq-con-cronometro/
 - **Async con el cronómetro en la mano** (escritos, sugerencia #16, de día, terminado): mediciones con arnés propio (sin BenchmarkDotNet), en una PC con otros procesos. Verif: tests y navegador headless. Probar: https://fnguerrero.github.io/working-folder-auto/escritos/async-con-cronometro/
