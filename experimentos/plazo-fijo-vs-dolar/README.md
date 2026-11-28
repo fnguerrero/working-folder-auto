@@ -6,12 +6,11 @@ Comparador histórico argentino: "si en tal mes ponía $100.000 en plazo fijo, e
 
 ## Estado: en curso
 
-Funciona con datos oficiales de 2004-01 a 2026-09. Falta:
+Funciona con datos oficiales de 2004-01 a 2026-09; la inflación de 2007-01 a 2012-07 es el IPC de San Luis. Falta:
 
 - Dólar blue (sin publicación oficial).
-- Inflación alternativa 2007-01 a 2012-07 (la candidata es el IPC de San Luis).
 
-Las dos se pueden cargar en la página con un CSV propio. Detalle en [FUENTES.md](FUENTES.md).
+Se puede cargar en la página con un CSV propio. Detalle en [FUENTES.md](FUENTES.md).
 
 ## Qué tiene
 

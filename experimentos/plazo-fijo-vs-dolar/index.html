@@ -47,7 +47,7 @@ svg text{fill:var(--suave);font-size:12px}
 <main>
 <h1>Plazo fijo, dólar o inflación</h1>
 <p class="suave">Qué habría pasado con tus pesos, mes a mes, con datos publicados desde 2004. Es un comparador histórico: no recomienda qué hacer ni dice nada del futuro. <a href="ANALISIS.md">Análisis</a> · <a href="FUENTES.md">Fuentes</a></p>
-<p class="aviso" id="avisoFalta">Faltan dos series: el <b>dólar blue</b> (no hay publicación oficial) y la <b>inflación alternativa entre enero de 2007 y julio de 2012</b>. Podés cargarlas con un CSV propio más abajo.</p>
+<p class="aviso" id="avisoFalta">Falta el <b>dólar blue</b> (no hay publicación oficial): podés cargarlo con un CSV propio más abajo.</p>
 <p class="aviso" id="avisoInventado" role="alert" hidden><b>DATOS INVENTADOS:</b> estás viendo el archivo de ejemplo. El blue y la inflación cargados no son reales y no sirven para sacar ninguna conclusión.</p>
 
 <section aria-labelledby="t1">
@@ -63,7 +63,7 @@ svg text{fill:var(--suave);font-size:12px}
 <option value="una">Una sola vez (30 días) y queda quieto</option>
 </select></label>
 <label>Inflación<select id="inflacion">
-<option value="referencia">De referencia (INDEC y CABA, con hueco)</option>
+<option value="referencia">De referencia (INDEC, San Luis y CABA)</option>
 <option value="indec">INDEC oficial completa (cuestionada 2007-2015)</option>
 </select></label>
 </div>
@@ -110,7 +110,7 @@ svg text{fill:var(--suave);font-size:12px}
 
 <section aria-labelledby="t4">
 <h2 id="t4">Cargar tus datos</h2>
-<p class="suave">CSV con la columna <code>mes</code> (AAAA-MM) y <code>dolar_blue</code> (pesos por dólar, promedio del mes) y/o <code>inflacion_alt_pct</code> (variación mensual en %). La inflación cargada solo llena huecos. Queda en este navegador; no se manda a ningún lado y nadie la verifica.</p>
+<p class="suave">CSV con las columnas <code>mes</code> (AAAA-MM) y <code>dolar_blue</code> (pesos por dólar, promedio del mes). Queda en este navegador; no se manda a ningún lado y nadie la verifica.</p>
 <label>Archivo CSV<input type="file" id="archivo" accept=".csv,text/csv"></label>
 <div class="botones">
 <button type="button" id="ejemplo">Probar con ejemplo INVENTADO</button>

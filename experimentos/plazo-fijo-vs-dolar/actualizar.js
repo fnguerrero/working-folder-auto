@@ -24,6 +24,7 @@ const ARCHIVOS = {
   plazoFijo: 'plazo_fijo.csv',
   dolar: 'dolar.csv',
   inflacionIndec: 'inflacion_indec.csv',
+  ipcSanLuis: 'ipc_san_luis.csv',
   ipcCaba: 'ipc_caba.csv',
   ipcNacional: 'ipc_nacional.csv',
   ejemplo: 'ejemplo-INVENTADO.csv',

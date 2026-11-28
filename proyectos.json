@@ -667,9 +667,9 @@
     "desde": "2026-11-26",
     "icono": "💵",
     "para": "todos",
-    "detalle": "Elegís mes de entrada, de salida y monto, y ves cuánto tenías en cada opción, con datos oficiales. Faltan el dólar blue y la inflación alternativa de 2007 a mediados de 2012. No es asesoramiento financiero.",
+    "detalle": "Elegís mes de entrada, de salida y monto, y ves cuánto tenías en cada opción, con datos oficiales; de 2007 a mediados de 2012 la inflación es la de San Luis. Falta el dólar blue. No es asesoramiento financiero.",
     "destacado": false,
-    "actualizado": "2026-11-26"
+    "actualizado": "2026-11-27"
   },
   {
     "slug": "async-con-cronometro",

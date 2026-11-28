@@ -3,6 +3,7 @@
 Una entrada por noche, la más nueva arriba.
 
 ## 2026-11-27
+- **Plazo fijo, dólar o inflación** (experimentos, sugerencia #6, de día, en curso): sumado el IPC de San Luis para 2007-01 a 2012-07, la inflación de referencia ya no tiene huecos y se actualizó el análisis. Falta el dólar blue. Verif: 26 tests. Probar: https://fnguerrero.github.io/working-folder-auto/experimentos/plazo-fijo-vs-dolar/
 - Noche liviana por consumo (semanal 9% cerca del ritmo, 11%): sin pedidos `noche` en working-folder-auto ni en azarium, no se trabajó nada.
 - Sin revisar: pedidos de multimarket (la credencial de GitHub del conector está rechazada y no hay `gh`; renovar el token).
 

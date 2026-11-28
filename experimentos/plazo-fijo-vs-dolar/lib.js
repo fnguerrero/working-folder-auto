@@ -97,18 +97,20 @@
   }
 
   /*
-   * csv: { plazoFijo, dolar, inflacionIndec, ipcCaba, ipcNacional } (texto de cada archivo)
+   * csv: { plazoFijo, dolar, inflacionIndec, ipcSanLuis, ipcCaba, ipcNacional } (texto de cada archivo)
    * carga: resultado de leerCargaUsuario (opcional)
    */
   function armarDatos(csv, carga) {
     const pf = mapa(csv.plazoFijo, 'tna_pct');
     const oficial = mapa(csv.dolar, 'oficial');
     const indec = mapa(csv.inflacionIndec, 'var_pct');
+    const sanLuis = variaciones(mapa(csv.ipcSanLuis, 'indice'));
     const caba = variaciones(mapa(csv.ipcCaba, 'indice'));
     const nacional = variaciones(mapa(csv.ipcNacional, 'indice'));
-    // Serie de referencia: INDEC hasta 2006, CABA 2012-08..2016-12, INDEC nacional desde 2017.
+    // Serie de referencia: INDEC hasta 2006, San Luis 2007-01..2012-07, CABA 2012-08..2016-12, INDEC nacional desde 2017.
     const referencia = new Map();
     for (const [m, v] of indec) if (m <= '2006-12') referencia.set(m, v);
+    for (const [m, v] of sanLuis) if (m >= '2007-01' && m <= '2012-07') referencia.set(m, v);
     for (const [m, v] of caba) if (m <= '2016-12') referencia.set(m, v);
     for (const [m, v] of nacional) if (m >= '2017-01') referencia.set(m, v);
     const blue = (carga && carga.blue) || new Map();

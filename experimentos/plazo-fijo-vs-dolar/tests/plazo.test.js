@@ -111,13 +111,19 @@ test('cotejo BCRA diario: la tasa a 30 días queda a menos de 5 % de la mensual 
   }
 });
 
-test('la serie de referencia tiene exactamente el hueco 2007-01 a 2012-07', () => {
-  const faltan = PF.huecos(datos.inflacion.referencia, '2004-01', '2026-10');
-  assert.equal(faltan.length, 67);
-  assert.equal(faltan[0], '2007-01');
-  assert.equal(faltan[66], '2012-07');
+test('la serie de referencia no tiene huecos y usa San Luis de 2007-01 a 2012-07', () => {
+  assert.equal(PF.huecos(datos.inflacion.referencia, '2004-01', '2026-10').length, 0);
   assert.equal(PF.huecos(datos.inflacion.indec, '2004-01', '2026-10').length, 0);
+  const sl = PF.parseCSV(leer('cotejo/ipc_san_luis_var.csv')).filas;
+  assert.equal(sl.length, 72);
+  for (const f of sl) {
+    if (f.mes > '2012-07') continue;
+    cerca(datos.inflacion.referencia.get(f.mes), Number(f.var_pct), 2e-4);
+  }
 });
+
+/* Mismos datos sin San Luis: sirve para probar cómo se comporta la cuenta cuando falta inflación. */
+const sinSanLuis = PF.armarDatos({ ...csv, ipcSanLuis: 'mes,indice\n' });
 
 test('sin carga del usuario no hay blue', () => {
   assert.equal(datos.blue.size, 0);
@@ -163,7 +169,7 @@ test('simular: nominal, pesos de hoy y variación real', () => {
 });
 
 test('simular: con hueco de inflación da nominal pero no inventa lo real', () => {
-  const r = PF.simular(datos, { desde: '2008-01', hasta: '2010-01', monto: 100 });
+  const r = PF.simular(sinSanLuis, { desde: '2008-01', hasta: '2010-01', monto: 100 });
   assert.equal(r.inflacionPeriodo, null);
   for (const x of r.resultados) {
     assert.ok(x.nominal > 0);
@@ -173,7 +179,7 @@ test('simular: con hueco de inflación da nominal pero no inventa lo real', () =
 });
 
 test('simular: entrada antes del hueco y salida después permite pesos de hoy pero no la variación real', () => {
-  const r = PF.simular(datos, { desde: '2010-01', hasta: '2020-01', monto: 100 });
+  const r = PF.simular(sinSanLuis, { desde: '2010-01', hasta: '2020-01', monto: 100 });
   assert.equal(r.inflacionPeriodo, null);
   assert.ok(r.resultados[0].hoy > 0);
 });
@@ -218,7 +224,7 @@ test('números en formato argentino', () => {
 test('carga del usuario: acepta punto y coma, y no pisa la serie de referencia', () => {
   const c = PF.leerCargaUsuario('mes;dolar_blue;inflacion_alt_pct\n2007-01;3,5;2\n2020-01;80;99\n');
   assert.deepEqual(c.errores, []);
-  const d = PF.armarDatos(csv, c);
+  const d = PF.armarDatos({ ...csv, ipcSanLuis: 'mes,indice\n' }, c);
   assert.equal(d.blue.get('2007-01'), 3.5);
   assert.equal(d.inflacion.referencia.get('2007-01'), 2);
   assert.equal(d.inflacion.referencia.get('2020-01'), datos.inflacion.referencia.get('2020-01'));

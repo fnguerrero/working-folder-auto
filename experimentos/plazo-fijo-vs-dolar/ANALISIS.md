@@ -6,13 +6,13 @@ Comparación histórica, no recomendación. Compite **plazo fijo renovado cada m
 
 | Entrada → salida | Plazo fijo | Dólar oficial | Inflación del período | Contra la inflación (PF / dólar) |
 |---|---:|---:|---:|---|
-| 2004-01 → 2009-12 | **$152.131** | $131.430 | 62,6 % (INDEC, cuestionada) | −6,4 % / −19,2 % con esa cifra |
-| 2009-12 → 2019-12 | $779.221 | **$1.573.183** | 715,9 % (INDEC, cuestionada) | −4,5 % / +92,8 % con esa cifra |
+| 2004-01 → 2009-12 | **$152.131** | $131.430 | 126,5 % (referencia) | −32,8 % / −42,0 % |
+| 2009-12 → 2019-12 | $779.221 | **$1.573.183** | 1.644,8 % (referencia) | −55,3 % / −9,8 % |
 | 2019-12 → 2026-09 | $2.147.925 | **$2.528.046** | 4.315 % (referencia) | −51,3 % / −42,7 % |
 
-- En los dos primeros tramos la inflación de referencia tiene hueco, así que lo "real" solo sale con el INDEC oficial, que **subestima** 2007-2015: lo verdadero fue peor que lo que dice esa columna.
-- Desde 2012-07, donde la referencia ya alcanza: a 2019-12 el plazo fijo perdió 38,6 % y el dólar ganó 35,3 % contra la inflación. Con la cifra del INDEC esas mismas cuentas dan −6,6 % y +105,6 %. La elección de la serie cambia mucho la historia.
-- De 2019-12 a 2026-09 **las dos perdieron** contra la inflación.
+- La referencia usa de 2007-01 a 2012-07 el IPC de la provincia de San Luis: es una sola provincia, no un índice nacional. Con el INDEC oficial, cuestionado en 2007-2015, el primer tramo daría 62,6 % de inflación (−6,4 % / −19,2 %) y el segundo 715,9 % (−4,5 % / +92,8 %).
+- De 2012-07 a 2019-12 el plazo fijo perdió 38,6 % y el dólar ganó 35,3 % contra la inflación. Con la cifra del INDEC esas mismas cuentas dan −6,6 % y +105,6 %. La elección de la serie cambia mucho la historia.
+- Con la referencia, en los tres tramos **las dos perdieron** contra la inflación.
 
 ## Ventanas de 12 meses
 
@@ -31,7 +31,7 @@ Pesos quietos no ganó ninguna.
 - Mayores márgenes: dólar entrando en 2023-01 (83 % más que el plazo fijo); plazo fijo entrando en 2024-01 (31,9 % más que el dólar).
 - Las victorias vienen en tandas: dólar entrando de 2011-12 a 2013-12 (25 meses seguidos), de 2017-02 a 2018-08 y de 2022-12 a 2023-11; plazo fijo de 2008-12 a 2011-11 (36 seguidos) y de 2005-10 a 2008-02.
 
-**Contra la inflación de referencia** (183 ventanas con dato; faltan las que tocan 2007-01 a 2012-07): el dólar le ganó en 73, el plazo fijo en 29. Con el INDEC oficial (261): 109 y 104.
+**Contra la inflación de referencia** (261 ventanas): el dólar le ganó en 81, el plazo fijo en 32. Con el INDEC oficial: 109 y 104.
 
 ## Cómo cambia con el plazo
 

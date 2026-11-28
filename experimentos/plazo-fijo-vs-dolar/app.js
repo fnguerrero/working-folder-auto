@@ -238,7 +238,7 @@
     }
     carga = r;
     const guardado = guardar(texto);
-    estado.append(el('p', {}, `Cargado${r.inventado ? ' (ejemplo INVENTADO)' : ''}: ${r.blue.size} meses de blue y ${r.alt.size} de inflación.` + (guardado ? '' : ' No se pudo guardar: se pierde al cerrar.')));
+    estado.append(el('p', {}, `Cargado${r.inventado ? ' (ejemplo INVENTADO)' : ''}: ${r.blue.size} meses de blue.` + (guardado ? '' : ' No se pudo guardar: se pierde al cerrar.')));
     rearmar();
   }
 

@@ -9,6 +9,7 @@ Todo se leyó el **2026-11-26** en publicaciones oficiales, con una herramienta 
 | `datos/plazo_fijo.csv` | Tasa de plazo fijo de 30 a 59 días, % nominal anual, promedio mensual (BCRA) | 2004-01 a 2026-09 | [datos.gob.ar, serie `89.1_TIPF35D_0_0_35`](https://apis.datos.gob.ar/series/api/series/?ids=89.1_TIPF35D_0_0_35&start_date=2004-01-01&format=json) |
 | `datos/dolar.csv` (`oficial`) | Dólar mayorista de referencia, Com. "A" 3500 (BCRA), promedio mensual | 2004-01 a 2026-09 | [datos.gob.ar, serie `168.1_T_CAMBI500_D_0_0_17`](https://apis.datos.gob.ar/series/api/series/?ids=168.1_T_CAMBI500_D_0_0_17&collapse=month&collapse_aggregation=avg&start_date=2004-01-01&format=json) |
 | `datos/inflacion_indec.csv` | Inflación mensual que publica el BCRA (cifras del INDEC), % con un decimal | 2004-01 a 2026-10 | [API BCRA v4.0, variable 27](https://api.bcra.gob.ar/estadisticas/v4.0/Monetarias/27?desde=2004-01-01&hasta=2026-10-31&limit=400) |
+| `datos/ipc_san_luis.csv` | IPC de la provincia de San Luis, nivel general (índice, base 2003 = 100), Dirección Provincial de Estadística y Censos | 2006-12 a 2012-12 (se usa 2007-01 a 2012-07) | [datos.gob.ar, serie `197.1_NIVEL_GENERAL_2014_0_13`](https://apis.datos.gob.ar/series/api/series/?ids=197.1_NIVEL_GENERAL_2014_0_13&start_date=2006-12-01&end_date=2012-12-01&limit=100&format=json), leída el 2026-11-27 |
 | `datos/ipc_caba.csv` | IPC Ciudad de Buenos Aires, nivel general (índice), IDECBA | 2012-07 a 2016-12 | [datos.gob.ar, serie `193.1_NIVEL_GENERAL_JULI_0_13`](https://apis.datos.gob.ar/series/api/series/?ids=193.1_NIVEL_GENERAL_JULI_0_13&end_date=2016-12-31&limit=60&format=json) |
 | `datos/ipc_nacional.csv` | IPC nacional, nivel general, base dic-2016 = 100, INDEC | 2016-12 a 2026-10 | [datos.gob.ar, serie `148.3_INIVELNAL_DICI_M_26`](https://apis.datos.gob.ar/series/api/series/?ids=148.3_INIVELNAL_DICI_M_26&start_date=2016-12-01&limit=200&format=json) |
 
@@ -19,19 +20,18 @@ La metadata de la serie `89.1` no aclara la moneda; se toma como pesos porque de
 | Tramo | Se usa |
 |---|---|
 | 2004-01 a 2006-12 | INDEC (`inflacion_indec.csv`) |
-| **2007-01 a 2012-07** | **Nada: hueco** |
+| 2007-01 a 2012-07 | IPC San Luis (variación calculada desde el índice) |
 | 2012-08 a 2016-12 | IPC CABA (variación calculada desde el índice) |
 | 2017-01 en adelante | IPC nacional INDEC |
 
-El hueco **no se rellenó**. La otra opción de la página, "INDEC oficial completa", usa `inflacion_indec.csv` de punta a punta, incluidos 2007-2015, años en que esas cifras fueron muy cuestionadas por subestimar la inflación. Es una opción explícita y con aviso.
+El tramo de San Luis es el de **una sola provincia**, no un índice nacional: se usa porque en esos años las cifras del INDEC fueron muy cuestionadas. La otra opción de la página, "INDEC oficial completa", usa `inflacion_indec.csv` de punta a punta, incluidos 2007-2015, años en que esas cifras fueron muy cuestionadas por subestimar la inflación. Es una opción explícita y con aviso.
 
 ## Lo que falta
 
 1. **Dólar blue (todo el período).** No se encontró una publicación oficial. El issue sugiere Ámbito, que es una fuente privada y quedó fuera de esta tanda.
-2. **Inflación alternativa 2007-01 a 2012-07.** La candidata es el IPC de la provincia de San Luis, que su [Dirección de Estadística](https://estadistica.sanluis.gov.ar/Categorias/economia/precios/ipc-sanluis) publica en informes PDF. En esa página solo se vieron enlazados informes de 2016 en adelante. Hace falta la serie mensual 2007-2012 (variación % del nivel general).
-3. **Octubre de 2026** en tasa y dólar: las series mensuales usadas llegaban hasta septiembre.
+2. **Octubre de 2026** en tasa y dólar: las series mensuales usadas llegaban hasta septiembre.
 
-Para cargar 1 y 2 desde la página: CSV con `mes,dolar_blue,inflacion_alt_pct` (ver `datos/ejemplo-INVENTADO.csv`, cuyos valores **son inventados**).
+Para cargar el blue desde la página: CSV con `mes,dolar_blue` (ver `datos/ejemplo-INVENTADO.csv`, cuyos valores **son inventados**).
 
 ## Cotejos (se repiten con `node --test`)
 
@@ -42,10 +42,11 @@ Para cargar 1 y 2 desde la página: CSV con `mes,dolar_blue,inflacion_alt_pct` (
 | Tasa, 268 meses | [serie `174.1_T_INTERD_0_0_41`](https://apis.datos.gob.ar/series/api/series/?ids=174.1_T_INTERD_0_0_41&start_date=2004-01-01&limit=300&format=json) | Iguales hasta 2009-06. Después difieren: máximo 8,4 % relativo (2011-11). Son dos compilaciones; con cualquiera de las dos, el ganador de las ventanas de 12 meses comparables (256) es el mismo |
 | Tasa, enero 2014 y septiembre 2026 | [API BCRA, variable 12](https://api.bcra.gob.ar/estadisticas/v4.0/Monetarias/12?desde=2026-09-01&hasta=2026-09-30) (depósitos a 30 días, otra definición) | A menos de 5 % (2 % y 4,1 %) |
 | INDEC 2004-2006 | [serie `96.3_INGV_2008_M_20`](https://apis.datos.gob.ar/series/api/series/?ids=96.3_INGV_2008_M_20&start_date=2004-01-01&end_date=2006-12-31&format=json) | Coinciden al redondeo de un decimal |
+| IPC San Luis, 72 meses | La misma serie pedida como variación porcentual (`datos/cotejo/ipc_san_luis_var.csv`) | Coinciden. Detecta errores de transcripción, no es una segunda fuente |
 | IPC CABA | La misma serie pedida como variación porcentual | Coinciden. Detecta errores de transcripción, no es una segunda fuente |
 | IPC nacional 2017-2026 | API BCRA, variable 27 | Coinciden al redondeo salvo **2017-01 (1,59 vs 1,3), 02 (2,07 vs 2,5), 04 (2,66 vs 2,6) y 05 (1,43 vs 1,3)**. La causa no se verificó; la referencia usa el índice nacional |
 
-**Sin segunda fuente:** IPC CABA (solo control interno) e inflación del BCRA 2007-2016, incluidos noviembre 2015 a abril 2016.
+**Sin segunda fuente:** IPC San Luis, IPC CABA (solo control interno) e inflación del BCRA 2007-2016, incluidos noviembre 2015 a abril 2016.
 
 ## Agregar meses
 
